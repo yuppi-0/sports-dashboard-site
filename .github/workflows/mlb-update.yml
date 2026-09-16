@@ -34,10 +34,10 @@ jobs:
       - name: サイト側リポジトリを取得（このリポジトリ自身。docs/・scripts/など）
         uses: actions/checkout@v4
 
-      - name: データ側リポジトリを取得（非公開のbaseball-dashboard-data。data/配下に展開）
+      - name: データ側リポジトリを取得（非公開のsports-dashboard-data。data/配下に展開）
         uses: actions/checkout@v4
         with:
-          repository: yuppi-0/baseball-dashboard-data
+          repository: yuppi-0/sports-dashboard-data
           token: ${{ secrets.DATA_REPO_TOKEN }}
           path: data
 
@@ -81,7 +81,7 @@ jobs:
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
-          python scripts/run_mlb.py --date ${{ steps.date.outputs.date }} --steps ${{ inputs.steps || 'all' }} ${{ inputs.skip_llm_input && '--skip-llm-input' || '' }}
+          python baseball/scripts/run_mlb.py --date ${{ steps.date.outputs.date }} --steps ${{ inputs.steps || 'all' }} ${{ inputs.skip_llm_input && '--skip-llm-input' || '' }}
 
       - name: 活躍選手0件の日付がないか確認
         if: steps.check.outputs.skip != 'true'
@@ -107,7 +107,7 @@ jobs:
           for d in dates:
               found_file = False
               has_hl = False
-              for path in glob.glob(f"docs/data/MLB/*/*/games/json/{d}.json"):
+              for path in glob.glob(f"docs/baseball/data/MLB/*/*/games/json/{d}.json"):
                   found_file = True
                   with open(path, encoding="utf-8") as f:
                       data = json.load(f)
@@ -131,7 +131,7 @@ jobs:
           STEPS_ARG: ${{ inputs.steps || 'all' }}
           TARGET_DATE: ${{ steps.date.outputs.date }}
 
-      - name: データ側をコミット&push（baseball-dashboard-data）
+      - name: データ側をコミット&push（sports-dashboard-data）
         if: steps.check.outputs.skip != 'true'
         working-directory: data
         run: |

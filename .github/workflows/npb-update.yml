@@ -38,10 +38,10 @@ jobs:
       - name: サイト側リポジトリを取得（このリポジトリ自身。docs/・scripts/など）
         uses: actions/checkout@v4
 
-      - name: データ側リポジトリを取得（非公開のbaseball-dashboard-data。data/配下に展開）
+      - name: データ側リポジトリを取得（非公開のsports-dashboard-data。data/配下に展開）
         uses: actions/checkout@v4
         with:
-          repository: yuppi-0/baseball-dashboard-data
+          repository: yuppi-0/sports-dashboard-data
           token: ${{ secrets.DATA_REPO_TOKEN }}
           path: data
 
@@ -89,9 +89,9 @@ jobs:
         run: |
           if [ -n "${{ inputs.game_ids }}" ]; then
             echo "特定試合の再取得モード: ${{ inputs.game_ids }}"
-            python scripts/run.py --steps games pitch datamart ${{ inputs.game_ids }} --date ${{ steps.date.outputs.date }} --1軍 ${{ inputs.skip_llm_input && '--skip-llm-input' || '' }}
+            python baseball/scripts/run.py --steps games pitch datamart ${{ inputs.game_ids }} --date ${{ steps.date.outputs.date }} --1軍 ${{ inputs.skip_llm_input && '--skip-llm-input' || '' }}
           else
-            python scripts/run.py --date ${{ steps.date.outputs.date }} --steps ${{ inputs.steps || 'all' }} --1軍 ${{ inputs.skip_llm_input && '--skip-llm-input' || '' }}
+            python baseball/scripts/run.py --date ${{ steps.date.outputs.date }} --steps ${{ inputs.steps || 'all' }} --1軍 ${{ inputs.skip_llm_input && '--skip-llm-input' || '' }}
           fi
 
       - name: 活躍選手0件の日付がないか確認（1軍）
@@ -118,7 +118,7 @@ jobs:
           for d in dates:
               found_file = False
               has_hl = False
-              for path in glob.glob(f"docs/data/プロ野球/*/1軍/*/games/json/{d}.json"):
+              for path in glob.glob(f"docs/baseball/data/プロ野球/*/1軍/*/games/json/{d}.json"):
                   found_file = True
                   with open(path, encoding="utf-8") as f:
                       data = json.load(f)
@@ -149,9 +149,9 @@ jobs:
         run: |
           if [ -n "${{ inputs.game_ids }}" ]; then
             echo "特定試合の再取得モード: ${{ inputs.game_ids }}"
-            python scripts/run.py --steps games pitch datamart ${{ inputs.game_ids }} --date ${{ steps.date.outputs.date }} --2軍 ${{ inputs.skip_llm_input && '--skip-llm-input' || '' }}
+            python baseball/scripts/run.py --steps games pitch datamart ${{ inputs.game_ids }} --date ${{ steps.date.outputs.date }} --2軍 ${{ inputs.skip_llm_input && '--skip-llm-input' || '' }}
           else
-            python scripts/run.py --date ${{ steps.date.outputs.date }} --steps ${{ inputs.steps || 'all' }} --2軍 ${{ inputs.skip_llm_input && '--skip-llm-input' || '' }}
+            python baseball/scripts/run.py --date ${{ steps.date.outputs.date }} --steps ${{ inputs.steps || 'all' }} --2軍 ${{ inputs.skip_llm_input && '--skip-llm-input' || '' }}
           fi
 
       - name: 活躍選手0件の日付がないか確認（2軍）
@@ -178,7 +178,7 @@ jobs:
           for d in dates:
               found_file = False
               has_hl = False
-              for path in glob.glob(f"docs/data/プロ野球/*/2軍/*/games/json/{d}.json"):
+              for path in glob.glob(f"docs/baseball/data/プロ野球/*/2軍/*/games/json/{d}.json"):
                   found_file = True
                   with open(path, encoding="utf-8") as f:
                       data = json.load(f)
@@ -202,7 +202,7 @@ jobs:
           STEPS_ARG: ${{ inputs.steps || 'all' }}
           TARGET_DATE: ${{ steps.date.outputs.date }}
 
-      - name: データ側をコミット&push（baseball-dashboard-data）
+      - name: データ側をコミット&push（sports-dashboard-data）
         if: steps.check.outputs.skip != 'true'
         working-directory: data
         run: |
