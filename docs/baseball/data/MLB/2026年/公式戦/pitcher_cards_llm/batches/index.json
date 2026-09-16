@@ -1,0 +1,28 @@
+{
+  "batches": [
+    "20260901_1500.json",
+    "20260902_2000.json",
+    "20260904_01.json",
+    "20260906_01.json",
+    "ATH_先発.json",
+    "ATL_先発.json",
+    "AZ_先発.json",
+    "BAL_先発.json",
+    "BOS_先発.json",
+    "CHC_先発.json",
+    "CIN_先発.json",
+    "COL_先発.json",
+    "CWS_先発.json",
+    "HOU_先発.json",
+    "KC_先発.json",
+    "LAA_先発.json",
+    "LAD_先発.json",
+    "MIL_先発.json",
+    "MIN_先発.json",
+    "NYY_先発.json",
+    "SD_先発.json",
+    "SF_先発.json",
+    "TEX_先発.json",
+    "TOR_先発.json"
+  ]
+}

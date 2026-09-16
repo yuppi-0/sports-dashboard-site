@@ -1,0 +1,8 @@
+requests
+beautifulsoup4
+pandas
+numpy
+openpyxl
+google-generativeai
+pybaseball
+python-dotenv

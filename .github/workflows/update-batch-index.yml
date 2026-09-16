@@ -1,0 +1,56 @@
+name: 投手カードLLMバッチ index 更新
+
+# pitcher_cards_llm/batches/ 配下にファイルが追加・更新されたときだけ動く。
+# バッチJSONを保存してpushするだけで、あなたは何もしなくていい。
+on:
+  push:
+    paths:
+      - 'docs/data/**/pitcher_cards_llm/batches/*.json'
+
+permissions:
+  contents: write
+
+jobs:
+  update-index:
+    runs-on: ubuntu-latest
+    steps:
+      - name: リポジトリを取得
+        uses: actions/checkout@v4
+
+      - name: 各リーグのbatches/index.jsonを再生成
+        run: |
+          python3 - <<'PYEOF'
+          import json, glob, os
+
+          # docs/data/{リーグ}/.../pitcher_cards_llm/batches/ を全部探す
+          batch_dirs = set()
+          for path in glob.glob("docs/data/**/pitcher_cards_llm/batches/*.json", recursive=True):
+              batch_dirs.add(os.path.dirname(path))
+
+          for batches_dir in sorted(batch_dirs):
+              files = sorted(
+                  f for f in os.listdir(batches_dir)
+                  if f.endswith(".json") and f != "index.json"
+              )
+              index_path = os.path.join(batches_dir, "index.json")
+              with open(index_path, "w", encoding="utf-8") as f:
+                  json.dump({"batches": files}, f, ensure_ascii=False, indent=2)
+              print(f"更新: {index_path} ({len(files)}件)")
+          PYEOF
+
+      - name: 変更があればコミット&push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add docs/data
+          if git diff --cached --quiet; then
+            echo "変更なし"
+          else
+            git commit -m "投手カードLLMバッチ index 自動更新"
+            for i in 1 2 3 4 5; do
+              if git push; then break; fi
+              echo "push失敗。リトライします ($i/5)"
+              git pull --rebase origin main
+              sleep 5
+            done
+          fi

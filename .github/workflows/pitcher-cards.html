@@ -1,0 +1,2234 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>投手AI解釈カード</title>
+<style>
+  :root{
+    --bg: #05080F;
+    --panel: #0F1B2E;
+    --panel-alt: #111F33;
+    --border: rgba(59,130,246,0.16);
+    --text: #E2E8F0;
+    --text-dim: #94A3B8;
+    --text-bright: #F1F5F9;
+    --green: #10B981;
+    --green-text: #6EE7B7;
+    --red: #F87171;
+    --red-text: #FCA5A5;
+    --blue: #3B82F6;
+    --blue-text: #93C5FD;
+    --amber: #F59E0B;
+    --amber-text: #FCD34D;
+  }
+  * { box-sizing: border-box; }
+  html, body{ height:100%; margin:0; overflow:hidden; overscroll-behavior-x:none; }
+  body{
+    background:var(--bg); color:var(--text);
+    font-family: -apple-system, "Hiragino Sans", "Helvetica Neue", Arial, sans-serif;
+  }
+  .app{ display:flex; flex-direction:column; height:100vh; }
+  header{
+    padding:20px 24px 14px; border-bottom:1px solid var(--border);
+    display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;
+    flex-shrink:0;
+  }
+  header h1{ font-size:17px; margin:0; font-weight:700; color:var(--text-bright); letter-spacing:0.01em; }
+  .league-toggle{ display:flex; gap:6px; background:var(--panel); border-radius:8px; padding:3px; }
+  .league-toggle button{
+    border:none; background:transparent; color:var(--text-dim); font-size:12px; font-weight:700;
+    padding:6px 14px; border-radius:6px; cursor:pointer;
+  }
+  .league-toggle button.active{ background:var(--panel-alt); color:var(--text-bright); }
+  .header-controls{ display:flex; gap:8px; align-items:center; }
+
+  .body-layout{ display:flex; flex:1; min-height:0; }
+  .sidebar{
+    width:280px; flex-shrink:0; border-right:1px solid var(--border);
+    display:flex; flex-direction:column; height:100%;
+  }
+  /* 検索・チーム・カテゴリ・並び替え・その他絞り込みを1か所にまとめたパネル。
+     選手一覧により多くの縦幅を割けるよう、各要素の余白を詰めてコンパクトにしている。 */
+  .filter-panel{ padding:10px 14px; border-bottom:1px solid var(--border); display:flex; flex-direction:column; gap:6px; flex-shrink:0; }
+  .filter-panel-label{ font-size:9.5px; font-weight:700; color:var(--text-dim); letter-spacing:0.02em; margin:2px 0 -2px; }
+  .filter-panel-label:first-child{ margin-top:0; }
+  .search-input{
+    width:100%; background:var(--panel); border:1px solid rgba(148,163,184,0.2); border-radius:8px;
+    padding:7px 12px; color:var(--text); font-size:13px; outline:none;
+  }
+  .search-input:focus{ border-color:var(--blue); }
+  .filter-panel-row{ display:flex; gap:6px; flex-wrap:wrap; }
+  .filter-select{
+    flex:1; min-width:0; background:var(--panel); border:1px solid rgba(148,163,184,0.2); border-radius:8px;
+    color:var(--text); font-size:12px; padding:6px 8px; outline:none;
+  }
+  .sort-dir-btn{
+    flex-shrink:0; border:1px solid rgba(148,163,184,0.2); background:var(--panel); color:var(--text-dim);
+    font-size:12px; font-weight:700; padding:6px 10px; border-radius:8px; cursor:pointer; white-space:nowrap;
+  }
+  .sort-dir-btn:hover{ color:var(--text-bright); }
+  .filter-row{ display:flex; align-items:center; gap:5px; font-size:11px; color:var(--text-dim); }
+  .filter-row input[type="checkbox"]{ accent-color:var(--blue); width:15px; height:15px; }
+  .filter-row input[type="number"]{
+    width:50px; background:var(--panel); border:1px solid rgba(148,163,184,0.2); border-radius:6px;
+    color:var(--text); font-size:11px; padding:4px 6px; outline:none;
+  }
+  .sidebar-summary{ display:none; }
+  .player-list{ overflow-y:auto; flex:1; padding:6px; min-height:0; }
+  .player-item{
+    display:flex; flex-direction:column; gap:2px; padding:11px 12px; border-radius:8px;
+    cursor:pointer; margin-bottom:2px;
+  }
+  .player-item:hover{ background:var(--panel); }
+  .player-item.active{ background:var(--panel-alt); }
+  .player-item .name{ font-size:13px; font-weight:700; color:var(--text-bright); }
+  .player-item .meta{ font-size:11px; color:var(--text-dim); display:flex; gap:8px; flex-wrap:wrap; }
+  .player-item .meta .metric{ color:var(--text-dim); }
+  .player-item .meta .metric b{ color:var(--text); font-weight:700; }
+  .empty-list{ padding:20px 14px; font-size:12px; color:var(--text-dim); }
+
+  /* シーズン行などをクリックして下に比較パネルが展開すると縦スクロールバーが
+     出現/消失し、その分だけ表の幅がわずかにズレて見えていたため、
+     スクロールバー分の余白を常に確保して詰め直しが起きないようにする */
+  /* main / #mainContent はどちらも display:flex の直接の子（flex item）で、
+     デフォルトの min-width:auto のままだと、内部の表（球種別成績など）が
+     枠より広い時にflex itemが縮みきれず、ページ全体の枠がその表の実幅まで
+     押し広げられてしまう（横スクロールが表の中ではなくページ全体にかかる）。
+     min-width:0 を指定して、必ず親の幅を優先し、はみ出しは子要素側の
+     overflow-x:auto（.pmix-scrollなど）だけで吸収させる。 */
+  main{ flex:1; overflow-y:scroll; padding:20px; display:flex; justify-content:center; min-width:0; }
+  #mainContent{ min-width:0; width:100%; }
+  .placeholder{ color:var(--text-dim); font-size:13px; padding-top:60px; text-align:center; width:100%; }
+
+  .card{ width:100%; max-width:1120px; text-align:left; }
+  /* 選手名ヘッダー（アバター・名前）とKPIのスタッツ行までは
+     スクロールしても常に見えるように、まとめて1つのsticky領域にしている */
+  .p-sticky-header{
+    position:sticky; top:-20px; z-index:5; background:var(--bg);
+    padding:18px 0 14px; margin:-20px 0 0;
+  }
+  .p-header{ display:flex; align-items:center; gap:12px; text-align:left; }
+  .p-avatar{
+    width:44px; height:44px; border-radius:10px; background:#1E3A5F; color:#93C5FD;
+    display:flex; align-items:center; justify-content:center; font-size:17px; font-weight:700; flex-shrink:0;
+  }
+  .p-name{ font-size:18px; font-weight:700; color:var(--text-bright); line-height:1.25; }
+  .p-meta-row{ display:flex; align-items:center; flex-wrap:wrap; gap:8px; margin-top:3px; }
+  .p-meta{ font-size:12px; color:var(--text-dim); }
+
+  .stat-grid{ display:grid; grid-template-columns:repeat(6,1fr); gap:8px; margin-top:14px; }
+  .stat-box{ background:var(--panel); border-radius:8px; padding:10px 6px; text-align:center; }
+  .stat-box .label{ font-size:10px; color:var(--text-dim); margin-bottom:3px; }
+  .stat-box .value{ font-size:16px; font-weight:700; }
+  .stat-box .rank{ font-size:9px; color:var(--text-dim); margin-top:3px; }
+  .stat-box .rank b{ color:var(--blue-text); font-weight:700; }
+
+  .section{ border-radius:10px; padding:12px 14px; margin-bottom:10px; text-align:left; }
+  .section-type{ background:var(--panel); }
+  .section-strength{ background:var(--panel-alt); border:1px solid rgba(16,185,129,0.25); }
+  .section-weakness{ background:#221417; border:1px solid rgba(248,113,113,0.25); }
+  .section-pitchdetail{ background:var(--panel); }
+  .section-gamelog{ background:var(--panel); border:1px solid rgba(148,163,184,0.15); }
+  .section-profile{ background:var(--panel); border:1px solid rgba(148,163,184,0.15); }
+
+  .section-title{
+    display:flex; align-items:center; gap:6px; margin-bottom:9px; cursor:pointer; user-select:none;
+  }
+  .section-title .bar{ width:3px; height:13px; border-radius:2px; flex-shrink:0; }
+  .section-title .label{ font-size:11px; font-weight:700; letter-spacing:0.05em; }
+  .section-title .sub{ font-size:10px; color:var(--text-dim); margin-left:2px; }
+  .section-title .toggle-hint{ margin-left:auto; font-size:10px; color:#64748B; }
+  .section-title .chev{ margin-left:auto; color:#64748B; font-size:11px; transition:transform 0.15s; }
+  .section-body{ overflow:hidden; }
+  .section-body.collapsed{ display:none; }
+
+  .profile-sub{ padding-top:10px; border-top:1px solid rgba(148,163,184,0.12); margin-top:10px; }
+  .profile-sub:first-child{ padding-top:0; border-top:none; margin-top:0; }
+  .profile-sub-title{ display:flex; align-items:center; gap:6px; margin-bottom:8px; }
+  .profile-sub-title .bar{ width:3px; height:12px; border-radius:2px; flex-shrink:0; }
+  .profile-sub-title .label{ font-size:10px; font-weight:700; letter-spacing:0.06em; }
+
+  .tag{
+    display:inline-block; border-radius:6px; padding:3px 10px; font-size:11px; font-weight:700; margin-bottom:9px;
+    text-align:left;
+  }
+  .bullets{ text-align:left; }
+  .bullets div{ display:flex; gap:6px; margin-bottom:6px; font-size:12.5px; line-height:1.6; text-align:left; }
+  .bullets div:last-child{ margin-bottom:0; }
+  .bullets .dot{ flex-shrink:0; }
+  .bullets.tone-positive div{ color:var(--green-text); }
+  .bullets.tone-positive .dot{ color:var(--green); }
+  .bullets.tone-negative div{ color:var(--red-text); }
+  .bullets.tone-negative .dot{ color:var(--red); }
+  .bullets div b{ color:var(--text-bright); }
+  .bullets.tone-positive div b{ color:#A7F3D0; }
+  .bullets.tone-negative div b{ color:#FECACA; }
+
+  /* 決め球スタッツボックス：複数球種が「・」区切りで入ると横幅に収まらず詰まって
+     見えていたため、複数ある場合は球種ごとに改行して表示する。 */
+  .stat-box .value.multi-line{ display:flex; flex-direction:column; gap:2px; line-height:1.3; }
+
+  /* 試合ログテーブル */
+  /* table-layout:fixed にして列幅をcolgroupの指定に固定する（カラム見出し行が
+     年フォルダの中に入り、閉じている間は非表示になるため、幅の基準はcolgroup側に持たせている）。
+     autoレイアウトのままだと、日付や対戦カードの文字量によって実際の列幅が
+     sticky指定のleft/widthの想定値とズレてしまい、固定列の間に隙間や
+     他の列の値が透けて見える不具合が起きていたため。 */
+  .gamelog-table{ width:984px; table-layout:fixed; border-collapse:collapse; font-size:11px; }
+  .gamelog-table th{
+    text-align:left; font-weight:700; color:var(--text-dim); padding:5px 6px; white-space:normal;
+    border-bottom:1px solid rgba(148,163,184,0.15);
+    box-sizing:border-box; line-height:1.25;
+  }
+  .gamelog-table td{ padding:6px; text-align:left; box-sizing:border-box; }
+  .gamelog-table .row-season td{ font-weight:700; color:var(--amber-text); border-bottom:1px solid rgba(59,130,246,0.25); }
+  .gamelog-table .row-game td{ border-bottom:1px solid rgba(148,163,184,0.08); color:var(--text); cursor:pointer; }
+  .gamelog-table .row-game:hover td{ background:rgba(148,163,184,0.06); }
+  .gamelog-table .row-detail td{ border-bottom:1px solid rgba(148,163,184,0.08); padding:10px 8px; }
+  /* 比較・日付の2列も、長い文言で見切れないよう折り返しを許可する */
+  .gamelog-table td:nth-child(1), .gamelog-table td:nth-child(2){ white-space:normal; line-height:1.25; overflow:visible; text-overflow:clip; }
+  /* 指標列は、値が長いと"..."で切れて読めなくなっていたため折り返し表示にして省略しない */
+  .gamelog-table td:nth-child(n+4){ white-space:normal; overflow:visible; text-overflow:clip; line-height:1.3; }
+
+  /* 対戦・結果を1セルにまとめた列：結果を1行目、対戦相手をひとまわり小さく2行目に表示する。
+     どちらも折り返さず必ず1行に収め、セル内は常に2行（3行にはしない）。 */
+  .gamelog-table .gl-matchup-cell{ line-height:1.3; }
+  .gamelog-table .gl-result{ font-size:11px; white-space:nowrap; overflow:visible; }
+  .gamelog-table .gl-opponent{ font-size:9.5px; color:var(--text-dim); white-space:nowrap; overflow:visible; margin-top:1px; }
+  .gamelog-table .row-season .gl-result{ color:var(--amber-text); font-weight:700; }
+  .gamelog-table .row-season .gl-opponent{ font-weight:400; }
+
+  /* 比較・日付・対戦結果の3列を横スクロール時も固定表示 */
+  /* 比較・日付・対戦結果の3列を横スクロール時も固定表示。
+     以前は各セルにtransform:translateZ(0)を付けてレイヤー化していたが、
+     試合数ぶんのセル全部が個別の合成レイヤーになってしまい、スクロール時の
+     カクつき（この表の部分だけ動きが不自然に感じる）の原因になっていたため外した。
+     position:stickyはこのtransformが無くても問題なく機能する。
+     固定列の右端の境界線は、以前はぼかし付きbox-shadowを2枚重ねる方式（本影+
+     継ぎ目を隠すための8px幅の同色板）を使っていたが、(1)ぼかし計算がスクロール毎に
+     再描画コストになる、(2)8px幅の板が不透明で右隣の列の内容に重なって見切れて
+     見える、という2つの問題があったため、border-rightのみのシンプルな方式に変更した。 */
+  .gamelog-table th:nth-child(1), .gamelog-table td:nth-child(1){ position:sticky; left:0; width:36px; z-index:2; }
+  .gamelog-table th:nth-child(2), .gamelog-table td:nth-child(2){ position:sticky; left:36px; width:64px; z-index:2; }
+  .gamelog-table th:nth-child(3), .gamelog-table td:nth-child(3){ position:sticky; left:100px; width:180px; z-index:2; }
+  .gamelog-table th:nth-child(3), .gamelog-table td:nth-child(3){ border-right:1px solid rgba(0,0,0,0.4); }
+  /* 4列目以降（指標カラム）も table-layout:fixed 用に幅を明示しておく。
+     ここが未指定だとブラウザ側の自動配分がsticky列の想定left位置とズレて、
+     固定列の間に他の列の値が透けて見える不具合が再発するため。
+     「ボール球SW%」「ストライク率」のような長めの見出しも1行で収まる幅にしてある。 */
+  .gamelog-table th:nth-child(n+4), .gamelog-table td:nth-child(n+4){ width:88px; }
+  .gamelog-table th:nth-child(1), .gamelog-table th:nth-child(2), .gamelog-table th:nth-child(3){ background:var(--panel-alt); z-index:3; }
+  .gamelog-table td:nth-child(1), .gamelog-table td:nth-child(2), .gamelog-table td:nth-child(3){ background:var(--panel); }
+  .gamelog-table .row-season td:nth-child(1), .gamelog-table .row-season td:nth-child(2), .gamelog-table .row-season td:nth-child(3){ background:#111F33; }
+  .gamelog-table .row-game:hover td:nth-child(1), .gamelog-table .row-game:hover td:nth-child(2), .gamelog-table .row-game:hover td:nth-child(3){ background:#16233a; }
+  .gamelog-detail{ display:flex; flex-wrap:wrap; gap:14px; font-size:11px; color:var(--text-dim); margin-bottom:10px; }
+  .gamelog-detail b{ color:var(--text-bright); font-size:12px; }
+
+  /* スマホ（狭い画面）では、比較・日付・結果の3列（合計280px）を固定すると
+     指標列がほとんど見えなくなる（結果列180pxが特に大きい）。「結果」は
+     試合ごとの見出し情報であり指標列ほど並べて見比べる必要性が低いため、
+     スマホでは固定を解除して通常のスクロール対象に戻し、指標列を早く見えるようにする。
+     固定範囲の境界線（border-right）は結果列から日付列側に付け替える。 */
+  @media (max-width: 480px){
+    .gamelog-table th:nth-child(3), .gamelog-table td:nth-child(3){
+      position:static; left:auto; border-right:none; z-index:auto;
+    }
+    .gamelog-table th:nth-child(2), .gamelog-table td:nth-child(2){ border-right:1px solid rgba(0,0,0,0.4); }
+  }
+
+  /* 球種詳細テーブル（本家と同じ列構成） */
+  .hand-toggle{ display:flex; gap:4px; margin-bottom:10px; }
+  .hand-toggle button{
+    border:none; background:var(--panel-alt); color:var(--text-dim); font-size:10.5px; font-weight:700;
+    padding:5px 12px; border-radius:6px; cursor:pointer;
+  }
+  .hand-toggle button.active{ background:#fff; color:#000; }
+  .chand-toggle{ display:flex; gap:4px; margin-bottom:10px; }
+  .chand-toggle .hand-btn{
+    border:none; background:var(--panel-alt); color:var(--text-dim); font-size:10.5px; font-weight:700;
+    padding:5px 12px; border-radius:6px; cursor:pointer;
+  }
+  .chand-toggle .hand-btn.active{ background:#fff; color:#000; }
+  .pmix-scroll{ overflow-x:auto; -webkit-overflow-scrolling:touch; margin-bottom:14px; }
+  .pmix-table{ border-collapse:collapse; table-layout:fixed; font-family:'DM Mono',monospace; }
+  .pmix-table th{
+    padding:6px 8px; font-size:9px; font-weight:600; color:var(--text-dim); white-space:nowrap;
+    text-align:left; background:var(--panel-alt); border-bottom:1px solid rgba(148,163,184,0.15);
+    box-sizing:border-box; overflow:hidden; text-overflow:ellipsis;
+  }
+  .pmix-table td{ padding:7px 8px; font-size:12px; text-align:left; white-space:nowrap; border-bottom:1px solid rgba(255,255,255,0.04); box-sizing:border-box; overflow:hidden; text-overflow:ellipsis; }
+  .pmix-table tfoot td{ padding:6px 8px; font-size:11px; font-weight:700; border-top:2px solid rgba(59,130,246,0.3); background:var(--panel-alt); }
+  .pmix-pname{ display:inline-flex; align-items:center; gap:6px; }
+  .pmix-dot{ width:8px; height:8px; border-radius:50%; flex-shrink:0; display:inline-block; }
+  /* スマホでは「投球割合」列を独立させず、投球数の下にカッコ書きで添える（pitchDetailTableHtml参照） */
+  .pmix-count-main{ display:block; font-weight:700; }
+  .pmix-count-sub{ display:block; font-size:0.78em; color:var(--text-dim); margin-top:1px; }
+  .pmix-tag{
+    display:inline-block; font-size:10px; font-weight:700; border-radius:5px; padding:2px 7px;
+    background:rgba(59,130,246,0.18); color:var(--blue-text); white-space:nowrap;
+  }
+
+  /* 球種・投球数（先頭2列）を横スクロール時も固定表示 */
+  .pmix-table th:nth-child(1), .pmix-table td:nth-child(1){ position:sticky; left:0; width:104px; z-index:2; overflow:hidden; text-overflow:ellipsis; }
+  .pmix-table th:nth-child(2), .pmix-table td:nth-child(2){ position:sticky; left:104px; width:52px; z-index:2; }
+  .pmix-table th:nth-child(2){ box-shadow:2px 0 4px rgba(0,0,0,0.25), 8px 0 0 0 var(--panel-alt); }
+  .pmix-table td:nth-child(2){ box-shadow:2px 0 4px rgba(0,0,0,0.25), 8px 0 0 0 var(--panel); }
+  .pmix-table th:nth-child(1), .pmix-table th:nth-child(2){ background:var(--panel-alt); z-index:3; }
+  .pmix-table td:nth-child(1), .pmix-table td:nth-child(2){ background:var(--panel); }
+  .pmix-table tfoot td:nth-child(1), .pmix-table tfoot td:nth-child(2){ background:var(--panel-alt); }
+
+  /* コース分布グリッド（本家と同じ強度スケール） */
+  .course-wrap{ display:flex; gap:16px; flex-wrap:wrap; margin-bottom:12px; }
+  .course-block .ctitle{ font-size:9px; color:var(--text-dim); font-family:'DM Mono',monospace; margin-bottom:5px; }
+  .hm-grid-table, .course-grid-table{ border-collapse:collapse; font-family:'DM Mono',monospace; }
+  .hm-grid-table td, .course-grid-table td{ vertical-align:middle; padding:0; }
+  .course-cell-top{ font-size:12px; font-weight:700; line-height:1.3; }
+  .course-cell-bot{ font-size:9px; line-height:1.1; }
+  .gamelog-table .cell-good{ background:rgba(16,185,129,0.18); color:var(--green-text); border-radius:4px; }
+  .gamelog-table .cell-bad{ background:rgba(248,113,113,0.18); color:var(--red-text); border-radius:4px; }
+  .gamelog-scroll{ overflow-x:auto; overscroll-behavior-x:contain; -webkit-overflow-scrolling:touch; }
+  .gamelog-table .cmp-checkbox{ accent-color:var(--blue); cursor:pointer; }
+  .gamelog-table th:first-child, .gamelog-table td:first-child{ text-align:center; }
+
+  /* 年グループ行：シーズン成績テーブル内で試合行を年ごとにまとめる（複数シーズン対応の準備）。
+     横スクロール時に見出しが流れて見えなくなるとどの年を見ているか分かりづらくなるため、
+     他の固定列と同様に左端へ固定表示する。ただし、この行はcolspanで全カラムぶんを
+     1セルにまとめているため、td自体にposition:stickyを付けるとSafari/WebKit系で
+     正しく効かないことがある（colspanセルへのstickyはブラウザによって挙動が不安定）。
+     そのためtd自体は固定せず、中の.folder-row-inner（flexの中身）側にstickyを付けて
+     回避している。また、開閉シェブロンは以前セル右端（横スクロールしないと見えない位置）に
+     押し出していたが、固定表示にする意味が薄れるため、ラベルのすぐ右に置くよう変更した。 */
+  .gamelog-table tr.row-folder{ cursor:pointer; }
+  .gamelog-table tr.row-folder td.folder-cell{
+    background:var(--panel); padding:0; border-bottom:1px solid rgba(148,163,184,0.12);
+  }
+  .gamelog-table tr.row-folder:hover td.folder-cell .folder-row-inner{ background:rgba(148,163,184,0.06); }
+  .folder-row-inner{
+    display:flex; align-items:center; gap:6px; width:fit-content;
+    position:sticky; left:0; z-index:4; background:var(--panel); padding:10px 8px 10px 0;
+  }
+  .folder-bar{ width:3px; height:12px; border-radius:2px; background:var(--blue); flex-shrink:0; }
+  .folder-label{ font-size:10px; font-weight:700; letter-spacing:0.06em; color:#CBD5E1; }
+  .folder-count{ font-weight:400; color:var(--text-dim); font-size:10.5px; }
+  .folder-chevron{ color:#64748B; font-size:11px; transition:transform 0.15s ease; }
+
+
+  /* 比較パネル（試合ログの下部に表示） */
+  #comparePanel{ margin-top:14px; }
+  .hm-controls{
+    display:flex; flex-direction:column; gap:7px; margin-bottom:12px;
+  }
+  .hm-controls-row{ display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+  .hm-controls-label{ font-size:10px; color:var(--text-dim); font-weight:700; flex-shrink:0; width:28px; }
+  .hm-btn-group{ display:flex; gap:4px; flex-wrap:wrap; }
+  .hm-filter-btn{
+    border:1px solid rgba(255,255,255,0.1); background:transparent; color:var(--text-dim);
+    font-size:10.5px; font-weight:600; padding:3px 9px; border-radius:5px; cursor:pointer;
+  }
+  /* 結果・分割・球種の3グループで選択中の色を変え、どのタブ内の選択かひと目で分かるようにする */
+  .hm-filter-btn--result.active{ border-color:rgba(59,130,246,0.7); background:rgba(59,130,246,0.18); color:var(--blue-text); }
+  .hm-filter-btn--split.active{ border-color:rgba(245,158,11,0.7); background:rgba(245,158,11,0.18); color:var(--amber-text); }
+  .hm-pitch-btn{
+    display:inline-flex; align-items:center; gap:5px; border:1px solid rgba(255,255,255,0.1);
+    background:transparent; color:var(--text-dim); font-size:10.5px; font-weight:600;
+    padding:3px 9px; border-radius:5px; cursor:pointer;
+  }
+  .hm-pitch-btn.active{ border-color:rgba(16,185,129,0.6); background:rgba(16,185,129,0.15); color:var(--green-text); }
+  .hm-pdot{ width:7px; height:7px; border-radius:50%; flex-shrink:0; }
+
+  .compare-blocks{ display:flex; flex-direction:column; gap:16px; }
+  .compare-block{
+    background:var(--panel); border:1px solid rgba(148,163,184,0.15); border-radius:10px; padding:12px 14px;
+  }
+  .compare-block-title{ font-size:12.5px; font-weight:700; color:var(--text-bright); margin-bottom:2px; }
+  .compare-block-summary{ font-size:11px; color:var(--text-dim); font-family:'DM Mono',monospace; margin-bottom:10px; }
+  /* 表部分と配球部分（タブ＋グリッド）を、2つの枠に分けず1つの枠の中で区切る境界線 */
+  .compare-divider{ height:1px; background:rgba(148,163,184,0.15); margin:16px 0; }
+
+  /* 複数選択時の球種比較テーブル（投球数・投球割合を選択項目ぶん横並びにする） */
+  .pcompare-scroll{ overflow-x:auto; -webkit-overflow-scrolling:touch; margin-bottom:4px; }
+  /* table-layout:fixed にして列幅をcolgroupの指定に固定する。autoレイアウトのままだと、
+     ブラウザが内容の長さに応じて列幅を再配分してしまい、sticky指定している「球種」列の
+     想定位置とズレて、横スクロール時に隣の指標セルの色（カラースケール）がその隙間から
+     透けて見える不具合になっていたため（試合ログ表と同じ原因）。 */
+  .pcompare-table{ border-collapse:collapse; font-family:'DM Mono',monospace; table-layout:fixed; }
+  .pcompare-table th, .pcompare-table td{
+    padding:6px 8px; font-size:11px; text-align:center; white-space:nowrap;
+    border-bottom:1px solid rgba(255,255,255,0.06); box-sizing:border-box; overflow:hidden; text-overflow:ellipsis;
+  }
+  .pcompare-table thead th{ color:var(--text-dim); font-weight:700; background:var(--panel-alt); font-size:10px; }
+  .pcompare-table tbody td:first-child{ text-align:left; font-size:12px; }
+  .pcompare-table .grp-sep{ border-left:2px solid rgba(59,130,246,0.35); }
+  .pcompare-table tbody tr:last-child td{ font-weight:700; color:var(--amber-text); border-top:2px solid rgba(59,130,246,0.3); border-bottom:none; }
+  /* 球種名（先頭列）を横スクロール時も固定表示。
+     ヘッダーは1行目の「球種」セルだけがrowspan=2でこの列を占めており、2行目の先頭セルは
+     実際には1つ目の指標グループの1つ目のラベル（例:「シーズン」）なので、
+     :first-child で両方の行を一緒に拾うと2行目のラベルまで固定列扱いになって
+     「球種」列にラベル文字が被って見える不具合になる。専用クラスだけを対象にする。
+     余白（padding）の分だけ隣の指標セルの色が透けて見えないよう、固定列は左右のpaddingを詰める。 */
+  .pcompare-table .pcompare-namecol{ position:sticky; left:0; width:110px; z-index:2; box-shadow:2px 0 4px rgba(0,0,0,0.25); text-align:left; padding-left:8px; padding-right:4px; }
+  .pcompare-table thead th.pcompare-namecol{ background:var(--panel-alt); z-index:3; }
+  .pcompare-table tbody td.pcompare-namecol{ background:var(--panel); font-size:12px; }
+  .pcompare-table tbody tr:last-child td.pcompare-namecol{ background:var(--panel-alt); }
+  .course-row{ display:flex; gap:40px; flex-wrap:wrap; margin-bottom:6px; }
+  .course-entry + .course-entry{ margin-top:16px; padding-top:14px; border-top:1px solid rgba(148,163,184,0.12); }
+  .course-pair{ display:flex; gap:10px; align-items:flex-start; flex-wrap:wrap; }
+  .hm-canvas-wrap{ display:flex; gap:12px; flex-wrap:wrap; margin-top:10px; }
+  .hm-canvas-block{ width:150px; flex-shrink:0; }
+  .hm-canvas-title{ font-size:9px; color:var(--text-dim); text-align:center; margin-bottom:4px; }
+  .hm-canvas-block canvas{ width:100%; height:auto; border-radius:8px; background:#070E1A; }
+
+
+  .error{ color:var(--red-text); font-size:13px; padding-top:40px; text-align:center; width:100%; }
+
+  /* 横向き（ランドスケープ）のスマホは幅が720pxを超えることが多く、下の"スマホ用"
+     ブロックが適用されずPC同様にサイドバーとカードが横並びのまま出て狭苦しくなって
+     いた。画面が低く横長（=スマホを横に持っている）の場合もスマホ用レイアウトを
+     適用し、選手選択後はサイドバーを隠してカードだけを表示するようにする。 */
+  @media (max-width:720px), (orientation: landscape) and (max-height: 500px){
+    html, body{ height:auto; overflow:visible; }
+    body{ overflow-x:hidden; }
+    .app{ height:auto; min-height:100vh; }
+    .body-layout{ flex-direction:column; }
+    .sidebar{ width:100%; max-height:none; height:auto; border-right:none; border-bottom:1px solid var(--border); }
+    /* main はPC版ではdisplay:flex+justify-content:centerでカードを中央寄せしているが、
+       スマホでは.cardの子孫（成績テーブルなど、overflow-x:autoで横スクロールさせている
+       固定幅のテーブル）がある場合、flexのアイテムサイズ計算に巻き込まれて.card自体が
+       テーブル幅（900px超）まで広がってしまい、中央寄せの結果、両端が切れて表示が
+       おかしくなる不具合があった（KPIやタグの左端が欠けて見える／サイズ感がおかしい、
+       という指摘の原因）。スマホでは中央寄せ自体が不要（カードは常に画面幅いっぱい）なので
+       flexをやめて通常のブロック表示にし、この巻き込みを起こさないようにする。 */
+    main{ padding:14px; overflow-y:visible; display:block; }
+    .card{ max-width:100%; }
+
+    /* ヘッダー（タイトル・チーム/リーグ切替）は画面上部に固定表示する。
+       ヘッダーの実際の高さはJS側で測って --header-h に反映する。 */
+    header{ position:sticky; top:0; z-index:20; background:var(--bg); padding:12px 16px; }
+    header h1{ font-size:15px; }
+    .league-toggle button{ padding:5px 11px; font-size:11px; }
+
+    /* 選手選択前は「選手を選択してください」バーは不要なので非表示。
+       選手を選んだあとは、名前・チームはカード側のsticky見出し（.p-sticky-header）に
+       すでに出るのでここでは表示せず、「選手を変更」ボタンだけを幅を取らない
+       小さな固定ボタンとして右上に浮かせて表示する。 */
+    .sidebar-summary{ display:none; }
+    .body-layout.has-selection .sidebar-summary{
+      display:block; position:fixed; top:calc(var(--header-h, 60px) + 8px); right:12px; z-index:25;
+    }
+    .sidebar-summary-info{ display:none; }
+    .sidebar-summary button{
+      border:none; background:var(--blue); color:#fff; font-size:12px; font-weight:700;
+      padding:8px 14px; border-radius:20px; cursor:pointer; box-shadow:0 2px 10px rgba(0,0,0,0.4);
+    }
+    .sidebar.collapsed .filter-panel, .sidebar.collapsed .player-list{ display:none; }
+    .sidebar:not(.collapsed) .player-list{ max-height:55vh; }
+
+    /* 選手を選ぶまでは一覧の下に空の本文エリアを出さない（選手一覧より下にスクロールさせない） */
+    .body-layout:not(.has-selection) main{ display:none; }
+
+    /* 選手名・KPIのsticky領域は、PC版だとmainの左上（padding分だけ）に固定しているが、
+       スマホ版は固定ヘッダーがすでに上にあるため、その直下にぴったり重ならず固定されるよう、
+       JSで測った実測のヘッダー高さを使う（「選手を変更」ボタンは幅を取らない固定表示のため
+       ここには含めない）。 */
+    .p-sticky-header{
+      top: var(--sticky-stack-h, 108px);
+      padding: 8px 0;
+      margin: 0;
+      z-index: 15;
+    }
+    .p-avatar{ width:36px; height:36px; font-size:14px; border-radius:8px; }
+    .p-name{ font-size:16px; }
+    .p-meta{ font-size:11px; }
+    .p-header{ gap:10px; }
+
+    /* 検索・フィルタ・並び替えをまとめたパネル：並び替え/降順昇順、全チーム/全カテゴリ、
+       投球回/AIコメントのみ、をそれぞれ1行に収める。検索欄はiOSでの自動ズームを避けるため
+       16px以上にしておく（select/チェックボックス行はコンパクトさ優先で少し小さくする）。 */
+    .search-input{ font-size:16px; }
+    .filter-select{ font-size:12.5px; padding:6px 5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .sort-dir-btn{ font-size:11px; padding:6px 8px; }
+    .filter-row{ font-size:10.5px; gap:4px; }
+    .filter-row input[type="number"]{ width:36px; font-size:13px; padding:4px; }
+    .player-item{ padding:13px 12px; }
+
+    /* KPI（防御率〜決め球）は横6列のままだとスマホでは狭すぎて数字や順位が詰まって見づらいので、
+       3列×2段に組み替える。タイプタグの行が無くなった分、縦幅も詰めている。 */
+    .stat-grid{ grid-template-columns:repeat(3,1fr); gap:6px; margin-top:8px; }
+    .stat-box{ padding:5px 4px; }
+    .stat-box .label{ font-size:9.5px; margin-bottom:1px; }
+    .stat-box .value{ font-size:13px; }
+    .stat-box .rank{ font-size:8.5px; margin-top:1px; }
+
+    /* 選手プロフィール以降の各セクション（球種構成／指標評価／シーズン成績など）も、
+       PC版と同じ余白のままだと縦に間延びするので、スマホでは全体的に一段詰める。
+       文字サイズ・余白をセクション間で揃えることで、詰めた後もサイズ感が統一される。 */
+    .section{ padding:10px 12px; margin-bottom:7px; }
+    .section-title{ margin-bottom:8px; }
+    .section-title .label{ font-size:10.5px; }
+    .bullets div{ font-size:12px; margin-bottom:5px; gap:5px; }
+    .hand-toggle{ margin-bottom:8px; gap:4px; }
+    .hand-toggle button{ padding:5px 10px; font-size:10px; }
+    .pmix-scroll{ margin-bottom:8px; }
+    /* 「シーズン球種別成績」の表自体は、pitchDetailTableHtmlがJS側でisMobileLayout()を見て
+       列幅・「投球割合」列の統合（投球数の下にカッコ書き）まで含めて縮小しているので、
+       ここでは行の高さ・文字サイズだけを詰める（.pmix-scroll-compactは常時適用のクラス）。 */
+    .pmix-scroll-compact .pmix-table th{ padding:5px 6px; font-size:10px; }
+    .pmix-scroll-compact .pmix-table td{ padding:5px 6px; font-size:10.5px; }
+    .pmix-scroll-compact .pmix-table tfoot td{ padding:4px 6px; font-size:10px; }
+    .pmix-scroll-compact .pmix-tag{ font-size:9px; padding:1.5px 6px; }
+
+    /* 結果／球種／分割タブと、フィルタ（全チーム・全カテゴリ・並び替え）はPC版と同じ大きさだと
+       ボタンが窮屈に折り返して縦に長くなりがちなので、文字とパディングを一回り小さくする */
+    .hm-controls-label{ font-size:9.5px; width:24px; }
+    .hm-filter-btn, .hm-pitch-btn{ font-size:9.5px; padding:3px 7px; }
+    .hm-pdot{ width:6px; height:6px; }
+
+    /* コース分布：対右／対左それぞれ「グリッド＋配球」を横並びのまま1行にする。
+       画面幅が狭い分、配球キャンバスの表示サイズだけ縮める（グリッド側のセル幅はJS側でも縮小）。 */
+    .course-row{ gap:20px; }
+    .course-pair{ flex-wrap:nowrap; gap:6px; }
+    .hm-canvas-block{ width:108px; }
+  }
+
+  /* スマホを横向きにした場合、画面の高さが400px前後しかなく、上の縦長スマホ向け設定
+     （タイトルバー＋選手名＋KPI縦2段）のままだと固定表示領域だけで画面の大半を
+     占めてしまう。横向き時は横幅に余裕がある分、KPIを6列1段に戻すなどして
+     上部固定領域の高さそのものを大きく削る。 */
+  @media (orientation: landscape) and (max-height: 500px){
+    header{ padding:7px 16px; }
+    header h1{ font-size:13px; }
+    .league-toggle button{ padding:4px 10px; font-size:11px; }
+    .p-avatar{ width:30px; height:30px; font-size:12px; border-radius:7px; }
+    .p-name{ font-size:13px; }
+    .p-meta{ font-size:10px; }
+    .p-header{ gap:8px; }
+    .p-sticky-header{ padding:6px 0; }
+    /* 決め球は横向きでは非表示にし、残り5つのKPIを1段で横並びにすることで
+       上部固定領域の高さをさらに削る */
+    .stat-grid{ grid-template-columns:repeat(5,1fr); gap:5px; margin-top:6px; }
+    .stat-grid .stat-box:last-child{ display:none; }
+    .stat-box{ padding:4px 3px; }
+    .stat-box .label{ font-size:8px; margin-bottom:1px; }
+    .stat-box .value{ font-size:11px; }
+    .stat-box .rank{ font-size:7.5px; margin-top:1px; }
+
+    /* 「シーズン球種別成績」など、セクション全体の余白・見出し・タブも横向きでは
+       縦横ともに詰める（表自体の列幅・文字サイズはpitchDetailTableHtmlがJS側で
+       isMobileLayout()を見て別途縮小しているので、ここではその外側の余白を詰める）。 */
+    .section{ padding:8px 10px; margin-bottom:6px; }
+    .section-title{ margin-bottom:6px; }
+    .section-title .label{ font-size:10px; }
+    .bullets div{ font-size:11.5px; margin-bottom:4px; }
+    .hand-toggle{ margin-bottom:6px; gap:3px; }
+    .hand-toggle .hand-btn{ padding:4px 9px; font-size:10px; }
+    .pmix-scroll{ margin-bottom:6px; }
+    .pmix-scroll-compact .pmix-table th{ padding:4px 5px; font-size:9.5px; }
+    .pmix-scroll-compact .pmix-table td{ padding:4px 5px; font-size:10px; }
+    .pmix-scroll-compact .pmix-table tfoot td{ padding:3px 5px; font-size:9.5px; }
+    .pmix-scroll-compact .pmix-tag{ font-size:8.5px; padding:1px 5px; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>投手 AI解釈カード</h1>
+    <div class="header-controls">
+      <div class="league-toggle">
+        <button data-league="npb" class="active">プロ野球</button>
+        <button data-league="mlb">MLB</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="body-layout">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-summary" id="sidebarSummary">
+        <div class="sidebar-summary-info">
+          <div class="sidebar-summary-name" id="sidebarSummaryName">選手を選択してください</div>
+          <div class="sidebar-summary-team" id="sidebarSummaryTeam"></div>
+        </div>
+        <button type="button" id="sidebarToggleBtn">選手を変更</button>
+      </div>
+      <div class="filter-panel">
+        <input id="searchInput" type="text" class="search-input" placeholder="選手名で検索">
+        <div class="filter-panel-label">並び替え</div>
+        <div class="filter-panel-row">
+          <select id="sortField" class="filter-select">
+            <option value="name">名前</option>
+            <option value="era">防御率</option>
+            <option value="k_bb_pct" selected>K-BB%</option>
+            <option value="k_pct">K%</option>
+            <option value="bb_pct">BB%</option>
+            <option value="swstr_pct">空振り率</option>
+            <option value="gb_pct">ゴロ率</option>
+            <option value="innings_num">投球回</option>
+          </select>
+          <button type="button" id="sortDirBtn" class="sort-dir-btn" data-dir="desc">降順 ↓</button>
+        </div>
+        <div class="filter-panel-label">フィルタ</div>
+        <div class="filter-panel-row">
+          <select id="teamSelect" class="filter-select">
+            <option value="">全チーム</option>
+          </select>
+          <select id="categorySelect" class="filter-select">
+            <option value="">全カテゴリ</option>
+          </select>
+        </div>
+        <div class="filter-panel-row">
+          <label class="filter-row">
+            投球回
+            <input id="minIpFilter" type="number" min="0" step="1" placeholder="0">
+            回以上
+          </label>
+          <label class="filter-row">
+            <input id="aiOnlyFilter" type="checkbox" checked>
+            AIコメントがある選手のみ
+          </label>
+        </div>
+      </div>
+      <div class="player-list" id="playerList">
+        <div class="empty-list">読み込み中…</div>
+      </div>
+    </aside>
+
+    <main>
+      <div id="mainContent" class="placeholder">左の一覧から選手を選んでください</div>
+    </main>
+  </div>
+</div>
+
+<script>
+// ── データパス設定 ──
+// 年やリーグのフォルダ構成が変わったらここだけ直せばよい
+const LEAGUE_PATHS = {
+  npb: {
+    numeric: "data/プロ野球/2026年/1軍/レギュラーシーズン/pitcher_cards_numeric",
+    batches: "data/プロ野球/2026年/1軍/レギュラーシーズン/pitcher_cards_llm/batches",
+  },
+  mlb: {
+    numeric: "data/MLB/2026年/公式戦/pitcher_cards_numeric",
+    batches: "data/MLB/2026年/公式戦/pitcher_cards_llm/batches",
+  },
+};
+
+let currentLeague = "npb";
+let allPlayers = [];
+let selectedCategory = null; // カテゴリで絞り込み中の値（null=絞り込みなし）
+let activePlayerId = null;
+let activeCardData = null; // 現在表示中のカードのmerge済みデータ（投球回フィルタ変更時の再描画用）
+// デフォルトはK-BB%の降順・AIコメントがある選手のみ表示
+let sortField = "k_bb_pct";
+let sortDir = "desc"; // "asc" | "desc"
+
+const el = (sel) => document.querySelector(sel);
+// スマホ用レイアウトの判定はCSS側の @media (max-width:720px), (orientation: landscape) and
+// (max-height: 500px) と完全に一致させる（幅だけで判定すると、横向きスマホ（幅は720pxを
+// 超えるが高さが低い）でCSSはスマホ用レイアウトなのにJS側は「PC」と誤判定し、
+// サイドバー（選手一覧）が畳まれないままスクロールで出てきてしまう不具合が起きるため）。
+const MOBILE_LAYOUT_MQ = window.matchMedia("(max-width:720px), (orientation: landscape) and (max-height: 500px)");
+const isMobileLayout = () => MOBILE_LAYOUT_MQ.matches;
+// スマホを横向きにした場合だけの追加判定（CSS側の横向き専用ブロックと同じ条件）。
+// シーズン球種別成績の表など、横向き時だけさらに詰めたい箇所で使う。
+const LANDSCAPE_NARROW_MQ = window.matchMedia("(orientation: landscape) and (max-height: 500px)");
+const isLandscapeNarrow = () => LANDSCAPE_NARROW_MQ.matches;
+const playerListEl = el("#playerList");
+const mainContentEl = el("#mainContent");
+const searchInputEl = el("#searchInput");
+const teamSelectEl = el("#teamSelect");
+const categorySelectEl = el("#categorySelect");
+const sortFieldEl = el("#sortField");
+const sortDirBtnEl = el("#sortDirBtn");
+const aiOnlyFilterEl = el("#aiOnlyFilter");
+const minIpFilterEl = el("#minIpFilter");
+const sidebarEl = el("#sidebar");
+const bodyLayoutEl = document.querySelector(".body-layout");
+const sidebarSummaryNameEl = el("#sidebarSummaryName");
+const sidebarSummaryTeamEl = el("#sidebarSummaryTeam");
+
+// スマホ表示：ヘッダー（タイトル・チーム/リーグ切替）は折り返しで高さが変わるため、
+// 実測してCSS変数 --header-h に反映する。「選手を変更」ボタンは幅を取らない固定表示の
+// 小さなボタンにしたため（レイアウトの高さには影響しない）、選手名・KPIのsticky領域
+// （.p-sticky-header）はヘッダー直下にそのまま固定すればよい。
+function updateHeaderHeightVar(){
+  const header = document.querySelector("header");
+  if(!header) return;
+  const headerH = header.offsetHeight;
+  document.documentElement.style.setProperty("--header-h", headerH + "px");
+  document.documentElement.style.setProperty("--sticky-stack-h", headerH + "px");
+}
+updateHeaderHeightVar();
+window.addEventListener("resize", updateHeaderHeightVar);
+window.addEventListener("orientationchange", () => setTimeout(updateHeaderHeightVar, 100));
+// 画面回転などでスマホ用レイアウトに切り替わったとき、すでに選手を選択済みなら
+// サイドバー（選手一覧）を畳み直す（逆にPC用レイアウトに戻ったときは常に展開でよいので触らない）
+MOBILE_LAYOUT_MQ.addEventListener("change", (e) => {
+  if(e.matches && bodyLayoutEl.classList.contains("has-selection")) sidebarEl.classList.add("collapsed");
+});
+
+// モバイル：選手を選んだら検索欄・一覧を畳んでカード本体をすぐ見せる。「選手を変更」で開閉。
+function updateSidebarSummary(name, meta){
+  sidebarSummaryNameEl.textContent = name;
+  sidebarSummaryTeamEl.textContent = meta || "";
+}
+function collapseSidebarOnMobile(){
+  if(isMobileLayout()) sidebarEl.classList.add("collapsed");
+}
+// 「選手を変更」：カード表示をやめて選手選択画面（検索・一覧）に戻る
+el("#sidebarToggleBtn").addEventListener("click", () => {
+  sidebarEl.classList.remove("collapsed");
+  bodyLayoutEl.classList.remove("has-selection");
+  window.scrollTo(0, 0);
+});
+
+// AIコメントがある選手名の集合。リーグを開いたときに一度だけバッチ全件を読んで作る
+let playersWithLlmData = new Set();
+let llmDataLoaded = false;
+
+function escapeHtml(s){
+  return String(s ?? "").replace(/[&<>"']/g, c => ({
+    "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;"
+  }[c]));
+}
+
+// GitHub Pages（Fastly CDN）は index.json/バッチJSONのようなファイルを
+// 数分間エッジキャッシュすることがあり、fetchの cache:"no-store" は
+// ブラウザ側キャッシュにしか効かずCDNのキャッシュには効かない。
+// そのため「更新直後は404のまま」に見えることがある → URLに毎回変わる
+// クエリを付けて、CDNから見て別URL（=キャッシュ未使用）として取得する。
+function bust(url){
+  return `${url}${url.includes("?") ? "&" : "?"}_=${Date.now()}`;
+}
+
+async function loadPlayerIndex(league){
+  playerListEl.innerHTML = '<div class="empty-list">読み込み中…</div>';
+  mainContentEl.innerHTML = '<div class="placeholder">左の一覧から選手を選んでください</div>';
+  activePlayerId = null;
+  llmDataLoaded = false;
+  playersWithLlmData = new Set();
+  // デフォルトはAIコメントがある選手のみ・K-BB%降順
+  aiOnlyFilterEl.checked = true;
+  selectedCategory = null;
+  categorySelectEl.value = "";
+  sortField = "k_bb_pct";
+  sortDir = "desc";
+  sortFieldEl.value = "k_bb_pct";
+  sortDirBtnEl.dataset.dir = "desc";
+  sortDirBtnEl.textContent = "降順 ↓";
+  sidebarEl.classList.remove("collapsed");
+  bodyLayoutEl.classList.remove("has-selection");
+  updateSidebarSummary("選手を選択してください", "");
+  try{
+    // 選手一覧は「数値データ」側のindex.jsonを正とする（LLM解釈がまだない選手も一覧には出す）
+    const res = await fetch(bust(`${LEAGUE_PATHS[league].numeric}/index.json`), { cache: "no-store" });
+    if(!res.ok) throw new Error(`index.json の取得に失敗しました (${res.status})`);
+    const data = await res.json();
+    allPlayers = data.players || [];
+    populateTeamSelect(allPlayers);
+    populateCategorySelect(allPlayers);
+    // デフォルトで「AIコメントがある選手のみ」がONのため、絞り込みが正しく効くよう
+    // 一覧を描画する前にAIコメントの有無データを読み込んでおく
+    if(aiOnlyFilterEl.checked && !llmDataLoaded){
+      aiOnlyFilterEl.disabled = true;
+      await loadAllLlmPlayerNames();
+      aiOnlyFilterEl.disabled = false;
+    }
+    renderPlayerList(applyFilters());
+  }catch(e){
+    playerListEl.innerHTML = `<div class="empty-list">選手一覧を読み込めませんでした。<br>(${escapeHtml(e.message)})</div>`;
+  }
+}
+
+function populateTeamSelect(players){
+  const teams = [...new Set(players.map(p => p.team).filter(Boolean))].sort();
+  teamSelectEl.innerHTML = '<option value="">全チーム</option>' +
+    teams.map(t => `<option value="${escapeHtml(t)}">${escapeHtml(t)}</option>`).join("");
+}
+
+// カテゴリ絞り込み用セレクト：選手一覧に登場する全カテゴリを人数の多い順に表示する
+function populateCategorySelect(players){
+  const counts = {};
+  players.forEach(p => (p.categories || []).forEach(c => { counts[c] = (counts[c] || 0) + 1; }));
+  const cats = Object.keys(counts).sort((a,b) => counts[b] - counts[a]);
+  categorySelectEl.innerHTML = '<option value="">全カテゴリ</option>' +
+    cats.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}（${counts[c]}）</option>`).join("");
+}
+
+const SORT_FIELD_LABELS = {
+  name: "名前", era: "防御率", k_bb_pct: "K-BB%", k_pct: "K%", bb_pct: "BB%",
+  swstr_pct: "空振り率", gb_pct: "ゴロ率", innings_num: "投球回",
+};
+
+function renderPlayerList(players){
+  if(!players.length){
+    playerListEl.innerHTML = '<div class="empty-list">該当する選手がいません</div>';
+    return;
+  }
+  // 名前以外でソート中は、一覧上でも並び替え基準の数値がひと目でわかるよう表示する
+  const showMetric = sortField !== "name";
+  const metricLabel = SORT_FIELD_LABELS[sortField] || "";
+  playerListEl.innerHTML = players.map(p => {
+    const metricVal = p[sortField];
+    const metricHtml = showMetric
+      ? `<span class="metric">${escapeHtml(metricLabel)}: <b>${metricVal != null ? metricVal : "—"}${metricVal != null && sortField !== "era" && sortField !== "innings_num" ? "%" : ""}</b></span>`
+      : "";
+    return `
+    <div class="player-item ${p.id === activePlayerId ? 'active' : ''}" data-id="${escapeHtml(p.id)}" data-name="${escapeHtml(p.name)}">
+      <div class="name">${escapeHtml(p.name)}</div>
+      <div class="meta">
+        <span>${escapeHtml(p.team || "")}${p.role ? " ・ " + escapeHtml(p.role) : ""}</span>
+        ${metricHtml}
+      </div>
+    </div>
+  `;
+  }).join("");
+  playerListEl.querySelectorAll(".player-item").forEach(item => {
+    item.addEventListener("click", () => {
+      selectPlayer(item.dataset.id, item.dataset.name);
+      updateSidebarSummary(item.dataset.name, item.querySelector(".meta")?.textContent || "");
+      collapseSidebarOnMobile();
+    });
+  });
+}
+
+// ── LLMバッチから該当選手のデータを見つけたら返す（見つからなければnull）──
+// バッチファイル名は「{所属チーム}_{役割}.json」（例: 巨人_先発.json）を基本形式とする。
+// team/roleが分かっている場合は該当ファイルを直接fetchするのが最も確実（1チーム1役割=1ファイルの
+// ため、複数バッチを跨いだ「どれが最新か」の判定が不要になる）。
+// 見つからない場合（未移行の選手・旧形式の日付名バッチにしかデータが無い場合など）は、
+// index.json内の全バッチを新しい順（ファイル名降順）に走査するフォールバックを行う。
+// バッチのJSONを {選手名: データ} のペア配列に正規化する。
+// 対応形式: ① [{"選手名":"...",...}, ...]（配列形式） ② {"選手名":{...}, "選手名":{...}}（オブジェクト形式）
+function normalizeBatchEntries(batch){
+  if(Array.isArray(batch)){
+    return batch.map(entry => {
+      const n = entry["選手名"] || entry.player_name || entry.name;
+      return { name: n, data: entry };
+    });
+  }
+  if(batch && typeof batch === "object"){
+    return Object.entries(batch).map(([name, data]) => ({ name, data }));
+  }
+  return [];
+}
+
+async function fetchBatchFile(file){
+  const res = await fetch(bust(`${LEAGUE_PATHS[currentLeague].batches}/${encodeURIComponent(file)}`), { cache: "no-store" });
+  if(!res.ok) return null;
+  return await res.json();
+}
+
+async function findLlmDataForPlayer(playerName, team, role){
+  const debugLog = [];
+  const charCodes = [...playerName].map(c=>c.codePointAt(0).toString(16)).join(" ");
+  debugLog.push(`探している名前: ${JSON.stringify(playerName)} / 文字コード: ${charCodes}`);
+
+  // ① team/roleが分かっていれば、{team}_{role}.json を直接fetch（最優先・最速経路）
+  if(team && role){
+    const directFile = `${team}_${role}.json`;
+    try{
+      const batch = await fetchBatchFile(directFile);
+      if(batch){
+        const entries = normalizeBatchEntries(batch);
+        const hit = entries.find(e => e.name === playerName);
+        if(hit){ debugLog.push(`ヒット（直接fetch）: ${directFile}`); return { data: hit.data, debugLog }; }
+        debugLog.push(`${directFile} は取得できたが、この選手名は含まれていなかった`);
+      } else {
+        debugLog.push(`${directFile} が見つからない（未生成、または旧形式のバッチのみ存在する可能性）`);
+      }
+    }catch(e){ debugLog.push(`${directFile} 取得エラー: ${e.message}`); }
+  } else {
+    debugLog.push("team/roleが不明なため、直接fetchはスキップしてフォールバックへ");
+  }
+
+  // ② フォールバック: index.json内の全バッチをファイル名降順（新しい順）で走査
+  //    旧・日付名バッチ（例: 20260903_2001.json）にしかデータが無い選手のためのルート。
+  //    ※ team_role形式のファイル名同士では「降順」に新しい順という意味は無いが、
+  //      ①で見つからなかった場合の最後の手段として、念のため全件を見に行く。
+  try{
+    const idxRes = await fetch(bust(`${LEAGUE_PATHS[currentLeague].batches}/index.json`), { cache: "no-store" });
+    if(!idxRes.ok){ debugLog.push(`index.json取得失敗: ${idxRes.status}`); return { data: null, debugLog }; }
+    const idx = await idxRes.json();
+    const directFile = (team && role) ? `${team}_${role}.json` : null;
+    const files = (idx.batches || []).filter(f => f !== directFile).slice().sort().reverse(); // ①で試した分は除外
+    debugLog.push(`バッチファイル一覧（フォールバック走査対象）: ${JSON.stringify(files)}`);
+    for(const file of files){
+      try{
+        const batch = await fetchBatchFile(file);
+        if(!batch) continue;
+        const entries = normalizeBatchEntries(batch);
+        const namesWithCodes = entries.map(e => {
+          const cc = e.name ? [...e.name].map(c=>c.codePointAt(0).toString(16)).join(" ") : "";
+          return `${JSON.stringify(e.name)} [${cc}]`;
+        });
+        debugLog.push(`${file} 内の選手名: ${namesWithCodes.join(" / ")}`);
+        const hit = entries.find(e => e.name === playerName);
+        if(hit){ debugLog.push(`ヒット（フォールバック走査）: ${file}`); return { data: hit.data, debugLog }; }
+      }catch(e){ continue; }
+    }
+    debugLog.push("どのバッチにも見つかりませんでした");
+  }catch(e){ debugLog.push(`エラー: ${e.message}`); }
+  return { data: null, debugLog };
+}
+
+// ── 数値データ(numeric) + LLM解釈テキスト(llm) をブラウザ内でマージする ──
+// merge_card_json.py と同じ役割をJSで行う（Pythonの手動実行を不要にするため）
+
+// player_type.bulletsは「球種構成／指標評価（シーズン合計）／球種指標評価（球種ごと）」の
+// 3グループ構成に対応させる。旧フォーマット（bulletsがフラットな配列）が来た場合は、
+// 見出し無しの1グループとして扱い、表示が壊れないようにする。
+function normalizePlayerType(pt){
+  if(!pt) return null;
+  const hasGrouped = pt.pitch_mix || pt.season_metrics || pt.pitch_metrics;
+  const groups = hasGrouped
+    ? [
+        { label: "球種構成", bullets: pt.pitch_mix || [] },
+        { label: "指標評価", bullets: pt.season_metrics || [] },
+        { label: "球種指標評価", bullets: pt.pitch_metrics || [] },
+      ].filter(g => g.bullets.length)
+    : [{ label: null, bullets: pt.bullets || [] }];
+  return { tag: pt.tag || "", groups };
+}
+
+function mergeCardData(numeric, llm){
+  llm = llm || {};
+  const pitchEvalsNumeric = numeric.pitch_evaluations_numeric || [];
+  const llmPitchByName = {};
+  (llm.pitch_evaluations || []).forEach(pe => { llmPitchByName[pe.name] = pe; });
+
+  // 球種ごとの特徴タグは「全体」「対右打者」「対左打者」の3タブぶん。
+  // 新フォーマット（l.all/l.vs_right/l.vs_leftが文字列＝tagのみ）が基本だが、
+  // 過去フォーマット（l.all等がオブジェクト{tag,bullets}）が来ても壊れないよう吸収する。
+  const extractTag = (v) => {
+    if(!v) return "";
+    if(typeof v === "string") return v;
+    if(typeof v === "object") return v.tag || "";
+    return "";
+  };
+  const pitch_evaluations = pitchEvalsNumeric.map(p => {
+    const l = llmPitchByName[p.name] || {};
+    return {
+      name: p.name,
+      count: p.count,
+      pct: p.pct,
+      tagAll: extractTag(l.all) || extractTag(l.tag),
+      tagVsRight: extractTag(l.vs_right),
+      tagVsLeft: extractTag(l.vs_left),
+    };
+  });
+
+  return {
+    name: numeric.name,
+    team: numeric.team,
+    throws_bats: llm.throws_bats || "",
+    throws: numeric.throws || null,
+    role: numeric.role,
+    games: numeric.games,
+    innings: numeric.innings,
+    era: numeric.era,
+    k_bb_pct: numeric.k_bb_pct,
+    gb_pct: numeric.gb_pct,
+    signature_pitch: llm.signature_pitch || "",
+    rankings: numeric.rankings || {},
+    season_label: llm.season_label || "シーズン",
+    swstr_pct_season: numeric.swstr_pct_season,
+    chase_pct_season: numeric.chase_pct_season,
+    strike_pct_season: numeric.strike_pct_season,
+    zone_pct_season: numeric.zone_pct_season,
+    kbb_pct_season: numeric.kbb_pct_season,
+    k_pct_season: numeric.k_pct_season,
+    bb_pct_season: numeric.bb_pct_season,
+    gb_pct_season: numeric.gb_pct,
+    k: numeric.k,
+    bb: numeric.bb,
+    season_pitch_detail: numeric.season_pitch_detail,
+    season_totals: numeric.season_totals || null,
+    categories: numeric.categories,
+    season_course_locs: numeric.season_course_locs,
+    player_type: normalizePlayerType(llm.player_type),
+    strengths: llm.strengths || [],
+    weaknesses: llm.weaknesses || [],
+    pitch_evaluations,
+    game_log: numeric.game_log || [],
+  };
+}
+
+async function selectPlayer(id, name){
+  activePlayerId = id;
+  bodyLayoutEl.classList.add("has-selection");
+  renderPlayerList(applyFilters());
+  mainContentEl.innerHTML = '<div class="placeholder">読み込み中…</div>';
+  // 選手を切り替えたら、前の選手で選んでいた比較チェックボックス／フィルターは引き継がない
+  compareSelectedKeys = new Set();
+  compareHand = "all";
+  previewGidx = null;
+  window._hmResultFilter = "all";
+  window._hmSplitMode = "25";
+  window._hmSelectedPitchKeys = null;
+  try{
+    const res = await fetch(bust(`${LEAGUE_PATHS[currentLeague].numeric}/${id}.json`), { cache: "no-store" });
+    if(!res.ok) throw new Error(`選手データの取得に失敗しました (${res.status})`);
+    const numeric = await res.json();
+    const { data: llm, debugLog } = await findLlmDataForPlayer(name || numeric.name, numeric.team, numeric.role);
+    const merged = mergeCardData(numeric, llm);
+    activeCardData = merged;
+    renderCard(merged);
+    if(!llm){
+      mainContentEl.insertAdjacentHTML("afterbegin",
+        `<div style="font-size:11px;color:var(--text-dim);margin-bottom:10px">
+          ※ この選手のAI解釈テキストはまだ生成されていません（数値データのみ表示中）
+        </div>`);
+    }
+  }catch(e){
+    mainContentEl.innerHTML = `<div class="error">カードを読み込めませんでした。<br>(${escapeHtml(e.message)})</div>`;
+  }
+}
+
+function applyFilters(){
+  const q = (searchInputEl.value || "").trim().toLowerCase();
+  const team = teamSelectEl.value;
+  const aiOnly = aiOnlyFilterEl.checked;
+  const minIp = parseFloat(minIpFilterEl.value);
+  const filtered = allPlayers.filter(p => {
+    const matchesQuery = !q || (p.name || "").toLowerCase().includes(q);
+    const matchesTeam = !team || p.team === team;
+    const matchesAi = !aiOnly || playersWithLlmData.has(p.name);
+    const matchesIp = isNaN(minIp) || (p.innings_num != null && p.innings_num >= minIp);
+    const matchesCategory = !selectedCategory || (p.categories || []).includes(selectedCategory);
+    return matchesQuery && matchesTeam && matchesAi && matchesIp && matchesCategory;
+  });
+  return sortPlayers(filtered);
+}
+
+// 名前は50音/アルファベット順、それ以外の指標は数値順（データが無い選手は常に末尾）で並び替える
+function sortPlayers(players){
+  const dir = sortDir === "desc" ? -1 : 1;
+  const sorted = players.slice().sort((a, b) => {
+    if(sortField === "name"){
+      return dir * String(a.name || "").localeCompare(String(b.name || ""), "ja");
+    }
+    const av = a[sortField], bv = b[sortField];
+    if(av == null && bv == null) return 0;
+    if(av == null) return 1;  // データが無い選手は並び替え基準に関わらず末尾へ
+    if(bv == null) return -1;
+    return dir * (av - bv);
+  });
+  return sorted;
+}
+
+searchInputEl.addEventListener("input", () => {
+  renderPlayerList(applyFilters());
+});
+
+categorySelectEl.addEventListener("change", () => {
+  selectedCategory = categorySelectEl.value || null;
+  renderPlayerList(applyFilters());
+});
+
+sortFieldEl.addEventListener("change", () => {
+  sortField = sortFieldEl.value;
+  renderPlayerList(applyFilters());
+});
+
+sortDirBtnEl.addEventListener("click", () => {
+  sortDir = sortDir === "asc" ? "desc" : "asc";
+  sortDirBtnEl.dataset.dir = sortDir;
+  sortDirBtnEl.textContent = sortDir === "asc" ? "昇順 ↑" : "降順 ↓";
+  renderPlayerList(applyFilters());
+});
+
+teamSelectEl.addEventListener("change", () => {
+  renderPlayerList(applyFilters());
+});
+
+minIpFilterEl.addEventListener("input", () => {
+  renderPlayerList(applyFilters());
+  if(activeCardData) renderCard(activeCardData);
+});
+
+aiOnlyFilterEl.addEventListener("change", async () => {
+  if(aiOnlyFilterEl.checked && !llmDataLoaded){
+    aiOnlyFilterEl.disabled = true;
+    await loadAllLlmPlayerNames();
+    aiOnlyFilterEl.disabled = false;
+  }
+  renderPlayerList(applyFilters());
+});
+
+// リーグ内の全バッチファイルを読み、「AI解釈テキストがある選手名」の集合を作る（1回だけキャッシュ）
+async function loadAllLlmPlayerNames(){
+  playersWithLlmData = new Set();
+  try{
+    const idxRes = await fetch(bust(`${LEAGUE_PATHS[currentLeague].batches}/index.json`), { cache: "no-store" });
+    if(idxRes.ok){
+      const idx = await idxRes.json();
+      const files = idx.batches || [];
+      await Promise.all(files.map(async file => {
+        try{
+          const res = await fetch(bust(`${LEAGUE_PATHS[currentLeague].batches}/${file}`), { cache: "no-store" });
+          if(!res.ok) return;
+          const batch = await res.json();
+          normalizeBatchEntries(batch).forEach(e => {
+            if(e.name) playersWithLlmData.add(e.name);
+          });
+        }catch(e){ /* このバッチはスキップ */ }
+      }));
+    }
+  }catch(e){ /* バッチ一覧が無ければ空のまま */ }
+  llmDataLoaded = true;
+}
+
+document.querySelectorAll(".league-toggle button").forEach(btn => {
+  btn.addEventListener("click", () => {
+    if(btn.dataset.league === currentLeague) return;
+    document.querySelectorAll(".league-toggle button").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    currentLeague = btn.dataset.league;
+    searchInputEl.value = "";
+    loadPlayerIndex(currentLeague);
+  });
+});
+
+// ── カード描画 ──
+function bulletsHtml(items, dotColor, tone){
+  const toneClass = tone ? ` tone-${tone}` : "";
+  return `<div class="bullets${toneClass}">${(items || []).map(b => `
+    <div><span class="dot" style="color:${dotColor}">・</span><span>${escapeHtml(b)}</span></div>
+  `).join("")}</div>`;
+}
+
+// section-title (開閉ヘッダー) を統一生成
+function sectionHeader({bar, label, labelColor, sub}){
+  return `
+    <div class="section-title" data-toggle="1">
+      <span class="bar" style="background:${bar}"></span>
+      <span class="label" style="color:${labelColor}">${label}</span>
+      ${sub ? `<span class="sub">${sub}</span>` : ""}
+      <span class="chev">︾</span>
+    </div>
+  `;
+}
+
+
+// KPIカードの「XX位/XX人中」を、サイドバーの投球回フィルタの値に応じてその場で計算し直す。
+// サーバー側（export_llm_input.py の compute_rankings）と同じロジック（役割で母集団を分ける、
+// 5指標）をクライアント側でも再現し、index.jsonに載っている全選手の一覧（allPlayers）から算出する。
+// 投球回フィルタの値を変えるたびに使うので、都度サーバーには問い合わせない。
+const LIVE_RANK_SPECS = [
+  ["era", false], ["k_bb_pct", true], ["k_pct", true], ["bb_pct", false], ["gb_pct", true],
+];
+function computeLiveRankings(playerId, minIp){
+  const target = allPlayers.find(p => p.id === playerId);
+  if(!target) return {};
+  const threshold = isNaN(minIp) ? 0 : minIp;
+  const pool = allPlayers.filter(p =>
+    p.role === target.role && p.innings_num != null && p.innings_num >= threshold
+  );
+  const result = {};
+  LIVE_RANK_SPECS.forEach(([key, higherIsBetter]) => {
+    const valid = pool
+      .filter(p => p[key] != null)
+      .map(p => [p.id, p[key]])
+      .sort((a, b) => higherIsBetter ? b[1] - a[1] : a[1] - b[1]);
+    const idx = valid.findIndex(([id]) => id === playerId);
+    if(idx >= 0) result[key] = { rank: idx + 1, total: valid.length };
+  });
+  return result;
+}
+
+function renderCard(d){
+  const initial = (d.name || "?").trim().charAt(0);
+  const minIp = parseFloat(minIpFilterEl.value);
+  const rk = activePlayerId ? computeLiveRankings(activePlayerId, minIp) : (d.rankings || {});
+  const rankText = (key) => rk[key] ? `<div class="rank"><b>${rk[key].rank}</b>位 / ${rk[key].total}人中</div>` : "";
+  // 決め球：専用フィールドが無い場合は、球種の特徴タグ（全体/対右/対左のいずれか）に
+  // 「決め球」と付いている球種から補う。
+  // タグが複数球種に付いていれば、2つまでは並べて表示して構わない。それも無ければ「なし」と明記する。
+  const signaturePitchEntries = (d.pitch_evaluations || []).filter(p =>
+    [p.tagAll, p.tagVsRight, p.tagVsLeft].some(t => t && t.includes("決め球"))
+  );
+  // 決め球が複数ある場合、value側で単一文字列として結合すると狭いスタッツボックス内で
+  // 詰まって見えるため、球種名のリストとして保持し、表示側で球種ごとに改行する。
+  const signaturePitchList = d.signature_pitch
+    ? [d.signature_pitch]
+    : signaturePitchEntries.map(p => p.name);
+  const stats = [
+    { label: "防御率", value: d.era, color: (d.era != null && d.era < 3.5) ? "var(--green-text)" : "var(--red-text)", rankKey: "era" },
+    { label: "K-BB%", value: d.k_bb_pct != null ? d.k_bb_pct + "%" : "-", color: "var(--green-text)", rankKey: "k_bb_pct" },
+    { label: "K%", value: d.k_pct_season != null ? d.k_pct_season + "%" : "-", color: "var(--green-text)", rankKey: "k_pct" },
+    { label: "BB%", value: d.bb_pct_season != null ? d.bb_pct_season + "%" : "-", color: (d.bb_pct_season != null && d.bb_pct_season <= 8) ? "var(--green-text)" : "var(--red-text)", rankKey: "bb_pct" },
+    { label: "ゴロ率", value: d.gb_pct != null ? d.gb_pct + "%" : "-", color: "var(--green-text)", rankKey: "gb_pct" },
+    { label: "決め球", valueList: signaturePitchList.length ? signaturePitchList : ["なし"], color: "var(--blue-text)", small: true }
+  ];
+
+  const gameLogHtml = buildGameLogTable(d);
+
+  // 球種評価セクション（旧・全体/対右/対左タブ＋説明文）は廃止し、球種ごとの特徴タグだけを
+  // 「シーズン球種別成績」表の最終列に載せる。表側のタブ（all/vsR/vsL）と、
+  // 特徴タグ側のキー（tagAll/tagVsRight/tagVsLeft）の対応はここでまとめて持つ。
+  const PMIX_HAND_TO_TAGKEY = { all: "tagAll", vsR: "tagVsRight", vsL: "tagVsLeft" };
+  function buildPmixTagsByName(hand){
+    const tagKey = PMIX_HAND_TO_TAGKEY[hand] || "tagAll";
+    const map = {};
+    (d.pitch_evaluations || []).forEach(p => { map[p.name] = p[tagKey]; });
+    return map;
+  }
+
+  // スクリーンショットの球種別成績表（本家ダッシュボードと同じ列構成）を、
+  // シーズン成績セクション（試合ログ）とは別に、選手プロフィールより上に単独表示する。
+  // MLBはxwOBA・回転数などの追加指標が本来の列構成に含まれており列数が多いが、
+  // 枠の横幅はNPBと同じに保ち、はみ出す分は表自体の横スクロール（.pmix-scroll）で
+  // 見られるようにする（枠自体は広げない）。
+  const seasonPitchDetailHtml = (d.season_pitch_detail && d.season_pitch_detail.all && d.season_pitch_detail.all.length) ? `
+    <div class="section section-pitchdetail">
+      ${sectionHeader({ bar:"var(--blue)", label:"シーズン球種別成績", labelColor:"var(--text-bright)" })}
+      <div class="section-body">
+        <div class="hand-toggle season-pmix-hand-toggle">
+          <button class="hand-btn active" data-hand="all">全体</button>
+          <button class="hand-btn" data-hand="vsR">対右</button>
+          <button class="hand-btn" data-hand="vsL">対左</button>
+        </div>
+        <div class="pmix-wrap" data-season-pmix>${pitchDetailTableHtml(d.season_pitch_detail.all, d.season_totals && d.season_totals.all, undefined, buildPmixTagsByName("all"))}</div>
+      </div>
+    </div>
+  ` : "";
+
+  // 選手特徴・強み・弱み を1つの枠にまとめる（区切り線つき）
+  const profileHtml = `
+    <div class="section section-profile">
+      ${sectionHeader({ bar:"var(--blue)", label:"選手プロフィール", labelColor:"var(--text-bright)" })}
+      <div class="section-body">
+        ${d.player_type ? `
+        <div class="profile-sub">
+          <div class="tag" style="background:rgba(148,163,184,0.15);border:1px solid rgba(148,163,184,0.35);color:var(--text)">${escapeHtml(d.player_type.tag || "")}</div>
+          ${d.player_type.groups.map((g, gi) => `
+            ${g.label ? `<div class="profile-sub-title" style="margin-top:${gi > 0 ? '12px' : '10px'}"><span class="bar" style="background:var(--text-dim)"></span><span class="label" style="color:#CBD5E1">${escapeHtml(g.label)}</span></div>` : ""}
+            ${bulletsHtml(g.bullets, "var(--text-dim)")}
+          `).join("")}
+        </div>` : ""}
+
+        ${d.strengths?.length ? `
+        <div class="profile-sub">
+          <div class="profile-sub-title"><span class="bar" style="background:var(--green)"></span><span class="label" style="color:var(--green-text)">強み</span></div>
+          ${bulletsHtml(d.strengths, "var(--green)", "positive")}
+        </div>` : ""}
+
+        ${d.weaknesses?.length ? `
+        <div class="profile-sub">
+          <div class="profile-sub-title"><span class="bar" style="background:var(--red)"></span><span class="label" style="color:var(--red-text)">弱み</span></div>
+          ${bulletsHtml(d.weaknesses, "var(--red)", "negative")}
+        </div>` : ""}
+      </div>
+    </div>
+  `;
+
+  // #mainContent自体が初期HTMLでclass="placeholder"のままになっており、
+  // 「選手を選んでください」用のpadding-top:60pxなどが実カード表示時にも
+  // 残ってしまい、才木浩人のような選手名の上に余計な余白ができていたため、
+  // 実カードを描画する際はここで明示的に外している。
+  mainContentEl.classList.remove("placeholder");
+  mainContentEl.innerHTML = `
+    <div class="card">
+      <div class="p-sticky-header">
+        <div class="p-header">
+          <div class="p-avatar">${escapeHtml(initial)}</div>
+          <div>
+            <div class="p-name">${escapeHtml(d.name)}</div>
+            <div class="p-meta-row">
+              <span class="p-meta">${escapeHtml(d.team || "")}・${escapeHtml(d.throws_bats || "")}・${escapeHtml(d.role || "")}・${d.games ?? "-"}登板 ${d.innings ?? "-"}回</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="stat-grid">
+          ${stats.map(s => {
+            const valueHtml = s.valueList
+              ? `<div class="value multi-line" style="color:${s.color}; ${s.small ? 'font-size:13px' : ''}">${s.valueList.map(v => `<span>${escapeHtml(v)}</span>`).join("")}</div>`
+              : `<div class="value" style="color:${s.color}; ${s.small ? 'font-size:13px' : ''}">${escapeHtml(String(s.value))}</div>`;
+            return `
+            <div class="stat-box">
+              <div class="label">${s.label}</div>
+              ${valueHtml}
+              ${s.rankKey ? rankText(s.rankKey) : ""}
+            </div>
+          `;}).join("")}
+        </div>
+      </div>
+
+      ${seasonPitchDetailHtml}
+
+      ${profileHtml}
+
+      ${gameLogHtml}
+    </div>
+  `;
+
+  // 球種別成績（プロフィール上の単独セクション）: 全体/対右/対左タブ切り替え
+  const seasonPmixToggle = mainContentEl.querySelector(".season-pmix-hand-toggle");
+  if(seasonPmixToggle){
+    seasonPmixToggle.addEventListener("click", (e) => {
+      const btn = e.target.closest(".hand-btn");
+      if(!btn) return;
+      const hand = btn.dataset.hand;
+      seasonPmixToggle.querySelectorAll(".hand-btn").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      const wrap = mainContentEl.querySelector("[data-season-pmix]");
+      if(wrap && d.season_pitch_detail){
+        wrap.innerHTML = pitchDetailTableHtml(d.season_pitch_detail[hand], d.season_totals && d.season_totals[hand], undefined, buildPmixTagsByName(hand));
+      }
+    });
+  }
+
+  // 各セクション枠（選手プロフィール／球種評価／提案／試合成績）の開閉
+  mainContentEl.querySelectorAll(".section-title[data-toggle]").forEach(title => {
+    title.addEventListener("click", () => {
+      const body = title.nextElementSibling;
+      const chev = title.querySelector(".chev");
+      const isCollapsed = body.classList.toggle("collapsed");
+      chev.style.transform = isCollapsed ? "rotate(-90deg)" : "rotate(0deg)";
+    });
+  });
+
+  // 試合ログ: 行クリック＝この行だけ選んで比較パネルへスクロール／チェックボックス＝複数比較に追加・削除
+  compareSelectedKeys = new Set(); // 選手が変わったら比較選択はリセット
+  window._hmResultFilter = "all";
+  window._hmSplitMode = "25";
+  window._hmSelectedPitchKeys = null;
+
+  function toggleCompareRow(gidx, cb){
+    previewGidx = null; // チェックボックス操作が優先。行クリックのプレビューは破棄する
+    if(cb.checked) compareSelectedKeys.add(gidx);
+    else compareSelectedKeys.delete(gidx);
+    renderComparePanel(d);
+  }
+
+  mainContentEl.querySelectorAll(".cmp-checkbox").forEach(cb => {
+    cb.addEventListener("click", (e) => e.stopPropagation()); // 行クリックとの二重発火を防ぐ
+    cb.addEventListener("change", () => toggleCompareRow(cb.dataset.gidx, cb));
+  });
+
+  // 年フォルダ行クリック：その年の試合行だけを開閉する
+  mainContentEl.querySelectorAll(".gamelog-table tr.row-folder").forEach(row => {
+    row.addEventListener("click", () => {
+      const year = row.dataset.year;
+      const body = mainContentEl.querySelector(`.gamelog-table tbody.folder-body[data-year-body="${year}"]`);
+      if(!body) return;
+      const isOpen = body.style.display !== "none";
+      body.style.display = isOpen ? "none" : "table-row-group";
+      const chev = row.querySelector(".folder-chevron");
+      if(chev) chev.style.transform = isOpen ? "rotate(-90deg)" : "rotate(0deg)";
+    });
+  });
+
+  // 行クリック：チェックボックスは一切変更せず、その行の内容だけを下のパネルにプレビュー表示する
+  mainContentEl.querySelectorAll(".gamelog-table tbody tr.row-game").forEach(row => {
+    row.addEventListener("click", (e) => {
+      if(e.target.closest(".cmp-checkbox")) return; // チェックボックス自体のクリックはここでは扱わない
+      const gidx = row.dataset.gidx;
+      previewGidx = (previewGidx === gidx) ? null : gidx; // 同じ行を再クリックしたら閉じる
+      renderComparePanel(d);
+      if(previewGidx){
+        const panel = document.getElementById("comparePanel");
+        if(panel) panel.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    });
+  });
+
+  setupGamelogSnap();
+}
+
+// 試合ログテーブルの横スクロールを列境界にスナップさせる。
+// 比較・日付・対戦は固定列（position:sticky）だが、4列目（結果）以降は普通にスクロールして
+// 固定列の下を通り過ぎていくため、指を離した位置がちょうど列の途中だと、結果や各指標の値が
+// 固定列との境目からわずかに見えてしまうことがある。スクロールが止まったら一番近い列の境界まで
+// スムーズに補正することで、常にどこかの列がきっちり境界に揃った状態で止まるようにする。
+function setupGamelogSnap(){
+  const scrollEl = mainContentEl.querySelector(".gamelog-scroll");
+  const table = scrollEl && scrollEl.querySelector(".gamelog-table");
+  if(!scrollEl || !table) return;
+  // カラム見出し行は年フォルダを閉じている間は非表示（display:none）になり、
+  // offsetWidthが0になってしまうため、DOM上のth幅ではなくcolgroupの指定値から直接計算する。
+  const colEls = table.querySelectorAll("colgroup col");
+  if(colEls.length < 5) return;
+  const boundaries = [0];
+  let acc = 0;
+  for(let i = 3; i < colEls.length; i++){
+    acc += parseInt(colEls[i].style.width, 10) || 0;
+    boundaries.push(acc);
+  }
+  const doSnap = () => {
+    const maxScroll = table.offsetWidth - scrollEl.clientWidth;
+    const sl = scrollEl.scrollLeft;
+    if(sl <= 0 || sl >= maxScroll - 1) return; // 端まで来ている場合はそのまま
+    let nearest = boundaries[0], best = Infinity;
+    for(const b of boundaries){
+      if(b > maxScroll) break;
+      const d = Math.abs(b - sl);
+      if(d < best){ best = d; nearest = b; }
+    }
+    if(Math.abs(nearest - sl) > 1){
+      scrollEl.scrollTo({ left: nearest, behavior: "smooth" });
+    }
+  };
+  // "scrollend"に対応するブラウザ（iOS16.4+のSafari含む）では、慣性スクロールも含めた
+  // 本当の停止タイミングを直接検知できるので最優先で使う。未対応環境向けに、通常のscrollイベント
+  // ＋短いデバウンスによるフォールバックも併用する（両方登録しても、境界に既に合っていれば何もしない）。
+  if("onscrollend" in window){
+    scrollEl.addEventListener("scrollend", doSnap);
+  }
+  let snapTimer = null;
+  scrollEl.addEventListener("scroll", () => {
+    clearTimeout(snapTimer);
+    snapTimer = setTimeout(doSnap, 80);
+  });
+}
+
+// ── 試合ログテーブル（シーズン行 + 直近試合の行、行クリックで詳細展開）──
+function cellClass(value, goodDir, threshold){
+  // goodDir: "high"なら値が高いほど良い、"low"なら低いほど良い
+  if(value == null) return "";
+  if(goodDir === "high") return value >= threshold ? "cell-good" : (value <= threshold * 0.6 ? "cell-bad" : "");
+  return value <= threshold ? "cell-good" : (value >= threshold * 1.6 ? "cell-bad" : "");
+}
+
+// 試合1件ぶんの「回・球数・K・BB・安打(自責)」表記（例: 6.0回 104球 5K 3BB 7(2)）
+function formatGameResult(g){
+  if(g.ip == null && g.pitches == null) return escapeHtml(g.result || "");
+  return `${g.ip ?? "-"}回 ${g.pitches ?? "-"}球 ${g.k ?? "-"}K ${g.bb ?? "-"}BB ${g.h ?? "-"}(${g.er ?? "-"})`;
+}
+
+// シーズン行の「登板・回・防御率・K・BB」表記（例: 7登板 53.1回 防1.01 53K 7BB）
+function formatSeasonResult(d){
+  return `${d.games ?? "-"}登板 ${d.innings ?? "-"}回 防${d.era ?? "-"} ${d.k ?? "-"}K ${d.bb ?? "-"}BB`;
+}
+
+// "2026-08-30" → "8/30"（年をまたぐ表示が必要な箇所では別途年フォルダを使う）
+function formatDateShort(dateStr){
+  if(!dateStr) return "";
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(dateStr);
+  if(!m) return dateStr;
+  return `${parseInt(m[2],10)}/${parseInt(m[3],10)}`;
+}
+// "2026-08-30" → "2026"
+function dateYear(dateStr){
+  const m = /^(\d{4})-/.exec(dateStr || "");
+  return m ? m[1] : null;
+}
+
+// ── 球種詳細テーブル（本家ダッシュボードと同じ列構成・パーセンタイル色付け）──
+// currentLeagueに応じて表示する指標を切り替える（MLB独自指標はNPBデータには存在しないため）
+const PMIX_METRICS_BASE = [
+  { key:"swstr_pct",  tierKey:"空振り率_ランク",         label:"空振り率",      unit:"%",   decimals:1, width:80 },
+  { key:"chase_pct",  tierKey:"ゾーン外スイング率_ランク", label:"ボール球SW%",   unit:"%",   decimals:1, width:100 },
+  { key:"strike_pct", tierKey:"ストライク率_ランク",       label:"ストライク率",  unit:"%",   decimals:1, width:90 },
+  { key:"zone_pct",   tierKey:"ゾーン率_ランク",          label:"ゾーン率",      unit:"%",   decimals:1, width:80 },
+  { key:"gb_pct",     tierKey:"GB%_ランク",              label:"ゴロ率",        unit:"%",   decimals:1, width:70 },
+];
+const PMIX_METRICS_VEL = [
+  { key:"avg_vel", tierKey:"平均球速_ランク", label:"平均球速", unit:"km/h", decimals:1, width:100 },
+  { key:"max_vel", tierKey:"最高球速_ランク", label:"最高球速", unit:"km/h", decimals:1, width:100 },
+];
+const PMIX_METRICS_MLB_EXTRA = [
+  { key:"xwoba",       tierKey:"xwOBA_ランク",     label:"xwOBA",         unit:"",    decimals:3, width:78 },
+  { key:"avg_spin",    tierKey:"回転数_ランク",     label:"回転数",         unit:"rpm", decimals:0, width:86 },
+  { key:"spin_axis",   tierKey:"回転軸_ランク",     label:"回転軸",         unit:"°",   decimals:0, width:74 },
+  { key:"active_spin", tierKey:"回転効率_ランク",   label:"回転効率(近似)", unit:"%",   decimals:1, width:112 },
+  { key:"vaa",         tierKey:"VAA_ランク",        label:"VAA",           unit:"°",   decimals:1, width:66 },
+  { key:"ivb",         tierKey:"縦変化量_ランク",   label:"縦変化量",       unit:"cm",  decimals:1, width:84 },
+  { key:"hb",          tierKey:"横変化量_ランク",   label:"横変化量",       unit:"cm",  decimals:1, width:84 },
+  { key:"ext",         tierKey:"Extension_ランク",  label:"Extension",     unit:"m",   decimals:2, width:84 },
+];
+function currentPmixMetrics(){
+  return currentLeague === "mlb"
+    ? [...PMIX_METRICS_BASE, ...PMIX_METRICS_VEL, ...PMIX_METRICS_MLB_EXTRA]
+    : [...PMIX_METRICS_BASE, ...PMIX_METRICS_VEL];
+}
+function fmtMetricVal(m, v){
+  if(v == null || Number.isNaN(v)) return "—";
+  return (+v).toFixed(m.decimals) + (m.unit || "");
+}
+const TIER_COLOR = {
+  top15: "rgba(18,165,178,0.40)", top30: "rgba(18,165,178,0.25)", top40: "rgba(18,165,178,0.12)",
+  mid: "", bot60: "rgba(238,122,151,0.10)", bot70: "rgba(238,122,151,0.18)", bot85: "rgba(238,122,151,0.38)"
+};
+
+function pitchDetailTableHtml(pitches, trueTotal, metricsOverride, tagsByName){
+  if(!pitches || !pitches.length){
+    return `<div style="padding:16px;text-align:center;color:var(--text-dim);font-size:12px">データなし</div>`;
+  }
+  const metrics = metricsOverride || currentPmixMetrics();
+  const showTagCol = !!tagsByName;
+  const tc = pitches.reduce((s,m)=>s+(m.count||0), 0);
+  // ゴロ率(gb_pct)の本来の分母は「打球数」、ボール球SW%(chase_pct)の本来の分母は
+  // 「ゾーン外投球数」で、どちらも投球数(count)そのものではない。それぞれ専用の
+  // 実数フィールド（gb_n/oz_n）があればそちらで加重し、無い（古い形式の）データの
+  // 場合のみ投球数で代用する。
+  // ただし本来は、球種別内訳から再度加重平均するより、シーズン全体を直接集計した
+  // 実数（trueTotal。season_totalsから渡される）をそのまま使う方が正確
+  // （一部の打席で球種が特定できず球種別内訳から漏れるケースがあっても影響を受けない）。
+  // trueTotalが無い場合（試合単位のログ表示など）のみ、フォールバックとして
+  // 球種別内訳からの加重平均を使う。
+  const TRUE_TOTAL_KEY = { swstr_pct: "空振り率", chase_pct: "ゾーン外スイング率", strike_pct: "ストライク率", zone_pct: "ゾーン率", gb_pct: "ゴロ率" };
+  const WEIGHT_FIELD = { gb_pct: "gb_n", chase_pct: "oz_n" };
+  const wavg = (key) => {
+    if(trueTotal){
+      const tKey = TRUE_TOTAL_KEY[key];
+      if(tKey && trueTotal[tKey] != null) return trueTotal[tKey];
+    }
+    const wField = WEIGHT_FIELD[key];
+    const withVal = pitches.filter(m => m[key] != null);
+    const weightOf = (m) => {
+      if(wField && m[wField] != null) return m[wField];
+      return m.count || 0;
+    };
+    const wsum = withVal.reduce((s,m)=>s+weightOf(m), 0);
+    return wsum > 0 ? withVal.reduce((s,m)=>s+(m[key]*weightOf(m)), 0) / wsum : null;
+  };
+  const maxVel = pitches.reduce((mx,m) => (m.max_vel != null && m.max_vel > mx) ? m.max_vel : mx, 0);
+  // スマホ（縦・横どちらも）は画面が限られるので、この表の列幅・行間・文字を一回り詰め、
+  // さらに「投球割合」列を独立させず「投球数」列の下にカッコ書きで統合して列数自体を減らす
+  // （横スクロール量そのものを減らす）。PC表示は従来通り2列に分けたまま。
+  const compact = isMobileLayout();
+  const WSCALE = compact ? 0.78 : 1;
+  const sw = (px) => Math.round(px * WSCALE);
+  const C1 = sw(104);
+  const C2 = compact ? sw(70) : sw(52); // compact時は投球数セルに割合も同居させるので少し広げる
+  const C3 = sw(60);
+  const TAG_COL_WIDTH = sw(130);
+  const countCellHtml = (count, pct) => compact
+    ? `<span class="pmix-count-main">${count ?? "—"}</span>${pct != null ? `<span class="pmix-count-sub">(${pct}%)</span>` : ""}`
+    : `${count ?? "—"}`;
+  // table-layout:fixedは、テーブル自身の幅がautoのままだと内容の長さに引っ張られて列幅がズレてしまう
+  // （固定列の位置計算の前提が崩れ、スクロール時に他の値が透けて見える原因になる）ため、
+  // 列幅の合計と完全に一致する幅をここで計算してテーブルに明示的に指定する。
+  const totalWidth = C1 + C2 + (compact ? 0 : C3) + metrics.reduce((s,m) => s + sw(m.width), 0) + (showTagCol ? TAG_COL_WIDTH : 0);
+  const rows = pitches.map((p,i) => `
+    <tr>
+      <td style="width:${C1}px"><span class="pmix-pname"><span class="pmix-dot" style="background:${pitchColor(i)}"></span>${escapeHtml(p.name)}</span></td>
+      <td style="width:${C2}px;left:${C1}px">${countCellHtml(p.count, p.pct)}</td>
+      ${compact ? "" : `<td style="width:${C3}px">${p.pct != null ? p.pct + "%" : "—"}</td>`}
+      ${metrics.map(m => {
+        const v = p[m.key];
+        const tier = p[m.tierKey];
+        const bg = tier ? (TIER_COLOR[tier] || "") : "";
+        return `<td style="width:${sw(m.width)}px;background:${bg}">${fmtMetricVal(m, v)}</td>`;
+      }).join("")}
+      ${showTagCol ? `<td style="width:${TAG_COL_WIDTH}px">${tagsByName[p.name] ? `<span class="pmix-tag">${escapeHtml(tagsByName[p.name])}</span>` : "—"}</td>` : ""}
+    </tr>
+  `).join("");
+  return `
+    <div class="pmix-scroll${compact ? ' pmix-scroll-compact' : ''}">
+      <table class="pmix-table" style="width:${totalWidth}px">
+        <thead><tr><th style="width:${C1}px">球種</th><th style="width:${C2}px;left:${C1}px">投球数</th>${compact ? "" : `<th style="width:${C3}px">投球割合</th>`}${metrics.map(m => `<th style="width:${sw(m.width)}px">${m.label}</th>`).join("")}${showTagCol ? `<th style="width:${TAG_COL_WIDTH}px">特徴</th>` : ""}</tr></thead>
+        <tbody>${rows}</tbody>
+        <tfoot><tr><td style="width:${C1}px">合計</td><td style="width:${C2}px;left:${C1}px">${countCellHtml(tc, compact ? 100 : null)}</td>${compact ? "" : `<td style="width:${C3}px">100%</td>`}${metrics.map(m => {
+          if(m.key === "max_vel") return `<td style="width:${sw(m.width)}px">${maxVel > 0 ? maxVel + "km/h" : "—"}</td>`;
+          return `<td style="width:${sw(m.width)}px">${fmtMetricVal(m, wavg(m.key))}</td>`;
+        }).join("")}${showTagCol ? `<td style="width:${TAG_COL_WIDTH}px"></td>` : ""}</tr></tfoot>
+      </table>
+    </div>
+  `;
+}
+
+const PITCH_COLORS = ["#34D399","#FB923C","#F87171","#EC4899","#A78BFA","#60A5FA","#FBBF24","#22D3EE"];
+function pitchColor(i){ return PITCH_COLORS[i % PITCH_COLORS.length]; }
+
+// 日本語（全角）と英数字（半角）が混ざった短い文言のセル幅を見積もる。
+// 「8/30 vs ソフトバンク」のような長いチーム名でも列が見切れないようにするため、
+// 表示する文言の長さに応じて列幅を動的に決める（固定幅だと長いチーム名で切れてしまうため）。
+function estimateLabelWidth(s){
+  let w = 20; // 左右パディング分
+  for(const ch of String(s || "")){
+    w += /[\x00-\x7F]/.test(ch) ? 7 : 12;
+  }
+  return w;
+}
+
+// ── 複数選択時：指標ごとに、選択項目の数だけ横並びで比較するテーブル ──
+// entries: [{label, pitches}]（pitchesは pitchDetailTableHtml に渡すのと同じ球種配列）
+function buildPitchCompareTable(entries){
+  if(!entries.length) return "";
+  const metrics = [
+    { key:"count", label:"投球数", isCount:true },
+    { key:"pct",   label:"投球割合", isPct:true },
+    ...currentPmixMetrics(),
+  ];
+  // 球種の並び順：先に選んだ項目の投球数が多い順 → 以後の項目にしか無い球種は末尾に追加
+  const order = [];
+  const seen = new Set();
+  entries.forEach(e => (e.pitches || []).forEach(p => {
+    if(p.name && !seen.has(p.name)){ seen.add(p.name); order.push(p.name); }
+  }));
+  const colorFor = (name) => pitchColor(order.indexOf(name));
+
+  const cellsFor = (metric, perEntry) => perEntry.map((p,i) => {
+    const sep = i === 0 ? "grp-sep" : "";
+    if(!p) return `<td class="${sep}">—</td>`;
+    if(metric.isCount) return `<td class="${sep}">${p.count ?? "—"}</td>`;
+    if(metric.isPct)   return `<td class="${sep}">${p.pct != null ? p.pct + "%" : "—"}</td>`;
+    const v = p[metric.key];
+    const tier = p[metric.tierKey];
+    const bg = tier ? (TIER_COLOR[tier] || "") : "";
+    return `<td class="${sep}" style="background:${bg}">${fmtMetricVal(metric, v)}</td>`;
+  }).join("");
+
+  const rows = order.map(name => {
+    const perEntry = entries.map(e => (e.pitches || []).find(p => p.name === name) || null);
+    return `
+      <tr>
+        <td class="pcompare-namecol"><span class="pmix-pname"><span class="pmix-dot" style="background:${colorFor(name)}"></span>${escapeHtml(name)}</span></td>
+        ${metrics.map(m => cellsFor(m, perEntry)).join("")}
+      </tr>
+    `;
+  }).join("");
+
+  const totalRow = `
+    <tr>
+      <td class="pcompare-namecol">合計</td>
+      ${metrics.map(m => entries.map((e,i) => {
+        const sep = i === 0 ? "grp-sep" : "";
+        if(m.isCount) return `<td class="${sep}">${(e.pitches||[]).reduce((s,p)=>s+(p.count||0),0)}</td>`;
+        if(m.isPct)   return `<td class="${sep}">${(e.pitches||[]).length ? "100%" : "—"}</td>`;
+        return `<td class="${sep}">—</td>`;
+      }).join("")).join("")}
+    </tr>
+  `;
+
+  const n = entries.length;
+  // table-layout:fixedで列幅を確実に固定するため、colgroupで各列の幅を明示する。
+  // ここを明示しないと、横スクロール中に列幅がブラウザ側で再計算されてsticky列の位置とズレ、
+  // 隣の指標セルの色（カラースケール）が固定列の隙間から透けて見える不具合になる。
+  // 列幅は「8/30 vs ソフトバンク」のような長いチーム名でも見切れないよう、
+  // 実際に表示するラベルの長さから動的に決める。
+  const COL_W = Math.max(64, Math.min(150, ...entries.map(e => estimateLabelWidth(e.label))));
+  const totalWidth = 110 + metrics.length * n * COL_W;
+  const colgroupHtml = `<colgroup><col style="width:110px">${metrics.map(() => entries.map(() => `<col style="width:${COL_W}px">`).join("")).join("")}</colgroup>`;
+  return `
+    <div class="pcompare-scroll">
+      <table class="pcompare-table" style="width:${totalWidth}px">
+        ${colgroupHtml}
+        <thead>
+          <tr>
+            <th rowspan="2" class="pcompare-namecol">球種</th>
+            ${metrics.map(m => `<th colspan="${n}" class="grp-sep">${m.label}</th>`).join("")}
+          </tr>
+          <tr>
+            ${metrics.map(() => entries.map((e,i) => `<th class="${i===0?'grp-sep':''}">${escapeHtml(e.label)}</th>`).join("")).join("")}
+          </tr>
+        </thead>
+        <tbody>${rows}${totalRow}</tbody>
+      </table>
+    </div>
+  `;
+}
+
+// ============================================================
+// コース分布（本家ダッシュボードの _hmFilterLocs / グリッド計算 / _drawZoneHeatmapMulti を移植）
+// ============================================================
+
+const HM_RESULT_OPTIONS = [
+  { key:"all",           label:"全て" },
+  { key:"swing",         label:"スイング" },
+  { key:"swstr",         label:"空振り（/全て）" },
+  { key:"swstr_vs_swing",label:"空振り（/スイング）" },
+  { key:"take",          label:"見逃し" },
+  { key:"ground",        label:"ゴロアウト" },
+  { key:"fly",           label:"フライアウト" },
+  { key:"hit",           label:"被打" },
+  { key:"xbh",           label:"長打" },
+  { key:"hr",            label:"HR" },
+];
+
+// グローバルなフィルター状態（比較パネル内の全ブロックで共有）
+window._hmResultFilter = window._hmResultFilter || "all";
+window._hmSplitMode = window._hmSplitMode || "25";
+window._hmSelectedPitchKeys = window._hmSelectedPitchKeys || null; // null=全球種
+
+// 各resultFilterの「率の分母」に使うフィルター。指定が無いものは"all"（全投球に対する率）。
+// swstr_vs_swingだけ、分母を「スイングした球」に絞る（=空振り/スイング数）。
+const HM_RATE_DENOM_FILTER = { swstr_vs_swing: "swing" };
+
+function hmFilterLocs(locs, resultFilter){
+  return (locs || []).filter(loc => {
+    const [x, y, flag, inZone, rtype] = loc;
+    if(resultFilter === "all") return true;
+    if(resultFilter === "swstr")          return flag === 1;
+    if(resultFilter === "swstr_vs_swing") return flag === 1;
+    if(resultFilter === "swing")  return flag >= 0;
+    if(resultFilter === "take")   return flag === -1;
+    if(resultFilter === "ground") return rtype === 1;
+    if(resultFilter === "fly")    return rtype === 2;
+    if(resultFilter === "hit")    return rtype === 3 || rtype === 4 || rtype === 5;
+    if(resultFilter === "xbh")    return rtype === 4 || rtype === 5;
+    if(resultFilter === "hr")     return rtype === 5;
+    return true;
+  });
+}
+
+function hmGetCell(v, edges){
+  for(let i=0;i<edges.length-1;i++){ if(v >= edges[i] && v < edges[i+1]) return i; }
+  return v < edges[0] ? 0 : edges.length-2;
+}
+
+// pitchLocsMap: {球種コード: {name,color,locsR,locsL}} → 指定した打者方向の、フィルター適用済み結合locs配列
+function hmCombinedLocs(pitchLocsMap, isBatterRight, filterOverride){
+  const locsKey = isBatterRight ? "locsR" : "locsL";
+  const keys = Object.keys(pitchLocsMap).filter(k => !window._hmSelectedPitchKeys || window._hmSelectedPitchKeys.has(k));
+  const filter = filterOverride !== undefined ? filterOverride : window._hmResultFilter;
+  return keys.flatMap(k => hmFilterLocs(pitchLocsMap[k][locsKey] || [], filter));
+}
+
+// 本家 index.html の表示用フリップ（_fR/_fL）の移植。
+// データ生成側で既にflip_x正規化はしてあるが、それとは別に「投手の利き腕」に応じて
+// 対右／対左どちらか一方の見た目だけをもう一段階左右反転する表示ロジックが本家にあり、
+// これが無いと球種比較で見え方が本家と食い違う（＝反転して見える）ため移植する。
+function hmDisplayFlip(league, pitcherHand, isBatterRight){
+  if(!pitcherHand) return false;
+  if(isBatterRight){
+    return league === "mlb" ? (pitcherHand === "R") : (pitcherHand === "L");
+  }
+  return league === "mlb" ? (pitcherHand === "L") : (pitcherHand === "R");
+}
+
+function hmBuildGridHtml(label, locs, flipX, allLocs){
+  const ZONE = 1.0, OUTER = 1.67;
+  const edges9  = [-ZONE, -ZONE/3, ZONE/3, ZONE];
+  const edges25 = [-OUTER, -ZONE, -ZONE/3, ZONE/3, ZONE, OUTER];
+  const mode = window._hmSplitMode;
+  const edges = mode === "9" ? edges9 : edges25;
+  const N = edges.length - 1;
+
+  const zoneLocs = mode === "9" ? locs.filter(l => l[3] === 1) : locs;
+  const denom = zoneLocs.length;
+  const counts = Array.from({length:N}, () => new Array(N).fill(0));
+  zoneLocs.forEach(([x,y]) => { const dispX = flipX ? -x : x; counts[hmGetCell(-y, edges)][hmGetCell(dispX, edges)]++; });
+  const maxCnt = Math.max(...counts.flat(), 1);
+
+  // 「スイング」以降のタブでは、各セルを「そのゾーンに投げた全投球数」に対する割合（分数付き）で表示する。
+  // 「全て」タブのときは従来通り「全ゾーン合計に対する割合」を表示する。
+  const showRateOfAll = !!allLocs;
+  let allCounts = null, allMaxCnt = 1;
+  if(showRateOfAll){
+    const allZoneLocs = mode === "9" ? allLocs.filter(l => l[3] === 1) : allLocs;
+    allCounts = Array.from({length:N}, () => new Array(N).fill(0));
+    allZoneLocs.forEach(([x,y]) => { const dispX = flipX ? -x : x; allCounts[hmGetCell(-y, edges)][hmGetCell(dispX, edges)]++; });
+    allMaxCnt = Math.max(...allCounts.flat(), 1);
+  }
+
+  // スマホ幅では「グリッド＋配球キャンバス」を横並びのまま収めたいので、セルを一回り小さくする
+  const isNarrow = isMobileLayout();
+  const CW = mode === "9" ? (isNarrow ? 44 : 54) : (isNarrow ? 26 : 34);
+  const CH = mode === "9" ? (isNarrow ? 36 : 44) : (isNarrow ? 22 : 28);
+  const fs = mode === "9" ? (isNarrow ? "10.5px" : "12px") : "10px", fsSub = mode === "9" ? "8.5px" : "8px";
+
+  // showRateOfAll（「スイング」以降のタブ）では、色の濃淡は「そのゾーンに来た球のうち該当した割合」
+  // （＝セルに表示されている%そのもの）が高いほど濃くなるようにする。総投球数で決めると、
+  // 割合は高いのに投球数が少ないだけのセルが薄く表示されて紛らわしいため、先に全セルの%を
+  // 計算してその中の最大値を基準に正規化する。
+  let ratePctGrid = null, maxRatePct = 1;
+  if(showRateOfAll){
+    ratePctGrid = Array.from({length:N}, () => new Array(N).fill(0));
+    for(let r=0;r<N;r++) for(let c=0;c<N;c++){
+      const total = allCounts[r][c];
+      ratePctGrid[r][c] = total>0 ? (counts[r][c]/total*100) : 0;
+    }
+    maxRatePct = Math.max(...ratePctGrid.flat(), 1);
+  }
+
+  let html = `<div class="course-block">
+    <div class="ctitle">${escapeHtml(label)}（${mode==='9' ? denom+'球 ゾーン内' : locs.length+'球'}）— 投手視点</div>
+    <table class="hm-grid-table"><tbody>`;
+  for(let r=0;r<N;r++){
+    html += "<tr>";
+    for(let c=0;c<N;c++){
+      const cnt = counts[r][c];
+      let pct, subLabel, hasVal, intensity;
+      if(showRateOfAll){
+        const total = allCounts[r][c];
+        hasVal = total > 0;
+        pct = hasVal ? Math.round(cnt/total*100) : 0;
+        subLabel = `${cnt}/${total}`;
+        intensity = hasVal ? ratePctGrid[r][c] / maxRatePct : 0; // 濃淡は割合（%）の高さを基準にする
+      } else {
+        hasVal = cnt > 0;
+        pct = denom>0 ? (cnt/denom*100).toFixed(1) : "0.0";
+        subLabel = String(cnt);
+        intensity = cnt / maxCnt;
+      }
+      const inZone = mode==="9" ? true : (c>=1&&c<=3&&r>=1&&r<=3);
+      const bgAlpha = (0.05 + intensity*0.7).toFixed(2);
+      const bg = hasVal ? (inZone?`rgba(59,130,246,${bgAlpha})`:`rgba(100,116,139,${bgAlpha})`) : (inZone?"rgba(59,130,246,0.03)":"rgba(255,255,255,0.01)");
+      const textCol = intensity>0.25 ? "#fff" : (hasVal?"var(--text)":"var(--text-dim)");
+      const subCol = intensity>0.25 ? "rgba(255,255,255,0.75)" : "var(--text-dim)";
+      const bT = (mode==="25"&&r===1)?"2px solid rgba(255,255,255,0.5)":"1px solid rgba(255,255,255,0.08)";
+      const bL = (mode==="25"&&c===1)?"2px solid rgba(255,255,255,0.5)":"1px solid rgba(255,255,255,0.08)";
+      const bB = (mode==="25"&&r===3)?"2px solid rgba(255,255,255,0.5)":"1px solid rgba(255,255,255,0.08)";
+      const bR = (mode==="25"&&c===3)?"2px solid rgba(255,255,255,0.5)":"1px solid rgba(255,255,255,0.08)";
+      html += `<td style="width:${CW}px;height:${CH}px;text-align:center;border-top:${bT};border-left:${bL};border-bottom:${bB};border-right:${bR};background:${bg};vertical-align:middle;padding:0">
+        <div style="font-size:${fs};font-weight:700;line-height:1.3;color:${textCol}">${hasVal?pct+'%':'·'}</div>
+        ${hasVal?`<div style="font-size:${fsSub};line-height:1.1;color:${subCol}">${subLabel}</div>`:""}
+      </td>`;
+    }
+    html += "</tr>";
+  }
+  html += "</tbody></table></div>";
+  return html;
+}
+
+// 本家 _drawZoneHeatmapMulti の移植（バッターシルエット込み）
+function hmDrawHeatmap(canvasId, locs, isBatterRight, flipX){
+  const canvas = document.getElementById(canvasId);
+  if(!canvas) return;
+  const ctx = canvas.getContext("2d");
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0,0,W,H);
+
+  const RANGE = 1.75, BAT_W = 42, PAD_TOP=6, PAD_BTM=28;
+  const PAD_L = isBatterRight ? 10 : BAT_W+6;
+  const PAD_R = isBatterRight ? BAT_W+6 : 10;
+  const drawW = W-PAD_L-PAD_R, drawH = H-PAD_TOP-PAD_BTM;
+  const toX = x => PAD_L + (x+RANGE)/(RANGE*2)*drawW;
+  const toY = y => PAD_TOP + (1-(y+RANGE)/(RANGE*2))*drawH;
+
+  ctx.fillStyle = "#070E1A"; ctx.fillRect(0,0,W,H);
+
+  const sigma = (drawW/(RANGE*2))*0.075*2;
+  const BASE_LOCS = 150;
+  const _scale = locs.length > BASE_LOCS ? Math.sqrt(BASE_LOCS/locs.length) : 1.0;
+  const dotScale = Math.max(0.7,_scale), alphaScale = Math.max(0.5,_scale);
+
+  ctx.save(); ctx.beginPath(); ctx.rect(PAD_L,PAD_TOP,drawW,drawH); ctx.clip();
+  const dotR = Math.max(2.5, sigma*0.55*dotScale);
+  const a0 = +(0.85*alphaScale).toFixed(2), a1 = +(0.55*alphaScale).toFixed(2);
+  locs.forEach(loc => {
+    const [x,y] = loc;
+    const pc = hexToRgb(loc._color || "#3B82F6");
+    const px = flipX ? -x : x;
+    // ボール球（ゾーン外）はもとの座標をそのまま使うとキャンバス端に寄りすぎて見づらいため
+    // 少し圧縮しているが、値が小さすぎるとストライクゾーンのすぐ外側に張り付いて見えてしまう。
+    // ボールゾーン側にもう少し広がって見えるよう圧縮率を弱めている。
+    const BALL_COMPRESS = 0.55, SZ = 1.0;
+    const compress = v => { if(Math.abs(v)<=SZ) return v; const sign=v>0?1:-1; return sign*(SZ+(Math.abs(v)-SZ)*BALL_COMPRESS); };
+    const cx2 = toX(compress(px)), cy2 = toY(compress(y));
+    const grd = ctx.createRadialGradient(cx2,cy2,0,cx2,cy2,dotR*2.2);
+    grd.addColorStop(0,`rgba(${pc.r},${pc.g},${pc.b},${a0})`);
+    grd.addColorStop(0.4,`rgba(${pc.r},${pc.g},${pc.b},${a1})`);
+    grd.addColorStop(1,`rgba(${pc.r},${pc.g},${pc.b},0)`);
+    ctx.fillStyle = grd; ctx.beginPath(); ctx.arc(cx2,cy2,dotR*2.2,0,Math.PI*2); ctx.fill();
+  });
+  ctx.restore();
+
+  const zx1=toX(-1),zx2=toX(1),zy1=toY(1),zy2=toY(-1);
+  ctx.strokeStyle="rgba(255,255,255,0.55)"; ctx.lineWidth=1.5; ctx.strokeRect(zx1,zy1,zx2-zx1,zy2-zy1);
+  ctx.strokeStyle="rgba(255,255,255,0.18)"; ctx.lineWidth=0.8;
+  [toX(-1/3),toX(1/3)].forEach(x=>{ctx.beginPath();ctx.moveTo(x,zy1);ctx.lineTo(x,zy2);ctx.stroke();});
+  [toY(1/3),toY(-1/3)].forEach(y=>{ctx.beginPath();ctx.moveTo(zx1,y);ctx.lineTo(zx2,y);ctx.stroke();});
+
+  const plateY=toY(-1.0)+2, plW=zx2-zx1;
+  ctx.strokeStyle="rgba(255,255,255,0.35)"; ctx.lineWidth=1.2;
+  ctx.beginPath();
+  ctx.moveTo(zx1,plateY); ctx.lineTo(zx2,plateY);
+  ctx.moveTo(zx1,plateY); ctx.lineTo(zx1+plW*0.15,plateY+8);
+  ctx.lineTo(zx1+plW*0.5,plateY+11); ctx.lineTo(zx2-plW*0.15,plateY+8); ctx.lineTo(zx2,plateY);
+  ctx.stroke();
+
+  const batCX = isBatterRight ? toX(1)+BAT_W*0.5 : toX(-1)-BAT_W*0.5;
+  const batBotY = toY(-1.0)+4, s = 0.88;
+  ctx.save(); ctx.translate(batCX,batBotY);
+  if(!isBatterRight) ctx.scale(-1,1);
+  ctx.fillStyle = "rgba(148,163,184,0.55)"; ctx.strokeStyle = "rgba(148,163,184,0.55)";
+  ctx.lineJoin = "round"; ctx.lineCap = "round";
+  ctx.beginPath();
+  ctx.moveTo(-12*s,0); ctx.lineTo(-14*s,-25*s); ctx.lineTo(-7*s,-25*s); ctx.lineTo(-5*s,-14*s);
+  ctx.lineTo(-1*s,-25*s); ctx.lineTo(5*s,-25*s); ctx.lineTo(2*s,0); ctx.closePath(); ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(-13*s,-23*s); ctx.lineTo(-14*s,-48*s); ctx.lineTo(-4*s,-48*s); ctx.lineTo(-2*s,-23*s);
+  ctx.closePath(); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(-9*s,-56*s,7*s,8*s,0,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(-4*s,-54*s,4*s,5*s,0.3,0,Math.PI); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(-13*s,-44*s); ctx.lineTo(-24*s,-35*s); ctx.lineWidth=7*s; ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(-14*s,-44*s); ctx.lineTo(-7*s,-33*s); ctx.lineWidth=5*s; ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(-7*s,-33*s); ctx.lineTo(10*s,-14*s); ctx.lineWidth=3.5*s;
+  ctx.strokeStyle="rgba(148,163,184,0.35)"; ctx.stroke();
+  ctx.beginPath(); ctx.arc(10*s,-14*s,2.5*s,0,Math.PI*2); ctx.fillStyle="rgba(148,163,184,0.4)"; ctx.fill();
+  ctx.restore();
+}
+
+function hexToRgb(hex){
+  const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  return m ? { r:parseInt(m[1],16), g:parseInt(m[2],16), b:parseInt(m[3],16) } : { r:59,g:130,b:246 };
+}
+
+// 球種フィルターボタン + 結果フィルタータブ + 9/25分割トグル（比較パネル全体で共有・1セットだけ表示）
+function hmControlsHtml(allPitchKeysMap){
+  // 「全球種」が選ばれている（＝絞り込みなし）ときは、個別の球種ボタンまで
+  // 緑色にする必要はないので、全球種以外がactiveになるのは個別に選択されている場合のみにする
+  const pitchBtns = Object.entries(allPitchKeysMap).map(([key, info]) => `
+    <button class="hm-pitch-btn ${window._hmSelectedPitchKeys && window._hmSelectedPitchKeys.has(key) ? 'active' : ''}" data-pkey="${key}">
+      <span class="hm-pdot" style="background:${info.color}"></span>${escapeHtml(info.name)}
+    </button>
+  `).join("");
+  return `
+    <div class="hm-controls">
+      <div class="hm-controls-row">
+        <span class="hm-controls-label">結果</span>
+        <div class="hm-btn-group">
+          ${HM_RESULT_OPTIONS.map(o => `<button class="hm-filter-btn hm-filter-btn--result ${window._hmResultFilter===o.key?'active':''}" data-result="${o.key}">${o.label}</button>`).join("")}
+        </div>
+      </div>
+      <div class="hm-controls-row">
+        <span class="hm-controls-label">球種</span>
+        <div class="hm-btn-group">
+          <button class="hm-pitch-btn ${!window._hmSelectedPitchKeys ? 'active' : ''}" data-pkey="__all__">全球種</button>
+          ${pitchBtns}
+        </div>
+      </div>
+      <div class="hm-controls-row">
+        <span class="hm-controls-label">分割</span>
+        <div class="hm-btn-group">
+          <button class="hm-filter-btn hm-filter-btn--split ${window._hmSplitMode==='25'?'active':''}" data-split="25">25分割</button>
+          <button class="hm-filter-btn hm-filter-btn--split ${window._hmSplitMode==='9'?'active':''}" data-split="9">9分割</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// ============================================================
+// 試合ログテーブル + 比較パネル
+// ============================================================
+
+let compareSelectedKeys = new Set(); // "season" | 数字(game index、文字列)。チェックボックスでのみ操作する
+let previewGidx = null; // 行クリックでの単体プレビュー表示用（チェックボックスの状態とは独立）
+let compareHand = "all"; // 複数選択時の球種比較テーブルで使う 全体/対右/対左
+
+function buildGameLogTable(d){
+  if(!d.game_log || !d.game_log.length) return "";
+  const cols = [
+    { key: "swstr_pct", label: "空振り率", good: "high", th: 12 },
+    { key: "chase_pct", label: "ボール球SW%", good: "high", th: 30 },
+    { key: "strike_pct", label: "ストライク率", good: "high", th: 55 },
+    { key: "zone_pct", label: "ゾーン率", good: "high", th: 45 },
+    { key: "kbb_pct", label: "K-BB%", good: "high", th: 15 },
+    { key: "k_pct", label: "K%", good: "high", th: 22 },
+    { key: "bb_pct", label: "BB%", good: "low", th: 8 },
+    { key: "gb_pct", label: "ゴロ率", good: "high", th: 42 }
+  ];
+
+  const chk = (gidx) => `<input type="checkbox" class="cmp-checkbox" data-gidx="${gidx}" ${compareSelectedKeys.has(gidx)?"checked":""}>`;
+
+  // 対戦・結果は1セルにまとめ、結果を1行目・対戦相手をひとまわり小さく2行目に表示する
+  // （3行目は作らない＝どちらも折り返さず1行で収まる幅にしてある）
+  const matchupCell = (resultHtml, opponentText) => `
+    <td class="gl-matchup-cell">
+      <div class="gl-result">${resultHtml}</div>
+      <div class="gl-opponent">${opponentText}</div>
+    </td>
+  `;
+
+  const seasonRow = `
+    <tr class="row-game" data-gidx="season">
+      <td>${chk("season")}</td>
+      <td>シーズン</td>
+      ${matchupCell(formatSeasonResult(d), "―")}
+      ${cols.map(c => {
+        const v = d[c.key + "_season"];
+        const cls = cellClass(v, c.good, c.th);
+        return `<td class="${cls}">${v != null ? v + "%" : "-"}</td>`;
+      }).join("")}
+    </tr>
+  `;
+
+  const colCount = 3 + cols.length; // 比較・日付・対戦結果 + 指標列
+
+  // カラム見出し行：以前は年フォルダの外側に固定表示していたが、年フォルダを開くまで
+  // 中身（試合行）が見えないのに見出しだけ先に見えているのは不自然、という指摘を受けて
+  // 各年フォルダの中身（folder-body）の先頭行として、フォルダを開いたときだけ表示するようにした。
+  const headerRowHtml = `
+    <tr class="row-col-header">
+      <th>比較</th><th>日付</th><th>結果</th>
+      ${cols.map(c => `<th>${c.label}</th>`).join("")}
+    </tr>
+  `;
+
+  const gameRowHtml = (g, i) => `
+    <tr class="row-game" data-gidx="${i}">
+      <td>${chk(String(i))}</td>
+      <td>${escapeHtml(formatDateShort(g.date))}</td>
+      ${matchupCell(formatGameResult(g), escapeHtml(g.opponent || ""))}
+      ${cols.map(c => {
+        const v = g[c.key];
+        const cls = cellClass(v, c.good, c.th);
+        return `<td class="${cls}">${v != null ? v + "%" : "-"}</td>`;
+      }).join("")}
+    </tr>
+  `;
+
+  // 試合を年ごとにグループ化し、フォルダ行の下にその年の試合行だけを表示する。
+  // 来シーズン以降、新しい年のフォルダ（例: 2027年）が自動的に並ぶようになる想定。
+  const yearGroups = []; // [{year, indices:[...]}]
+  d.game_log.forEach((g, i) => {
+    const y = dateYear(g.date) || "-";
+    let grp = yearGroups.find(gr => gr.year === y);
+    if(!grp){ grp = { year: y, indices: [] }; yearGroups.push(grp); }
+    grp.indices.push(i);
+  });
+
+  const folderRowsHtml = yearGroups.map((grp, gi) => {
+    const isOpen = gi === 0; // 最新（先頭）の年だけデフォルトで開いておく
+    const rows = grp.indices.map(i => gameRowHtml(d.game_log[i], i)).join("");
+    // シーズン集計行は「現在のシーズン」＝一番新しい年グループの先頭に含める
+    const seasonRowHtml = gi === 0 ? seasonRow : "";
+    return `
+      <tbody class="folder-head-body">
+        <tr class="row-folder" data-year="${escapeHtml(grp.year)}">
+          <td colspan="${colCount}" class="folder-cell">
+            <div class="folder-row-inner">
+              <span class="folder-bar"></span>
+              <span class="folder-label">${escapeHtml(grp.year)}年</span>
+              <span class="folder-count">（${grp.indices.length}試合）</span>
+              <span class="folder-chevron" style="transform:${isOpen ? "rotate(0deg)" : "rotate(-90deg)"}">︾</span>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+      <tbody class="folder-body" data-year-body="${escapeHtml(grp.year)}" style="display:${isOpen ? "table-row-group" : "none"}">
+        ${headerRowHtml}${seasonRowHtml}${rows}
+      </tbody>
+    `;
+  }).join("");
+
+  // table-layout:fixed の列幅は本来thead側の指定で決まるが、カラム見出し行を
+  // 各年フォルダの中（開いたときだけ表示）に移したことで、閉じている間は
+  // 幅の基準になる行が無くなってしまう。そのためcolgroupで列幅を明示し、
+  // フォルダの開閉状態に関わらず常に同じ列幅になるようにしている。
+  // 対戦・結果を1列にまとめたことで固定列（比較・日付・対戦結果）の合計幅が
+  // 以前より狭くなり、スマホでも指標列が早く見えるようにしている。
+  const colgroupHtml = `
+    <colgroup>
+      <col style="width:36px"><col style="width:64px"><col style="width:180px">
+      ${cols.map(() => `<col style="width:88px">`).join("")}
+    </colgroup>
+  `;
+
+  return `
+    <div class="section section-gamelog">
+      ${sectionHeader({ bar:"var(--amber)", label:`${d.season_label || "シーズン"}成績`, labelColor:"var(--text-bright)" })}
+      <div class="section-body">
+
+        <div class="gamelog-scroll">
+          <table class="gamelog-table">
+            ${colgroupHtml}
+            ${folderRowsHtml}
+          </table>
+        </div>
+        <div id="comparePanel"></div>
+      </div>
+    </div>
+  `;
+}
+
+// 選択中のキーに対応する {pitch_detail, course_locs, label, summary} を取得
+function getRowDataFor(d, gidx){
+  if(gidx === "season"){
+    return { label: "シーズン", pitchDetail: d.season_pitch_detail, courseLocs: d.season_course_locs, summary: formatSeasonResult(d), seasonTotals: d.season_totals || null };
+  }
+  const g = d.game_log[parseInt(gidx,10)];
+  if(!g) return null;
+  return { label: `${formatDateShort(g.date)} ${g.opponent || ""}`.trim(), pitchDetail: g.pitch_detail, courseLocs: g.course_locs, summary: formatGameResult(g), seasonTotals: null };
+}
+
+function renderComparePanel(d){
+  const panel = document.getElementById("comparePanel");
+  if(!panel) return;
+  // チェックボックスでの選択がある場合はそちらを優先。無ければ行クリックのプレビューを表示する
+  const keys = compareSelectedKeys.size ? [...compareSelectedKeys] : (previewGidx != null ? [previewGidx] : []);
+  if(!keys.length){ panel.innerHTML = ""; return; }
+
+  // 比較パネルが表示される（下に大きく伸びる）ときは、開いている年フォルダを閉じて
+  // シーズン成績テーブル自体の縦の長さを抑える
+  mainContentEl.querySelectorAll(".gamelog-table tbody.folder-body").forEach(body => {
+    if(body.style.display !== "none"){
+      body.style.display = "none";
+      const year = body.dataset.yearBody;
+      const row = mainContentEl.querySelector(`.gamelog-table tr.row-folder[data-year="${year}"]`);
+      const chev = row && row.querySelector(".folder-chevron");
+      if(chev) chev.style.transform = "rotate(-90deg)";
+    }
+  });
+
+  // 全選択ぶんに登場する球種の集合（球種フィルターボタン用）。
+  // タブは投球割合（投球数）が多い球種順に並べる。
+  const allPitchKeysMap = {};
+  const pitchCounts = {};
+  keys.forEach(k => {
+    const rd = getRowDataFor(d, k);
+    if(rd && rd.courseLocs) Object.entries(rd.courseLocs).forEach(([pkey, info]) => {
+      allPitchKeysMap[pkey] = info;
+      const cnt = (info.locsR ? info.locsR.length : 0) + (info.locsL ? info.locsL.length : 0);
+      pitchCounts[pkey] = (pitchCounts[pkey] || 0) + cnt;
+    });
+  });
+  const sortedPitchKeysMap = {};
+  Object.keys(allPitchKeysMap)
+    .sort((a, b) => (pitchCounts[b] || 0) - (pitchCounts[a] || 0))
+    .forEach(k => { sortedPitchKeysMap[k] = allPitchKeysMap[k]; });
+  const controlsHtml = hmControlsHtml(sortedPitchKeysMap);
+  const isMulti = keys.length >= 2;
+  // 投手の利き腕に応じた表示用フリップ（対右/対左それぞれ独立）。本家index.htmlの_fR/_fLと同じ計算。
+  const flipR = hmDisplayFlip(currentLeague, d.throws, true);
+  const flipL = hmDisplayFlip(currentLeague, d.throws, false);
+
+  // 表部分：球種の投球数・割合など（複数選択なら球種比較テーブル、単一選択ならそのゲームの球種内訳表）
+  const statsInnerHtml = isMulti ? (() => {
+    const entries = keys.map(gidx => {
+      const rd = getRowDataFor(d, gidx);
+      const pitches = rd && rd.pitchDetail ? rd.pitchDetail[compareHand] : null;
+      return { label: rd ? rd.label : gidx, pitches: pitches || [] };
+    });
+    const handButtons = `
+      <div class="chand-toggle">
+        <button class="hand-btn ${compareHand==='all'?'active':''}" data-hand="all">全体</button>
+        <button class="hand-btn ${compareHand==='vsR'?'active':''}" data-hand="vsR">対右</button>
+        <button class="hand-btn ${compareHand==='vsL'?'active':''}" data-hand="vsL">対左</button>
+      </div>
+    `;
+    return `
+      <div class="compare-block-title">球種比較</div>
+      ${handButtons}
+      ${buildPitchCompareTable(entries)}
+    `;
+  })() : (() => {
+    const gidx = keys[0];
+    const rd = getRowDataFor(d, gidx);
+    if(!rd || !rd.pitchDetail || !rd.pitchDetail.all) return "";
+    return `
+      <div class="compare-block-title">${escapeHtml(rd.label)}</div>
+      ${rd.summary ? `<div class="compare-block-summary">${escapeHtml(rd.summary)}</div>` : ""}
+      <div class="hand-toggle" data-gidx="${gidx}">
+        <button class="hand-btn active" data-hand="all">全体</button>
+        <button class="hand-btn" data-hand="vsR">対右</button>
+        <button class="hand-btn" data-hand="vsL">対左</button>
+      </div>
+      <div class="pmix-wrap" data-gidx="${gidx}">${pitchDetailTableHtml(rd.pitchDetail.all, rd.seasonTotals && rd.seasonTotals.all)}</div>
+    `;
+  })();
+
+  // 配球部分：結果/分割/球種のタブと、選択ぶんの配球グリッド＋配球図
+  const courseEntriesHtml = keys.map(gidx => {
+    const rd = getRowDataFor(d, gidx);
+    if(!rd) return "";
+    const courseLocs = rd.courseLocs || {};
+    const locsR = hmCombinedLocs(courseLocs, true);
+    const locsL = hmCombinedLocs(courseLocs, false);
+    const isAllFilter = window._hmResultFilter === "all";
+    const denomFilter = HM_RATE_DENOM_FILTER[window._hmResultFilter] || "all";
+    const allLocsR = isAllFilter ? null : hmCombinedLocs(courseLocs, true, denomFilter);
+    const allLocsL = isAllFilter ? null : hmCombinedLocs(courseLocs, false, denomFilter);
+    const canvasIdR = `hmcanvas-${gidx}-R`, canvasIdL = `hmcanvas-${gidx}-L`;
+    return `
+      <div class="course-entry" data-cmp-gidx="${gidx}">
+        ${isMulti ? `
+          <div class="compare-block-title">${escapeHtml(rd.label)}</div>
+          ${rd.summary ? `<div class="compare-block-summary">${escapeHtml(rd.summary)}</div>` : ""}
+        ` : ""}
+        <div class="course-row">
+          <div class="course-pair">
+            ${hmBuildGridHtml("対右打者", locsR, flipR, allLocsR)}
+            <div class="hm-canvas-block">
+              <div class="hm-canvas-title">対右打者 配球</div>
+              <canvas id="${canvasIdR}" width="200" height="210"></canvas>
+            </div>
+          </div>
+          <div class="course-pair">
+            ${hmBuildGridHtml("対左打者", locsL, flipL, allLocsL)}
+            <div class="hm-canvas-block">
+              <div class="hm-canvas-title">対左打者 配球</div>
+              <canvas id="${canvasIdL}" width="200" height="210"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join("");
+
+  // 表部分と配球部分は、2つの枠に分けず1つの囲み枠の中を区切り線で分ける
+  const combinedBoxHtml = `
+    <div class="compare-block">
+      ${statsInnerHtml}
+      <div class="compare-divider"></div>
+      ${controlsHtml}
+      ${courseEntriesHtml}
+    </div>
+  `;
+
+  panel.innerHTML = `<div class="compare-blocks">${combinedBoxHtml}</div>`;
+
+
+  // canvas描画（DOM挿入後に実行する必要がある）
+  keys.forEach(gidx => {
+    const rd = getRowDataFor(d, gidx);
+    if(!rd || !rd.courseLocs) return;
+    const buildColored = (isR) => {
+      const out = [];
+      Object.entries(rd.courseLocs).forEach(([pkey, info]) => {
+        if(window._hmSelectedPitchKeys && !window._hmSelectedPitchKeys.has(pkey)) return;
+        let raw = hmFilterLocs((isR ? info.locsR : info.locsL) || [], window._hmResultFilter);
+        // 9分割の表はゾーン内投球だけを集計している（ボール球は含めない）ため、
+        // 配球図（キャンバス）側もボール球のプロットを出すと表の数値と対応しなくなる。
+        // 9分割のときはキャンバスもゾーン内投球だけに絞り、表と配球図を一致させる。
+        if(window._hmSplitMode === "9") raw = raw.filter(l => l[3] === 1);
+        raw.forEach(loc => { const l = loc.slice(); l._color = info.color; out.push(l); });
+      });
+      return out;
+    };
+    hmDrawHeatmap(`hmcanvas-${gidx}-R`, buildColored(true), true, flipR);
+    hmDrawHeatmap(`hmcanvas-${gidx}-L`, buildColored(false), false, flipL);
+  });
+
+  wireComparePanelEvents(d);
+}
+
+function wireComparePanelEvents(d){
+  const panel = document.getElementById("comparePanel");
+  if(!panel) return;
+
+  panel.querySelectorAll(".chand-toggle .hand-btn").forEach(btn => {
+    btn.addEventListener("click", () => { compareHand = btn.dataset.hand; renderComparePanel(d); });
+  });
+  panel.querySelectorAll(".hm-filter-btn[data-result]").forEach(btn => {
+    btn.addEventListener("click", () => { window._hmResultFilter = btn.dataset.result; renderComparePanel(d); });
+  });
+  panel.querySelectorAll(".hm-filter-btn[data-split]").forEach(btn => {
+    btn.addEventListener("click", () => { window._hmSplitMode = btn.dataset.split; renderComparePanel(d); });
+  });
+  panel.querySelectorAll(".hm-pitch-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const pkey = btn.dataset.pkey;
+      // 単一選択：クリックした球種だけを選ぶ（前の選択は置き換え）。「全球種」でリセット
+      window._hmSelectedPitchKeys = (pkey === "__all__") ? null : new Set([pkey]);
+      renderComparePanel(d);
+    });
+  });
+  panel.querySelectorAll(".hand-toggle").forEach(toggle => {
+    toggle.addEventListener("click", (e) => {
+      const btn = e.target.closest(".hand-btn");
+      if(!btn) return;
+      const idx = toggle.dataset.gidx;
+      const hand = btn.dataset.hand;
+      const rd = getRowDataFor(d, idx);
+      if(!rd || !rd.pitchDetail) return;
+      toggle.querySelectorAll(".hand-btn").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      const wrap = panel.querySelector(`.pmix-wrap[data-gidx="${idx}"]`);
+      if(wrap) wrap.innerHTML = pitchDetailTableHtml(rd.pitchDetail[hand], rd.seasonTotals && rd.seasonTotals[hand]);
+    });
+  });
+}
+
+// 初期ロード
+loadPlayerIndex(currentLeague);
+</script>
+</body>
+</html>

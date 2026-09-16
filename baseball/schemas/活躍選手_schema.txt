@@ -1,0 +1,21 @@
+{
+  "type": "array",
+  "items": {
+    "type": "object",
+    "properties": {
+      "no": {
+        "type": "integer"
+      },
+      "player": {
+        "type": "string"
+      },
+      "team": {
+        "type": "string"
+      },
+      "detail": {
+        "type": "string"
+      }
+    },
+    "required": ["no", "player", "team", "detail"]
+  }
+}

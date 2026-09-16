@@ -1,0 +1,25 @@
+# 期間指定（開始日:終了日）で投球データ取得
+python scripts/run.py --date 2026-07-15:2026-07-20
+
+# スクレイピングせず、既存のRAWデータからdatamart&JSONだけ再生成
+python scripts/run.py --steps datamart --date 2026-06-09
+
+# 試合データ + 投球データ取得（highlightsなし）
+python scripts/run.py --steps games pitch --date 2026-06-09
+
+# 投球データのみ取得 → datamart&JSON
+python scripts/run.py --steps pitch --date 2026-06-09
+
+# 特定の試合の投球データのみ取得 → datamart&JSON
+python scripts/run.py --steps pitch 2021038969 --date 2026-06-09
+
+# highlightsのみ再生成
+python scripts/run.py --steps highlights --date 2026-06-09
+
+# 2軍：投球データ取得 → datamart&JSON
+python scripts/run.py --2軍 --steps pitch --date 2026-06-09
+
+# サーバーを起動
+python -m http.server 8088
+# 起動後に開くURL
+http://localhost:8088/野球ダッシュボード/scripts/dashboard.html
