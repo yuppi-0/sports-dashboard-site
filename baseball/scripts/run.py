@@ -107,8 +107,8 @@ def _game_type_schedule_path(league: str, game_type: str) -> str:
 #     games/json/
 #     season/
 #     players/json/投手|野手/
-BASE_DATA_DIR   = str(_SCRIPT_DIR / "data" / "プロ野球")
-BASE_PUBLIC_DIR = str(_SCRIPT_DIR / "docs" / "data" / "プロ野球")
+BASE_DATA_DIR   = str(_SCRIPT_DIR.parent / "data" / "baseball" / "プロ野球")
+BASE_PUBLIC_DIR = str(_SCRIPT_DIR.parent / "docs" / "baseball" / "data" / "プロ野球")
 
 # 実行時に set_league_dirs() で上書きされる（デフォルト: 1軍レギュラーシーズン）
 _year          = TARGET_DATE[:4]

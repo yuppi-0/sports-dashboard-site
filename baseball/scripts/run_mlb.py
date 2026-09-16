@@ -109,8 +109,8 @@ logger = logging.getLogger(__name__)
 TARGET_DATE   = "2026-04-18"
 # data/MLB/{YYYY}年/{試合種別}/           ← 非公開（raw/datamart、gitでバックアップ管理のみ）
 # docs/data/MLB/{YYYY}年/{試合種別}/      ← 公開（games/json、GitHub Pagesの公開元）
-BASE_DATA_DIR   = str(_SCRIPT_DIR / "data" / "MLB")
-BASE_PUBLIC_DIR = str(_SCRIPT_DIR / "docs" / "data" / "MLB")
+BASE_DATA_DIR   = str(_SCRIPT_DIR.parent / "data" / "baseball" / "MLB")
+BASE_PUBLIC_DIR = str(_SCRIPT_DIR.parent / "docs" / "baseball" / "data" / "MLB")
 
 def set_dirs(date: str = TARGET_DATE, game_type: str = "公式戦") -> None:
     global TARGET_DATE, RAW_DIR, GAMES_DM_DIR, GAMES_JSON_DIR
