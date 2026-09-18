@@ -414,19 +414,19 @@
       "name": "フロリモン",
       "team": "楽天",
       "role": "中継ぎ",
-      "innings": "1.0",
-      "innings_num": 1.0,
+      "innings": "2.0",
+      "innings_num": 2.0,
       "categories": [
-        "ゴロピッチャー",
+        "フライピッチャー",
         "ストレートピッチャー",
         "チェンジアップピッチャー"
       ],
-      "era": 9.0,
+      "era": 4.5,
       "k_bb_pct": 0.0,
-      "k_pct": 0.0,
-      "bb_pct": 0.0,
-      "swstr_pct": 4.8,
-      "gb_pct": 50.0
+      "k_pct": 11.1,
+      "bb_pct": 11.1,
+      "swstr_pct": 7.7,
+      "gb_pct": 33.3
     },
     {
       "id": "ヘルナンデス",
@@ -1823,18 +1823,18 @@
       "name": "内 星龍",
       "team": "楽天",
       "role": "中継ぎ",
-      "innings": "10.2",
-      "innings_num": 10.7,
+      "innings": "11.2",
+      "innings_num": 11.7,
       "categories": [
         "ストレートピッチャー",
         "スプリットピッチャー"
       ],
-      "era": 1.69,
-      "k_bb_pct": 16.7,
-      "k_pct": 21.4,
-      "bb_pct": 4.8,
-      "swstr_pct": 7.6,
-      "gb_pct": 40.0
+      "era": 2.31,
+      "k_bb_pct": 10.2,
+      "k_pct": 20.4,
+      "bb_pct": 10.2,
+      "swstr_pct": 8.1,
+      "gb_pct": 40.7
     },
     {
       "id": "内野_海斗",
@@ -2720,19 +2720,19 @@
       "name": "大江 竜聖",
       "team": "ソフトバンク",
       "role": "中継ぎ",
-      "innings": "21.0",
-      "innings_num": 21.0,
+      "innings": "22.0",
+      "innings_num": 22.0,
       "categories": [
         "ゴロピッチャー",
         "ストレートピッチャー",
         "スライダーピッチャー"
       ],
-      "era": 3.43,
-      "k_bb_pct": 9.7,
-      "k_pct": 25.8,
-      "bb_pct": 16.1,
-      "swstr_pct": 12.4,
-      "gb_pct": 53.5
+      "era": 3.27,
+      "k_bb_pct": 10.4,
+      "k_pct": 26.0,
+      "bb_pct": 15.6,
+      "swstr_pct": 12.7,
+      "gb_pct": 53.3
     },
     {
       "id": "大瀬良_大地",
@@ -2813,20 +2813,19 @@
       "name": "大竹 風雅",
       "team": "ソフトバンク",
       "role": "中継ぎ",
-      "innings": "19.2",
-      "innings_num": 19.7,
+      "innings": "20.2",
+      "innings_num": 20.7,
       "categories": [
-        "ゴロピッチャー",
         "ストレートピッチャー",
         "フォークピッチャー",
         "スライダーピッチャー"
       ],
-      "era": 5.03,
-      "k_bb_pct": 27.2,
-      "k_pct": 33.3,
-      "bb_pct": 6.2,
-      "swstr_pct": 20.4,
-      "gb_pct": 50.0
+      "era": 4.79,
+      "k_bb_pct": 24.7,
+      "k_pct": 31.8,
+      "bb_pct": 7.1,
+      "swstr_pct": 19.3,
+      "gb_pct": 48.7
     },
     {
       "id": "大聖",
@@ -4281,6 +4280,26 @@
       "gb_pct": 41.9
     },
     {
+      "id": "德山_一翔",
+      "name": "德山 一翔",
+      "team": "楽天",
+      "role": "中継ぎ",
+      "innings": "1.0",
+      "innings_num": 1.0,
+      "categories": [
+        "ゴロピッチャー",
+        "ストレートピッチャー",
+        "チェンジアップピッチャー",
+        "カーブピッチャー"
+      ],
+      "era": 0.0,
+      "k_bb_pct": 40.0,
+      "k_pct": 40.0,
+      "bb_pct": 0.0,
+      "swstr_pct": 10.0,
+      "gb_pct": 100.0
+    },
+    {
       "id": "成田_晴風",
       "name": "成田 晴風",
       "team": "西武",
@@ -4895,18 +4914,18 @@
       "name": "東浜 巨",
       "team": "ソフトバンク",
       "role": "先発",
-      "innings": "26.2",
-      "innings_num": 26.7,
+      "innings": "33.2",
+      "innings_num": 33.7,
       "categories": [
         "ゴロピッチャー",
         "ストレートピッチャー"
       ],
-      "era": 2.7,
-      "k_bb_pct": 13.5,
-      "k_pct": 17.1,
-      "bb_pct": 3.6,
-      "swstr_pct": 10.3,
-      "gb_pct": 70.7
+      "era": 2.41,
+      "k_bb_pct": 12.5,
+      "k_pct": 16.9,
+      "bb_pct": 4.4,
+      "swstr_pct": 11.0,
+      "gb_pct": 68.9
     },
     {
       "id": "松原_快",
@@ -4932,17 +4951,17 @@
       "name": "松岡 洸希",
       "team": "日本ハム",
       "role": "中継ぎ",
-      "innings": "30.1",
-      "innings_num": 30.3,
+      "innings": "31.1",
+      "innings_num": 31.3,
       "categories": [
         "ストレートピッチャー"
       ],
-      "era": 2.08,
-      "k_bb_pct": 20.8,
-      "k_pct": 28.3,
-      "bb_pct": 7.5,
-      "swstr_pct": 16.3,
-      "gb_pct": 44.6
+      "era": 2.01,
+      "k_bb_pct": 20.3,
+      "k_pct": 27.6,
+      "bb_pct": 7.3,
+      "swstr_pct": 16.2,
+      "gb_pct": 42.4
     },
     {
       "id": "松木平_優太",
@@ -5524,19 +5543,19 @@
       "name": "横山 永遠",
       "team": "日本ハム",
       "role": "中継ぎ",
-      "innings": "4.0",
-      "innings_num": 4.0,
+      "innings": "6.0",
+      "innings_num": 6.0,
       "categories": [
         "ゴロピッチャー",
         "ストレートピッチャー",
-        "カットボールピッチャー"
+        "フォークピッチャー"
       ],
-      "era": 2.25,
-      "k_bb_pct": 22.2,
-      "k_pct": 27.8,
-      "bb_pct": 5.6,
-      "swstr_pct": 10.0,
-      "gb_pct": 71.4
+      "era": 1.5,
+      "k_bb_pct": 20.0,
+      "k_pct": 28.0,
+      "bb_pct": 8.0,
+      "swstr_pct": 8.9,
+      "gb_pct": 70.0
     },
     {
       "id": "橋本_侑樹",
@@ -5934,18 +5953,18 @@
       "name": "浅利 太門",
       "team": "日本ハム",
       "role": "先発",
-      "innings": "31.1",
-      "innings_num": 31.3,
+      "innings": "34.1",
+      "innings_num": 34.3,
       "categories": [
-        "ゴロピッチャー",
-        "ストレートピッチャー"
+        "ストレートピッチャー",
+        "カットボールピッチャー"
       ],
-      "era": 4.88,
-      "k_bb_pct": -2.1,
-      "k_pct": 15.0,
-      "bb_pct": 17.1,
-      "swstr_pct": 8.5,
-      "gb_pct": 50.0
+      "era": 5.24,
+      "k_bb_pct": -3.2,
+      "k_pct": 14.3,
+      "bb_pct": 17.5,
+      "swstr_pct": 8.9,
+      "gb_pct": 49.3
     },
     {
       "id": "浜地_真澄",
@@ -6044,20 +6063,19 @@
       "name": "清水 大暉",
       "team": "日本ハム",
       "role": "中継ぎ",
-      "innings": "18.2",
-      "innings_num": 18.7,
+      "innings": "20.2",
+      "innings_num": 20.7,
       "categories": [
-        "ゴロピッチャー",
         "ストレートピッチャー",
         "フォークピッチャー",
         "スライダーピッチャー"
       ],
-      "era": 3.86,
-      "k_bb_pct": 9.2,
-      "k_pct": 27.6,
-      "bb_pct": 18.4,
-      "swstr_pct": 13.0,
-      "gb_pct": 51.4
+      "era": 4.35,
+      "k_bb_pct": 8.3,
+      "k_pct": 27.1,
+      "bb_pct": 18.8,
+      "swstr_pct": 12.7,
+      "gb_pct": 48.6
     },
     {
       "id": "清水_達也",
@@ -6345,19 +6363,19 @@
       "name": "田中 千晴",
       "team": "楽天",
       "role": "中継ぎ",
-      "innings": "19.2",
-      "innings_num": 19.7,
+      "innings": "20.2",
+      "innings_num": 20.7,
       "categories": [
         "ゴロピッチャー",
         "ストレートピッチャー",
         "フォークピッチャー"
       ],
-      "era": 2.29,
-      "k_bb_pct": 18.5,
-      "k_pct": 30.9,
-      "bb_pct": 12.3,
-      "swstr_pct": 17.1,
-      "gb_pct": 63.6
+      "era": 2.18,
+      "k_bb_pct": 18.8,
+      "k_pct": 30.6,
+      "bb_pct": 11.8,
+      "swstr_pct": 16.9,
+      "gb_pct": 62.9
     },
     {
       "id": "田中_将大",
@@ -6756,18 +6774,18 @@
       "name": "石黒 佑弥",
       "team": "阪神",
       "role": "中継ぎ",
-      "innings": "31.2",
-      "innings_num": 31.7,
+      "innings": "39.0",
+      "innings_num": 39.0,
       "categories": [
         "ストレートピッチャー",
         "カットボールピッチャー"
       ],
-      "era": 1.14,
-      "k_bb_pct": 23.3,
-      "k_pct": 29.3,
-      "bb_pct": 6.0,
-      "swstr_pct": 14.9,
-      "gb_pct": 44.1
+      "era": 1.38,
+      "k_bb_pct": 23.9,
+      "k_pct": 30.3,
+      "bb_pct": 6.3,
+      "swstr_pct": 15.9,
+      "gb_pct": 47.9
     },
     {
       "id": "神宮_僚介",
@@ -7468,18 +7486,18 @@
       "name": "藤井 聖",
       "team": "楽天",
       "role": "先発",
-      "innings": "39.0",
-      "innings_num": 39.0,
+      "innings": "43.0",
+      "innings_num": 43.0,
       "categories": [
-        "スライダーピッチャー",
-        "ストレートピッチャー"
+        "ストレートピッチャー",
+        "スライダーピッチャー"
       ],
-      "era": 3.92,
-      "k_bb_pct": 9.6,
-      "k_pct": 16.8,
-      "bb_pct": 7.2,
-      "swstr_pct": 10.0,
-      "gb_pct": 47.9
+      "era": 3.98,
+      "k_bb_pct": 8.7,
+      "k_pct": 15.8,
+      "bb_pct": 7.1,
+      "swstr_pct": 9.6,
+      "gb_pct": 45.7
     },
     {
       "id": "藤原_大翔",
@@ -7504,18 +7522,18 @@
       "name": "藤原 聡大",
       "team": "楽天",
       "role": "中継ぎ",
-      "innings": "33.1",
-      "innings_num": 33.3,
+      "innings": "34.1",
+      "innings_num": 34.3,
       "categories": [
         "ストレートピッチャー",
         "スライダーピッチャー"
       ],
-      "era": 4.32,
-      "k_bb_pct": 3.4,
-      "k_pct": 18.2,
-      "bb_pct": 14.9,
-      "swstr_pct": 9.2,
-      "gb_pct": 49.3
+      "era": 4.19,
+      "k_bb_pct": 4.6,
+      "k_pct": 19.2,
+      "bb_pct": 14.6,
+      "swstr_pct": 9.6,
+      "gb_pct": 48.6
     },
     {
       "id": "藤嶋_健人",
@@ -8111,16 +8129,16 @@
       "name": "門別 啓人",
       "team": "阪神",
       "role": "中継ぎ",
-      "innings": "28.2",
-      "innings_num": 28.7,
+      "innings": "29.1",
+      "innings_num": 29.3,
       "categories": [
         "ストレートピッチャー"
       ],
-      "era": 3.77,
-      "k_bb_pct": 9.9,
-      "k_pct": 13.2,
-      "bb_pct": 3.3,
-      "swstr_pct": 11.9,
+      "era": 3.99,
+      "k_bb_pct": 10.5,
+      "k_pct": 13.7,
+      "bb_pct": 3.2,
+      "swstr_pct": 12.1,
       "gb_pct": 39.7
     },
     {
