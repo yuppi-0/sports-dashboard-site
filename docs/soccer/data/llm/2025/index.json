@@ -1,8 +1,1 @@
-{
-  "files": [
-    "Arsenal.json",
-    "Barcelona.json",
-    "Man City.json",
-    "Real Madrid.json"
-  ]
-}
+{"files":["Arcenal.json","Barcelona.json","Man City.json","Real Madrid.json"]}
