@@ -1,0 +1,75 @@
+name: soccer-update
+
+# データリポジトリ(sports-dashboard-data)の soccer/<開幕年>年/ にある結合xlsx（all_leagues_players_<年> / all_leagues_matches_<年>）から、
+# docs/soccer/data/ のカードJSONを作り直して、このリポジトリにコミットする。
+# 結合xlsx はローカルで whoscored_player_stats.py（run.py）を回して作り（output/結合/）、データリポジトリに push する運用。
+# （WhoScoredはCAPTCHAが出るため、取得そのものは GitHub Actions では行わない）
+on:
+  workflow_dispatch:
+    inputs:
+      leagues:
+        description: "対象リーグ（空白区切り。空なら全リーグ）例: Premier LaLiga"
+        required: false
+        default: ""
+      seasons:
+        description: "対象の開幕年（空白区切り。空なら全シーズン）例: 2026"
+        required: false
+        default: ""
+      min_minutes:
+        description: "カードを作る出場時間の下限（分）"
+        required: false
+        default: "900"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sports-dashboard-site-push     # 野球の自動更新と同時にpushして衝突しないよう、順番待ちにする
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: サイトリポジトリをチェックアウト
+        uses: actions/checkout@v4
+
+      - name: データリポジトリ（private）をチェックアウト
+        uses: actions/checkout@v4
+        with:
+          repository: yuppi-0/sports-dashboard-data
+          token: ${{ secrets.DATA_REPO_TOKEN }}   # ★ 野球の npb-update.yml で使っているシークレット名に合わせる
+          path: _data
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: 依存をインストール
+        run: pip install pandas numpy openpyxl
+
+      - name: カードJSONを作る
+        env:
+          LEAGUES: ${{ inputs.leagues }}
+          SEASONS: ${{ inputs.seasons }}
+          MIN_MINUTES: ${{ inputs.min_minutes }}
+        run: |
+          args=()
+          if [ -n "$LEAGUES" ]; then args+=(--leagues $LEAGUES); fi
+          if [ -n "$SEASONS" ]; then args+=(--seasons $SEASONS); fi
+          python soccer/scripts/build_soccer_cards.py \
+            --data-dir _data/soccer --out docs/soccer/data \
+            --min-minutes "${MIN_MINUTES:-900}" "${args[@]}"
+
+      - name: コミットしてpush
+        env:
+          LEAGUES: ${{ inputs.leagues }}
+          SEASONS: ${{ inputs.seasons }}
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/soccer/data
+          if git diff --cached --quiet; then echo "変更なし"; exit 0; fi
+          git commit -m "サッカー自動更新: $(date -u +%F) (leagues: ${LEAGUES:-all}, seasons: ${SEASONS:-all})"
+          git pull --rebase origin main
+          git push
