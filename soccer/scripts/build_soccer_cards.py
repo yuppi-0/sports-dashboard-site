@@ -10,10 +10,10 @@ run.py（whoscored_player_stats.py）が出力した「結合」xlsx から、�
 
 出力（サイトリポジトリ sports-dashboard-site）:
     docs/soccer/data/manifest.json                                   … 取得できるリーグ・シーズンの一覧
-    docs/soccer/data/<League>/<開幕年>/cards_numeric/index.json      … 選手一覧（一覧・並び替え用の軽い情報）
-    docs/soccer/data/<League>/<開幕年>/cards_numeric/<id>.json       … 選手ごとのカード数値
-    docs/soccer/data/<League>/<開幕年>/cards_llm/batches/index.json  … LLM解釈JSON（手動で置く）の一覧。このスクリプトが作り直す
-      ※ LLM解釈JSON は「{所属クラブ}_{FW|MF|DF|GK}.json」（プロンプト4.2）を batches/ に置く。
+    docs/soccer/data/games/<開幕年>/<League>/index.json              … 選手一覧（一覧・並び替え用の軽い情報）
+    docs/soccer/data/games/<開幕年>/<League>/<id>.json               … 選手ごとのカード数値
+    docs/soccer/data/llm/<開幕年>/index.json                        … LLM解釈JSON（手動で置く）の一覧。このスクリプトが作り直す
+      ※ LLM解釈JSON は「{所属クラブ}.json」（ポジションはまとめて1ファイル）を docs/soccer/data/llm/<開幕年>/ に置く。リーグは問わない。
 
 使い方:
     python soccer/scripts/build_soccer_cards.py --data-dir ../sports-dashboard-data/soccer --out docs/soccer/data
@@ -242,8 +242,7 @@ def build_cards(players, matches, league, year, min_minutes):
 
 # ---- 出力 --------------------------------------------------------------------------
 def write_league_season(out_dir, league, year, cards, index):
-    base = out_dir / league / str(year)
-    numeric = base / "cards_numeric"
+    numeric = out_dir / "games" / str(year) / league
     numeric.mkdir(parents=True, exist_ok=True)
     for old in numeric.glob("*.json"):          # 閾値の変更や移籍で消えた選手のファイルを残さない
         old.unlink()
@@ -253,20 +252,36 @@ def write_league_season(out_dir, league, year, cards, index):
     write_json(numeric / "index.json", {
         "league": league, "season": str(year), "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "teams": sorted({p["team"] for p in index}), "players": index})
-    batches = base / "cards_llm" / "batches"    # LLM解釈JSONは手動で置く。一覧だけここで作り直す
-    batches.mkdir(parents=True, exist_ok=True)
-    files = sorted(f.name for f in batches.glob("*.json") if f.name != "index.json")
-    write_json(batches / "index.json", {"batches": files})
-    return len(cards), len(files)
+    return len(cards)
+
+
+def cleanup_legacy(out_dir):
+    """旧構成（<League>/<年>/cards_numeric）の自動生成フォルダを消す。"""
+    import shutil
+    for lg in list(LEAGUE_LABELS):
+        d = out_dir / lg
+        if d.is_dir() and any(d.glob("*/cards_numeric")):
+            shutil.rmtree(d); print(f"旧フォルダを削除: {d}")
+
+
+def write_llm_indexes(out_dir):
+    """LLM解釈JSON（手動で置く）は data/llm/<年>/<クラブ名>.json。年ごとの index.json をここで作り直す。"""
+    for d in sorted((out_dir / "llm").glob("*")):
+        if d.is_dir():
+            files = sorted(f.name for f in d.glob("*.json") if f.name != "index.json")
+            write_json(d / "index.json", {"files": files})
 
 
 def write_manifest(out_dir):
-    """出力フォルダにある cards_numeric/index.json を走査して作るので、一部のリーグだけ更新しても他が消えない。"""
+    """出力フォルダにある cards_numeric/index.json を走査して作るので、一部のリーグだけ更新しても他が消えない。
+    llm_batches = そのリーグ・シーズンのクラブのうち、llm/<年>/ にJSONがあるクラブ数。"""
     leagues = {}
-    for idx in sorted(out_dir.glob("*/*/cards_numeric/index.json")):
-        league, year = idx.parts[-4], idx.parts[-3]
-        bidx = idx.parents[1] / "cards_llm" / "batches" / "index.json"
-        n_llm = len(json.loads(bidx.read_text(encoding="utf-8")).get("batches", [])) if bidx.exists() else 0
+    for idx in sorted(out_dir.glob("games/*/*/index.json")):
+        year, league = idx.parts[-3], idx.parts[-2]
+        teams = set(json.loads(idx.read_text(encoding="utf-8")).get("teams", []))
+        lidx = out_dir / "llm" / year / "index.json"
+        have = json.loads(lidx.read_text(encoding="utf-8")).get("files", []) if lidx.exists() else []
+        n_llm = sum(1 for f in have if f[:-5] in teams)
         leagues.setdefault(league, {"label": LEAGUE_LABELS.get(league, league), "seasons": []})["seasons"].append(
             {"year": year, "label": season_label(int(year)), "llm_batches": n_llm})
     for v in leagues.values():
@@ -329,8 +344,10 @@ def main():
             if not cards:
                 print(f"[{league} {year}] 出場{args.min_minutes:.0f}分以上の選手がいないため、スキップ")
                 continue
-            n, nb = write_league_season(args.out, league, year, cards, index)
-            print(f"[{league} {year}] カード{n}枚（LLM解釈バッチ{nb}ファイル）→ {args.out / league / str(year)}")
+            n = write_league_season(args.out, league, year, cards, index)
+            print(f"[{league} {year}] カード{n}枚 → {args.out / 'games' / str(year) / league}")
+    cleanup_legacy(args.out)
+    write_llm_indexes(args.out)
     write_manifest(args.out)
 
 
