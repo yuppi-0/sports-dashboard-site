@@ -38,7 +38,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: yuppi-0/sports-dashboard-data
-          token: ${{ secrets.DATA_REPO_TOKEN }}   # ★ 野球の npb-update.yml で使っているシークレット名に合わせる
+          token: ${{ secrets.DATA_REPO_TOKEN }}   # 野球の npb-update.yml と同じシークレット（登録済み）
           path: _data
 
       - uses: actions/setup-python@v5
@@ -71,5 +71,11 @@ jobs:
           git add docs/soccer/data
           if git diff --cached --quiet; then echo "変更なし"; exit 0; fi
           git commit -m "サッカー自動更新: $(date -u +%F) (leagues: ${LEAGUES:-all}, seasons: ${SEASONS:-all})"
-          git pull --rebase origin main
-          git push
+          for i in 1 2 3 4 5; do
+            if git push; then
+              break
+            fi
+            echo "push失敗。リモートの変更を取り込んでリトライします (試行 $i/5)"
+            git pull --rebase origin main
+            sleep 5
+          done
