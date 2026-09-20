@@ -171,7 +171,7 @@
 <script>
 // ── データの置き場所（docs/soccer/ からの相対パス）。manifest.json にあるリーグ・シーズンだけが選べる ──
 const DATA_ROOT = "data";
-const seasonBase = (league, year) => `${DATA_ROOT}/${league}/${year}`;
+const seasonBase = (league, year) => `${DATA_ROOT}/games/${year}/${league}`;
 
 const SORT_FIELDS = [
   ["rating_avg", "平均評価", 2], ["minutes", "出場時間", 0], ["goals_p90", "ゴール/90", 2],
@@ -246,7 +246,7 @@ async function loadSeason(){
   bodyEl.classList.remove("has-selection");
   activeId = null; searchEl.value = ""; groupEl.value = ""; minMinEl.value = "";
   try{
-    const idx = await getJson(`${seasonBase(league, season)}/cards_numeric/index.json`);
+    const idx = await getJson(`${seasonBase(league, season)}/index.json`);
     allPlayers = idx.players || [];
     teamEl.innerHTML = '<option value="">全クラブ</option>' + (idx.teams || []).map(t => `<option value="${esc(t)}">${esc(t)}</option>`).join("");
   }catch(e){
@@ -256,20 +256,20 @@ async function loadSeason(){
   renderList();
 }
 
-// LLM解釈JSON（batches/{クラブ}_{FW|MF|DF|GK}.json）を全部読み、「クラブ|選手名」で引けるようにする
+// LLM解釈JSON（llm/<年>/{クラブ}.json。ポジションはまとめて1ファイル）を全部読み、「クラブ|選手名」で引けるようにする
 async function loadBatches(){
   batchByTeamName = new Map(); batchByName = new Map();
   try{
-    const idx = await getJson(`${seasonBase(league, season)}/cards_llm/batches/index.json`);
-    await Promise.all((idx.batches || []).map(async file => {
+    const idx = await getJson(`${DATA_ROOT}/llm/${season}/index.json`);
+    await Promise.all((idx.files || []).map(async file => {
       try{
-        const batch = await getJson(`${seasonBase(league, season)}/cards_llm/batches/${encodeURIComponent(file)}`);
-        const team = file.replace(/\.json$/, "").replace(/_[^_]+$/, "");
+        const batch = await getJson(`${DATA_ROOT}/llm/${season}/${encodeURIComponent(file)}`);
+        const team = file.replace(/\.json$/, "");
         Object.entries(batch).forEach(([name, data]) => {
           batchByTeamName.set(`${team}|${name}`, data);
           batchByName.set(name, data);
         });
-      }catch(e){ /* このバッチはスキップ */ }
+      }catch(e){ /* このファイルはスキップ */ }
     }));
   }catch(e){ /* LLM解釈がまだ無い */ }
   const has = batchByTeamName.size > 0;
@@ -324,7 +324,7 @@ async function selectPlayer(id){
   renderList();
   mainEl.className = "placeholder"; mainEl.innerHTML = "読み込み中…";
   try{
-    activeCard = await getJson(`${seasonBase(league, season)}/cards_numeric/${encodeURIComponent(id)}.json`);
+    activeCard = await getJson(`${seasonBase(league, season)}/${encodeURIComponent(id)}.json`);
     activeLlm = llmFor(activeCard);
     ptVenue = "all";
     renderCard();
