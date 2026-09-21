@@ -62,6 +62,7 @@
   .pos-badge{ display:inline-block; font-size:10.5px; font-weight:800; padding:1px 7px; border-radius:5px;
     background:rgba(59,130,246,0.18); color:var(--blue-text); margin-right:6px; }
   .pos-mix{ font-size:11.5px; }
+  .sub-h{ font-size:11px; font-weight:700; color:var(--amber-text); margin:14px 0 4px; letter-spacing:0.02em; }
   .kpis{ display:flex; gap:8px; flex-wrap:wrap; }
   .kpi{ background:var(--panel); border:1px solid var(--border); border-radius:10px; padding:7px 12px; min-width:70px; }
   .kpi .l{ font-size:10px; color:var(--text-dim); }
@@ -174,7 +175,7 @@
           <select id="teamSelect" class="filter-select"><option value="">全クラブ</option></select>
           <select id="groupSelect" class="filter-select">
             <option value="">全ポジション</option>
-            <option value="FW">FW</option><option value="MF">MF</option>
+            <option value="FW">FW</option><option value="WG">WG</option><option value="MF">MF</option>
             <option value="CB">CB</option><option value="SB">SB</option><option value="GK">GK</option>
           </select>
         </div>
@@ -199,7 +200,9 @@ const seasonBase = (league, year) => `${DATA_ROOT}/games/${year}/${league}`;
 const SORT_FIELDS = [
   ["rating_avg", "平均評価", 2], ["minutes", "出場時間", 0], ["goals_p90", "ゴール/90", 2],
   ["key_passes_p90", "キーパス/90", 2], ["progressive_passes_p90", "プログレッシブパス/90", 2],
-  ["tackles_p90", "タックル/90", 2], ["interceptions_p90", "インターセプト/90", 2], ["name", "名前", 0],
+  ["tackles_p90", "タックル/90", 2], ["interceptions_p90", "インターセプト/90", 2],
+  ["assists_p90", "アシスト/90", 2], ["np_goals_p90", "ノンPKゴール/90", 2], ["big_chances_created_p90", "ビッグチャンス創出/90", 2],
+  ["name", "名前", 0],
 ];
 const PT_VENUE_LABEL = { all: "全体", home: "ホーム", away: "アウェイ" };
 const AI_GROUPS = [["play_style", "プレースタイル"], ["season_metrics", "指標評価"], ["play_metrics", "プレー別指標評価"]];
@@ -212,7 +215,7 @@ const leagueEl = $("#leagueSelect"), seasonEl = $("#seasonSelect");
 
 let manifest = null, league = "all", seasonSel = "all";     // league: リーグ名または "all"（全リーグ） / seasonSel: 年（"2025"）または "all"（すべての年度）
 let allPlayers = [], activeId = null, sortField = "rating_avg", sortDir = "desc";
-let ptVenue = "all", activeCards = [];                      // activeCards: [{year, title, card, llm}]（新しい年度が先頭）
+let ptVenue = "all", activeCards = [], primaryIdx = 0;      // activeCards: [{year, title, card, llm}]（新しい年度が先頭）。primaryIdx = ヘッダーなどに使う年度
 let logSort = { key: "date", dir: "desc" };                 // シーズン成績の並び順（既定は日付の降順）
 let openState = {};                                         // 年度ブロックの開閉状態
 let selToken = 0, loadToken = 0;
@@ -227,7 +230,7 @@ async function getJson(url){
   return res.json();
 }
 
-const fmt = (v, unit) => v == null ? "—" : (unit === "%" ? v.toFixed(1) + "%" : (Number.isInteger(v) ? String(v) : v.toFixed(2)));
+const fmt = (v, unit) => v == null ? "—" : (unit === "%" ? v.toFixed(1) + "%" : unit === "m" ? v.toFixed(1) + "m" : (Number.isInteger(v) ? String(v) : v.toFixed(2)));
 // 「ゴール/90」→「ゴール（/90分あたり）」
 const lbl = (s) => String(s ?? "").replace(/\/90(?=$|[（(\s])/, "（/90分あたり）");
 const nk = (s) => String(s ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/\s+/g, " ").trim();
@@ -256,6 +259,12 @@ const yLabel = (y) => {
     const s = seasonsOf(lg).find(x => String(x.year) === String(y)); if(s) return s.label;
   }
   return String(y);
+};
+// 順位の下限（900分＝約10試合分）に達した年度を「消化済み」とみなす。試合数の少ない年度は、ヘッダー・一覧の初期表示に使わない
+const READY_GAMES = 10;
+const isReady = (lg, year) => {
+  const s = ((manifest.leagues[lg] || {}).seasons || []).find(x => String(x.year) === String(year));
+  return !s || s.games == null || s.games >= READY_GAMES;
 };
 const yearsSelected = () => seasonSel === "all" ? seasonsUnion().map(s => String(s.year)) : [String(seasonSel)];
 // 複数年を束ねるときの選手キー。idは「選手番号_クラブ」なので、移籍しても同じ選手になるよう番号だけを使う
@@ -334,8 +343,9 @@ async function ensureLlm(year, team, name){
 }
 
 // ── 一覧 ──
-function mergePlayers(key, list){          // list: [{year, lg, p}]（新しい年度が先頭）。一覧の数値は最新年度のものを使う
-  return { ...list[0].p, key, entries: list.map(({ year, lg, p }) => ({ year, league: lg, id: p.id, team: p.team })) };
+function mergePlayers(key, list){          // list: [{year, lg, p}]（新しい年度が先頭）。一覧の数値は、消化済みの最新年度のものを使う
+  const main = list.find(({ year, lg }) => isReady(lg, year)) || list[0];
+  return { ...main.p, key, entries: list.map(({ year, lg, p }) => ({ year, league: lg, id: p.id, team: p.team })) };
 }
 const hasLlm = (p) => p.entries.some(e => getLlm(e.year, e.team, p.name));
 
@@ -434,6 +444,7 @@ async function selectPlayer(key){
     const multi = seasonSel === "all";
     cards.forEach(x => { x.title = yLabel(x.year) + (multi ? ` ・ ${x.card.team}` : ""); });
     activeCards = cards;
+    primaryIdx = Math.max(0, cards.findIndex(x => isReady(x.card.league, x.year)));
     ptVenue = "all";
     renderCard();
     mainEl.scrollTop = 0;
@@ -450,7 +461,7 @@ function yearBlocks(sect, cards, fn, extra){
     if(!body) return "";
     if(!labeled) return `<div class="yr-plain">${body}</div>`;
     const k = `${sect}|${x.year}|${x.card.team}`;
-    const open = k in openState ? openState[k] : i === 0;
+    const open = k in openState ? openState[k] : i === primaryIdx;
     return `<details class="yr" data-k="${esc(k)}" ${open ? "open" : ""}><summary><i class="yr-bar"></i><b>${esc(x.title)}</b>${extra ? extra(x) : ""}</summary>${body}</details>`;
   }).join("");
 }
@@ -473,18 +484,33 @@ function aiBody(x){
 }
 const aiSection = (cards) => `<div class="card"><h2>AI解釈</h2>${yearBlocks("ai", cards, aiBody)}</div>`;
 
-function coreBody(c){
-  if(!(c.core || []).length) return "";
-  const rows = c.core.map(m => `<tr><td>${esc(lbl(m.label))}${m.better === "low" ? '<span class="sub-mark">（小さいほど良い）</span>' : ""}</td>
-    ${["all", "home", "away"].map(v => `<td class="num"><span class="val">${fmt(m[v]?.v, m.unit)}</span>${rankChip(m[v])}</td>`).join("")}</tr>`).join("");
+// 指標の表（コア指標・詳細指標で共通）。良し悪しではない指標（better = neutral）には、順位を出さない
+function metricsTable(list){
+  const rows = list.map(m => `<tr><td>${esc(lbl(m.label))}${m.better === "low" ? '<span class="sub-mark">（小さいほど良い）</span>' : ""}</td>
+    ${["all", "home", "away"].map(v => `<td class="num"><span class="val">${fmt(m[v]?.v, m.unit)}</span>${m.better === "neutral" ? "" : rankChip(m[v])}</td>`).join("")}</tr>`).join("");
   return `<div class="table-scroll"><table>
     <thead><tr><th>指標</th><th class="num">全体</th><th class="num">ホーム</th><th class="num">アウェイ</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+}
+function coreBody(c){
+  if(!(c.core || []).length) return "";
+  return metricsTable(c.core);
 }
 function coreSection(cards){
   const blocks = yearBlocks("core", cards, x => coreBody(x.card));
   if(!blocks) return "";
   return `<div class="card"><h2>コア指標</h2>${blocks}
-    <p class="note">順位は同じリーグ・同じ集団（FW / MF / CB / SB / GK）のうち、出場時間900分以上かつ試行数が一定以上の選手の中での順位です。</p></div>`;
+    <p class="note">順位は、同じリーグ・同じ集団（FW / WG / MF / CB / SB / GK）の中での順位です。対象は、出場時間が900分以上（シーズン途中は、消化した試合数に合わせて下げた条件）で、試行数が一定以上の選手です。「ノンPK」は、PKを除いた値です。</p></div>`;
+}
+function detailBody(c){
+  const secs = c.detail || [];
+  if(!secs.length) return "";
+  return secs.map(sec => `<h3 class="sub-h">${esc(sec.title)}</h3>${metricsTable(sec.metrics)}`).join("");
+}
+function detailSection(cards){
+  const blocks = yearBlocks("detail", cards, x => detailBody(x.card));
+  if(!blocks) return "";
+  return `<div class="card"><h2>詳細指標</h2>${blocks}
+    <p class="note">順位が出ていない指標は、値だけを表示しています（良し悪しではないスタイルの指標や、順位の計算対象外の指標）。</p></div>`;
 }
 
 function playtypeBody(x){
@@ -608,15 +634,15 @@ function cardAssists(c){
   if(numOf(c.assists) != null) return c.assists;
   return sumOf((c.game_log || []).map(g => g.assists));
 }
-function summarize(cards){                 // cards[0] が最新年度
-  const c = cards[0].card;
+function summarize(cards){                 // cards[primaryIdx] = 消化済みの最新年度
+  const c = cards[primaryIdx].card;
   return { name: c.name, team: c.team, group: c.group, matches: numOf(c.matches), starts: numOf(c.starts), minutes: numOf(c.minutes),
     rating: numOf(c.rating_avg), goals: numOf(c.goals), assists: cardAssists(c), clean_sheets: numOf(c.clean_sheets) };
 }
 
 function renderCard(){
   const cards = activeCards, S = summarize(cards);
-  const pb = posBreakdown(cards[0].card.game_log || []);
+  const pb = posBreakdown(cards[primaryIdx].card.game_log || []);
   const kpis = [["出場", S.matches, "試合"], ["先発", S.starts, "試合"], ["出場時間", S.minutes, "分"], ["平均評価", S.rating == null ? null : S.rating.toFixed(2), ""]];
   if(S.group === "GK") kpis.push(["無失点試合", S.clean_sheets, ""]);
   else kpis.push(["ゴール数", S.goals, ""], ["アシスト数", S.assists, ""]);
@@ -626,10 +652,10 @@ function renderCard(){
     <button class="back-btn" id="backBtn">← 選手一覧</button>
     <div class="p-head">
       <div><div class="p-name">${esc(S.name)}</div>
-        <div class="p-sub"><span class="pos-badge" title="${esc(pb.map(x => `${x.pos}(${x.label}) ${Math.round(x.share*100)}%`).join(" / "))}">${esc(pb.length ? pb[0].label : S.group)}</span>${esc(S.team)}${pb.length > 1 ? ` <span class="pos-mix">・ ${pb.slice(0, 3).map(x => `${esc(x.label)} ${Math.round(x.share*100)}%`).join(" / ")}</span>` : ""}${seasonSel === "all" ? ` <span class="pos-mix">・ 最新年度（${esc(yLabel(cards[0].year))}）</span>` : ""}</div></div>
+        <div class="p-sub"><span class="pos-badge" title="${esc(pb.map(x => `${x.pos}(${x.label}) ${Math.round(x.share*100)}%`).join(" / "))}">${esc(pb.length ? pb[0].label : S.group)}</span>${esc(S.team)}${pb.length > 1 ? ` <span class="pos-mix">・ ${pb.slice(0, 3).map(x => `${esc(x.label)} ${Math.round(x.share*100)}%`).join(" / ")}</span>` : ""}${seasonSel === "all" ? (primaryIdx === 0 ? ` <span class="pos-mix">・ 最新年度（${esc(yLabel(cards[0].year))}）</span>` : ` <span class="pos-mix">・ ${esc(yLabel(cards[primaryIdx].year))}のデータ（${esc(yLabel(cards[0].year))}は消化した試合が少ないため）</span>`) : ""}</div></div>
       <div class="kpis">${kpiHtml}</div>
     </div>
-    ${aiSection(cards)}${coreSection(cards)}${playtypeSection(cards)}${logSection(cards)}`;
+    ${aiSection(cards)}${coreSection(cards)}${detailSection(cards)}${playtypeSection(cards)}${logSection(cards)}`;
 }
 
 // 描き直しても、スクロール位置と年度ブロックの開閉を保つ
