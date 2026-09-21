@@ -103,17 +103,20 @@
   .mtx th{ padding:6px 8px; font-size:9px; font-weight:600; color:var(--text-dim); white-space:nowrap; text-align:left;
     background:var(--panel-alt); border-bottom:1px solid rgba(148,163,184,0.15); }
   .mtx th.grp{ color:var(--text); font-size:9.5px; font-weight:700; }
-  .mtx td{ padding:3px 4px; font-size:12px; text-align:left; white-space:nowrap; vertical-align:middle; border-bottom:1px solid rgba(255,255,255,0.04); }
-  .mtx .hc{ padding:4px 8px; border-radius:5px; line-height:1.25; }                       /* 色付きのマス（隣と繋がらない） */
-  .mtx .hv{ display:block; font-size:12px; color:var(--text-bright); }
+  .mtx td{ padding:5px 8px; font-size:12px; text-align:left; white-space:nowrap; vertical-align:middle; border-bottom:1px solid rgba(255,255,255,0.04);
+    box-shadow:inset -1px 0 0 rgba(5,8,15,0.35); }                                         /* 色付きのマスはセル全体。隣との境目に細い線 */
+  .mtx .hv{ display:block; font-size:12px; color:var(--text-bright); line-height:1.25; }
   .mtx .hr{ display:block; font-size:8.5px; color:var(--text-dim); margin-top:1px; letter-spacing:0.02em; }
   .mtx .gl{ border-left:1px solid rgba(148,163,184,0.15); }                              /* 中カテゴリの区切り線 */
-  .mtx th.stick, .mtx td.stick{ position:sticky; left:0; z-index:2; box-shadow:2px 0 4px rgba(0,0,0,0.25); }   /* 年度の列は、横スクロールしても固定 */
-  .mtx td.stick{ background:var(--panel); font-size:11px; color:var(--text-bright); font-weight:700; padding:7px 8px; }
+  /* 年度・区分（ホーム/アウェイ）の列は、横スクロールしても固定。2列目は1列目の幅の分だけ右に置く */
+  .mtx th.stick, .mtx td.stick{ position:sticky; z-index:2; box-sizing:border-box; overflow:hidden; text-overflow:ellipsis; box-shadow:none; }
+  .mtx td.stick{ background:var(--panel); font-size:11px; color:var(--text-bright); font-weight:700; }
   .mtx th.stick{ background:var(--panel-alt); z-index:3; }
-  .mtx td.stick .rt{ display:block; font-size:9px; font-weight:400; color:var(--text-dim); }
-  .mtx td.stick .mv{ font-weight:400; color:var(--text-dim); margin-left:6px; }
-  .mtx td.stick .mv.ind{ margin-left:0; padding-left:12px; }                              /* 2行目以降（ホーム/アウェイ）は、年度の下に字下げ */
+  .mtx .s1{ left:0; width:84px; min-width:84px; max-width:84px; }
+  .mtx .s2{ left:84px; width:64px; min-width:64px; max-width:64px; }
+  .mtx td.s2{ font-weight:400; color:var(--text-dim); }
+  .mtx .stick.last{ box-shadow:2px 0 4px rgba(0,0,0,0.25); }
+  .mtx td.stick .rt{ display:block; font-size:9px; font-weight:400; color:var(--text-dim); overflow:hidden; text-overflow:ellipsis; }
   .mtx tr.yr-first td{ border-top:1px solid rgba(59,130,246,0.3); }
   .mtx tbody tr.yr-first:first-child td{ border-top:none; }
 
@@ -715,20 +718,21 @@ function metricTd(card, m, v, gl){
     text = fmtCell(c && c.v, m, false);
     if(c && m.better !== "neutral" && c.rank != null){ rk = `<span class="hr">${c.rank}位 / ${c.pop}人</span>`; bg = TIER_COLOR[tierOf(c)]; }
   }
-  return `<td${gl ? ' class="gl"' : ""}><div class="hc"${bg ? ` style="background:${bg}"` : ""}><span class="hv">${text}</span>${rk}</div></td>`;
+  return `<td${gl ? ' class="gl"' : ""}${bg ? ` style="background:${bg}"` : ""}><span class="hv">${text}</span>${rk}</td>`;
 }
 function metricsTable(cards, subs){           // subs: [[中カテゴリ名, 指標[]], ...]
+  const venueMode = mtRows === "venue", vs = venueMode ? ["all", "home", "away"] : ["all"];
   const cols = subs.flatMap(([sk, list], n) => list.map((m, i) => ({ m, gl: i === 0 && n > 0 })));   // gl＝中カテゴリの区切り線
+  const stH = venueMode ? '<th class="stick s1">年度</th><th class="stick s2 last">区分</th>' : '<th class="stick s1 last">年度</th>';
   const grpRow = subs.some(([sk]) => sk)
-    ? `<tr><th class="stick"></th>${subs.map(([sk, list], n) => `<th class="grp${n > 0 ? " gl" : ""}" colspan="${list.length}">${esc(sk || "")}</th>`).join("")}</tr>` : "";
-  const head = `<tr><th class="stick">年度</th>${cols.map(({ m, gl }) => `<th${gl ? ' class="gl"' : ""}>${esc(noP90(m.label))}</th>`).join("")}</tr>`;
-  const multiTeam = new Set(cards.map(x => x.card.team)).size > 1;         // 移籍した選手だけ、行にクラブ名を添える
-  const vs = mtRows === "venue" ? ["all", "home", "away"] : ["all"];
+    ? `<tr><th class="stick s1${venueMode ? "" : " last"}"></th>${venueMode ? '<th class="stick s2 last"></th>' : ""}${subs.map(([sk, list], n) => `<th class="grp${n > 0 ? " gl" : ""}" colspan="${list.length}">${esc(sk || "")}</th>`).join("")}</tr>` : "";
+  const head = `<tr>${stH}${cols.map(({ m, gl }) => `<th${gl ? ' class="gl"' : ""}>${esc(noP90(m.label))}</th>`).join("")}</tr>`;
+  const multiTeam = new Set(cards.map(x => x.card.team)).size > 1;         // 移籍した選手だけ、年度の下にクラブ名を添える
   const body = cards.flatMap((x, ci) => vs.map((v, vi) => {
-    const label = vi === 0
-      ? `${esc(seasonFull(x.year))}${mtRows === "venue" ? `<span class="mv">${VENUE_LABEL[v]}</span>` : ""}${multiTeam ? `<span class="rt">${esc(x.card.team)}</span>` : ""}`
-      : `<span class="mv ind">${VENUE_LABEL[v]}</span>`;
-    return `<tr class="${vi === 0 && ci > 0 ? "yr-first" : ""}"><td class="stick">${label}</td>${cols.map(({ m, gl }) => metricTd(x.card, m, v, gl)).join("")}</tr>`;
+    const yr = `${esc(seasonFull(x.year))}${multiTeam ? `<span class="rt">${esc(x.card.team)}</span>` : ""}`;
+    const c1 = venueMode ? (vi === 0 ? `<td class="stick s1" rowspan="${vs.length}">${yr}</td>` : "") : `<td class="stick s1 last">${yr}</td>`;
+    const c2 = venueMode ? `<td class="stick s2 last">${VENUE_LABEL[v]}</td>` : "";
+    return `<tr class="${vi === 0 && ci > 0 ? "yr-first" : ""}">${c1}${c2}${cols.map(({ m, gl }) => metricTd(x.card, m, v, gl)).join("")}</tr>`;
   })).join("");
   return `<div class="mtx-wrap"><table class="mtx"><thead>${grpRow}${head}</thead><tbody>${body}</tbody></table></div>`;
 }
