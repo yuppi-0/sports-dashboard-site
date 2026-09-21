@@ -334,20 +334,8 @@ async function ensureLlm(year, team, name){
 }
 
 // ── 一覧 ──
-const COUNT_KEYS = new Set(["minutes", "matches", "starts", "goals", "assists", "clean_sheets"]);
-function mergePlayers(key, list){          // list: [{year, p}]（新しい年度が先頭）
-  const latest = list[0].p;
-  const m = { ...latest, key, entries: list.map(({ year, lg, p }) => ({ year, league: lg, id: p.id, team: p.team })) };
-  if(list.length > 1){
-    Object.keys(latest).forEach(f => {
-      if(typeof latest[f] !== "number") return;
-      if(COUNT_KEYS.has(f)){ m[f] = list.reduce((t, { p }) => t + (p[f] || 0), 0); return; }
-      let num = 0, den = 0;                 // 率や/90の値は、出場時間で重み付けした平均
-      list.forEach(({ p }) => { if(typeof p[f] === "number"){ const w = p.minutes || 0; num += p[f] * w; den += w; } });
-      m[f] = den ? num / den : latest[f];
-    });
-  }
-  return m;
+function mergePlayers(key, list){          // list: [{year, lg, p}]（新しい年度が先頭）。一覧の数値は最新年度のものを使う
+  return { ...list[0].p, key, entries: list.map(({ year, lg, p }) => ({ year, league: lg, id: p.id, team: p.team })) };
 }
 const hasLlm = (p) => p.entries.some(e => getLlm(e.year, e.team, p.name));
 
@@ -568,20 +556,23 @@ function logCols(c, log){
   return cols;
 }
 
+// 割合（%）の列は平均、回数の列は合計、評価はシーズン平均
+const isPctCol = (k) => /%|％/.test(k.label || "") || /_pct$/.test(k.key || "");
+const round1 = (n) => Math.round(n * 10) / 10;
 function seasonRow(c, cols, log){
-  let w = 0, dr = 0, l = 0;
-  log.forEach(g => { if(g.gf > g.ga) w++; else if(g.gf < g.ga) l++; else dr++; });
   const cells = cols.map(x => {
     if(x.key === "rating"){
       const r = numOf(c.rating_avg) ?? (() => { const v = log.map(g => numOf(g.rating)).filter(n => n != null); return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null; })();
       const cls = r == null ? "" : r >= 7.5 ? "r-hi" : r <= 6.0 ? "r-lo" : "";
       return `<td class="num ${cls}">${r == null ? "—" : r.toFixed(2)}</td>`;
     }
-    const t = sumOf(log.map(g => g[x.key]));
-    return `<td class="num">${t == null ? "—" : t}</td>`;
+    const vals = log.map(g => numOf(g[x.key])).filter(n => n != null);
+    if(!vals.length) return `<td class="num">—</td>`;
+    const total = vals.reduce((a, b) => a + b, 0);
+    const v = isPctCol(x) ? round1(total / vals.length) : round1(total);
+    return `<td class="num">${v}</td>`;
   }).join("");
-  const pb = posBreakdown(log);
-  return `<tr class="season-row"><td>シーズン</td><td>${log.length}試合</td><td>${w}勝${dr}分${l}敗</td>${cells}<td>${esc(pb.length ? pb[0].label : c.group || "")}</td></tr>`;
+  return `<tr class="season-row"><td>シーズン</td><td></td><td></td>${cells}<td></td></tr>`;
 }
 
 function logBody(x){
@@ -612,27 +603,20 @@ const logSection = (cards) => {
   return blocks ? `<div class="card"><h2>シーズン成績</h2>${blocks}</div>` : "";
 };
 
-// ── ヘッダー（選択中の年度の合計。「すべて」のときは全期間の合計）──
+// ── ヘッダー（選択中の年度の値。「すべての年度」のときは最新年度の値）──
 function cardAssists(c){
   if(numOf(c.assists) != null) return c.assists;
   return sumOf((c.game_log || []).map(g => g.assists));
 }
-function summarize(cards){
-  const latest = cards[0].card, f = (k) => sumOf(cards.map(x => x.card[k]));
-  const m = f("matches");
-  let rating = null;
-  const rated = cards.filter(x => numOf(x.card.rating_avg) != null);
-  if(rated.length){
-    const w = rated.reduce((t, x) => t + (numOf(x.card.matches) ?? 1), 0) || 1;
-    rating = rated.reduce((t, x) => t + x.card.rating_avg * (numOf(x.card.matches) ?? 1), 0) / w;
-  }
-  return { name: latest.name, team: latest.team, group: latest.group, matches: m, starts: f("starts"), minutes: f("minutes"),
-    rating, goals: f("goals"), assists: sumOf(cards.map(x => cardAssists(x.card))), clean_sheets: f("clean_sheets") };
+function summarize(cards){                 // cards[0] が最新年度
+  const c = cards[0].card;
+  return { name: c.name, team: c.team, group: c.group, matches: numOf(c.matches), starts: numOf(c.starts), minutes: numOf(c.minutes),
+    rating: numOf(c.rating_avg), goals: numOf(c.goals), assists: cardAssists(c), clean_sheets: numOf(c.clean_sheets) };
 }
 
 function renderCard(){
   const cards = activeCards, S = summarize(cards);
-  const pb = posBreakdown(cards.flatMap(x => x.card.game_log || []));
+  const pb = posBreakdown(cards[0].card.game_log || []);
   const kpis = [["出場", S.matches, "試合"], ["先発", S.starts, "試合"], ["出場時間", S.minutes, "分"], ["平均評価", S.rating == null ? null : S.rating.toFixed(2), ""]];
   if(S.group === "GK") kpis.push(["無失点試合", S.clean_sheets, ""]);
   else kpis.push(["ゴール数", S.goals, ""], ["アシスト数", S.assists, ""]);
@@ -642,7 +626,7 @@ function renderCard(){
     <button class="back-btn" id="backBtn">← 選手一覧</button>
     <div class="p-head">
       <div><div class="p-name">${esc(S.name)}</div>
-        <div class="p-sub"><span class="pos-badge" title="${esc(pb.map(x => `${x.pos}(${x.label}) ${Math.round(x.share*100)}%`).join(" / "))}">${esc(pb.length ? pb[0].label : S.group)}</span>${esc(S.team)}${pb.length > 1 ? ` <span class="pos-mix">・ ${pb.slice(0, 3).map(x => `${esc(x.label)} ${Math.round(x.share*100)}%`).join(" / ")}</span>` : ""}${seasonSel === "all" ? ' <span class="pos-mix">・ 全期間</span>' : ""}</div></div>
+        <div class="p-sub"><span class="pos-badge" title="${esc(pb.map(x => `${x.pos}(${x.label}) ${Math.round(x.share*100)}%`).join(" / "))}">${esc(pb.length ? pb[0].label : S.group)}</span>${esc(S.team)}${pb.length > 1 ? ` <span class="pos-mix">・ ${pb.slice(0, 3).map(x => `${esc(x.label)} ${Math.round(x.share*100)}%`).join(" / ")}</span>` : ""}${seasonSel === "all" ? ` <span class="pos-mix">・ 最新年度（${esc(yLabel(cards[0].year))}）</span>` : ""}</div></div>
       <div class="kpis">${kpiHtml}</div>
     </div>
     ${aiSection(cards)}${coreSection(cards)}${playtypeSection(cards)}${logSection(cards)}`;
