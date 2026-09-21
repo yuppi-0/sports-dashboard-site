@@ -20,15 +20,9 @@
   header{ padding:14px 20px 10px; border-bottom:1px solid var(--border); display:flex; align-items:center;
     justify-content:space-between; gap:10px; flex-wrap:wrap; flex-shrink:0; }
   header h1{ font-size:17px; margin:0; font-weight:700; color:var(--text-bright); }
-  .header-controls{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
-  .league-toggle{ display:flex; gap:4px; background:var(--panel); border-radius:8px; padding:3px; flex-wrap:wrap; }
-  .league-toggle button{ border:none; background:transparent; color:var(--text-dim); font-size:12px; font-weight:700;
-    padding:6px 12px; border-radius:6px; cursor:pointer; }
-  .league-toggle button.active{ background:var(--panel-alt); color:var(--text-bright); }
   select,input[type=text],input[type=number]{ font-family:inherit; }
   .filter-select{ flex:1; min-width:0; background:var(--panel); border:1px solid rgba(148,163,184,0.2); border-radius:8px;
     color:var(--text); font-size:12px; padding:6px 8px; outline:none; }
-  .season-select{ flex:none; }
 
   .body-layout{ display:flex; flex:1; min-height:0; }
   .sidebar{ width:290px; flex-shrink:0; border-right:1px solid var(--border); display:flex; flex-direction:column; height:100%; }
@@ -48,7 +42,7 @@
   .player-item:hover{ background:var(--panel); }
   .player-item.active{ background:var(--panel-alt); border-color:var(--border); }
   .player-item .name{ font-size:13.5px; font-weight:700; color:var(--text-bright); }
-  .player-item .meta{ font-size:11px; color:var(--text-dim); display:flex; justify-content:space-between; gap:8px; margin-top:2px; }
+  .player-item .meta{ font-size:11px; color:var(--text-dim); display:flex; justify-content:space-between; flex-wrap:wrap; gap:2px 8px; margin-top:2px; }
   .player-item .meta b{ color:var(--blue-text); }
   .ai-dot{ display:inline-block; width:6px; height:6px; border-radius:50%; background:var(--green); margin-left:6px; vertical-align:middle; }
   .empty-list{ color:var(--text-dim); font-size:12.5px; padding:20px 10px; text-align:center; }
@@ -69,7 +63,8 @@
   .kpis{ display:flex; gap:8px; flex-wrap:wrap; }
   .kpi{ background:var(--panel); border:1px solid var(--border); border-radius:10px; padding:7px 12px; min-width:70px; }
   .kpi .l{ font-size:10px; color:var(--text-dim); }
-  .kpi .v{ font-size:17px; font-weight:800; color:var(--text-bright); }
+  .kpi .v{ font-size:17px; font-weight:800; color:var(--text-bright); white-space:nowrap; }
+  .kpi .v .u{ font-size:11px; font-weight:700; color:var(--text-dim); margin-left:2px; }
 
   .card{ background:var(--panel); border:1px solid var(--border); border-radius:14px; padding:16px 18px; margin-bottom:14px; }
   .card h2{ font-size:13.5px; margin:0 0 10px; color:var(--text-bright); display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap; }
@@ -109,6 +104,27 @@
   .res-W{ color:var(--green-text); } .res-L{ color:var(--red-text); } .res-D{ color:var(--text-dim); }
   .sub-mark{ font-size:9.5px; color:var(--text-dim); margin-left:3px; }
 
+  /* 年度ブロック（折りたたみ） */
+  details.yr{ margin:0 0 8px; }
+  details.yr > summary{ list-style:none; cursor:pointer; display:flex; align-items:center; gap:8px; padding:6px 0 8px; font-size:12.5px; color:var(--text-bright); }
+  details.yr > summary::-webkit-details-marker{ display:none; }
+  details.yr > summary::after{ content:"⌄"; margin-left:auto; color:var(--text-dim); font-size:14px; }
+  details.yr[open] > summary::after{ content:"⌃"; }
+  .yr-bar{ width:3px; height:14px; border-radius:2px; background:var(--blue); flex-shrink:0; }
+  .yr-n{ color:var(--text-dim); font-weight:600; font-size:11.5px; }
+  .yr-warn{ font-size:11px; color:var(--text-dim); line-height:1.6; margin:6px 0 0; padding:8px 10px; border-radius:8px; background:rgba(245,158,11,0.08); word-break:break-all; }
+
+  /* シーズン成績テーブル */
+  table.log td:nth-child(2){ white-space:nowrap; }
+  th.sortable{ cursor:pointer; user-select:none; }
+  th.sortable:hover{ color:var(--text-bright); }
+  th.sorted{ color:var(--blue-text); }
+  th .arr{ font-size:9px; margin-left:2px; }
+  tr.season-row td{ background:rgba(59,130,246,0.09); font-weight:700; color:var(--text-bright); border-bottom:1px solid var(--border); }
+  .vn{ display:inline-flex; align-items:center; justify-content:center; width:18px; height:18px; border-radius:5px; font-size:10px; font-weight:800; margin-right:7px; vertical-align:middle; }
+  .vn-h{ background:rgba(16,185,129,0.16); color:var(--green-text); }
+  .vn-a{ background:rgba(148,163,184,0.16); color:var(--text-dim); }
+
   @media (max-width:720px){
     header{ padding:10px 12px 8px; }
     .body-layout{ flex-direction:column; }
@@ -122,9 +138,10 @@
     .p-name{ font-size:18px; }
     .p-sub{ margin-top:1px; }
     .kpis{ flex-wrap:nowrap; gap:5px; width:100%; }
-    .kpi{ flex:1; min-width:0; padding:4px 6px; border-radius:8px; }
-    .kpi .l{ font-size:9px; white-space:nowrap; }
-    .kpi .v{ font-size:14px; }
+    .kpi{ flex:1; min-width:0; padding:4px 4px; border-radius:8px; }
+    .kpi .l{ font-size:8.5px; white-space:nowrap; }
+    .kpi .v{ font-size:13.5px; }
+    .kpi .v .u{ font-size:8.5px; margin-left:1px; }
   }
 </style>
 </head>
@@ -132,10 +149,6 @@
 <div class="app">
   <header>
     <h1>サッカー選手 AI解釈カード</h1>
-    <div class="header-controls">
-      <div class="league-toggle" id="leagueToggle"></div>
-      <select id="seasonSelect" class="filter-select season-select"></select>
-    </div>
   </header>
 
   <div class="body-layout" id="bodyLayout">
@@ -148,6 +161,10 @@
           <button type="button" id="sortDirBtn" class="sort-dir-btn">降順 ↓</button>
         </div>
         <div class="filter-panel-label">フィルタ</div>
+        <div class="filter-panel-row">
+          <select id="leagueSelect" class="filter-select" aria-label="リーグ"></select>
+          <select id="seasonSelect" class="filter-select" aria-label="年度"></select>
+        </div>
         <div class="filter-panel-row">
           <select id="teamSelect" class="filter-select"><option value="">全クラブ</option></select>
           <select id="groupSelect" class="filter-select">
@@ -186,12 +203,15 @@ const $ = (s) => document.querySelector(s);
 const listEl = $("#playerList"), mainEl = $("#mainContent"), bodyEl = $("#bodyLayout");
 const searchEl = $("#searchInput"), sortFieldEl = $("#sortField"), sortDirEl = $("#sortDirBtn");
 const teamEl = $("#teamSelect"), groupEl = $("#groupSelect"), minMinEl = $("#minMinFilter"), aiOnlyEl = $("#aiOnlyFilter");
-const leagueToggleEl = $("#leagueToggle"), seasonEl = $("#seasonSelect");
+const leagueEl = $("#leagueSelect"), seasonEl = $("#seasonSelect");
 
-let manifest = null, league = null, season = null;
+let manifest = null, league = null, seasonSel = null;      // seasonSel: 年（"2025"）または "all"（すべて）
 let allPlayers = [], activeId = null, sortField = "rating_avg", sortDir = "desc";
-let batchByTeamName = new Map(), batchByName = new Map();   // LLM解釈: "クラブ|選手名" / 選手名 → データ
-let ptVenue = "all", activeCard = null, activeLlm = null;
+let ptVenue = "all", activeCards = [];                      // activeCards: [{year, title, card, llm}]（新しい年度が先頭）
+let logSort = { key: "date", dir: "desc" };                 // シーズン成績の並び順（既定は日付の降順）
+let openState = {};                                         // 年度ブロックの開閉状態
+let selToken = 0;
+const idxCache = {}, llmCache = {};
 
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]));
 // GitHub Pages（CDN）のキャッシュで更新直後に古いJSONが返るのを避けるため、毎回変わるクエリを付ける
@@ -203,6 +223,11 @@ async function getJson(url){
 }
 
 const fmt = (v, unit) => v == null ? "—" : (unit === "%" ? v.toFixed(1) + "%" : (Number.isInteger(v) ? String(v) : v.toFixed(2)));
+// 「ゴール/90」→「ゴール（/90分あたり）」
+const lbl = (s) => String(s ?? "").replace(/\/90(?=$|[（(\s])/, "（/90分あたり）");
+const nk = (s) => String(s ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/\s+/g, " ").trim();
+const numOf = (v) => typeof v === "number" && isFinite(v) ? v : null;
+const sumOf = (arr) => { const v = arr.map(numOf).filter(n => n != null); return v.length ? v.reduce((a, b) => a + b, 0) : null; };
 
 // 順位チップ。母数が少ない指標（10人未満）は、上位・下位の色を付けない
 function rankChip(c){
@@ -212,9 +237,16 @@ function rankChip(c){
   return `<span class="rk ${cls}">${c.rank}位 / ${c.pop}人</span>`;
 }
 
+// ── リーグ・年度 ──
+const seasonsOf = (lg) => ((manifest.leagues[lg] || {}).seasons || []).slice().sort((a, b) => Number(b.year) - Number(a.year));
+const yLabel = (y) => { const s = seasonsOf(league).find(x => String(x.year) === String(y)); return s ? s.label : String(y); };
+const yearsSelected = () => seasonSel === "all" ? seasonsOf(league).map(s => String(s.year)) : [String(seasonSel)];
+// 複数年を束ねるときの選手キー。idは「選手番号_クラブ」なので、移籍しても同じ選手になるよう番号だけを使う
+const pkey = (id) => { const m = /^(\d+)_/.exec(String(id)); return m ? m[1] : String(id); };
+
 // ── 初期化 ──
 async function init(){
-  SORT_FIELDS.forEach(([k, l]) => sortFieldEl.insertAdjacentHTML("beforeend", `<option value="${k}">${esc(l)}</option>`));
+  SORT_FIELDS.forEach(([k, l]) => sortFieldEl.insertAdjacentHTML("beforeend", `<option value="${k}">${esc(lbl(l))}</option>`));
   sortFieldEl.value = sortField;
   try{
     manifest = await getJson(`${DATA_ROOT}/manifest.json`);
@@ -224,69 +256,124 @@ async function init(){
   }
   const leagues = Object.keys(manifest.leagues || {});
   if(!leagues.length){ listEl.innerHTML = '<div class="empty-list">データがまだありません</div>'; return; }
-  leagueToggleEl.innerHTML = leagues.map(k => `<button data-league="${esc(k)}">${esc(manifest.leagues[k].label)}</button>`).join("");
-  leagueToggleEl.querySelectorAll("button").forEach(b => b.addEventListener("click", () => setLeague(b.dataset.league)));
+  leagueEl.innerHTML = leagues.map(k => `<option value="${esc(k)}">${esc(manifest.leagues[k].label)}</option>`).join("");
   setLeague(leagues[0]);
 }
 
 function setLeague(key){
   league = key;
-  leagueToggleEl.querySelectorAll("button").forEach(b => b.classList.toggle("active", b.dataset.league === key));
-  const seasons = manifest.leagues[key].seasons;
-  seasonEl.innerHTML = seasons.map(s => `<option value="${esc(s.year)}">${esc(s.label)}</option>`).join("");
-  // 開いたときの既定は「AI解釈がある最新のシーズン」（無ければ最新のシーズン）
-  season = (seasons.find(s => s.llm_batches > 0) || seasons[0]).year;
-  seasonEl.value = season;
-  loadSeason();
+  leagueEl.value = key;
+  const seasons = seasonsOf(key);
+  seasonEl.innerHTML = `<option value="all">すべての年度</option>` + seasons.map(s => `<option value="${esc(s.year)}">${esc(s.label)}</option>`).join("");
+  seasonSel = seasons.length ? String(seasons[0].year) : "all";   // 既定は最新の年度
+  seasonEl.value = seasonSel;
+  loadPlayers();
 }
-seasonEl.addEventListener("change", () => { season = seasonEl.value; loadSeason(); });
+leagueEl.addEventListener("change", () => setLeague(leagueEl.value));
+seasonEl.addEventListener("change", () => { seasonSel = seasonEl.value; loadPlayers(); });
 
-async function loadSeason(){
+// ── LLM解釈JSON（llm/<年>/{クラブ}.json。ポジションはまとめて1ファイル）──
+async function loadLlmFile(st, year, file){
+  if(st.tried.has(file)) return st.tried.get(file);
+  const team = file.replace(/\.json$/, "");
+  const pr = (async () => {
+    try{
+      const batch = await getJson(`${DATA_ROOT}/llm/${year}/${encodeURIComponent(file)}`);
+      const names = Object.keys(batch || {});
+      st.names.set(team, names);
+      names.forEach(name => {
+        const data = batch[name];
+        if(!data || typeof data !== "object") return;
+        st.byTeamName.set(`${team}|${name}`, data);
+        st.byName.set(name, data);
+        st.norm.set(`${nk(team)}|${nk(name)}`, data);
+      });
+      st.status.set(file, "ok"); return "ok";
+    }catch(e){ st.status.set(file, "missing"); return "missing"; }
+  })();
+  st.tried.set(file, pr);
+  return pr;
+}
+async function loadLlmYear(year){
+  if(llmCache[year]) return llmCache[year];
+  const st = { files: [], byTeamName: new Map(), byName: new Map(), norm: new Map(), names: new Map(), tried: new Map(), status: new Map() };
+  llmCache[year] = st;
+  try{
+    const idx = await getJson(`${DATA_ROOT}/llm/${year}/index.json`);
+    st.files = idx.files || [];
+  }catch(e){ /* LLM解釈がまだ無い */ }
+  await Promise.all(st.files.map(f => loadLlmFile(st, year, f)));
+  return st;
+}
+function getLlm(year, team, name){
+  const st = llmCache[year]; if(!st) return null;
+  return st.byTeamName.get(`${team}|${name}`) || st.norm.get(`${nk(team)}|${nk(name)}`) || st.byName.get(name) || null;
+}
+// index.json に載っていないクラブのファイルも、カードを開いたときに直接取りにいく
+async function ensureLlm(year, team, name){
+  let llm = getLlm(year, team, name);
+  if(llm) return llm;
+  const st = llmCache[year] || await loadLlmYear(year);
+  await loadLlmFile(st, year, `${team}.json`);
+  return getLlm(year, team, name);
+}
+
+// ── 一覧 ──
+const COUNT_KEYS = new Set(["minutes", "matches", "starts", "goals", "assists", "clean_sheets"]);
+function mergePlayers(key, list){          // list: [{year, p}]（新しい年度が先頭）
+  const latest = list[0].p;
+  const m = { ...latest, key, entries: list.map(({ year, p }) => ({ year, id: p.id, team: p.team })) };
+  if(list.length > 1){
+    Object.keys(latest).forEach(f => {
+      if(typeof latest[f] !== "number") return;
+      if(COUNT_KEYS.has(f)){ m[f] = list.reduce((t, { p }) => t + (p[f] || 0), 0); return; }
+      let num = 0, den = 0;                 // 率や/90の値は、出場時間で重み付けした平均
+      list.forEach(({ p }) => { if(typeof p[f] === "number"){ const w = p.minutes || 0; num += p[f] * w; den += w; } });
+      m[f] = den ? num / den : latest[f];
+    });
+  }
+  return m;
+}
+const hasLlm = (p) => p.entries.some(e => getLlm(e.year, e.team, p.name));
+
+async function loadPlayers(){
   listEl.innerHTML = '<div class="empty-list">読み込み中…</div>';
   mainEl.className = "placeholder"; mainEl.innerHTML = "左の一覧から選手を選んでください";
   bodyEl.classList.remove("has-selection");
-  activeId = null; searchEl.value = ""; groupEl.value = ""; minMinEl.value = "";
-  try{
-    const idx = await getJson(`${seasonBase(league, season)}/index.json`);
-    allPlayers = idx.players || [];
-    teamEl.innerHTML = '<option value="">全クラブ</option>' + (idx.teams || []).map(t => `<option value="${esc(t)}">${esc(t)}</option>`).join("");
-  }catch(e){
-    listEl.innerHTML = `<div class="empty-list">${esc(e.message)}</div>`; return;
-  }
-  await loadBatches();
+  activeId = null; activeCards = []; searchEl.value = ""; groupEl.value = ""; minMinEl.value = "";
+  const years = yearsSelected(), my = ++selToken;
+  const res = await Promise.all(years.map(y =>
+    getJson(`${seasonBase(league, y)}/index.json`).then(idx => ({ y, idx })).catch(err => ({ y, err }))));
+  if(my !== selToken) return;
+  const ok = res.filter(r => r.idx);
+  if(!ok.length){ allPlayers = []; listEl.innerHTML = `<div class="empty-list">${esc(res[0].err.message)}</div>`; return; }
+  await Promise.all(years.map(loadLlmYear));
+  // index.json に載っていないクラブのファイルも探す（手動でアップロードしたファイルなど）
+  await Promise.all(ok.flatMap(({ y, idx }) => (idx.teams || []).map(t => loadLlmFile(llmCache[y], y, `${t}.json`))));
+  const multi = years.length > 1, byKey = new Map(), teams = [];
+  ok.forEach(({ y, idx }) => {
+    (idx.teams || []).forEach(t => { if(!teams.includes(t)) teams.push(t); });
+    (idx.players || []).forEach(p => {
+      const k = multi ? pkey(p.id) : p.id;
+      if(!byKey.has(k)) byKey.set(k, []);
+      byKey.get(k).push({ year: y, p });
+    });
+  });
+  allPlayers = [...byKey.entries()].map(([k, list]) => mergePlayers(k, list));
+  teamEl.innerHTML = '<option value="">全クラブ</option>' + teams.map(t => `<option value="${esc(t)}">${esc(t)}</option>`).join("");
+  const has = years.some(y => llmCache[y] && llmCache[y].byTeamName.size > 0);
+  aiOnlyEl.disabled = !has;
+  aiOnlyEl.checked = has;
   renderList();
 }
 
-// LLM解釈JSON（llm/<年>/{クラブ}.json。ポジションはまとめて1ファイル）を全部読み、「クラブ|選手名」で引けるようにする
-async function loadBatches(){
-  batchByTeamName = new Map(); batchByName = new Map();
-  try{
-    const idx = await getJson(`${DATA_ROOT}/llm/${season}/index.json`);
-    await Promise.all((idx.files || []).map(async file => {
-      try{
-        const batch = await getJson(`${DATA_ROOT}/llm/${season}/${encodeURIComponent(file)}`);
-        const team = file.replace(/\.json$/, "");
-        Object.entries(batch).forEach(([name, data]) => {
-          batchByTeamName.set(`${team}|${name}`, data);
-          batchByName.set(name, data);
-        });
-      }catch(e){ /* このファイルはスキップ */ }
-    }));
-  }catch(e){ /* LLM解釈がまだ無い */ }
-  const has = batchByTeamName.size > 0;
-  aiOnlyEl.disabled = !has;
-  aiOnlyEl.checked = has;
-}
-const llmFor = (p) => batchByTeamName.get(`${p.team}|${p.name}`) || batchByName.get(p.name) || null;
-
-// ── 一覧 ──
 function applyFilters(){
   const q = searchEl.value.trim().toLowerCase(), team = teamEl.value, group = groupEl.value;
   const minMin = parseFloat(minMinEl.value), aiOnly = aiOnlyEl.checked && !aiOnlyEl.disabled;
   const dir = sortDir === "desc" ? -1 : 1;
   return allPlayers.filter(p =>
-      (!q || p.name.toLowerCase().includes(q)) && (!team || p.team === team) && (!group || p.group === group) &&
-      (isNaN(minMin) || (p.minutes ?? 0) >= minMin) && (!aiOnly || batchByTeamName.has(`${p.team}|${p.name}`)))
+      (!q || p.name.toLowerCase().includes(q)) && (!team || p.entries.some(e => e.team === team)) && (!group || p.group === group) &&
+      (isNaN(minMin) || (p.minutes ?? 0) >= minMin) && (!aiOnly || hasLlm(p)))
     .sort((a, b) => {
       if(sortField === "name") return dir * a.name.localeCompare(b.name);
       const av = a[sortField], bv = b[sortField];
@@ -301,12 +388,12 @@ function renderList(){
   if(!players.length){ listEl.innerHTML = '<div class="empty-list">該当する選手がいません</div>'; return; }
   const def = SORT_FIELDS.find(f => f[0] === sortField);
   listEl.innerHTML = players.map(p => {
-    const metric = sortField !== "name" ? `<span>${esc(def[1])}: <b>${p[sortField] == null ? "—" : Number(p[sortField]).toFixed(def[2])}</b></span>` : "";
-    return `<div class="player-item ${p.id === activeId ? "active" : ""}" data-id="${esc(p.id)}">
-      <div class="name">${esc(p.name)}${llmFor(p) ? '<span class="ai-dot" title="AIコメントあり"></span>' : ""}</div>
+    const metric = sortField !== "name" ? `<span>${esc(lbl(def[1]))}: <b>${p[sortField] == null ? "—" : Number(p[sortField]).toFixed(def[2])}</b></span>` : "";
+    return `<div class="player-item ${p.key === activeId ? "active" : ""}" data-key="${esc(p.key)}">
+      <div class="name">${esc(p.name)}${hasLlm(p) ? '<span class="ai-dot" title="AIコメントあり"></span>' : ""}</div>
       <div class="meta"><span>${esc(p.team)} ・ ${esc(p.group)}</span>${metric}</div></div>`;
   }).join("");
-  listEl.querySelectorAll(".player-item").forEach(it => it.addEventListener("click", () => selectPlayer(it.dataset.id)));
+  listEl.querySelectorAll(".player-item").forEach(it => it.addEventListener("click", () => selectPlayer(it.dataset.key)));
 }
 
 [searchEl, minMinEl].forEach(e => e.addEventListener("input", renderList));
@@ -319,14 +406,24 @@ sortDirEl.addEventListener("click", () => {
 });
 
 // ── カード ──
-async function selectPlayer(id){
-  activeId = id;
+async function selectPlayer(key){
+  activeId = key; openState = {};
   bodyEl.classList.add("has-selection");
   renderList();
   mainEl.className = "placeholder"; mainEl.innerHTML = "読み込み中…";
+  const my = ++selToken, p = allPlayers.find(x => x.key === key);
   try{
-    activeCard = await getJson(`${seasonBase(league, season)}/${encodeURIComponent(id)}.json`);
-    activeLlm = llmFor(activeCard);
+    const got = await Promise.allSettled(p.entries.map(async e => {
+      const card = await getJson(`${seasonBase(league, e.year)}/${encodeURIComponent(e.id)}.json`);
+      const llm = await ensureLlm(e.year, card.team || e.team, card.name || p.name);
+      return { year: e.year, card, llm };
+    }));
+    if(my !== selToken) return;
+    const cards = got.filter(g => g.status === "fulfilled").map(g => g.value);
+    if(!cards.length) throw got[0].reason;
+    const multi = seasonSel === "all";
+    cards.forEach(x => { x.title = yLabel(x.year) + (multi ? ` ・ ${x.card.team}` : ""); });
+    activeCards = cards;
     ptVenue = "all";
     renderCard();
     mainEl.scrollTop = 0;
@@ -335,101 +432,203 @@ async function selectPlayer(id){
   }
 }
 
-function aiSection(llm){
-  const pt = llm && llm.player_type;
-  if(!pt) return `<div class="card"><h2>AI解釈</h2><p class="note">この選手のAI解釈テキストはまだ生成されていません（数値データのみ表示中）</p></div>`;
-  const groups = AI_GROUPS.map(([k, label]) => ({ label, bullets: pt[k] || [] })).filter(g => g.bullets.length);
-  return `<div class="card"><h2>AI解釈</h2>
-    ${pt.tag ? `<div class="ai-tag">${esc(pt.tag)}</div>` : ""}
-    ${groups.map(g => `<div class="ai-group"><h3>${esc(g.label)}</h3><ul>${g.bullets.map(b => `<li>${esc(b)}</li>`).join("")}</ul></div>`).join("")}</div>`;
+// 年度ごとの折りたたみブロック（先頭＝最新の年度だけ開く）
+function yearBlocks(sect, cards, fn, extra){
+  return cards.map((x, i) => {
+    const k = `${sect}|${x.year}|${x.card.team}`;
+    const open = k in openState ? openState[k] : i === 0;
+    const body = fn(x);
+    if(!body) return "";
+    return `<details class="yr" data-k="${esc(k)}" ${open ? "open" : ""}><summary><i class="yr-bar"></i><b>${esc(x.title)}</b>${extra ? extra(x) : ""}</summary>${body}</details>`;
+  }).join("");
 }
 
-function coreSection(c){
-  if(!c.core.length) return "";
-  const rows = c.core.map(m => `<tr><td>${esc(m.label)}${m.better === "low" ? '<span class="sub-mark">（小さいほど良い）</span>' : ""}</td>
+function aiMissing(x){
+  const st = llmCache[x.year], team = x.card.team, f = `${team}.json`, name = x.card.name;
+  let why = "";
+  if(x.llm && !x.llm.player_type) why = `${f} に「${name}」の項目はありますが player_type がありません（項目のキー: ${Object.keys(x.llm).join(", ") || "なし"}）`;
+  else if(st && st.status.get(f) === "missing") why = `data/llm/${x.year}/${f} を読み込めませんでした（ファイルが無い、またはクラブ名とファイル名が違う）`;
+  else if(st && st.status.get(f) === "ok") why = `${f} は読み込めましたが「${name}」の項目が見つかりません（収録されている名前の例: ${(st.names.get(team) || []).slice(0, 5).join(", ") || "なし"}）`;
+  else why = `data/llm/${x.year}/ にこのクラブのファイルがありません`;
+  return `<p class="note">この年度のAI解釈テキストはまだ生成されていません（数値データのみ表示中）</p><p class="yr-warn">確認用: ${esc(why)}</p>`;
+}
+function aiBody(x){
+  const pt = x.llm && x.llm.player_type;
+  if(!pt) return aiMissing(x);
+  const groups = AI_GROUPS.map(([k, label]) => ({ label, bullets: pt[k] || [] })).filter(g => g.bullets.length);
+  return `${pt.tag ? `<div class="ai-tag">${esc(pt.tag)}</div>` : ""}
+    ${groups.map(g => `<div class="ai-group"><h3>${esc(g.label)}</h3><ul>${g.bullets.map(b => `<li>${esc(b)}</li>`).join("")}</ul></div>`).join("")}`;
+}
+const aiSection = (cards) => `<div class="card"><h2>AI解釈</h2>${yearBlocks("ai", cards, aiBody)}</div>`;
+
+function coreBody(c){
+  if(!(c.core || []).length) return "";
+  const rows = c.core.map(m => `<tr><td>${esc(lbl(m.label))}${m.better === "low" ? '<span class="sub-mark">（小さいほど良い）</span>' : ""}</td>
     ${["all", "home", "away"].map(v => `<td class="num"><span class="val">${fmt(m[v]?.v, m.unit)}</span>${rankChip(m[v])}</td>`).join("")}</tr>`).join("");
-  return `<div class="card"><h2>コア指標</h2><div class="table-scroll"><table>
-    <thead><tr><th>指標</th><th class="num">全体</th><th class="num">ホーム</th><th class="num">アウェイ</th></tr></thead><tbody>${rows}</tbody></table></div>
+  return `<div class="table-scroll"><table>
+    <thead><tr><th>指標</th><th class="num">全体</th><th class="num">ホーム</th><th class="num">アウェイ</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+}
+function coreSection(cards){
+  const blocks = yearBlocks("core", cards, x => coreBody(x.card));
+  if(!blocks) return "";
+  return `<div class="card"><h2>コア指標</h2>${blocks}
     <p class="note">順位は同じリーグ・同じ集団（FW / MF / CB / SB / GK）のうち、出場時間900分以上かつ試行数が一定以上の選手の中での順位です。</p></div>`;
 }
 
-function playtypeSection(c){
-  const pts = c.playtypes;
+function playtypeBody(x){
+  const pts = x.card.playtypes;
   if(!pts) return "";
-  const evals = {}; ((activeLlm && activeLlm.play_evaluations) || []).forEach(e => { evals[e.name] = e; });
-  const cards = pts.types.map(t => {
+  const evals = {}; ((x.llm && x.llm.play_evaluations) || []).forEach(e => { evals[e.name] = e; });
+  const cardsHtml = pts.types.map(t => {
     const u = t[ptVenue], tag = evals[t.name] ? evals[t.name][ptVenue] : null;
     const use = u && u.count != null
       ? `${u.count}回${u.pct != null ? ` ・ 全体の${u.pct}%` : ""}` : "該当なし";
-    const metrics = t.metrics.map(m => `<div class="pt-metric"><span>${esc(m.label)}${m.better === "low" ? "（小さいほど良い）" : ""}</span>
+    const metrics = t.metrics.map(m => `<div class="pt-metric"><span>${esc(lbl(m.label))}${m.better === "low" ? "（小さいほど良い）" : ""}</span>
       <span><b class="val" style="font-size:13px">${fmt(m[ptVenue]?.v, m.unit)}</b>${rankChip(m[ptVenue])}</span></div>`).join("");
     return `<div class="pt"><div class="pt-title">${esc(t.name)}<small>${esc(t.label)}</small></div>
       <div class="pt-use">${esc(use)}</div><div class="bar"><i style="width:${Math.min(u?.pct ?? 0, 100)}%"></i></div>
       ${tag ? `<div class="pt-tag">${esc(tag)}</div>` : ""}${metrics}</div>`;
   }).join("");
+  return `<p class="note" style="margin:0 0 8px">${esc(pts.count_label)}</p><div class="pt-grid">${cardsHtml}</div>
+    ${String(pts.count_label).includes("近似") ? '<p class="note">※ シュートにつながったプレーは、シュート直前の同じチームのプレーを最大2つさかのぼって数えた近似値で、公式の集計とは一致しません。</p>' : ""}`;
+}
+function playtypeSection(cards){
+  if(!cards.some(x => x.card.playtypes)) return "";
   const seg = Object.entries(PT_VENUE_LABEL).map(([k, l]) => `<button data-v="${k}" class="${k === ptVenue ? "active" : ""}">${l}</button>`).join("");
-  return `<div class="card"><h2><span>プレータイプ別（${esc(pts.count_label)}）</span><span class="seg" id="ptSeg">${seg}</span></h2>
-    <div class="pt-grid">${cards}</div>
-    ${pts.count_label.includes("近似") ? '<p class="note">※ シュートにつながったプレーは、シュート直前の同じチームのプレーを最大2つさかのぼって数えた近似値で、公式の集計とは一致しません。</p>' : ""}</div>`;
+  return `<div class="card"><h2><span>プレータイプ別</span><span class="seg" id="ptSeg">${seg}</span></h2>${yearBlocks("pt", cards, playtypeBody)}</div>`;
 }
 
-function gameLogSection(c){
-  if(!c.game_log.length) return "";
-  const cols = c.game_log_cols;
-  const head = cols.map(x => `<th class="num">${esc(x.label)}</th>`).join("");
-  const rows = c.game_log.slice().reverse().map(g => {
-    const res = g.gf > g.ga ? "W" : g.gf < g.ga ? "L" : "D";
-    const cellsHtml = cols.map(x => {
-      let v = g[x.key];
-      let cls = "";
-      if(x.key === "rating" && v != null){ cls = v >= 7.5 ? "r-hi" : v <= 6.0 ? "r-lo" : ""; v = v.toFixed(2); }
-      return `<td class="num ${cls}">${v == null ? "—" : v}</td>`;
-    }).join("");
-    return `<tr><td>${esc(g.date.slice(5))}</td><td>${g.venue === "H" ? "H" : "A"} ${esc(g.opponent)}</td>
-      <td class="res-${res}">${g.gf}-${g.ga}</td>${cellsHtml}<td>${esc(g.pos || "")}${g.starter ? "" : '<span class="sub-mark">途中</span>'}</td></tr>`;
-  }).join("");
-  return `<div class="card"><h2>試合ログ</h2><div class="table-scroll"><table>
-    <thead><tr><th>日付</th><th>相手</th><th>結果</th>${head}<th>位置</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
-}
-
-// WhoScoredのポジションコード → 日本語表記
-const POS_LABEL = {
+// ── シーズン成績（年度ごとに「シーズン」行＋試合ログ）──
+const POS_LABEL = {                     // WhoScoredのポジションコード → 日本語表記
   GK:"GK", DC:"CB", DL:"左SB", DR:"右SB", DMC:"守備的MF", DML:"左守備的MF", DMR:"右守備的MF",
   MC:"中央MF", ML:"左MF", MR:"右MF", AMC:"トップ下", AML:"左WG", AMR:"右WG",
   FW:"CF", FWL:"左FW", FWR:"右FW"
 };
+const posLabel = (code) => POS_LABEL[code] || code || "";
 // 試合ログの位置から、出場の多いポジション順の内訳を作る（Subは除外、出場時間があれば出場時間で重み付け）
-function posBreakdown(c){
-  const log = (c.game_log || []).filter(g => g.pos && g.pos !== "Sub");
+function posBreakdown(logs){
+  const log = (logs || []).filter(g => g.pos && g.pos !== "Sub");
   const useMin = log.length && log.every(g => typeof g.minutes === "number");
   const m = {};
   log.forEach(g => { m[g.pos] = (m[g.pos] || 0) + (useMin ? g.minutes : 1); });
   const rows = Object.entries(m).sort((a, b) => b[1] - a[1]);
   const total = rows.reduce((t, r) => t + r[1], 0) || 1;
-  return rows.map(([pos, v]) => ({ pos, label: POS_LABEL[pos] || pos, v, share: v / total, useMin }));
+  return rows.map(([pos, v]) => ({ pos, label: posLabel(pos), v, share: v / total }));
+}
+
+function sortVal(g, key){
+  if(key === "date") return g.date;
+  if(key === "opponent") return g.opponent || "";
+  if(key === "result") return (g.gf - g.ga) * 100 + g.gf;
+  if(key === "pos") return posLabel(g.pos);
+  return g[key];
+}
+function sortLog(log){
+  const { key, dir } = logSort, d = dir === "desc" ? -1 : 1;
+  return log.slice().sort((a, b) => {
+    const av = sortVal(a, key), bv = sortVal(b, key);
+    const an = av == null || av === "", bn = bv == null || bv === "";
+    if(an && bn) return 0; if(an) return 1; if(bn) return -1;   // 値が無い行は常に末尾
+    const r = typeof av === "string" ? av.localeCompare(bv) : av - bv;
+    return r !== 0 ? d * r : (b.date || "").localeCompare(a.date || "");
+  });
+}
+
+function seasonRow(c, cols, log){
+  let w = 0, dr = 0, l = 0;
+  log.forEach(g => { if(g.gf > g.ga) w++; else if(g.gf < g.ga) l++; else dr++; });
+  const cells = cols.map(x => {
+    if(x.key === "rating"){
+      const r = numOf(c.rating_avg) ?? (() => { const v = log.map(g => numOf(g.rating)).filter(n => n != null); return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null; })();
+      const cls = r == null ? "" : r >= 7.5 ? "r-hi" : r <= 6.0 ? "r-lo" : "";
+      return `<td class="num ${cls}">${r == null ? "—" : r.toFixed(2)}</td>`;
+    }
+    const t = sumOf(log.map(g => g[x.key]));
+    return `<td class="num">${t == null ? "—" : t}</td>`;
+  }).join("");
+  const pb = posBreakdown(log);
+  return `<tr class="season-row"><td>シーズン</td><td>${log.length}試合</td><td>${w}勝${dr}分${l}敗</td>${cells}<td>${esc(pb.length ? pb[0].label : c.group || "")}</td></tr>`;
+}
+
+function logBody(x){
+  const c = x.card, cols = c.game_log_cols || [], log = c.game_log || [];
+  if(!log.length) return "";
+  const heads = [["date", "日付", false], ["opponent", "相手", false], ["result", "結果", false],
+    ...cols.map(k => [k.key, k.label, true]), ["pos", "位置", false]];
+  const th = heads.map(([k, label, num]) => {
+    const on = logSort.key === k;
+    return `<th class="sortable ${num ? "num" : ""} ${on ? "sorted" : ""}" data-sk="${esc(k)}">${esc(label)}${on ? `<span class="arr">${logSort.dir === "desc" ? "▼" : "▲"}</span>` : ""}</th>`;
+  }).join("");
+  const rows = sortLog(log).map(g => {
+    const res = g.gf > g.ga ? "W" : g.gf < g.ga ? "L" : "D";
+    const cellsHtml = cols.map(k => {
+      let v = g[k.key], cls = "";
+      if(k.key === "rating" && v != null){ cls = v >= 7.5 ? "r-hi" : v <= 6.0 ? "r-lo" : ""; v = v.toFixed(2); }
+      return `<td class="num ${cls}">${v == null ? "—" : v}</td>`;
+    }).join("");
+    const home = g.venue === "H";
+    return `<tr><td>${esc(String(g.date || "").slice(5))}</td>
+      <td><span class="vn ${home ? "vn-h" : "vn-a"}" title="${home ? "ホーム" : "アウェイ"}">${home ? "H" : "A"}</span>${esc(g.opponent)}</td>
+      <td class="res-${res}">${g.gf}-${g.ga}</td>${cellsHtml}<td><span title="${esc(g.pos || "")}">${esc(posLabel(g.pos))}</span>${g.starter ? "" : '<span class="sub-mark">途中</span>'}</td></tr>`;
+  }).join("");
+  return `<div class="table-scroll"><table class="log"><thead><tr>${th}</tr></thead><tbody>${seasonRow(c, cols, log)}${rows}</tbody></table></div>`;
+}
+const logSection = (cards) => {
+  const blocks = yearBlocks("log", cards, logBody, x => `<span class="yr-n">（${(x.card.game_log || []).length}試合）</span>`);
+  return blocks ? `<div class="card"><h2>シーズン成績</h2>${blocks}</div>` : "";
+};
+
+// ── ヘッダー（選択中の年度の合計。「すべて」のときは全期間の合計）──
+function cardAssists(c){
+  if(numOf(c.assists) != null) return c.assists;
+  return sumOf((c.game_log || []).map(g => g.assists));
+}
+function summarize(cards){
+  const latest = cards[0].card, f = (k) => sumOf(cards.map(x => x.card[k]));
+  const m = f("matches");
+  let rating = null;
+  const rated = cards.filter(x => numOf(x.card.rating_avg) != null);
+  if(rated.length){
+    const w = rated.reduce((t, x) => t + (numOf(x.card.matches) ?? 1), 0) || 1;
+    rating = rated.reduce((t, x) => t + x.card.rating_avg * (numOf(x.card.matches) ?? 1), 0) / w;
+  }
+  return { name: latest.name, team: latest.team, group: latest.group, matches: m, starts: f("starts"), minutes: f("minutes"),
+    rating, goals: f("goals"), assists: sumOf(cards.map(x => cardAssists(x.card))), clean_sheets: f("clean_sheets") };
 }
 
 function renderCard(){
-  const c = activeCard;
-  const pb = posBreakdown(c);
-  const kpis = [["出場", c.matches], ["先発", c.starts], ["出場時間", c.minutes], ["平均評価", c.rating_avg?.toFixed(2)]];
-  if(c.group === "GK") kpis.push(["無失点試合", c.clean_sheets]); else kpis.push(["ゴール", c.goals]);
+  const cards = activeCards, S = summarize(cards);
+  const pb = posBreakdown(cards.flatMap(x => x.card.game_log || []));
+  const kpis = [["出場", S.matches, "試合"], ["先発", S.starts, "試合"], ["出場時間", S.minutes, "分"], ["平均評価", S.rating == null ? null : S.rating.toFixed(2), ""]];
+  if(S.group === "GK") kpis.push(["無失点試合", S.clean_sheets, ""]);
+  else kpis.push(["ゴール数", S.goals, ""], ["アシスト数", S.assists, ""]);
+  const kpiHtml = kpis.map(([l, v, u]) => `<div class="kpi"><div class="l">${l}</div><div class="v">${v == null ? "—" : esc(v)}${v != null && u ? `<span class="u">${u}</span>` : ""}</div></div>`).join("");
   mainEl.className = "";
   mainEl.innerHTML = `
     <button class="back-btn" id="backBtn">← 選手一覧</button>
     <div class="p-head">
-      <div><div class="p-name">${esc(c.name)}</div>
-        <div class="p-sub"><span class="pos-badge" title="${esc(pb.map(x => `${x.pos}(${x.label}) ${Math.round(x.share*100)}%`).join(" / "))}">${esc(pb.length ? pb[0].label : c.group)}</span>${esc(c.team)}${pb.length > 1 ? ` <span class="pos-mix">・ ${pb.slice(0, 3).map(x => `${esc(x.label)} ${Math.round(x.share*100)}%`).join(" / ")}</span>` : ""}</div></div>
-      <div class="kpis">${kpis.map(([l, v]) => `<div class="kpi"><div class="l">${l}</div><div class="v">${v ?? "—"}</div></div>`).join("")}</div>
+      <div><div class="p-name">${esc(S.name)}</div>
+        <div class="p-sub"><span class="pos-badge" title="${esc(pb.map(x => `${x.pos}(${x.label}) ${Math.round(x.share*100)}%`).join(" / "))}">${esc(pb.length ? pb[0].label : S.group)}</span>${esc(S.team)}${pb.length > 1 ? ` <span class="pos-mix">・ ${pb.slice(0, 3).map(x => `${esc(x.label)} ${Math.round(x.share*100)}%`).join(" / ")}</span>` : ""}${seasonSel === "all" ? ' <span class="pos-mix">・ 全期間</span>' : ""}</div></div>
+      <div class="kpis">${kpiHtml}</div>
     </div>
-    ${aiSection(activeLlm)}${coreSection(c)}${playtypeSection(c)}${gameLogSection(c)}`;
-  $("#backBtn").addEventListener("click", () => { bodyEl.classList.remove("has-selection"); });
-  const seg = $("#ptSeg");
-  if(seg) seg.querySelectorAll("button").forEach(b => b.addEventListener("click", () => {
-    ptVenue = b.dataset.v;
-    const y = mainEl.scrollTop; renderCard(); mainEl.scrollTop = y;
-  }));
+    ${aiSection(cards)}${coreSection(cards)}${playtypeSection(cards)}${logSection(cards)}`;
 }
+
+// 描き直しても、スクロール位置と年度ブロックの開閉を保つ
+function rerender(){ const y = mainEl.scrollTop; renderCard(); mainEl.scrollTop = y; }
+mainEl.addEventListener("click", (e) => {
+  const back = e.target.closest("#backBtn");
+  if(back){ bodyEl.classList.remove("has-selection"); return; }
+  const seg = e.target.closest("#ptSeg button");
+  if(seg){ ptVenue = seg.dataset.v; rerender(); return; }
+  const th = e.target.closest("th.sortable");
+  if(th){
+    const k = th.dataset.sk;
+    logSort = logSort.key === k ? { key: k, dir: logSort.dir === "desc" ? "asc" : "desc" } : { key: k, dir: k === "opponent" || k === "pos" ? "asc" : "desc" };
+    rerender();
+  }
+});
+mainEl.addEventListener("toggle", (e) => { const k = e.target.dataset && e.target.dataset.k; if(k) openState[k] = e.target.open; }, true);
 
 init();
 </script>
