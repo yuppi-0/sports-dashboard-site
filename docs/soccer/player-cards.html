@@ -65,6 +65,7 @@
   .p-sub{ font-size:12.5px; color:var(--text-dim); margin-top:3px; }
   .pos-badge{ display:inline-block; font-size:10.5px; font-weight:800; padding:1px 7px; border-radius:5px;
     background:rgba(59,130,246,0.18); color:var(--blue-text); margin-right:6px; }
+  .pos-mix{ font-size:11.5px; }
   .kpis{ display:flex; gap:8px; flex-wrap:wrap; }
   .kpi{ background:var(--panel); border:1px solid var(--border); border-radius:10px; padding:7px 12px; min-width:70px; }
   .kpi .l{ font-size:10px; color:var(--text-dim); }
@@ -171,7 +172,7 @@
 <script>
 // ── データの置き場所（docs/soccer/ からの相対パス）。manifest.json にあるリーグ・シーズンだけが選べる ──
 const DATA_ROOT = "data";
-const seasonBase = (league, year) => `${DATA_ROOT}/games/${year}/${league}`;
+const seasonBase = (league, year) => `${DATA_ROOT}/${league}/${year}`;
 
 const SORT_FIELDS = [
   ["rating_avg", "平均評価", 2], ["minutes", "出場時間", 0], ["goals_p90", "ゴール/90", 2],
@@ -246,7 +247,7 @@ async function loadSeason(){
   bodyEl.classList.remove("has-selection");
   activeId = null; searchEl.value = ""; groupEl.value = ""; minMinEl.value = "";
   try{
-    const idx = await getJson(`${seasonBase(league, season)}/index.json`);
+    const idx = await getJson(`${seasonBase(league, season)}/cards_numeric/index.json`);
     allPlayers = idx.players || [];
     teamEl.innerHTML = '<option value="">全クラブ</option>' + (idx.teams || []).map(t => `<option value="${esc(t)}">${esc(t)}</option>`).join("");
   }catch(e){
@@ -256,20 +257,20 @@ async function loadSeason(){
   renderList();
 }
 
-// LLM解釈JSON（llm/<年>/{クラブ}.json。ポジションはまとめて1ファイル）を全部読み、「クラブ|選手名」で引けるようにする
+// LLM解釈JSON（batches/{クラブ}_{FW|MF|DF|GK}.json）を全部読み、「クラブ|選手名」で引けるようにする
 async function loadBatches(){
   batchByTeamName = new Map(); batchByName = new Map();
   try{
-    const idx = await getJson(`${DATA_ROOT}/llm/${season}/index.json`);
-    await Promise.all((idx.files || []).map(async file => {
+    const idx = await getJson(`${seasonBase(league, season)}/cards_llm/batches/index.json`);
+    await Promise.all((idx.batches || []).map(async file => {
       try{
-        const batch = await getJson(`${DATA_ROOT}/llm/${season}/${encodeURIComponent(file)}`);
-        const team = file.replace(/\.json$/, "");
+        const batch = await getJson(`${seasonBase(league, season)}/cards_llm/batches/${encodeURIComponent(file)}`);
+        const team = file.replace(/\.json$/, "").replace(/_[^_]+$/, "");
         Object.entries(batch).forEach(([name, data]) => {
           batchByTeamName.set(`${team}|${name}`, data);
           batchByName.set(name, data);
         });
-      }catch(e){ /* このファイルはスキップ */ }
+      }catch(e){ /* このバッチはスキップ */ }
     }));
   }catch(e){ /* LLM解釈がまだ無い */ }
   const has = batchByTeamName.size > 0;
@@ -324,7 +325,7 @@ async function selectPlayer(id){
   renderList();
   mainEl.className = "placeholder"; mainEl.innerHTML = "読み込み中…";
   try{
-    activeCard = await getJson(`${seasonBase(league, season)}/${encodeURIComponent(id)}.json`);
+    activeCard = await getJson(`${seasonBase(league, season)}/cards_numeric/${encodeURIComponent(id)}.json`);
     activeLlm = llmFor(activeCard);
     ptVenue = "all";
     renderCard();
@@ -391,8 +392,26 @@ function gameLogSection(c){
     <thead><tr><th>日付</th><th>相手</th><th>結果</th>${head}<th>位置</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
 }
 
+// WhoScoredのポジションコード → 日本語表記
+const POS_LABEL = {
+  GK:"GK", DC:"CB", DL:"左SB", DR:"右SB", DMC:"守備的MF", DML:"左守備的MF", DMR:"右守備的MF",
+  MC:"中央MF", ML:"左MF", MR:"右MF", AMC:"トップ下", AML:"左WG", AMR:"右WG",
+  FW:"CF", FWL:"左FW", FWR:"右FW"
+};
+// 試合ログの位置から、出場の多いポジション順の内訳を作る（Subは除外、出場時間があれば出場時間で重み付け）
+function posBreakdown(c){
+  const log = (c.game_log || []).filter(g => g.pos && g.pos !== "Sub");
+  const useMin = log.length && log.every(g => typeof g.minutes === "number");
+  const m = {};
+  log.forEach(g => { m[g.pos] = (m[g.pos] || 0) + (useMin ? g.minutes : 1); });
+  const rows = Object.entries(m).sort((a, b) => b[1] - a[1]);
+  const total = rows.reduce((t, r) => t + r[1], 0) || 1;
+  return rows.map(([pos, v]) => ({ pos, label: POS_LABEL[pos] || pos, v, share: v / total, useMin }));
+}
+
 function renderCard(){
   const c = activeCard;
+  const pb = posBreakdown(c);
   const kpis = [["出場", c.matches], ["先発", c.starts], ["出場時間", c.minutes], ["平均評価", c.rating_avg?.toFixed(2)]];
   if(c.group === "GK") kpis.push(["無失点試合", c.clean_sheets]); else kpis.push(["ゴール", c.goals]);
   mainEl.className = "";
@@ -400,7 +419,7 @@ function renderCard(){
     <button class="back-btn" id="backBtn">← 選手一覧</button>
     <div class="p-head">
       <div><div class="p-name">${esc(c.name)}</div>
-        <div class="p-sub"><span class="pos-badge">${esc(c.group)}</span>${esc(c.team)}</div></div>
+        <div class="p-sub"><span class="pos-badge" title="${esc(pb.map(x => `${x.pos}(${x.label}) ${Math.round(x.share*100)}%`).join(" / "))}">${esc(pb.length ? pb[0].label : c.group)}</span>${esc(c.team)}${pb.length > 1 ? ` <span class="pos-mix">・ ${pb.slice(0, 3).map(x => `${esc(x.label)} ${Math.round(x.share*100)}%`).join(" / ")}</span>` : ""}</div></div>
       <div class="kpis">${kpis.map(([l, v]) => `<div class="kpi"><div class="l">${l}</div><div class="v">${v ?? "—"}</div></div>`).join("")}</div>
     </div>
     ${aiSection(activeLlm)}${coreSection(c)}${playtypeSection(c)}${gameLogSection(c)}`;
