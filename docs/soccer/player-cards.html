@@ -20,6 +20,7 @@
   header{ padding:14px 20px 10px; border-bottom:1px solid var(--border); display:flex; align-items:center;
     justify-content:space-between; gap:10px; flex-wrap:wrap; flex-shrink:0; }
   header h1{ font-size:17px; margin:0; font-weight:700; color:var(--text-bright); }
+  .header-controls{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
   select,input[type=text],input[type=number]{ font-family:inherit; }
   .filter-select{ flex:1; min-width:0; background:var(--panel); border:1px solid rgba(148,163,184,0.2); border-radius:8px;
     color:var(--text); font-size:12px; padding:6px 8px; outline:none; }
@@ -29,6 +30,7 @@
   .filter-panel{ padding:10px 14px; border-bottom:1px solid var(--border); display:flex; flex-direction:column; gap:6px; flex-shrink:0; }
   .filter-panel-label{ font-size:9.5px; font-weight:700; color:var(--text-dim); margin:2px 0 -2px; }
   .filter-panel-row{ display:flex; gap:6px; flex-wrap:wrap; align-items:center; }
+  .season-select{ flex:none; min-width:150px; }
   .search-input{ width:100%; background:var(--panel); border:1px solid rgba(148,163,184,0.2); border-radius:8px;
     padding:7px 12px; color:var(--text); font-size:13px; outline:none; }
   .search-input:focus{ border-color:var(--blue); }
@@ -64,7 +66,7 @@
   .kpi{ background:var(--panel); border:1px solid var(--border); border-radius:10px; padding:7px 12px; min-width:70px; }
   .kpi .l{ font-size:10px; color:var(--text-dim); }
   .kpi .v{ font-size:17px; font-weight:800; color:var(--text-bright); white-space:nowrap; }
-  .kpi .v .u{ font-size:11px; font-weight:700; color:var(--text-dim); margin-left:2px; }
+  .kpi .v .u{ font-size:10px; font-weight:500; color:var(--text-dim); margin-left:3px; letter-spacing:0.02em; }
 
   .card{ background:var(--panel); border:1px solid var(--border); border-radius:14px; padding:16px 18px; margin-bottom:14px; }
   .card h2{ font-size:13.5px; margin:0 0 10px; color:var(--text-bright); display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap; }
@@ -112,6 +114,7 @@
   details.yr[open] > summary::after{ content:"⌃"; }
   .yr-bar{ width:3px; height:14px; border-radius:2px; background:var(--blue); flex-shrink:0; }
   .yr-n{ color:var(--text-dim); font-weight:600; font-size:11.5px; }
+  .yr-plain{ margin:0 0 4px; }
   .yr-warn{ font-size:11px; color:var(--text-dim); line-height:1.6; margin:6px 0 0; padding:8px 10px; border-radius:8px; background:rgba(245,158,11,0.08); word-break:break-all; }
 
   /* シーズン成績テーブル */
@@ -141,7 +144,7 @@
     .kpi{ flex:1; min-width:0; padding:4px 4px; border-radius:8px; }
     .kpi .l{ font-size:8.5px; white-space:nowrap; }
     .kpi .v{ font-size:13.5px; }
-    .kpi .v .u{ font-size:8.5px; margin-left:1px; }
+    .kpi .v .u{ font-size:8px; margin-left:1px; }
   }
 </style>
 </head>
@@ -149,6 +152,9 @@
 <div class="app">
   <header>
     <h1>サッカー選手 AI解釈カード</h1>
+    <div class="header-controls">
+      <select id="seasonSelect" class="filter-select season-select" aria-label="年度"></select>
+    </div>
   </header>
 
   <div class="body-layout" id="bodyLayout">
@@ -163,7 +169,6 @@
         <div class="filter-panel-label">フィルタ</div>
         <div class="filter-panel-row">
           <select id="leagueSelect" class="filter-select" aria-label="リーグ"></select>
-          <select id="seasonSelect" class="filter-select" aria-label="年度"></select>
         </div>
         <div class="filter-panel-row">
           <select id="teamSelect" class="filter-select"><option value="">全クラブ</option></select>
@@ -205,12 +210,12 @@ const searchEl = $("#searchInput"), sortFieldEl = $("#sortField"), sortDirEl = $
 const teamEl = $("#teamSelect"), groupEl = $("#groupSelect"), minMinEl = $("#minMinFilter"), aiOnlyEl = $("#aiOnlyFilter");
 const leagueEl = $("#leagueSelect"), seasonEl = $("#seasonSelect");
 
-let manifest = null, league = null, seasonSel = null;      // seasonSel: 年（"2025"）または "all"（すべて）
+let manifest = null, league = "all", seasonSel = "all";     // league: リーグ名または "all"（全リーグ） / seasonSel: 年（"2025"）または "all"（すべての年度）
 let allPlayers = [], activeId = null, sortField = "rating_avg", sortDir = "desc";
 let ptVenue = "all", activeCards = [];                      // activeCards: [{year, title, card, llm}]（新しい年度が先頭）
 let logSort = { key: "date", dir: "desc" };                 // シーズン成績の並び順（既定は日付の降順）
 let openState = {};                                         // 年度ブロックの開閉状態
-let selToken = 0;
+let selToken = 0, loadToken = 0;
 const idxCache = {}, llmCache = {};
 
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]));
@@ -238,9 +243,21 @@ function rankChip(c){
 }
 
 // ── リーグ・年度 ──
+const leaguesSel = () => league === "all" ? Object.keys(manifest.leagues || {}) : [league];
 const seasonsOf = (lg) => ((manifest.leagues[lg] || {}).seasons || []).slice().sort((a, b) => Number(b.year) - Number(a.year));
-const yLabel = (y) => { const s = seasonsOf(league).find(x => String(x.year) === String(y)); return s ? s.label : String(y); };
-const yearsSelected = () => seasonSel === "all" ? seasonsOf(league).map(s => String(s.year)) : [String(seasonSel)];
+// 選択中のリーグにある年度の一覧（新しい順・重複なし）
+function seasonsUnion(){
+  const m = new Map();
+  leaguesSel().forEach(lg => seasonsOf(lg).forEach(s => { if(!m.has(String(s.year))) m.set(String(s.year), s); }));
+  return [...m.values()].sort((a, b) => Number(b.year) - Number(a.year));
+}
+const yLabel = (y) => {
+  for(const lg of Object.keys(manifest.leagues || {})){
+    const s = seasonsOf(lg).find(x => String(x.year) === String(y)); if(s) return s.label;
+  }
+  return String(y);
+};
+const yearsSelected = () => seasonSel === "all" ? seasonsUnion().map(s => String(s.year)) : [String(seasonSel)];
 // 複数年を束ねるときの選手キー。idは「選手番号_クラブ」なので、移籍しても同じ選手になるよう番号だけを使う
 const pkey = (id) => { const m = /^(\d+)_/.exec(String(id)); return m ? m[1] : String(id); };
 
@@ -256,20 +273,18 @@ async function init(){
   }
   const leagues = Object.keys(manifest.leagues || {});
   if(!leagues.length){ listEl.innerHTML = '<div class="empty-list">データがまだありません</div>'; return; }
-  leagueEl.innerHTML = leagues.map(k => `<option value="${esc(k)}">${esc(manifest.leagues[k].label)}</option>`).join("");
-  setLeague(leagues[0]);
-}
-
-function setLeague(key){
-  league = key;
-  leagueEl.value = key;
-  const seasons = seasonsOf(key);
-  seasonEl.innerHTML = `<option value="all">すべての年度</option>` + seasons.map(s => `<option value="${esc(s.year)}">${esc(s.label)}</option>`).join("");
-  seasonSel = seasons.length ? String(seasons[0].year) : "all";   // 既定は最新の年度
-  seasonEl.value = seasonSel;
+  leagueEl.innerHTML = `<option value="all">全リーグ</option>` + leagues.map(k => `<option value="${esc(k)}">${esc(manifest.leagues[k].label)}</option>`).join("");
+  leagueEl.value = league;
+  fillSeasonSelect();
   loadPlayers();
 }
-leagueEl.addEventListener("change", () => setLeague(leagueEl.value));
+function fillSeasonSelect(){
+  const seasons = seasonsUnion();
+  seasonEl.innerHTML = `<option value="all">すべての年度</option>` + seasons.map(s => `<option value="${esc(s.year)}">${esc(s.label)}</option>`).join("");
+  if(seasonSel !== "all" && !seasons.some(s => String(s.year) === String(seasonSel))) seasonSel = "all";
+  seasonEl.value = seasonSel;
+}
+leagueEl.addEventListener("change", () => { league = leagueEl.value; fillSeasonSelect(); loadPlayers(); });
 seasonEl.addEventListener("change", () => { seasonSel = seasonEl.value; loadPlayers(); });
 
 // ── LLM解釈JSON（llm/<年>/{クラブ}.json。ポジションはまとめて1ファイル）──
@@ -322,7 +337,7 @@ async function ensureLlm(year, team, name){
 const COUNT_KEYS = new Set(["minutes", "matches", "starts", "goals", "assists", "clean_sheets"]);
 function mergePlayers(key, list){          // list: [{year, p}]（新しい年度が先頭）
   const latest = list[0].p;
-  const m = { ...latest, key, entries: list.map(({ year, p }) => ({ year, id: p.id, team: p.team })) };
+  const m = { ...latest, key, entries: list.map(({ year, lg, p }) => ({ year, league: lg, id: p.id, team: p.team })) };
   if(list.length > 1){
     Object.keys(latest).forEach(f => {
       if(typeof latest[f] !== "number") return;
@@ -341,22 +356,24 @@ async function loadPlayers(){
   mainEl.className = "placeholder"; mainEl.innerHTML = "左の一覧から選手を選んでください";
   bodyEl.classList.remove("has-selection");
   activeId = null; activeCards = []; searchEl.value = ""; groupEl.value = ""; minMinEl.value = "";
-  const years = yearsSelected(), my = ++selToken;
-  const res = await Promise.all(years.map(y =>
-    getJson(`${seasonBase(league, y)}/index.json`).then(idx => ({ y, idx })).catch(err => ({ y, err }))));
-  if(my !== selToken) return;
+  const years = yearsSelected(), my = ++loadToken;
+  // 読みにいく（リーグ × 年度）の組。そのリーグに無い年度は読まない
+  const pairs = [];
+  years.forEach(y => leaguesSel().forEach(lg => { if(seasonsOf(lg).some(x => String(x.year) === y)) pairs.push({ lg, y }); }));
+  const res = await Promise.all(pairs.map(({ lg, y }) =>
+    getJson(`${seasonBase(lg, y)}/index.json`).then(idx => ({ lg, y, idx })).catch(err => ({ lg, y, err }))));
+  if(my !== loadToken) return;
   const ok = res.filter(r => r.idx);
-  if(!ok.length){ allPlayers = []; listEl.innerHTML = `<div class="empty-list">${esc(res[0].err.message)}</div>`; return; }
+  if(!ok.length){ allPlayers = []; listEl.innerHTML = `<div class="empty-list">${esc(res.length ? res[0].err.message : "データがありません")}</div>`; return; }
   await Promise.all(years.map(loadLlmYear));
-  // index.json に載っていないクラブのファイルも探す（手動でアップロードしたファイルなど）
-  await Promise.all(ok.flatMap(({ y, idx }) => (idx.teams || []).map(t => loadLlmFile(llmCache[y], y, `${t}.json`))));
+  if(my !== loadToken) return;
   const multi = years.length > 1, byKey = new Map(), teams = [];
-  ok.forEach(({ y, idx }) => {
+  ok.forEach(({ lg, y, idx }) => {
     (idx.teams || []).forEach(t => { if(!teams.includes(t)) teams.push(t); });
     (idx.players || []).forEach(p => {
       const k = multi ? pkey(p.id) : p.id;
       if(!byKey.has(k)) byKey.set(k, []);
-      byKey.get(k).push({ year: y, p });
+      byKey.get(k).push({ year: y, lg, p });
     });
   });
   allPlayers = [...byKey.entries()].map(([k, list]) => mergePlayers(k, list));
@@ -364,6 +381,11 @@ async function loadPlayers(){
   const has = years.some(y => llmCache[y] && llmCache[y].byTeamName.size > 0);
   aiOnlyEl.disabled = !has;
   aiOnlyEl.checked = has;
+  renderList();
+  // index.json に載っていないクラブのファイルも探す（手動でアップロードしたファイルなど）。見つかったら一覧を更新する
+  await Promise.all(ok.flatMap(({ y, idx }) => (idx.teams || []).map(t => loadLlmFile(llmCache[y], y, `${t}.json`))));
+  if(my !== loadToken) return;
+  aiOnlyEl.disabled = !years.some(y => llmCache[y] && llmCache[y].byTeamName.size > 0);
   renderList();
 }
 
@@ -414,7 +436,7 @@ async function selectPlayer(key){
   const my = ++selToken, p = allPlayers.find(x => x.key === key);
   try{
     const got = await Promise.allSettled(p.entries.map(async e => {
-      const card = await getJson(`${seasonBase(league, e.year)}/${encodeURIComponent(e.id)}.json`);
+      const card = await getJson(`${seasonBase(e.league, e.year)}/${encodeURIComponent(e.id)}.json`);
       const llm = await ensureLlm(e.year, card.team || e.team, card.name || p.name);
       return { year: e.year, card, llm };
     }));
@@ -432,13 +454,15 @@ async function selectPlayer(key){
   }
 }
 
-// 年度ごとの折りたたみブロック（先頭＝最新の年度だけ開く）
+// 年度ごとの折りたたみブロック（先頭＝最新の年度だけ開く）。年度ラベルは「すべての年度」のときだけ出す
 function yearBlocks(sect, cards, fn, extra){
+  const labeled = seasonSel === "all" || cards.length > 1;
   return cards.map((x, i) => {
-    const k = `${sect}|${x.year}|${x.card.team}`;
-    const open = k in openState ? openState[k] : i === 0;
     const body = fn(x);
     if(!body) return "";
+    if(!labeled) return `<div class="yr-plain">${body}</div>`;
+    const k = `${sect}|${x.year}|${x.card.team}`;
+    const open = k in openState ? openState[k] : i === 0;
     return `<details class="yr" data-k="${esc(k)}" ${open ? "open" : ""}><summary><i class="yr-bar"></i><b>${esc(x.title)}</b>${extra ? extra(x) : ""}</summary>${body}</details>`;
   }).join("");
 }
@@ -534,6 +558,16 @@ function sortLog(log){
   });
 }
 
+// 表の列。出場は「出場時間（分）」表記にし、データにアシストがあれば「得点」の右に列を足す
+function logCols(c, log){
+  const cols = (c.game_log_cols || []).map(k => k.key === "minutes" ? { ...k, label: "出場時間（分）" } : k);
+  if(log.some(g => numOf(g.assists) != null) && !cols.some(k => k.key === "assists")){
+    const i = cols.findIndex(k => k.key === "goals");
+    cols.splice(i >= 0 ? i + 1 : cols.length, 0, { key: "assists", label: "アシスト" });
+  }
+  return cols;
+}
+
 function seasonRow(c, cols, log){
   let w = 0, dr = 0, l = 0;
   log.forEach(g => { if(g.gf > g.ga) w++; else if(g.gf < g.ga) l++; else dr++; });
@@ -551,7 +585,7 @@ function seasonRow(c, cols, log){
 }
 
 function logBody(x){
-  const c = x.card, cols = c.game_log_cols || [], log = c.game_log || [];
+  const c = x.card, log = c.game_log || [], cols = logCols(c, log);
   if(!log.length) return "";
   const heads = [["date", "日付", false], ["opponent", "相手", false], ["result", "結果", false],
     ...cols.map(k => [k.key, k.label, true]), ["pos", "位置", false]];
@@ -602,7 +636,7 @@ function renderCard(){
   const kpis = [["出場", S.matches, "試合"], ["先発", S.starts, "試合"], ["出場時間", S.minutes, "分"], ["平均評価", S.rating == null ? null : S.rating.toFixed(2), ""]];
   if(S.group === "GK") kpis.push(["無失点試合", S.clean_sheets, ""]);
   else kpis.push(["ゴール数", S.goals, ""], ["アシスト数", S.assists, ""]);
-  const kpiHtml = kpis.map(([l, v, u]) => `<div class="kpi"><div class="l">${l}</div><div class="v">${v == null ? "—" : esc(v)}${v != null && u ? `<span class="u">${u}</span>` : ""}</div></div>`).join("");
+  const kpiHtml = kpis.map(([l, v, u]) => `<div class="kpi"${v == null && l === "アシスト数" ? ' title="アシストのデータがまだ取得されていません"' : ""}><div class="l">${l}</div><div class="v">${v == null ? "—" : esc(v)}${v != null && u ? `<span class="u">${u}</span>` : ""}</div></div>`).join("");
   mainEl.className = "";
   mainEl.innerHTML = `
     <button class="back-btn" id="backBtn">← 選手一覧</button>
