@@ -57,29 +57,31 @@
 
   .p-head{ display:flex; justify-content:space-between; gap:14px; flex-wrap:wrap; align-items:flex-end; margin:0 -24px 14px; padding:16px 24px 12px;
     position:sticky; top:0; z-index:20; background:var(--bg); border-bottom:1px solid var(--border); box-shadow:0 8px 14px -10px rgba(0,0,0,.7); }
-  .p-name{ font-size:22px; font-weight:800; color:var(--text-bright); }
-  .p-sub{ font-size:12.5px; color:var(--text-dim); margin-top:3px; }
+  .p-name{ font-size:18px; font-weight:700; color:var(--text-bright); line-height:1.25; }
+  .p-sub{ font-size:12px; color:var(--text-dim); margin-top:3px; }
   .pos-badge{ display:inline-block; font-size:10.5px; font-weight:800; padding:1px 7px; border-radius:5px;
     background:rgba(59,130,246,0.18); color:var(--blue-text); margin-right:6px; }
   .pos-mix{ font-size:11.5px; }
-  .sub-h{ font-size:11px; font-weight:700; color:var(--amber-text); margin:14px 0 4px; letter-spacing:0.02em; }
+  .sub-h{ font-size:10.5px; font-weight:700; color:var(--amber-text); margin:12px 0 4px; letter-spacing:0.03em; }
   .kpis{ display:flex; gap:8px; flex-wrap:wrap; }
-  .kpi{ background:var(--panel); border:1px solid var(--border); border-radius:10px; padding:7px 12px; min-width:70px; }
+  .kpi{ background:var(--panel); border:1px solid var(--border); border-radius:8px; padding:8px 10px; min-width:64px; }
   .kpi .l{ font-size:10px; color:var(--text-dim); }
-  .kpi .v{ font-size:17px; font-weight:800; color:var(--text-bright); white-space:nowrap; }
+  .kpi .v{ font-size:16px; font-weight:700; color:var(--text-bright); white-space:nowrap; }
   .kpi .v .u{ font-size:10px; font-weight:500; color:var(--text-dim); margin-left:3px; letter-spacing:0.02em; }
 
-  .card{ background:var(--panel); border:1px solid var(--border); border-radius:14px; padding:16px 18px; margin-bottom:14px; }
-  .card h2{ font-size:13.5px; margin:0 0 10px; color:var(--text-bright); display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap; }
+  .card{ background:var(--panel); border:1px solid var(--border); border-radius:10px; padding:12px 14px; margin-bottom:10px; }
+  .card h2::before{ content:""; width:3px; height:13px; border-radius:2px; background:var(--blue); flex-shrink:0; margin-right:-2px; }
+  .card h2 > span:first-child{ margin-right:auto; }
+  .card h2{ font-size:11px; letter-spacing:0.05em; margin:0 0 9px; color:var(--text-bright); display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap; }
   .note{ font-size:11px; color:var(--text-dim); margin:6px 0 0; line-height:1.5; }
   .ai-tag{ display:inline-block; background:rgba(16,185,129,0.14); color:var(--green-text); font-weight:800;
-    font-size:15px; padding:5px 12px; border-radius:8px; margin-bottom:10px; }
+    font-size:12.5px; padding:4px 10px; border-radius:6px; margin-bottom:9px; }
   .ai-group{ margin-top:10px; }
   .ai-group h3{ font-size:11px; font-weight:700; color:var(--amber-text); margin:0 0 4px; letter-spacing:0.02em; }
   .ai-group ul{ margin:0; padding-left:18px; }
-  .ai-group li{ font-size:13px; line-height:1.65; margin-bottom:3px; }
+  .ai-group li{ font-size:12.5px; line-height:1.6; margin-bottom:3px; }
 
-  table{ width:100%; border-collapse:collapse; font-size:12.5px; }
+  table{ width:100%; border-collapse:collapse; font-size:11.5px; }
   th{ text-align:left; color:var(--text-dim); font-weight:700; font-size:11px; padding:6px 8px; border-bottom:1px solid var(--border); white-space:nowrap; }
   td{ padding:7px 8px; border-bottom:1px solid rgba(148,163,184,0.08); vertical-align:top; }
   td.num,th.num{ text-align:right; }
@@ -92,22 +94,24 @@
   .seg button{ border:none; background:transparent; color:var(--text-dim); font-size:11.5px; font-weight:700; padding:4px 11px; border-radius:6px; cursor:pointer; }
   .seg button.active{ background:var(--panel-alt); color:var(--text-bright); }
 
-  /* 指標セクション（大カテゴリごとの表：行＝全試合/ホーム/アウェイ、列＝中カテゴリ＞指標） */
-  .seg-row{ display:inline-flex; gap:8px; flex-wrap:wrap; }
-  .mtx-wrap{ overflow-x:auto; margin:0 0 6px; }
-  table.mtx{ width:auto; border-collapse:separate; border-spacing:0; font-size:12.5px; }
-  .mtx th, .mtx td{ padding:7px 10px; text-align:center; white-space:normal; vertical-align:middle; border-bottom:1px solid rgba(148,163,184,0.08); }
-  .mtx thead th{ color:var(--text-dim); font-weight:700; font-size:11px; line-height:1.35; min-width:112px; max-width:150px; vertical-align:bottom; }
-  .mtx thead tr.grp-row th{ color:var(--text-bright); font-size:11.5px; border-bottom:1px solid var(--border); background:var(--panel); }
-  .mtx thead tr.grp-row th.stick, .mtx thead tr.mh th.stick{ min-width:72px; max-width:72px; }
-  .mtx .gl{ border-left:1px solid var(--border); }                                   /* 中カテゴリの区切り線 */
-  .mtx .stick{ position:sticky; left:0; z-index:3; background:var(--panel); min-width:72px; width:72px; text-align:left; white-space:nowrap;
-    color:var(--text-bright); font-weight:700; font-size:12px; border-right:1px solid var(--border); }
-  .mtx thead .stick{ z-index:4; }
-  .mtx td .val{ font-size:15px; }
-  .mtx td .rk{ font-size:10px; white-space:nowrap; }
-  .core-tag{ display:inline-block; font-size:9px; font-weight:800; color:var(--blue-text); background:rgba(59,130,246,0.18); padding:0 5px; border-radius:4px; margin-top:3px; }
-  .mtx thead th.is-core{ color:var(--blue-text); }
+  /* 指標セクション：大カテゴリごとの表（pitcher-cards.html の .pmix-table と同じ大きさ・色）。行＝年度（または年度×ホーム/アウェイ）、列＝中カテゴリ＞指標 */
+  .mtx-flow{ display:flex; flex-wrap:wrap; gap:8px 18px; align-items:flex-start; }        /* 幅に余裕があれば、表を横に並べる */
+  .mtx-block{ min-width:0; max-width:100%; }
+  .mtx-block .sub-h{ margin:6px 0 4px; }
+  .mtx-wrap{ overflow-x:auto; -webkit-overflow-scrolling:touch; max-width:100%; }
+  table.mtx{ width:auto; border-collapse:collapse; font-family:'DM Mono',monospace; }
+  .mtx th{ padding:6px 8px; font-size:9px; font-weight:600; color:var(--text-dim); white-space:nowrap; text-align:left;
+    background:var(--panel-alt); border-bottom:1px solid rgba(148,163,184,0.15); }
+  .mtx th.grp{ color:var(--text); font-size:9.5px; font-weight:700; }
+  .mtx td{ padding:7px 8px; font-size:12px; text-align:left; white-space:nowrap; border-bottom:1px solid rgba(255,255,255,0.04); }
+  .mtx .gl{ border-left:1px solid rgba(148,163,184,0.15); }                              /* 中カテゴリの区切り線 */
+  .mtx th.stick, .mtx td.stick{ position:sticky; left:0; z-index:2; box-shadow:2px 0 4px rgba(0,0,0,0.25); }   /* 年度の列は、横スクロールしても固定 */
+  .mtx td.stick{ background:var(--panel); font-size:11px; color:var(--text-bright); font-weight:700; }
+  .mtx th.stick{ background:var(--panel-alt); z-index:3; }
+  .mtx td.stick .rt{ display:block; font-size:9px; font-weight:400; color:var(--text-dim); }
+  .mtx td.stick .mv{ font-weight:400; color:var(--text-dim); margin-left:6px; }
+  .mtx tr.yr-first td{ border-top:1px solid rgba(59,130,246,0.3); }
+  .mtx tbody tr.yr-first:first-child td{ border-top:none; }
 
   .pt-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(230px,1fr)); gap:10px; }
   .pt{ background:var(--panel-alt); border:1px solid var(--border); border-radius:12px; padding:11px 13px; }
@@ -385,7 +389,7 @@ const leagueEl = $("#leagueSelect"), seasonEl = $("#seasonSelect");
 
 let manifest = null, league = "all", seasonSel = "all";     // league: リーグ名または "all"（全リーグ） / seasonSel: 年（"2025"）または "all"（すべての年度）
 let allPlayers = [], activeId = null, sortField = "rating_avg", sortDir = "desc";
-let mtBasis = "p90", mtEff = "p90";                              // 指標セクションの切替（全体=累計 / 90分あたり）
+let mtBasis = "p90", mtEff = "p90", mtRows = "year";               // 指標セクションの切替（全体=累計 / 90分あたり、行＝年度 / 年度×ホーム・アウェイ）
 let ptVenue = "all", activeCards = [], primaryIdx = 0;      // activeCards: [{year, title, card, llm}]（新しい年度が先頭）。primaryIdx = ヘッダーなどに使う年度
 let logSort = { key: "date", dir: "desc" };                 // シーズン成績の並び順（既定は日付の降順）
 let openState = {};                                         // 年度ブロックの開閉状態
@@ -655,61 +659,72 @@ function aiBody(x){
 }
 const aiSection = (cards) => `<div class="card"><h2>AI解釈</h2>${yearBlocks("ai", cards, aiBody)}</div>`;
 
-// ── 指標（コア指標＋詳細指標を、カテゴリ別のタイルにまとめる）──
-// card.metrics: [{key, label, unit, better, cat, core, all/home/away:{v,rank,pop}, total:{all,home,away}}]
-// total（累計）は、90分あたりの指標にだけ付く。割合・平均の指標は、どちらのタブでも同じ値を出す。
+// 指標の一覧（列）：SHOW の指定に沿って、その選手（カード）に出す指標を、LAYOUT の定義から選ぶ。値は、年度ごとのカードの stats から引く
+function itemsFor(c){
+  const sh = SHOW[c.group]; if(!sh || !c.stats) return [];
+  const coreKeys = Array.isArray(sh.core) ? sh.core : (sh.core[c.role] || sh.core.CM || []);
+  const wanted = [...coreKeys.map(k => [k, true]), ...(sh.more || []).filter(k => !coreKeys.includes(k)).map(k => [k, false])];
+  const items = [];
+  wanted.forEach(([k, core]) => { const d = METRIC_DEFS.get(k); if(d && c.stats[k]) items.push({ ...d, core }); });
+  const order = CAT_ORDER[c.group] || DEFAULT_CAT_ORDER, ci = (cat) => { const i = order.indexOf(cat); return i < 0 ? order.length : i; };
+  // 並び：大カテゴリ → 中カテゴリ（LAYOUT の順）→ SHOW で core に入れた指標が先 → SHOW の順
+  return items.map((m, n) => ({ m, n })).sort((a, b) => ci(a.m.cat) - ci(b.m.cat) || a.m.li - b.m.li || (+b.m.core) - (+a.m.core) || a.n - b.n).map(x => x.m);
+}
+
+// ── 指標の表（大カテゴリごと。行＝年度、または年度×ホーム/アウェイ。列＝中カテゴリ＞指標）──
 const MT_BASIS = [["total", "全体"], ["p90", "90分あたり"]];
-const MT_VENUE = [["all", "全試合"], ["home", "ホーム"], ["away", "アウェイ"]];
+const MT_ROWS = [["year", "年度"], ["venue", "年度×ホーム/アウェイ"]];
+const VIDX = { all: 0, home: 1, away: 2 }, VENUE_LABEL = { all: "全体", home: "ホーム", away: "アウェイ" };
 const P90_RE = /\/90(?=$|[（(\s])/;
 const isPer90 = (m) => /_p90$/.test(m.key || "") || P90_RE.test(m.label || "");
 const noP90 = (s) => String(s ?? "").replace(P90_RE, "");
-// stats（全指標）から、SHOW の指定に沿って、表示する指標のリストを作る
-function itemsFromStats(c){
-  const sh = SHOW[c.group]; if(!sh) return [];
-  const coreKeys = Array.isArray(sh.core) ? sh.core : (sh.core[c.role] || sh.core.CM || []);
-  const wanted = [...coreKeys.map(k => [k, true]), ...(sh.more || []).filter(k => !coreKeys.includes(k)).map(k => [k, false])];
-  const VS = ["all", "home", "away"], st = c.stats;
-  const cell = (k, i) => { const a = st[k] && st[k][i]; return a ? { v: a[0], rank: a[1] ?? null, pop: a[2] ?? null } : null; };
-  const items = [];
-  wanted.forEach(([k, core]) => {
-    const d = METRIC_DEFS.get(k);
-    if(!d || !st[k]) return;
-    const m = { ...d, core };
-    VS.forEach((v, i) => { m[v] = cell(k, i); });
-    const base = k.replace(/_p90$/, "");                                     // xxx_p90 の累計は、列 xxx（回数）
-    if(base !== k && st[base]) m.total = Object.fromEntries(VS.map((v, i) => [v, st[base][i] ? st[base][i][0] : null]));
-    items.push(m);
-  });
-  const order = CAT_ORDER[c.group] || DEFAULT_CAT_ORDER, ci = (cat) => { const i = order.indexOf(cat); return i < 0 ? order.length : i; };
-  // 並び：大カテゴリ → 中カテゴリ（LAYOUT の順）→ コア指標が先 → SHOW の順
-  return items.map((m, n) => ({ m, n })).sort((a, b) => ci(a.m.cat) - ci(b.m.cat) || a.m.li - b.m.li || (+b.m.core) - (+a.m.core) || a.n - b.n).map(x => x.m);
+const seasonFull = (y) => { const n = Number(y); return isFinite(n) ? `${n}-${n + 1}` : String(y); };      // 2025 → 2025-2026
+
+// 色分け：pitcher-cards.html の球種別成績の表（TIER_COLOR）と同じ。順位（rank / pop）から、上位・下位のティアを決める
+//   上位15% / 30% / 40% は青緑の濃淡、下位40%（60%〜）/ 30% / 15% は赤の濃淡。中間は色なし。母数10人未満・順位なし・良し悪しなしの指標には付けない
+const TIER_COLOR = {
+  top15: "rgba(18,165,178,0.40)", top30: "rgba(18,165,178,0.25)", top40: "rgba(18,165,178,0.12)",
+  mid: "", bot60: "rgba(238,122,151,0.10)", bot70: "rgba(238,122,151,0.18)", bot85: "rgba(238,122,151,0.38)",
+};
+function tierOf(c){
+  if(!c || c.rank == null || c.pop == null || c.pop < 10) return "mid";
+  const p = c.rank / c.pop;                                               // 0に近いほど上位（順位は、良い方向を反映済み）
+  return p <= 0.15 ? "top15" : p <= 0.30 ? "top30" : p <= 0.40 ? "top40" : p > 0.85 ? "bot85" : p > 0.70 ? "bot70" : p > 0.60 ? "bot60" : "mid";
 }
-function metricItems(c){
-  if(c.stats) return itemsFromStats(c);
-  if(Array.isArray(c.metrics) && c.metrics.length) return c.metrics;
-  // 旧形式のJSON（core / detail のみ）：カテゴリも累計値も無いので、旧テーマ名をそのままカテゴリにする
-  return [...(c.core || []).map(m => ({ ...m, cat: "コア指標", core: true })),
-          ...(c.detail || []).flatMap(sec => (sec.metrics || []).map(m => ({ ...m, cat: sec.title })))];
+const statCell = (card, key, v) => { const a = card.stats && card.stats[key] && card.stats[key][VIDX[v]]; return a ? { v: a[0], rank: a[1] ?? null, pop: a[2] ?? null } : null; };
+const statTotal = (card, key, v) => { const a = card.stats && card.stats[key.replace(/_p90$/, "")]; return a && a[VIDX[v]] ? a[VIDX[v]][0] : null; };
+
+function metricTd(card, m, v, gl){
+  let text, bg = "", tip = "";
+  if(mtEff === "total" && isPer90(m)){
+    text = fmt(statTotal(card, m.key, v), m.unit);                          // 累計には順位が無いので、色も付けない
+  }else{
+    const c = statCell(card, m.key, v);
+    text = fmt(c && c.v, m.unit);
+    if(c && m.better !== "neutral" && c.rank != null){ tip = `${c.rank}位 / ${c.pop}人`; bg = TIER_COLOR[tierOf(c)]; }
+  }
+  return `<td${gl ? ' class="gl"' : ""}${bg ? ` style="background:${bg}"` : ""}${tip ? ` title="${tip}"` : ""}>${text}</td>`;
 }
-// 表の1マス（指標 m × 試合区分 v）。「全体」タブでは累計（順位なし）、「90分あたり」タブでは90分あたり＋順位
-function metricCell(m, v){
-  const per = isPer90(m);
-  if(mtEff === "total" && per) return `<span class="val">${fmt(m.total ? m.total[v] : null, m.unit)}</span>`;    // 累計には順位が無い
-  return `<span class="val">${fmt(m[v]?.v, m.unit)}</span>${m.better === "neutral" ? "" : rankChip(m[v])}`;
-}
-// 大カテゴリごとの表：行＝全試合/ホーム/アウェイ（左端に固定）、列＝中カテゴリ（上段）＞指標（下段）
-function metricsMatrix(subs){                 // subs: [[中カテゴリ名, 指標[]], ...]
-  const cols = subs.flatMap(([sk, list], n) => list.map((m, i) => ({ m, gl: i === 0 && n > 0 })));       // gl＝中カテゴリの区切り線（先頭の中カテゴリには付けない）
+function metricsTable(cards, subs){           // subs: [[中カテゴリ名, 指標[]], ...]
+  const cols = subs.flatMap(([sk, list], n) => list.map((m, i) => ({ m, gl: i === 0 && n > 0 })));   // gl＝中カテゴリの区切り線
   const grpRow = subs.some(([sk]) => sk)
-    ? `<tr class="grp-row"><th class="stick"></th>${subs.map(([sk, list], n) => `<th colspan="${list.length}" class="${n > 0 ? "gl" : ""}">${esc(sk || "")}</th>`).join("")}</tr>` : "";
-  const head = `<tr class="mh"><th class="stick"></th>${cols.map(({ m, gl }) => `<th class="${gl ? "gl " : ""}${m.core ? "is-core" : ""}">${esc(noP90(m.label))}${m.better === "low" ? '<span class="sub-mark">（小さいほど良い）</span>' : ""}${m.core ? '<br><span class="core-tag">コア</span>' : ""}</th>`).join("")}</tr>`;
-  const body = MT_VENUE.map(([v, vl]) => `<tr><th class="stick">${vl}</th>${cols.map(({ m, gl }) => `<td class="${gl ? "gl" : ""}">${metricCell(m, v)}</td>`).join("")}</tr>`).join("");
+    ? `<tr><th class="stick"></th>${subs.map(([sk, list], n) => `<th class="grp${n > 0 ? " gl" : ""}" colspan="${list.length}">${esc(sk || "")}</th>`).join("")}</tr>` : "";
+  const head = `<tr><th class="stick">年度</th>${cols.map(({ m, gl }) => `<th${gl ? ' class="gl"' : ""}>${esc(noP90(m.label))}</th>`).join("")}</tr>`;
+  const multiTeam = new Set(cards.map(x => x.card.team)).size > 1;         // 移籍した選手だけ、行にクラブ名を添える
+  const vs = mtRows === "venue" ? ["all", "home", "away"] : ["all"];
+  const body = cards.flatMap((x, ci) => vs.map((v, vi) => {
+    const label = `${esc(seasonFull(x.year))}${mtRows === "venue" ? `<span class="mv">${VENUE_LABEL[v]}</span>` : ""}${multiTeam && vi === 0 ? `<span class="rt">${esc(x.card.team)}</span>` : ""}`;
+    return `<tr class="${vi === 0 && ci > 0 ? "yr-first" : ""}"><td class="stick">${label}</td>${cols.map(({ m, gl }) => metricTd(x.card, m, v, gl)).join("")}</tr>`;
+  })).join("");
   return `<div class="mtx-wrap"><table class="mtx"><thead>${grpRow}${head}</thead><tbody>${body}</tbody></table></div>`;
 }
-function metricsBody(c){
-  const items = metricItems(c);
-  if(!items.length) return "";
-  // 大カテゴリ（cat）→ 中カテゴリ（sub）の順にまとめる。並びは LAYOUT / SHOW / CAT_ORDER で決めた順。sub が無い大カテゴリは、上段の見出し無し
+function metricsSection(cards){
+  const main = cards[primaryIdx].card;                                     // 列（どの指標を出すか）は、消化済みの最新年度のカードで決める
+  const items = itemsFor(main);
+  if(!items.length) return `<div class="card"><h2><span>指標</span></h2><p class="note">この選手のカードデータに指標（stats）がありません。build_soccer_cards.py を実行して、カードJSONを作り直してください。</p></div>`;
+  const hasTotal = items.some(m => isPer90(m) && cards.some(x => x.card.stats && x.card.stats[m.key.replace(/_p90$/, "")]));
+  mtEff = hasTotal ? mtBasis : "p90";                                      // 累計値が無いデータのときは「90分あたり」だけ
+  // 大カテゴリ（cat）→ 中カテゴリ（sub）の順にまとめる。sub が無い大カテゴリは、上段の見出し無し
   const cats = [], byCat = new Map();
   items.forEach(m => {
     const k = m.cat || "その他", sk = m.sub || "";
@@ -718,17 +733,12 @@ function metricsBody(c){
     if(!subs.has(sk)) subs.set(sk, []);
     subs.get(sk).push(m);
   });
-  return cats.map(k => `<h3 class="sub-h">${esc(k)}</h3>${metricsMatrix([...byCat.get(k)])}`).join("");
-}
-function metricsSection(cards){
-  const hasTotal = cards.some(x => metricItems(x.card).some(m => m.total));
-  mtEff = hasTotal ? mtBasis : "p90";                                      // 累計値が無いデータのときは「90分あたり」だけ
-  const blocks = yearBlocks("metrics", cards, x => metricsBody(x.card));
-  if(!blocks) return "";
-  const seg = `<span class="seg" id="mtBasisSeg">${MT_BASIS.map(([k, l]) => `<button data-b="${k}" class="${k === mtEff ? "active" : ""}">${l}</button>`).join("")}</span>`;
-  return `<div class="card"><h2><span>指標</span>${hasTotal ? seg : ""}</h2>${blocks}
-    <p class="note">青字の「コア」は、そのポジションで特に重視する指標です。順位は、同じリーグ・同じ集団（FW / WG / MF / CB / SB / GK）の中での順位です。対象は、出場時間が900分以上（シーズン途中は、消化した試合数に合わせて下げた条件）で、試行数が一定以上の選手です。「ノンPK」は、PKを除いた値です。</p>
-    <p class="note">${hasTotal ? "「全体」は累計の回数で、順位は付きません（順位は「90分あたり」と、割合の指標に出ます）。" : ""}順位が出ていない指標は、値だけを表示しています（良し悪しではないスタイルの指標や、順位の計算対象外の指標）。</p></div>`;
+  const seg = (list, cur, id, attr) => `<span class="seg" id="${id}">${list.map(([k, l]) => `<button data-${attr}="${k}" class="${k === cur ? "active" : ""}">${l}</button>`).join("")}</span>`;
+  const blocks = cats.map(k => `<div class="mtx-block"><h3 class="sub-h">${esc(k)}</h3>${metricsTable(cards, [...byCat.get(k)])}</div>`).join("");
+  return `<div class="card"><h2><span>指標</span><span class="seg-row">${hasTotal ? seg(MT_BASIS, mtEff, "mtBasisSeg", "b") : ""}${seg(MT_ROWS, mtRows, "mtRowsSeg", "r")}</span></h2>
+    <div class="mtx-flow">${blocks}</div>
+    <p class="note">色は、同じリーグ・同じ集団（FW / WG / MF / CB / SB / GK）の中での順位です（青緑＝上位、赤＝下位。上位・下位15% / 30% / 40%で濃さが変わる）。マスにカーソルを載せると順位が出ます。対象は、出場時間が900分以上（シーズン途中は、消化した試合数に合わせて下げた条件）で、試行数が一定以上の選手です。「ノンPK」は、PKを除いた値です。</p>
+    <p class="note">${hasTotal ? "「全体」は累計の回数で、順位が無いので色は付きません（割合の指標だけ、色が付きます）。" : ""}色が付かない指標は、良し悪しではないスタイルの指標や、順位の計算対象外の指標です。</p></div>`;
 }
 
 function playtypeBody(x){
@@ -883,6 +893,8 @@ mainEl.addEventListener("click", (e) => {
   if(back){ bodyEl.classList.remove("has-selection"); return; }
   const mb = e.target.closest("#mtBasisSeg button");
   if(mb){ mtBasis = mb.dataset.b; rerender(); return; }
+  const mr = e.target.closest("#mtRowsSeg button");
+  if(mr){ mtRows = mr.dataset.r; rerender(); return; }
   const seg = e.target.closest("#ptSeg button");
   if(seg){ ptVenue = seg.dataset.v; rerender(); return; }
   const th = e.target.closest("th.sortable");
