@@ -181,38 +181,13 @@ GAMELOG_EXTRA = {
 }
 GROUPS = ("FW", "WG", "MF", "CB", "SB", "GK")
 
-# ---- 指標のカテゴリ（MECE：1つの指標は必ず1つのカテゴリに入る）----------------------------
-# 「指標整理表」のカテゴリを土台に、重なりが出る指標だけ寄せ先を決めている：
-#   key_passes → チャンス創出 / 被ファウル・タッチ系 → ドリブル・ボール保持 / エラー・ファウル → 規律・ミス
-# キーは、列名から末尾の「_p90」を除いたもの。ここに無い指標は「その他」に入る（追加したらここにも足す）。
-CATEGORY_KEYS = {
-    "シュート・得点": ["goals", "np_goals", "shots", "shot_on_target_pct", "shots_in_box_pct", "np_goal_conversion_pct",
-                 "big_chances", "big_chance_conversion_pct", "headed_shots", "xg_diff"],
-    "チャンス創出": ["assists", "key_passes", "big_chances_created", "gca"],
-    "パス": ["passes", "pass_pct", "progressive_passes", "passes_final_third", "passes_into_box", "through_balls",
-           "crosses", "cross_pct", "long_balls", "long_ball_pct", "forward_pass_pct", "avg_pass_distance"],
-    "ドリブル・ボール保持": ["take_ons_won", "take_on_pct", "progressive_carries", "touches_att_pen", "fouls_won",
-                   "dispossessed", "bad_touches"],
-    "守備": ["tackles", "tackles_won", "tackle_win_pct", "tackles_padj", "interceptions", "interceptions_padj",
-           "clearances", "clearances_padj", "blocked_passes", "ball_recoveries", "ball_recoveries_padj",
-           "def_actions_att_third", "dribbled_past", "dribbled_past_pct"],
-    "空中戦・デュエル": ["aerials_won", "aerial_win_pct", "duel_win_pct"],
-    "規律・ミス": ["errors", "fouls_committed", "yellow_cards", "offsides_provoked"],
-    "GK": ["gk_save_pct", "saves", "goals_conceded", "clean_sheet_pct", "gk_sweeper_actions",
-           "goal_kick_long_pct", "avg_goal_kick_distance"],
-}
-CATEGORY_OF = {k: cat for cat, keys in CATEGORY_KEYS.items() for k in keys}
-_ATTACK = ["シュート・得点", "チャンス創出", "パス", "ドリブル・ボール保持", "守備", "空中戦・デュエル", "規律・ミス", "GK"]
-CATEGORY_ORDER = {                       # 表示順（ポジションごと。ここに無いポジションは _ATTACK）
-    "CB": ["守備", "空中戦・デュエル", "パス", "ドリブル・ボール保持", "チャンス創出", "シュート・得点", "規律・ミス", "GK"],
-    "SB": ["守備", "チャンス創出", "パス", "ドリブル・ボール保持", "空中戦・デュエル", "シュート・得点", "規律・ミス", "GK"],
-    "GK": ["GK", "パス", "守備", "空中戦・デュエル", "規律・ミス", "ドリブル・ボール保持", "チャンス創出", "シュート・得点"],
-}
-OTHER_CAT = "その他"
-
-
-def category_of(col):
-    return CATEGORY_OF.get(col[:-4] if col.endswith("_p90") else col, OTHER_CAT)
+# ---- stats：カードに載せる「全指標の生データ」------------------------------------------------
+# 画面（player-cards.html）は、この stats から、出したい指標を自分で選んで並べる。
+# → どの指標を・どのカテゴリに・どのポジションに出すかを変えるときは、HTML だけを直せばよく、このスクリプトの再実行は要らない。
+# 形式: {列名: [全体, ホーム, アウェイ]}、各要素は [値, 順位, 母数]（順位が無ければ [値]、その試合区分に値が無ければ null）
+STATS_SKIP = {"player_id", "touch_pos_n", "pass_distance", "goal_kick_distance",          # ID・内部用の合計値は載せない
+              "touch_x_sum", "touch_y_sum", "touch_width_sum"}
+STATS_SKIP_SUFFIX = ("_順位", "_順位_母数")
 
 # 一覧の並び替えに使う値（venue=all の行から取る）
 INDEX_SORT_COLS = ["rating_avg", "minutes", "matches", "goals_p90", "assists_p90", "np_goals_p90", "key_passes_p90",
@@ -285,24 +260,34 @@ def cell(rows, venue, col, better):
     return {"v": v, "rank": num(r.get(col + "_順位")), "pop": num(r.get(col + "_順位_母数"))}
 
 
-def metric_entry(rows, spec, columns, extras=False):
-    """extras=True（「指標」セクション用）のときは、カテゴリ(cat)と、90分あたり指標の累計値(total)も付ける。"""
+def metric_entry(rows, spec, columns):
     col, label, unit, better = spec
     if col not in columns and col not in DERIVED:
         return None
     entry = {"key": col, "label": label, "unit": unit, "better": better}
     for v in VENUES:
         entry[v] = cell(rows, v, col, better)
-    if not any(entry[v] for v in VENUES):
-        return None
-    if extras:
-        entry["cat"] = category_of(col)
-        base = col[:-4] if col.endswith("_p90") else None          # xxx_p90 の累計は列 xxx（回数）
-        if base and base in columns:
-            tot = {v: (num(rows[v][base]) if v in rows else None) for v in VENUES}
-            if any(t is not None for t in tot.values()):
-                entry["total"] = tot
-    return entry
+    return entry if any(entry[v] for v in VENUES) else None
+
+
+def stats_entries(rows, stat_cols):
+    """選手×クラブの全数値列を、コンパクトな形（stats）にする。累計は列 xxx、90分あたりは列 xxx_p90 として入る。"""
+    out = {}
+    for col in stat_cols:
+        cells = []
+        for v in VENUES:
+            r = rows.get(v)
+            val = None
+            if r is not None:
+                val = num(r[col]) if col in r.index else num(DERIVED[col](r))
+            if val is None:
+                cells.append(None)
+                continue
+            rk, pop = (num(r.get(col + "_順位")), num(r.get(col + "_順位_母数"))) if r is not None else (None, None)
+            cells.append([val, rk, pop] if rk is not None and pop is not None else [val])
+        if any(c is not None for c in cells):
+            out[col] = cells
+    return out
 
 
 def core_specs(group, role):
@@ -318,23 +303,6 @@ def detail_entries(group, rows, columns, core_keys):
         ms = [m for m in (metric_entry(rows, s, columns) for s in specs if s[0] not in core_keys) if m]
         if ms:
             out.append({"title": title, "metrics": ms})
-    return out
-
-
-def metric_entries(group, rows, columns, core_specs_list):
-    """コア指標＋詳細指標を1つのリストにまとめる（重複は1つに）。カテゴリ順 → コア指標が先 → 元の並び順。"""
-    specs = [(s, True) for s in core_specs_list] + [(s, False) for _, ss in DETAIL.get(group, []) for s in ss]
-    order = CATEGORY_ORDER.get(group, _ATTACK) + [OTHER_CAT]
-    seen, out = set(), []
-    for spec, is_core in specs:
-        if spec[0] in seen:
-            continue
-        m = metric_entry(rows, spec, columns, extras=True)
-        if m:
-            seen.add(spec[0])
-            m["core"] = is_core
-            out.append(m)
-    out.sort(key=lambda m: (order.index(m["cat"]) if m["cat"] in order else len(order), not m["core"]))   # sort は安定
     return out
 
 
@@ -382,6 +350,8 @@ def build_cards(players, matches, league, year, min_minutes_fixed):
     games = num(pd.to_numeric(players.loc[players["venue"] == "all", "matches"], errors="coerce").max())   # 消化した試合数の目安
     players = players[players["position"].notna()].copy()
     players["group"] = np.where(players["position"] == "DF", players["position_detail"], players["position"])
+    stat_cols = [c for c in players.columns if pd.api.types.is_numeric_dtype(players[c]) and c not in STATS_SKIP
+                 and not c.endswith(STATS_SKIP_SUFFIX)] + [c for c in DERIVED if c not in players.columns]
     mkey = {k: g for k, g in matches.groupby(["team", "player_id"])}
     cards, index = [], []
     for (team, pid), g in players.groupby(["team", "player_id"]):
@@ -403,8 +373,8 @@ def build_cards(players, matches, league, year, min_minutes_fixed):
             "matches": num(a["matches"]), "starts": num(a["starts"]), "minutes": num(a["minutes"]),
             "rating_avg": num(a.get("rating_avg")), "motm": num(a.get("motm")),
             "goals": num(a.get("goals")), "assists": num(a.get("assists")), "clean_sheets": num(a.get("clean_sheets")),
-            "metrics": metric_entries(group, rows, columns, specs),      # カテゴリ別の表示用（core と detail を統合）
-            "core": core,
+            "stats": stats_entries(rows, stat_cols),          # 画面が使う全指標（表示の選び方は HTML 側で決める）
+            "core": core,                                     # 旧形式（互換用。画面は stats があれば使わない）
             "detail": detail_entries(group, rows, columns, {m["key"] for m in core}),
             "playtypes": playtype_entries(group, rows, columns),
             "game_log_cols": log_cols, "game_log": log,
