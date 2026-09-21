@@ -103,13 +103,17 @@
   .mtx th{ padding:6px 8px; font-size:9px; font-weight:600; color:var(--text-dim); white-space:nowrap; text-align:left;
     background:var(--panel-alt); border-bottom:1px solid rgba(148,163,184,0.15); }
   .mtx th.grp{ color:var(--text); font-size:9.5px; font-weight:700; }
-  .mtx td{ padding:7px 8px; font-size:12px; text-align:left; white-space:nowrap; border-bottom:1px solid rgba(255,255,255,0.04); }
+  .mtx td{ padding:3px 4px; font-size:12px; text-align:left; white-space:nowrap; vertical-align:middle; border-bottom:1px solid rgba(255,255,255,0.04); }
+  .mtx .hc{ padding:4px 8px; border-radius:5px; line-height:1.25; }                       /* 色付きのマス（隣と繋がらない） */
+  .mtx .hv{ display:block; font-size:12px; color:var(--text-bright); }
+  .mtx .hr{ display:block; font-size:8.5px; color:var(--text-dim); margin-top:1px; letter-spacing:0.02em; }
   .mtx .gl{ border-left:1px solid rgba(148,163,184,0.15); }                              /* 中カテゴリの区切り線 */
   .mtx th.stick, .mtx td.stick{ position:sticky; left:0; z-index:2; box-shadow:2px 0 4px rgba(0,0,0,0.25); }   /* 年度の列は、横スクロールしても固定 */
-  .mtx td.stick{ background:var(--panel); font-size:11px; color:var(--text-bright); font-weight:700; }
+  .mtx td.stick{ background:var(--panel); font-size:11px; color:var(--text-bright); font-weight:700; padding:7px 8px; }
   .mtx th.stick{ background:var(--panel-alt); z-index:3; }
   .mtx td.stick .rt{ display:block; font-size:9px; font-weight:400; color:var(--text-dim); }
   .mtx td.stick .mv{ font-weight:400; color:var(--text-dim); margin-left:6px; }
+  .mtx td.stick .mv.ind{ margin-left:0; padding-left:12px; }                              /* 2行目以降（ホーム/アウェイ）は、年度の下に字下げ */
   .mtx tr.yr-first td{ border-top:1px solid rgba(59,130,246,0.3); }
   .mtx tbody tr.yr-first:first-child td{ border-top:none; }
 
@@ -694,16 +698,24 @@ function tierOf(c){
 const statCell = (card, key, v) => { const a = card.stats && card.stats[key] && card.stats[key][VIDX[v]]; return a ? { v: a[0], rank: a[1] ?? null, pop: a[2] ?? null } : null; };
 const statTotal = (card, key, v) => { const a = card.stats && card.stats[key.replace(/_p90$/, "")]; return a && a[VIDX[v]] ? a[VIDX[v]][0] : null; };
 
+// 表示桁：90分あたり＝小数2桁、割合・平均（m）＝小数1桁、累計・回数＝整数（小数があれば2桁）。「1」と「1.00」が混ざらないようにする
+function fmtCell(v, m, asTotal){
+  if(v == null) return "—";
+  if(m.unit === "%") return v.toFixed(1) + "%";
+  if(m.unit === "m") return v.toFixed(1) + "m";
+  if(isPer90(m) && !asTotal) return v.toFixed(2);
+  return Number.isInteger(v) ? String(v) : v.toFixed(2);
+}
 function metricTd(card, m, v, gl){
-  let text, bg = "", tip = "";
+  let text, bg = "", rk = "";
   if(mtEff === "total" && isPer90(m)){
-    text = fmt(statTotal(card, m.key, v), m.unit);                          // 累計には順位が無いので、色も付けない
+    text = fmtCell(statTotal(card, m.key, v), m, true);                     // 累計には順位が無いので、色も順位も付けない
   }else{
     const c = statCell(card, m.key, v);
-    text = fmt(c && c.v, m.unit);
-    if(c && m.better !== "neutral" && c.rank != null){ tip = `${c.rank}位 / ${c.pop}人`; bg = TIER_COLOR[tierOf(c)]; }
+    text = fmtCell(c && c.v, m, false);
+    if(c && m.better !== "neutral" && c.rank != null){ rk = `<span class="hr">${c.rank}位 / ${c.pop}人</span>`; bg = TIER_COLOR[tierOf(c)]; }
   }
-  return `<td${gl ? ' class="gl"' : ""}${bg ? ` style="background:${bg}"` : ""}${tip ? ` title="${tip}"` : ""}>${text}</td>`;
+  return `<td${gl ? ' class="gl"' : ""}><div class="hc"${bg ? ` style="background:${bg}"` : ""}><span class="hv">${text}</span>${rk}</div></td>`;
 }
 function metricsTable(cards, subs){           // subs: [[中カテゴリ名, 指標[]], ...]
   const cols = subs.flatMap(([sk, list], n) => list.map((m, i) => ({ m, gl: i === 0 && n > 0 })));   // gl＝中カテゴリの区切り線
@@ -713,7 +725,9 @@ function metricsTable(cards, subs){           // subs: [[中カテゴリ名, 指
   const multiTeam = new Set(cards.map(x => x.card.team)).size > 1;         // 移籍した選手だけ、行にクラブ名を添える
   const vs = mtRows === "venue" ? ["all", "home", "away"] : ["all"];
   const body = cards.flatMap((x, ci) => vs.map((v, vi) => {
-    const label = `${esc(seasonFull(x.year))}${mtRows === "venue" ? `<span class="mv">${VENUE_LABEL[v]}</span>` : ""}${multiTeam && vi === 0 ? `<span class="rt">${esc(x.card.team)}</span>` : ""}`;
+    const label = vi === 0
+      ? `${esc(seasonFull(x.year))}${mtRows === "venue" ? `<span class="mv">${VENUE_LABEL[v]}</span>` : ""}${multiTeam ? `<span class="rt">${esc(x.card.team)}</span>` : ""}`
+      : `<span class="mv ind">${VENUE_LABEL[v]}</span>`;
     return `<tr class="${vi === 0 && ci > 0 ? "yr-first" : ""}"><td class="stick">${label}</td>${cols.map(({ m, gl }) => metricTd(x.card, m, v, gl)).join("")}</tr>`;
   })).join("");
   return `<div class="mtx-wrap"><table class="mtx"><thead>${grpRow}${head}</thead><tbody>${body}</tbody></table></div>`;
@@ -737,7 +751,7 @@ function metricsSection(cards){
   const blocks = cats.map(k => `<div class="mtx-block"><h3 class="sub-h">${esc(k)}</h3>${metricsTable(cards, [...byCat.get(k)])}</div>`).join("");
   return `<div class="card"><h2><span>指標</span><span class="seg-row">${hasTotal ? seg(MT_BASIS, mtEff, "mtBasisSeg", "b") : ""}${seg(MT_ROWS, mtRows, "mtRowsSeg", "r")}</span></h2>
     <div class="mtx-flow">${blocks}</div>
-    <p class="note">色は、同じリーグ・同じ集団（FW / WG / MF / CB / SB / GK）の中での順位です（青緑＝上位、赤＝下位。上位・下位15% / 30% / 40%で濃さが変わる）。マスにカーソルを載せると順位が出ます。対象は、出場時間が900分以上（シーズン途中は、消化した試合数に合わせて下げた条件）で、試行数が一定以上の選手です。「ノンPK」は、PKを除いた値です。</p>
+    <p class="note">色は、同じリーグ・同じ集団（FW / WG / MF / CB / SB / GK）の中での順位です（青緑＝上位、赤＝下位。上位・下位15% / 30% / 40%で濃さが変わる）。値の下は、順位 / 母数です。対象は、出場時間が900分以上（シーズン途中は、消化した試合数に合わせて下げた条件）で、試行数が一定以上の選手です。「ノンPK」は、PKを除いた値です。</p>
     <p class="note">${hasTotal ? "「全体」は累計の回数で、順位が無いので色は付きません（割合の指標だけ、色が付きます）。" : ""}色が付かない指標は、良し悪しではないスタイルの指標や、順位の計算対象外の指標です。</p></div>`;
 }
 
