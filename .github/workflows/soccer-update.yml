@@ -3,6 +3,7 @@ name: soccer-update
 # データリポジトリ(sports-dashboard-data)の soccer/<開幕年>年/ にある結合xlsx（all_leagues_players_<年> / all_leagues_matches_<年>）から、
 # docs/soccer/data/ のカードJSONを作り直して、このリポジトリにコミットする。
 # 結合xlsx はローカルで whoscored_player_stats.py（run.py）を回して作り（output/結合/）、データリポジトリに push する運用。
+# matches は1ファイルが25MiBを超えるため、run.py --split-by-league でリーグ別（all_leagues_matches_<年>_<League>.xlsx）に分けて置く。
 # （WhoScoredはCAPTCHAが出るため、取得そのものは GitHub Actions では行わない）
 on:
   workflow_dispatch:
@@ -16,9 +17,9 @@ on:
         required: false
         default: ""
       min_minutes:
-        description: "カードを作る出場時間の下限（分）"
+        description: "カードを作る出場時間の下限（分）。空なら自動（1シーズンを消化したあとは900分、シーズン途中は消化した試合数に合わせて下げる）"
         required: false
-        default: "900"
+        default: ""
 
 permissions:
   contents: write
@@ -57,9 +58,9 @@ jobs:
           args=()
           if [ -n "$LEAGUES" ]; then args+=(--leagues $LEAGUES); fi
           if [ -n "$SEASONS" ]; then args+=(--seasons $SEASONS); fi
+          if [ -n "$MIN_MINUTES" ]; then args+=(--min-minutes "$MIN_MINUTES"); fi
           python soccer/scripts/build_soccer_cards.py \
-            --data-dir _data/soccer --out docs/soccer/data \
-            --min-minutes "${MIN_MINUTES:-900}" "${args[@]}"
+            --data-dir _data/soccer --out docs/soccer/data "${args[@]}"
 
       - name: コミットしてpush
         env:
