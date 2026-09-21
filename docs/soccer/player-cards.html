@@ -92,19 +92,22 @@
   .seg button{ border:none; background:transparent; color:var(--text-dim); font-size:11.5px; font-weight:700; padding:4px 11px; border-radius:6px; cursor:pointer; }
   .seg button.active{ background:var(--panel-alt); color:var(--text-bright); }
 
-  /* 指標セクション（カテゴリ別のタイル） */
+  /* 指標セクション（大カテゴリごとの表：行＝全試合/ホーム/アウェイ、列＝中カテゴリ＞指標） */
   .seg-row{ display:inline-flex; gap:8px; flex-wrap:wrap; }
-  .sub-l{ font-size:10.5px; font-weight:700; color:var(--text-dim); margin:9px 0 5px; }
-  .sub-h + .mt-grid{ margin-top:6px; }
-  .mt-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:8px; }
-  .mt{ background:var(--panel-alt); border:1px solid var(--border); border-radius:10px; padding:8px 10px; min-width:0; }
-  .mt.core{ border-color:rgba(59,130,246,0.5); }
-  .mt-l{ display:flex; justify-content:space-between; align-items:flex-start; gap:6px; font-size:11px; color:var(--text-dim); line-height:1.35; }
-  .core-tag{ flex-shrink:0; font-size:9px; font-weight:800; color:var(--blue-text); background:rgba(59,130,246,0.18); padding:0 5px; border-radius:4px; }
-  .mt-l .sub-mark{ display:block; margin:1px 0 0; }
-  .mt-v{ margin-top:4px; white-space:nowrap; }
-  .mt-v .val{ font-size:17px; }
-  .mt-v .u{ font-size:10px; color:var(--text-dim); margin-left:3px; }
+  .mtx-wrap{ overflow-x:auto; margin:0 0 6px; }
+  table.mtx{ width:auto; border-collapse:separate; border-spacing:0; font-size:12.5px; }
+  .mtx th, .mtx td{ padding:7px 10px; text-align:center; white-space:normal; vertical-align:middle; border-bottom:1px solid rgba(148,163,184,0.08); }
+  .mtx thead th{ color:var(--text-dim); font-weight:700; font-size:11px; line-height:1.35; min-width:112px; max-width:150px; vertical-align:bottom; }
+  .mtx thead tr.grp-row th{ color:var(--text-bright); font-size:11.5px; border-bottom:1px solid var(--border); background:var(--panel); }
+  .mtx thead tr.grp-row th.stick, .mtx thead tr.mh th.stick{ min-width:72px; max-width:72px; }
+  .mtx .gl{ border-left:1px solid var(--border); }                                   /* 中カテゴリの区切り線 */
+  .mtx .stick{ position:sticky; left:0; z-index:3; background:var(--panel); min-width:72px; width:72px; text-align:left; white-space:nowrap;
+    color:var(--text-bright); font-weight:700; font-size:12px; border-right:1px solid var(--border); }
+  .mtx thead .stick{ z-index:4; }
+  .mtx td .val{ font-size:15px; }
+  .mtx td .rk{ font-size:10px; white-space:nowrap; }
+  .core-tag{ display:inline-block; font-size:9px; font-weight:800; color:var(--blue-text); background:rgba(59,130,246,0.18); padding:0 5px; border-radius:4px; margin-top:3px; }
+  .mtx thead th.is-core{ color:var(--blue-text); }
 
   .pt-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(230px,1fr)); gap:10px; }
   .pt{ background:var(--panel-alt); border:1px solid var(--border); border-radius:12px; padding:11px 13px; }
@@ -151,7 +154,6 @@
     .body-layout:not(.has-selection) main{ display:none; }
     .back-btn{ display:inline-block; }
     main{ padding:0 12px 60px; }
-    .mt-grid{ grid-template-columns:repeat(2,minmax(0,1fr)); }
     .back-btn{ margin-top:10px; }
     .p-head{ margin:0 -12px 12px; padding:8px 12px 8px; gap:8px; align-items:stretch; }
     .p-name{ font-size:18px; }
@@ -383,7 +385,7 @@ const leagueEl = $("#leagueSelect"), seasonEl = $("#seasonSelect");
 
 let manifest = null, league = "all", seasonSel = "all";     // league: リーグ名または "all"（全リーグ） / seasonSel: 年（"2025"）または "all"（すべての年度）
 let allPlayers = [], activeId = null, sortField = "rating_avg", sortDir = "desc";
-let mtBasis = "p90", mtVenue = "all", mtEff = "p90";           // 指標セクションの切替（全体=累計 / 90分あたり、全試合 / ホーム / アウェイ）
+let mtBasis = "p90", mtEff = "p90";                              // 指標セクションの切替（全体=累計 / 90分あたり）
 let ptVenue = "all", activeCards = [], primaryIdx = 0;      // activeCards: [{year, title, card, llm}]（新しい年度が先頭）。primaryIdx = ヘッダーなどに使う年度
 let logSort = { key: "date", dir: "desc" };                 // シーズン成績の並び順（既定は日付の降順）
 let openState = {};                                         // 年度ブロックの開閉状態
@@ -614,7 +616,7 @@ async function selectPlayer(key){
     cards.forEach(x => { x.title = yLabel(x.year) + (multi ? ` ・ ${x.card.team}` : ""); });
     activeCards = cards;
     primaryIdx = Math.max(0, cards.findIndex(x => isReady(x.card.league, x.year)));
-    ptVenue = "all"; mtVenue = "all";
+    ptVenue = "all";
     renderCard();
     mainEl.scrollTop = 0;
   }catch(e){
@@ -689,23 +691,25 @@ function metricItems(c){
   return [...(c.core || []).map(m => ({ ...m, cat: "コア指標", core: true })),
           ...(c.detail || []).flatMap(sec => (sec.metrics || []).map(m => ({ ...m, cat: sec.title })))];
 }
-function metricTile(m){
-  const per = isPer90(m), asTotal = mtEff === "total" && per;
-  let val, chip = "", unit = "";
-  if(asTotal){
-    val = fmt(m.total ? m.total[mtVenue] : null, m.unit);                 // 累計には順位が無い
-  }else{
-    val = fmt(m[mtVenue]?.v, m.unit);
-    if(per) unit = '<span class="u">/90分</span>';
-    if(m.better !== "neutral") chip = rankChip(m[mtVenue]);
-  }
-  return `<div class="mt${m.core ? " core" : ""}"><div class="mt-l"><span>${esc(noP90(m.label))}${m.better === "low" ? '<span class="sub-mark">（小さいほど良い）</span>' : ""}</span>${m.core ? '<span class="core-tag">コア</span>' : ""}</div>
-    <div class="mt-v"><span class="val">${val}</span>${unit}</div>${chip}</div>`;
+// 表の1マス（指標 m × 試合区分 v）。「全体」タブでは累計（順位なし）、「90分あたり」タブでは90分あたり＋順位
+function metricCell(m, v){
+  const per = isPer90(m);
+  if(mtEff === "total" && per) return `<span class="val">${fmt(m.total ? m.total[v] : null, m.unit)}</span>`;    // 累計には順位が無い
+  return `<span class="val">${fmt(m[v]?.v, m.unit)}</span>${m.better === "neutral" ? "" : rankChip(m[v])}`;
+}
+// 大カテゴリごとの表：行＝全試合/ホーム/アウェイ（左端に固定）、列＝中カテゴリ（上段）＞指標（下段）
+function metricsMatrix(subs){                 // subs: [[中カテゴリ名, 指標[]], ...]
+  const cols = subs.flatMap(([sk, list], n) => list.map((m, i) => ({ m, gl: i === 0 && n > 0 })));       // gl＝中カテゴリの区切り線（先頭の中カテゴリには付けない）
+  const grpRow = subs.some(([sk]) => sk)
+    ? `<tr class="grp-row"><th class="stick"></th>${subs.map(([sk, list], n) => `<th colspan="${list.length}" class="${n > 0 ? "gl" : ""}">${esc(sk || "")}</th>`).join("")}</tr>` : "";
+  const head = `<tr class="mh"><th class="stick"></th>${cols.map(({ m, gl }) => `<th class="${gl ? "gl " : ""}${m.core ? "is-core" : ""}">${esc(noP90(m.label))}${m.better === "low" ? '<span class="sub-mark">（小さいほど良い）</span>' : ""}${m.core ? '<br><span class="core-tag">コア</span>' : ""}</th>`).join("")}</tr>`;
+  const body = MT_VENUE.map(([v, vl]) => `<tr><th class="stick">${vl}</th>${cols.map(({ m, gl }) => `<td class="${gl ? "gl" : ""}">${metricCell(m, v)}</td>`).join("")}</tr>`).join("");
+  return `<div class="mtx-wrap"><table class="mtx"><thead>${grpRow}${head}</thead><tbody>${body}</tbody></table></div>`;
 }
 function metricsBody(c){
   const items = metricItems(c);
   if(!items.length) return "";
-  // 大カテゴリ（cat）→ 中カテゴリ（sub）の順にまとめる。並びはビルド側（build_soccer_cards.py の CATALOG）で決めた順。sub が無い大カテゴリは見出し1段だけ
+  // 大カテゴリ（cat）→ 中カテゴリ（sub）の順にまとめる。並びは LAYOUT / SHOW / CAT_ORDER で決めた順。sub が無い大カテゴリは、上段の見出し無し
   const cats = [], byCat = new Map();
   items.forEach(m => {
     const k = m.cat || "その他", sk = m.sub || "";
@@ -714,17 +718,16 @@ function metricsBody(c){
     if(!subs.has(sk)) subs.set(sk, []);
     subs.get(sk).push(m);
   });
-  return cats.map(k => `<h3 class="sub-h">${esc(k)}</h3>${[...byCat.get(k)].map(([sk, list]) =>
-    `${sk ? `<div class="sub-l">${esc(sk)}</div>` : ""}<div class="mt-grid">${list.map(metricTile).join("")}</div>`).join("")}`).join("");
+  return cats.map(k => `<h3 class="sub-h">${esc(k)}</h3>${metricsMatrix([...byCat.get(k)])}`).join("");
 }
 function metricsSection(cards){
   const hasTotal = cards.some(x => metricItems(x.card).some(m => m.total));
   mtEff = hasTotal ? mtBasis : "p90";                                      // 累計値が無いデータのときは「90分あたり」だけ
   const blocks = yearBlocks("metrics", cards, x => metricsBody(x.card));
   if(!blocks) return "";
-  const seg = (list, cur, id, attr) => `<span class="seg" id="${id}">${list.map(([k, l]) => `<button data-${attr}="${k}" class="${k === cur ? "active" : ""}">${l}</button>`).join("")}</span>`;
-  return `<div class="card"><h2><span>指標</span><span class="seg-row">${hasTotal ? seg(MT_BASIS, mtEff, "mtBasisSeg", "b") : ""}${seg(MT_VENUE, mtVenue, "mtVenueSeg", "v")}</span></h2>${blocks}
-    <p class="note">青い枠の「コア」は、そのポジションで特に重視する指標です。順位は、同じリーグ・同じ集団（FW / WG / MF / CB / SB / GK）の中での順位です。対象は、出場時間が900分以上（シーズン途中は、消化した試合数に合わせて下げた条件）で、試行数が一定以上の選手です。「ノンPK」は、PKを除いた値です。</p>
+  const seg = `<span class="seg" id="mtBasisSeg">${MT_BASIS.map(([k, l]) => `<button data-b="${k}" class="${k === mtEff ? "active" : ""}">${l}</button>`).join("")}</span>`;
+  return `<div class="card"><h2><span>指標</span>${hasTotal ? seg : ""}</h2>${blocks}
+    <p class="note">青字の「コア」は、そのポジションで特に重視する指標です。順位は、同じリーグ・同じ集団（FW / WG / MF / CB / SB / GK）の中での順位です。対象は、出場時間が900分以上（シーズン途中は、消化した試合数に合わせて下げた条件）で、試行数が一定以上の選手です。「ノンPK」は、PKを除いた値です。</p>
     <p class="note">${hasTotal ? "「全体」は累計の回数で、順位は付きません（順位は「90分あたり」と、割合の指標に出ます）。" : ""}順位が出ていない指標は、値だけを表示しています（良し悪しではないスタイルの指標や、順位の計算対象外の指標）。</p></div>`;
 }
 
@@ -880,8 +883,6 @@ mainEl.addEventListener("click", (e) => {
   if(back){ bodyEl.classList.remove("has-selection"); return; }
   const mb = e.target.closest("#mtBasisSeg button");
   if(mb){ mtBasis = mb.dataset.b; rerender(); return; }
-  const mv = e.target.closest("#mtVenueSeg button");
-  if(mv){ mtVenue = mv.dataset.v; rerender(); return; }
   const seg = e.target.closest("#ptSeg button");
   if(seg){ ptVenue = seg.dataset.v; rerender(); return; }
   const th = e.target.closest("th.sortable");
