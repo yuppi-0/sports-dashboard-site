@@ -2,7 +2,7 @@
 WhoScoredの試合別イベントデータ（soccerdata経由）から、選手の「シーズン集計」と「試合別の表」を作る。
 
 使い方:
-    pip install soccerdata pandas numpy openpyxl socceraction   # socceraction はボール運び（プログレッシブラン）用。無くても動く
+    pip install soccerdata pandas numpy openpyxl
     python whoscored_player_stats.py --leagues Premier --seasons 2025 --n 3      # 動作確認（3試合だけ）
     python whoscored_player_stats.py --leagues Premier --seasons 2025 2026       # 全試合
     python whoscored_player_stats.py --leagues Premier LaLiga --seasons 2025 --out 出力
@@ -16,7 +16,10 @@ WhoScoredの試合別イベントデータ（soccerdata経由）から、選手�
     --no-approx     近似を含む指標（sca_*, gca, carries 系）を作らない
     --no-combine    取得のあとに、全リーグの結合をしない（並列実行用）
     --combine-only  取得はせず、結合だけを行う
-    --out      出力フォルダ（省略時は、このスクリプトと同じ場所の output フォルダ）
+    --rank-min-minutes  順位を付ける出場時間の下限（分）を固定する。省略時は、1シーズンを消化したあとは900分、
+                        シーズン途中は消化した試合数に合わせて下げる（消化した試合数×90分×0.3。ただし270〜900分）
+    --no-split-by-league  結合した matches を、リーグ別に分けず、全リーグ1ファイルにする（既定はリーグ別。1ファイルが25MiBを超えるため）
+    --out      出力フォルダ（省略時は、このスクリプトと同じ場所（scripts フォルダの中なら、その1つ上）の output フォルダ）
 
 続きから追加する（シーズン途中のリーグ向け）:
     出力ファイルがすでにあれば、その matches シートに「まだ入っていない終了済みの試合」だけを足す。
@@ -29,7 +32,9 @@ WhoScoredの試合別イベントデータ（soccerdata経由）から、選手�
         players シート: 選手のシーズン集計（venue 列が all / home / away の3種類。90分あたり列つき）
         matches シート: 選手×試合の表（日付・対戦相手・ホーム/アウェイ・出場時間・評価・各指標）
     結合/<開幕年>年/all_leagues_players_<開幕年>.xlsx   全リーグの players を、シーズンごとに結合（1シート）
-    結合/<開幕年>年/all_leagues_matches_<開幕年>.xlsx   全リーグの matches を、シーズンごとに結合（同上）。実行のたびに作り直す
+    結合/<開幕年>年/all_leagues_matches_<開幕年>_<リーグ>.xlsx   matches を、シーズン・リーグごとに結合（リーグ別に分ける。実行のたびに作り直す）
+        （全リーグ1ファイルだと25MiBを超えるため、既定でリーグ別。読み込むときは all_leagues_matches_<開幕年>*.xlsx で拾える。
+         --no-split-by-league で、all_leagues_matches_<開幕年>.xlsx の1ファイルにできる）
     python whoscored_player_stats.py --combine-only   … 取得せず結合だけやり直す
     ※ 並列で実行するときは、各プロセスに --no-combine を付け、全部終わってから --combine-only を1回だけ実行する
 
@@ -41,6 +46,14 @@ WhoScoredの試合別イベントデータ（soccerdata経由）から、選手�
       最大2つまでさかのぼって数える。ボール運びは、連続する2つのプレーの間を補完したもので、実際の運びとはずれる。
       使わない場合は RANK_SPECS から該当の指標を削除する（列自体は、データ加工で落とせる）。
     - 順位（<指標>_順位・<指標>_順位_母数）は、RANK_SPECS の指標について、同じリーグ・シーズン・集団の中で付ける。
+      出場時間の下限は、1シーズンを消化したあとは900分。シーズン途中は消化した試合数に合わせて下げ、分母（試行数）の下限も同じ割合で下げる。
+    - v11: ボール運び（carries 系・プログレッシブラン）は、socceraction を使わず、イベントから推定する（連続する2つのプレーの間で、
+      同じチームのボールが3〜60m動き、10秒以内のものを「運び」とみなす）。socceraction のインストールは不要。
+    - v10: 左右に開いた選手（AML・AMR・ML・MR・FWL・FWR）を、position / position_detail = "WG"（ウイング）として、FWとMFから分けた。
+      MFには position_role（DM=守備的 / CM=中央 / AM=攻撃的）を付ける。ゴール決定率は、PKを除く np_goal_conversion_pct
+      （ノンPKゴール÷PKを除くシュート）を順位に使う（goal_conversion_pct はPK込みで残す）。
+    - v9: ファウル獲得（sca_foul_won）は、FKの準備に時間がかかるため、シュートまで60秒まで許す（以前は15秒で、ほぼ0になっていた）。
+      年齢・身長が0の選手は、欠損として扱う。
 
 注意:
 - 座標はWhoScored形式（0-100。x は自陣ゴール→相手ゴール方向に増加）。
@@ -51,14 +64,27 @@ WhoScoredの試合別イベントデータ（soccerdata経由）から、選手�
 """
 import argparse
 import json
+import os
 import re
+from contextlib import contextmanager
 import unicodedata
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 
-DEFAULT_OUT = Path(__file__).resolve().parent / "output"   # 既定の出力先: このスクリプトと同じ場所の output フォルダ
+import warnings
+
+warnings.filterwarnings("ignore", category=pd.errors.PerformanceWarning)   # 列を多く足すときの警告を出さない
+
+# 基準のフォルダ: このスクリプトの場所。scripts フォルダの中に置いたときは、その1つ上（output・soccerdata はそこに置く）
+BASE_DIR = Path(__file__).resolve().parent
+if BASE_DIR.name.lower() == "scripts":
+    BASE_DIR = BASE_DIR.parent
+DEFAULT_OUT = BASE_DIR / "output"                          # 既定の出力先: 基準のフォルダの output
+# soccerdata の保存先（試合ごとのJSON・キャッシュ）は、基準のフォルダの soccerdata フォルダにする。
+# 環境変数 SOCCERDATA_DIR を先に設定していれば、そちらを優先する（soccerdata を読み込む前に決める必要がある）
+os.environ.setdefault("SOCCERDATA_DIR", str(BASE_DIR / "soccerdata"))
 
 # ---- 定義（必要に応じて調整） -------------------------------------------
 FINAL_THIRD_X = 66.7                                 # ファイナルサード開始位置
@@ -70,18 +96,28 @@ SHORT_PASS_M = (4.57, 13.72)                         # 短いパス: 5〜15ヤ�
 MEDIUM_PASS_M = (13.72, 27.43)                       # 中距離: 15〜30ヤード（これ以上は長距離）
 SWITCH_MIN_LATERAL_M = 36.6                          # サイドチェンジ: 横方向に40ヤード以上
 SCA_MAX_GAP_S = 15                                   # シュートにつながるプレーとして数える、最大の時間差（秒）
+SCA_MAX_GAP_FOUL_S = 60                              # ファウル獲得だけは、FKの準備に時間がかかるため、長めに許す（秒）
 SCA_KINDS = ["pass_live", "pass_dead", "take_on", "shot", "foul_won", "defensive"]
 SCA_BREAK_OPP = {"Pass", "Interception", "BallRecovery", "Clearance", "TakeOn", "KeeperPickup", "Claim"}   # 出たら連なりを止める相手のプレー
+CARRY_MIN_M, CARRY_MAX_M, CARRY_MAX_S = 3.0, 60.0, 10.0      # ボール運びとみなす、連続する2つのプレーの間の距離（m）・時間（秒）
 CARRY_PROGRESSIVE_MIN_M = 10.0                       # プログレッシブラン: 前進10m以上（自陣40%で終わるものは除く）
 MAX_MATCH_MINUTES = 90                               # 出場時間の上限（リーグ戦）
 MIN_MINUTES_P90 = 10                                 # これ未満の出場時間では90分あたりを出さない
 
 QUALIFIERS = ["Longball", "Cross", "Throughball", "KeyPass",
               "ThrowIn", "GoalKick", "CornerTaken", "FreekickTaken", "OwnGoal",
-              "Head", "Penalty"]
+              "Head", "Penalty",
+              "BigChance", "BigChanceCreated", "RegularPlay", "FastBreak", "SetPiece", "FromCorner",
+              "DirectFreekick", "IndividualPlay", "OneOnOne", "RightFoot", "LeftFoot", "OtherBodyPart",
+              "Volley", "Yellow", "SecondYellow", "Red", "KeeperThrow"]
+# 実データでどのイベントに付いているかを、初回に表示して確認する qualifier
+DIAG_QUALIFIERS = ["BigChance", "BigChanceCreated", "Penalty", "Yellow", "SecondYellow", "Red",
+                   "KeeperThrow", "RegularPlay", "FastBreak", "SetPiece", "FromCorner", "IndividualPlay"]
+FORWARD_MIN_DX = 5.0                                 # 前方パス: 前進が座標単位で5以上（後方パスは-5以下）
+PADJ_SHARE_RANGE = (0.2, 0.8)                        # 保持率補正で使う、相手のパス数の割合の範囲（極端な値を抑える）
 OWN_GOAL_QUALIFIER_ID = 28                           # Optaのqualifier番号（オウンゴール）
 
-CODE_VERSION = 6                                     # 集計ロジックを変えたら上げる（既存ファイルは自動で作り直される）
+CODE_VERSION = 11                                     # 集計ロジックを変えたら上げる（既存ファイルは自動で作り直される）
 VERSION_NOTE = f"whoscored_player_stats v{CODE_VERSION}"
 
 COUNT_COLS = [  # aggregate() がイベントから数える列（この並びで出力する）
@@ -102,7 +138,23 @@ COUNT_COLS = [  # aggregate() がイベントから数える列（この並び�
     "def_actions_def_third", "def_actions_mid_third", "def_actions_att_third",
     "aerials", "aerials_won", "fouls_committed", "fouls_won", "dribbled_past",
     "shots", "shots_on_target", "shots_off_target", "shots_blocked", "shots_in_box", "headed_shots",
-    "goals", "own_goals",
+    "goals", "own_goals", "assists",
+    # PK・ビッグチャンス
+    "penalties_taken", "penalty_goals", "np_goals", "penalties_faced",
+    "big_chances", "big_chances_scored", "big_chances_missed", "big_chances_created",
+    # シュートの状況・部位・位置
+    "shots_open_play", "shots_fast_break", "shots_set_piece", "shots_from_corner", "shots_direct_fk",
+    "shots_individual_play", "shots_one_on_one",
+    "shots_right_foot", "shots_left_foot", "shots_other_body", "shots_volley", "goals_head",
+    "shots_small_box", "shots_out_of_box",
+    # セットプレー・カード・オフサイド
+    "corners_taken", "throw_ins", "key_passes_set_piece", "assists_set_piece",
+    "yellow_cards", "second_yellow_cards", "red_cards",
+    "offsides", "offsides_provoked", "offside_passes",
+    # パスの向き・GKの配球・ボールタッチ
+    "passes_forward", "passes_backward",
+    "goal_kicks", "goal_kicks_long", "gk_throws",
+    "bad_touches", "touch_pos_n",
     "touches", "touches_def_third", "touches_mid_third", "touches_att_third", "touches_att_pen",
     "claims", "punches", "keeper_pickups", "gk_sweeper_actions",
     "save_events",          # GKのセーブと、フィールドプレーヤーのシュートブロックが同じ「Save」で記録されるため、後で分ける
@@ -112,17 +164,28 @@ EXTRA_COUNT_COLS = (
     [f"sca_{k}" for k in SCA_KINDS] + ["sca", "gca"]
     + ["carries", "carry_distance", "progressive_carries", "carries_final_third", "carries_into_box"]
     + ["saves", "shot_blocks", "goals_conceded", "clean_sheets"]
+    + ["on_pitch_gf", "on_pitch_ga"]                     # 出場中のチームの得点・失点（試合JSONの出場時間から）
 )
+# 小数で合計する列（距離・座標・保持率補正。aggregate() が別に集計する）
+VALUE_COLS = [
+    "pass_distance", "goal_kick_distance",
+    "touch_x_sum", "touch_y_sum", "touch_width_sum",
+    "tackles_padj", "interceptions_padj", "ball_recoveries_padj", "clearances_padj",
+]
 
-POS_GROUP = {   # WhoScoredの試合ごとのポジション -> FW/MF/DF/GK（交代で入った選手の "Sub" は対象外）
+POS_GROUP = {   # WhoScoredの試合ごとのポジション -> FW/WG/MF/DF/GK（交代で入った選手の "Sub" は対象外）
     "GK": "GK", "DC": "DF", "DL": "DF", "DR": "DF",
-    "DMC": "MF", "DML": "MF", "DMR": "MF", "MC": "MF", "ML": "MF", "MR": "MF",
-    "AMC": "MF", "AML": "MF", "AMR": "MF", "FW": "FW", "FWL": "FW", "FWR": "FW",
+    "DMC": "MF", "DML": "MF", "DMR": "MF", "MC": "MF", "AMC": "MF",
+    "ML": "WG", "MR": "WG", "AML": "WG", "AMR": "WG", "FWL": "WG", "FWR": "WG",     # 左右に開いた選手はウイング
+    "FW": "FW",
 }
+MF_ROLE_OF = {"DMC": "DM", "DML": "DM", "DMR": "DM", "MC": "CM", "AMC": "AM"}      # MFの役割（守備的・中央・攻撃的）
 SIDE_BACK_POSITIONS = {"DL", "DR"}          # DFのうち、これらでの出場時間が半分以上ならSB、そうでなければCB
 SB_MIN_SHARE = 0.5
 
-RANK_MIN_MINUTES = 900                       # 順位を出す条件: シーズン通算の出場時間
+RANK_MIN_MINUTES = 900                       # 順位を出す条件: シーズン通算の出場時間（上限。1シーズンを消化したあとはこの値）
+RANK_MIN_SHARE = 0.30                        # シーズン途中は、消化した試合数×90分のこの割合を条件にする（900分を上限にする）
+RANK_MIN_FLOOR = 270                         # シーズン途中でも、これ未満（フル出場3試合分）の出場時間では順位を付けない
 # 順位を付ける指標: 集団 -> [(列名, high=大きいほど良い / low=小さいほど良い, 分母の列, 分母の下限)]
 # 集団は FW / MF / CB / SB / GK（DFはCBとSBに分ける）。順位は「同じリーグ・同じシーズン・同じ集団」の中で付ける。
 # 分母の列は、その指標の試行数（例: タックル成功率ならタックル数）。通算の値が下限未満の選手は順位を付けない。
@@ -166,6 +229,66 @@ RANK_SPECS = {
            ("clean_sheet_pct", "high", "matches", 10), ("pass_pct", "high", "passes", 100),
            ("long_ball_pct", "high", "long_balls", 10), ("gk_sweeper_actions_p90", "high", None, 0)],
 }
+# 追加: WhoScoredだけで作れる指標（xG・xA・ボール運びの代わり）
+RANK_SPECS["FW"] += [("np_goals_p90", "high", None, 0), ("assists_p90", "high", None, 0),
+                     ("big_chances_p90", "high", None, 0), ("big_chance_conversion_pct", "high", "big_chances", 3)]
+RANK_SPECS["MF"] += [("assists_p90", "high", None, 0), ("big_chances_created_p90", "high", None, 0),
+                     ("tackles_padj_p90", "high", None, 0), ("interceptions_padj_p90", "high", None, 0)]
+RANK_SPECS["CB"] += [("tackles_padj_p90", "high", None, 0), ("interceptions_padj_p90", "high", None, 0)]
+RANK_SPECS["SB"] += [("assists_p90", "high", None, 0), ("tackles_padj_p90", "high", None, 0),
+                     ("interceptions_padj_p90", "high", None, 0)]
+
+# 追加（v9）: 指標整理表でおすすめした指標のうち、WhoScoredの列で作れるもの（値の大小が良し悪しに対応するもの）
+RANK_SPECS["FW"] += [("shots_p90", "high", None, 0), ("np_goal_conversion_pct", "high", "shots_np", 20),
+                     ("touches_att_pen_p90", "high", None, 0), ("gca_p90", "high", None, 0),     # ★ gca は近似
+                     ("key_passes_p90", "high", None, 0), ("aerial_win_pct", "high", "aerials", 10),
+                     ("headed_shots_p90", "high", None, 0), ("fouls_won_p90", "high", None, 0),
+                     ("take_ons_won_p90", "high", None, 0), ("dispossessed_p90", "low", None, 0),
+                     ("bad_touches_p90", "low", None, 0), ("yellow_cards_p90", "low", None, 0)]
+RANK_SPECS["MF"] += [("passes_p90", "high", None, 0), ("ball_recoveries_p90", "high", None, 0),
+                     ("tackles_won_p90", "high", None, 0), ("blocked_passes_p90", "high", None, 0),
+                     ("passes_final_third_p90", "high", None, 0), ("passes_into_box_p90", "high", None, 0),
+                     ("gca_p90", "high", None, 0), ("through_balls_p90", "high", None, 0),          # ★ gca は近似
+                     ("shots_p90", "high", None, 0), ("ball_recoveries_padj_p90", "high", None, 0),
+                     ("duel_win_pct", "high", "duels", 20), ("dispossessed_p90", "low", None, 0),
+                     ("dribbled_past_p90", "low", None, 0), ("fouls_committed_p90", "low", None, 0),
+                     ("yellow_cards_p90", "low", None, 0)]
+RANK_SPECS["CB"] += [("tackles_won_p90", "high", None, 0), ("clearances_padj_p90", "high", None, 0),
+                     ("aerials_won_p90", "high", None, 0), ("progressive_passes_p90", "high", None, 0),
+                     ("long_ball_pct", "high", "long_balls", 10), ("long_balls_p90", "high", None, 0),
+                     ("blocked_passes_p90", "high", None, 0), ("offsides_provoked_p90", "high", None, 0),
+                     ("errors_p90", "low", None, 0), ("fouls_committed_p90", "low", None, 0),
+                     ("yellow_cards_p90", "low", None, 0), ("passes_p90", "high", None, 0)]
+RANK_SPECS["SB"] += [("big_chances_created_p90", "high", None, 0), ("cross_pct", "high", "crosses", 10),
+                     ("passes_into_box_p90", "high", None, 0), ("progressive_passes_p90", "high", None, 0),
+                     ("take_ons_won_p90", "high", None, 0), ("interceptions_p90", "high", None, 0),
+                     ("tackles_won_p90", "high", None, 0), ("fouls_committed_p90", "low", None, 0),
+                     ("yellow_cards_p90", "low", None, 0)]
+# ウイング（WG）: 左右に開いた選手（AML・AMR・ML・MR・FWL・FWR）。FWは中央のFWだけになる
+RANK_SPECS["WG"] = [
+    ("take_ons_won_p90", "high", None, 0), ("take_on_pct", "high", "take_ons", 10),
+    ("key_passes_p90", "high", None, 0), ("assists_p90", "high", None, 0),
+    ("big_chances_created_p90", "high", None, 0), ("np_goals_p90", "high", None, 0),
+    ("goals_p90", "high", None, 0), ("shots_p90", "high", None, 0),
+    ("np_goal_conversion_pct", "high", "shots_np", 20), ("gca_p90", "high", None, 0),          # ★ gca は近似
+    ("crosses_p90", "high", None, 0), ("cross_pct", "high", "crosses", 10),
+    ("passes_into_box_p90", "high", None, 0), ("progressive_passes_p90", "high", None, 0),
+    ("fouls_won_p90", "high", None, 0), ("dispossessed_p90", "low", None, 0),
+    ("bad_touches_p90", "low", None, 0), ("touches_att_pen_p90", "high", None, 0),
+    ("def_actions_att_third_p90", "high", None, 0), ("tackles_won_p90", "high", None, 0),
+    ("progressive_carries_p90", "high", None, 0),                                            # ★ ボール運びはイベントからの推定
+    # チャンス創出の起点別 ★
+    ("sca_pass_live_p90", "high", "sca_pass_live", 5), ("sca_pass_dead_p90", "high", "sca_pass_dead", 3),
+    ("sca_take_on_p90", "high", "sca_take_on", 3), ("sca_shot_p90", "high", "sca_shot", 3),
+    ("sca_foul_won_p90", "high", "sca_foul_won", 3), ("sca_defensive_p90", "high", "sca_defensive", 3),
+]
+for _g, _specs in RANK_SPECS.items():          # 同じ集団に同じ指標が重なっていたら、先に書いた方だけ残す
+    _seen, _uniq = set(), []
+    for _s in _specs:
+        if _s[0] not in _seen:
+            _seen.add(_s[0])
+            _uniq.append(_s)
+    RANK_SPECS[_g] = _uniq
 
 SD_LEAGUES = {  # 短いリーグ名 -> soccerdata のリーグID
     "Premier": "ENG-Premier League",
@@ -255,8 +378,7 @@ def missing_games(events, ids):
 
 def fetch_carries(ws, ids):
     """
-    保存済みの試合JSONから、ボール運び（SPADLのdribble）を作って回数を数える。
-    socceraction が入っていなければ None を返す（ボール運びの列は空欄になる）。
+    （v11から未使用）保存済みの試合JSONから、socceraction でボール運びを作る。ボール運びは compute_carries_from_events を使う。
     """
     try:
         spadl = ws.read_events(match_id=ids, force_cache=True, output_fmt="spadl", on_error="skip")
@@ -269,7 +391,7 @@ def fetch_carries(ws, ids):
     return None
 
 
-def fetch_events(league, year, n=None, last=False, skip_ids=(), with_carries=True):
+def _fetch_events(league, year, n=None, last=False, skip_ids=(), with_carries=True):
     """
     WhoScoredから試合のイベントと日程を取得する。skip_ids（取得済みの試合ID）は取らない。
     戻り値: (events, schedule, match_files, carries)。新しく取る試合が無ければ events は None。
@@ -298,8 +420,29 @@ def fetch_events(league, year, n=None, last=False, skip_ids=(), with_carries=Tru
         int(r.game_id): Path(ws.data_dir) / "events" / f"{r.league}_{r.season}" / f"{int(r.game_id)}.json"
         for r in sch.itertuples() if int(r.game_id) in wanted
     }
-    carries = fetch_carries(ws, ids) if with_carries else None
-    return events, schedule, files, carries
+    return events, schedule, files, None      # ボール運びは、イベントから process_job で作る（socceraction は使わない）
+
+
+@contextmanager
+def _work_dir():
+    """
+    soccerdata（ブラウザ操作）は、実行したフォルダ（カレントフォルダ）に downloaded_files などを作る。
+    取得のあいだだけ、soccerdata フォルダの中の work フォルダに移り、プロジェクトのフォルダを汚さないようにする。
+    """
+    d = Path(os.environ.get("SOCCERDATA_DIR", Path.home() / "soccerdata")) / "work"
+    d.mkdir(parents=True, exist_ok=True)
+    old = Path.cwd()
+    os.chdir(d)
+    try:
+        yield d
+    finally:
+        os.chdir(old)
+
+
+def fetch_events(league, year, n=None, last=False, skip_ids=(), with_carries=True):
+    """_fetch_events を、作業フォルダを移して実行する（戻り値は同じ）。"""
+    with _work_dir():
+        return _fetch_events(league, year, n, last, skip_ids, with_carries)
 
 
 def fetch_understat(league, year):
@@ -352,6 +495,21 @@ def _minutes(p, has_lineup, total, red):
     return int(round(max(0, end - start) * MAX_MATCH_MINUTES / total))
 
 
+def _on_off(p, has_lineup, total, red):
+    """ピッチにいた区間（延長込みの分）。先発は0分から、途中出場は入った分から。不明は NaN。"""
+    if not has_lineup:
+        return np.nan, np.nan
+    t_out = red.get(p["playerId"], p.get("subbedOutExpandedMinute"))
+    end = total if t_out is None else min(t_out, total)
+    if p.get("isFirstEleven"):
+        start = 0
+    else:
+        start = p.get("subbedInExpandedMinute")
+        if start is None:
+            return np.nan, np.nan
+    return float(start), float(end)
+
+
 def read_match_players(match_files):
     """試合JSONから、選手ごとの先発・出場時間・評価・試合最優秀選手を読む。読めなければ空のDataFrame。"""
     rows = []
@@ -370,7 +528,10 @@ def read_match_players(match_files):
             has_lineup = any("isFirstEleven" in p for p in players)
             red = _red_card_minutes(team)
             for p in players:
+                on_min, off_min = _on_off(p, has_lineup, total, red)
                 rows.append({
+                    "on_min": on_min, "off_min": off_min,
+                    "age": p.get("age") or None, "height": p.get("height") or None,   # 0 は欠損として扱う
                     "game_id": int(gid),
                     "player_id": int(p["playerId"]),
                     "position_played": p.get("position"),
@@ -409,6 +570,18 @@ def check_qualifiers(events, top=40):
     print(names.value_counts().head(150).to_string())
 
 
+def report_qualifier_events(events, names=None):
+    """指定したqualifierが、どのイベント種類に付いているかを表示する（新しい指標の前提の確認用）。"""
+    d = _flat(events)
+    typ = d["type"].map(_name)
+    qs = d["qualifiers"].map(_qualifier_names)
+    print("  --- qualifier がどのイベントに付いているか（上位） ---")
+    for n in names or DIAG_QUALIFIERS:
+        hit = qs.map(lambda s, n=n: n in s)
+        vc = typ[hit].value_counts().head(4)
+        print(f"  {n}: " + (", ".join(f"{k}={v}" for k, v in vc.items()) or "なし"))
+
+
 def _flat(df):
     if isinstance(df.index, pd.MultiIndex) or df.index.name is not None:
         df = df.reset_index()
@@ -419,6 +592,30 @@ def _in_box(x, y):
     return (x >= BOX_X) & (y >= BOX_Y_LO) & (y <= BOX_Y_HI)
 
 
+def mark_assists(d):
+    """
+    アシストになったパスに True を付ける。WhoScoredでは、ゴール（オウンゴールを除く）のイベントに
+    related_event_id / related_player_id があり、アシストしたパスを指している。
+    同じ試合・同じチーム・同じイベント番号・同じ選手のパスを、アシストとみなす。
+    related_* の列が無い場合は、すべて False（アシストは0になる）。
+    """
+    out = pd.Series(False, index=d.index)
+    need = {"game_id", "team_id", "event_id", "player_id", "related_event_id", "related_player_id"}
+    if not need <= set(d.columns):
+        return out
+
+    def key(df, ev, pl):
+        return pd.MultiIndex.from_arrays([pd.to_numeric(df[c], errors="coerce") for c in ("game_id", "team_id", ev, pl)])
+
+    goals = d[d["type"].eq("Goal") & d["is_goal"] & ~d["q_OwnGoal"]
+              & d["related_event_id"].notna() & d["related_player_id"].notna()]
+    if goals.empty:
+        return out
+    is_pass = d["type"].eq("Pass") & d["player_id"].notna() & d["event_id"].notna()
+    out[is_pass] = key(d[is_pass], "event_id", "player_id").isin(key(goals, "related_event_id", "related_player_id"))
+    return out
+
+
 def prepare(events):
     d = _flat(events)
     d["type"] = d["type"].map(_name)
@@ -426,10 +623,13 @@ def prepare(events):
     qs = d["qualifiers"].map(_qualifier_names)
     for name in QUALIFIERS:
         d["q_" + name] = qs.map(lambda s, n=name: n in s)
+    d["q_SmallBox"] = qs.map(lambda s: any(n.startswith("SmallBox") for n in s))
+    d["q_OutOfBox"] = qs.map(lambda s: any(n.startswith(("OutOfBox", "ThirtyFivePlus")) for n in s))
     for c in ["x", "y", "end_x", "end_y"]:
         d[c] = pd.to_numeric(d[c], errors="coerce")
     for c in ["is_shot", "is_goal", "is_touch"]:
         d[c] = d[c].fillna(False).astype(bool) if c in d else False
+    d["is_assist"] = mark_assists(d)
     return d
 
 
@@ -519,6 +719,28 @@ def _add_rates(out):
         new["gk_save_pct"] = (out["saves"] / faced.replace(0, np.nan) * 100).round(1)
     if has("clean_sheets", "matches"):
         new["clean_sheet_pct"] = pct("clean_sheets", "matches")
+    if has("goals", "shots"):
+        new["goal_conversion_pct"] = pct("goals", "shots")                      # PKを含む（参考）
+    if has("np_goals", "shots", "penalties_taken"):                              # PKを除く（ゴール÷シュートの、分子・分母ともPKなし）
+        np_shots = out["shots"] - out["penalties_taken"]
+        new["np_goal_conversion_pct"] = (out["np_goals"] / np_shots.replace(0, np.nan) * 100).round(1)
+    if has("big_chances_scored", "big_chances"):
+        new["big_chance_conversion_pct"] = pct("big_chances_scored", "big_chances")
+    if has("passes_forward", "passes"):
+        new["forward_pass_pct"] = pct("passes_forward", "passes")
+        new["backward_pass_pct"] = pct("passes_backward", "passes")
+    if has("pass_distance", "passes"):
+        new["avg_pass_distance"] = (out["pass_distance"] / out["passes"].replace(0, np.nan)).round(1)
+    if has("touch_x_sum", "touch_pos_n"):
+        n_ = out["touch_pos_n"].replace(0, np.nan)
+        new["avg_touch_x"] = (out["touch_x_sum"] / n_).round(1)          # 0=自陣ゴール側、100=敵陣ゴール側
+        new["avg_touch_y"] = (out["touch_y_sum"] / n_).round(1)          # 横位置（0〜100）
+        new["avg_touch_width"] = (out["touch_width_sum"] / n_).round(1)  # 中央からの離れ具合（大きいほどワイド）
+    if has("goal_kick_distance", "goal_kicks"):
+        new["avg_goal_kick_distance"] = (out["goal_kick_distance"] / out["goal_kicks"].replace(0, np.nan)).round(1)
+        new["goal_kick_long_pct"] = pct("goal_kicks_long", "goal_kicks")
+    if has("on_pitch_gf", "on_pitch_ga"):
+        new["on_pitch_gd"] = out["on_pitch_gf"] - out["on_pitch_ga"]
     return pd.concat([out, pd.DataFrame(new, index=out.index)], axis=1)
 
 
@@ -548,6 +770,18 @@ def aggregate(events, by=("league", "season", "team", "player")):
     switch = open_pass & (lateral >= SWITCH_MIN_LATERAL_M)
     dead = is_pass & set_piece
     fk = is_pass & d["q_FreekickTaken"]
+    gk_kick = is_pass & d["q_GoalKick"]
+    fwd = open_pass & (dx >= FORWARD_MIN_DX)
+    back = open_pass & (dx <= -FORWARD_MIN_DX)
+    corner_fk = d["q_CornerTaken"] | d["q_FreekickTaken"]
+    xy = d["is_touch"] & d["x"].notna() & d["y"].notna()
+
+    # 保持率で補正した守備指標: 相手のパスが多い試合ほど、守備の回数を割り増しする（50%を基準）
+    ip = open_pass.astype(int)
+    team_p = ip.groupby([d["game_id"], d["team_id"]]).transform("sum")
+    game_p = ip.groupby(d["game_id"]).transform("sum")
+    opp_share = ((game_p - team_p) / game_p.replace(0, np.nan)).clip(*PADJ_SHARE_RANGE)
+    padj_w = (0.5 / opp_share).fillna(1.0)
 
     # ゾーン（自陣・中央・敵陣の3分の1）
     z_def = d["x"] < DEF_THIRD_X
@@ -560,6 +794,18 @@ def aggregate(events, by=("league", "season", "team", "player")):
     on_target = (t.eq("Goal") & ~is_own) | (t.eq("SavedShot") & ~blocked)
     off_target = t.isin(["MissedShots", "ShotOnPost"])
     shot = d["is_shot"] & ~is_own
+
+    vals = pd.DataFrame({
+        "pass_distance": dist.where(open_pass, 0).fillna(0),
+        "goal_kick_distance": dist.where(gk_kick, 0).fillna(0),
+        "touch_x_sum": d["x"].where(xy, 0),
+        "touch_y_sum": d["y"].where(xy, 0),
+        "touch_width_sum": (d["y"] - 50).abs().where(xy, 0),
+        "tackles_padj": t.eq("Tackle") * padj_w,
+        "interceptions_padj": t.eq("Interception") * padj_w,
+        "ball_recoveries_padj": t.eq("BallRecovery") * padj_w,
+        "clearances_padj": t.eq("Clearance") * padj_w,
+    })
 
     flags = pd.DataFrame({
         # パス
@@ -625,6 +871,50 @@ def aggregate(events, by=("league", "season", "team", "player")):
         "headed_shots": shot & d["q_Head"],
         "goals": d["is_goal"] & ~is_own,               # オウンゴールは含めない
         "own_goals": d["is_goal"] & is_own,            # 自チームのゴールに入れてしまった数
+        "assists": is_pass & d["is_assist"],           # ゴールの related_event_id が指すパス（アシスト）
+        # PK・ビッグチャンス
+        "penalties_taken": shot & d["q_Penalty"],
+        "penalty_goals": d["is_goal"] & ~is_own & d["q_Penalty"],
+        "np_goals": d["is_goal"] & ~is_own & ~d["q_Penalty"],
+        "penalties_faced": t.eq("PenaltyFaced"),
+        "big_chances": shot & d["q_BigChance"],
+        "big_chances_scored": shot & d["q_BigChance"] & d["is_goal"],
+        "big_chances_missed": shot & d["q_BigChance"] & ~d["is_goal"],
+        "big_chances_created": ~d["is_shot"] & d["q_BigChanceCreated"],
+        # シュートの状況・部位・位置
+        "shots_open_play": shot & d["q_RegularPlay"],
+        "shots_fast_break": shot & d["q_FastBreak"],
+        "shots_set_piece": shot & d["q_SetPiece"],
+        "shots_from_corner": shot & d["q_FromCorner"],
+        "shots_direct_fk": shot & d["q_DirectFreekick"],
+        "shots_individual_play": shot & d["q_IndividualPlay"],
+        "shots_one_on_one": shot & d["q_OneOnOne"],
+        "shots_right_foot": shot & d["q_RightFoot"],
+        "shots_left_foot": shot & d["q_LeftFoot"],
+        "shots_other_body": shot & d["q_OtherBodyPart"],
+        "shots_volley": shot & d["q_Volley"],
+        "goals_head": d["is_goal"] & ~is_own & d["q_Head"],
+        "shots_small_box": shot & d["q_SmallBox"],
+        "shots_out_of_box": shot & d["q_OutOfBox"],
+        # セットプレー・カード・オフサイド
+        "corners_taken": is_pass & d["q_CornerTaken"],
+        "throw_ins": is_pass & d["q_ThrowIn"],
+        "key_passes_set_piece": is_pass & d["q_KeyPass"] & corner_fk,
+        "assists_set_piece": is_pass & d["is_assist"] & corner_fk,
+        "yellow_cards": t.eq("Card") & d["q_Yellow"],
+        "second_yellow_cards": t.eq("Card") & d["q_SecondYellow"],
+        "red_cards": t.eq("Card") & d["q_Red"],
+        "offsides": t.eq("OffsideGiven"),
+        "offsides_provoked": t.eq("OffsideProvoked"),
+        "offside_passes": t.eq("OffsidePass"),
+        # パスの向き・GKの配球・ボールタッチ
+        "passes_forward": fwd,
+        "passes_backward": back,
+        "goal_kicks": gk_kick,
+        "goal_kicks_long": gk_kick & d["q_Longball"],
+        "gk_throws": is_pass & d["q_KeeperThrow"],
+        "bad_touches": t.eq("BallTouch"),
+        "touch_pos_n": xy,
         # タッチ
         "touches": d["is_touch"],
         "touches_def_third": d["is_touch"] & z_def,
@@ -642,6 +932,9 @@ def aggregate(events, by=("league", "season", "team", "player")):
     flags = flags[COUNT_COLS]                            # 列の並びを COUNT_COLS に固定する
     keys = [d[c] for c in by]
     out = flags.groupby(keys, dropna=False).sum().astype(int)
+    vs = vals[VALUE_COLS].groupby(keys, dropna=False).sum().round(2)
+    for c in VALUE_COLS:
+        out[c] = vs[c].to_numpy()
     out.insert(0, "matches", d["_g"].groupby(keys, dropna=False).nunique().to_numpy())
 
     return _add_rates(out).reset_index()
@@ -734,6 +1027,7 @@ def compute_sca(events):
       take_on    … ドリブル成功              shot      … 直前のシュート（こぼれ球からのシュート）
       foul_won   … ファウル獲得              defensive … タックル成功・インターセプト
     相手のプレーが挟まる、前半と後半をまたぐ、時間差が SCA_MAX_GAP_S 秒を超える、場合はそこで止める。
+    ただしファウル獲得は、FKを蹴るまでに時間がかかるため、SCA_MAX_GAP_FOUL_S 秒まで許す。
     PKのシュートとオウンゴールは、シュートに数えない。gca は、そのシュートがゴールだったもの。
     戻り値: game_id・player_id ごとの回数（sca_pass_live … sca, gca）。
     """
@@ -766,13 +1060,18 @@ def compute_sca(events):
         for i in np.flatnonzero(shot):
             credited, j = 0, i - 1
             while j >= 0 and credited < 2:
-                if per[j] != per[i] or tt[i] - tt[j] > SCA_MAX_GAP_S:
+                if per[j] != per[i]:
                     break
+                gap = tt[i] - tt[j]
                 if team[j] != team[i]:
                     if typ[j] in SCA_BREAK_OPP or (typ[j] == "Tackle" and okv[j]):
                         break                                 # 相手がボールを持った（パス・奪取・タックル成功など）
+                    if gap > SCA_MAX_GAP_FOUL_S:
+                        break
                     j -= 1                                    # 相手の反則・競り合い・GKのセーブなどは、連なりを切らない
                     continue
+                if gap > (SCA_MAX_GAP_FOUL_S if kd[j] == "foul_won" else SCA_MAX_GAP_S):
+                    break
                 if isinstance(kd[j], str) and not pd.isna(pid[j]):
                     rows.append((gid, int(pid[j]), kd[j], bool(goal[i])))
                     credited += 1
@@ -816,6 +1115,105 @@ def compute_carries(spadl):
     return g
 
 
+def add_on_pitch_goals(m, events):
+    """
+    出場中のチームの得点・失点（on_pitch_gf / on_pitch_ga）を付ける。
+    試合JSONの出場区間（on_min〜off_min）に入っているゴールを数える。オウンゴールは、相手チームの得点として扱う。
+    出場区間が不明な行は NaN。
+    """
+    m = m.copy()
+    m["on_pitch_gf"], m["on_pitch_ga"] = np.nan, np.nan
+    if not {"on_min", "off_min"} <= set(m.columns) or m["on_min"].isna().all():
+        return m
+    d = prepare(events)
+    g = d[d["type"].eq("Goal") & d["is_goal"]].copy()
+    if g.empty:
+        ok = m["on_min"].notna() & m["off_min"].notna()
+        m.loc[ok, ["on_pitch_gf", "on_pitch_ga"]] = 0
+        return m
+    for c in ("expanded_minute", "minute"):
+        if c not in g:
+            g[c] = np.nan
+    g["_m"] = pd.to_numeric(g["expanded_minute"], errors="coerce").fillna(pd.to_numeric(g["minute"], errors="coerce"))
+    teams = d.dropna(subset=["team"]).groupby("game_id")["team"].unique().to_dict()
+
+    def scorer(r):
+        if not r["q_OwnGoal"]:
+            return r["team"]
+        others = [t for t in teams.get(r["game_id"], []) if t != r["team"]]
+        return others[0] if others else None
+
+    g["_scorer"] = g.apply(scorer, axis=1)
+    gt = g[["game_id", "_m", "_scorer"]].dropna()
+    gt["game_id"] = pd.to_numeric(gt["game_id"], errors="coerce").astype("Int64")
+    base = m[["game_id", "player_id", "team", "on_min", "off_min"]].copy()
+    base["_row"] = base.index
+    base = base[base["on_min"].notna() & base["off_min"].notna()]
+    j = base.merge(gt, on="game_id", how="left")
+    j = j[j["_m"].notna() & (j["_m"] >= j["on_min"]) & (j["_m"] <= j["off_min"])]
+    gf = j[j["_scorer"] == j["team"]].groupby("_row").size()
+    ga = j[j["_scorer"] != j["team"]].groupby("_row").size()
+    m.loc[base["_row"], "on_pitch_gf"] = gf.reindex(base["_row"]).fillna(0).to_numpy()
+    m.loc[base["_row"], "on_pitch_ga"] = ga.reindex(base["_row"]).fillna(0).to_numpy()
+    return m
+
+
+CARRY_SKIP_TYPES = {"Start", "End", "SubstitutionOn", "SubstitutionOff", "FormationSet", "FormationChange", "Card", "CornerAwarded"}
+CARRY_FROM_TYPES = {"Pass", "TakeOn", "Tackle", "BallRecovery", "Interception"}       # 運びの直前のプレー（ボールを動かした・持った）
+CARRY_TO_TYPES = {"Pass", "TakeOn", "SavedShot", "MissedShots", "Goal", "ShotOnPost"}  # 運びの直後のプレー
+
+
+def compute_carries_from_events(events):
+    """
+    イベントから、選手ごと・試合ごとのボール運びを推定する（socceraction の「dribble」と同じ考え方）。
+    時刻順に並べた連続する2つのプレー a→b が、次を満たすとき、bの選手が a の終点から b の始点まで運んだとみなす。
+      同じチーム・同じ前後半・時間差 CARRY_MAX_S 秒以内、a の終点と b の始点の距離が CARRY_MIN_M〜CARRY_MAX_M m、
+      a はボールを動かしたプレー（成功したパス・ドリブル・タックル、奪取、インターセプト）、b はパス・ドリブル・シュート（セットプレーの再開は除く）。
+    間に別のプレー（相手のプレー、ファウル、空中戦など）が入ったら、運びとは数えない（交代・カードなどは無視する）。
+    progressive_carries … 前進10m以上で、自陣40%より前で終わるもの、または、ペナルティエリア外からエリアに入るもの。
+    戻り値: game_id・player_id ごとの回数（carries, carry_distance, progressive_carries, carries_final_third, carries_into_box）。
+    """
+    d = _time_sorted(events)
+    cols = ["carries", "carry_distance", "progressive_carries", "carries_final_third", "carries_into_box"]
+    d = d[d["player_id"].notna() & d["team_id"].notna() & d["x"].notna() & d["y"].notna() & ~d["type"].isin(CARRY_SKIP_TYPES)].copy()
+    if d.empty:
+        return pd.DataFrame(columns=["game_id", "player_id"] + cols)
+    is_pass = d["type"].eq("Pass")
+    d["ex"] = np.where(is_pass, d["end_x"], d["x"])
+    d["ey"] = np.where(is_pass, d["end_y"], d["y"])
+    set_piece = d["q_ThrowIn"] | d["q_GoalKick"] | d["q_CornerTaken"] | d["q_FreekickTaken"]
+    from_ok = d["type"].isin(CARRY_FROM_TYPES) & (d["ok"] | ~d["type"].isin({"Pass", "TakeOn", "Tackle"})) & d["ex"].notna() & d["ey"].notna()
+    g = d.groupby("game_id", sort=False)
+    nxt = lambda c: g[c].shift(-1)
+    same = (d["team_id"] == nxt("team_id")) & (d["_period"] == nxt("_period"))
+    dt = nxt("_t") - d["_t"]
+    dx_m = (nxt("x") - d["ex"]) * PITCH_L / 100
+    dy_m = (nxt("y") - d["ey"]) * PITCH_W / 100
+    dist = np.hypot(dx_m, dy_m)
+    sp_next = set_piece.astype(int).groupby(d["game_id"]).shift(-1)                # 次のプレーがセットプレーの再開か
+    ok = (same & from_ok & nxt("type").isin(CARRY_TO_TYPES) & (sp_next == 0)
+          & (dt >= 0) & (dt <= CARRY_MAX_S) & (dist >= CARRY_MIN_M) & (dist <= CARRY_MAX_M))
+    c = pd.DataFrame({
+        "game_id": d["game_id"], "player_id": nxt("player_id"), "dist": dist, "dx": dx_m,
+        "sx": d["ex"], "sy": d["ey"], "tx": nxt("x"), "ty": nxt("y"),
+    })[ok]
+    if c.empty:
+        return pd.DataFrame(columns=["game_id", "player_id"] + cols)
+    end_box = _in_box(c["tx"], c["ty"])
+    start_box = _in_box(c["sx"], c["sy"])
+    c["carries"] = 1
+    c["carry_distance"] = c["dist"]
+    c["progressive_carries"] = ((c["dx"] >= CARRY_PROGRESSIVE_MIN_M) & (c["tx"] * PITCH_L / 100 >= PITCH_L * 0.4)) | (end_box & ~start_box)
+    c["carries_final_third"] = (c["sx"] < FINAL_THIRD_X) & (c["tx"] >= FINAL_THIRD_X)
+    c["carries_into_box"] = end_box & ~start_box
+    out = c.groupby(["game_id", "player_id"])[cols].sum().reset_index()
+    out["player_id"] = out["player_id"].astype(int)
+    out["carry_distance"] = out["carry_distance"].round(1)
+    for k in ("carries", "progressive_carries", "carries_final_third", "carries_into_box"):
+        out[k] = out[k].astype(int)
+    return out
+
+
 def build_match_table(events, match_players, sca=None, carries=None):
     """
     選手×試合の表。試合JSONが読めれば、先発・出場時間・評価・試合最優秀選手も付く。
@@ -829,9 +1227,10 @@ def build_match_table(events, match_players, sca=None, carries=None):
         m = m.merge(_int_ids(match_players.copy()), on=["game_id", "player_id"], how="left")
         for c in ("is_starter", "man_of_match"):
             m[c] = m[c].map({True: 1, False: 0}).astype("Int64")
-    for c in ("position_played", "is_starter", "man_of_match", "minutes", "rating"):
+    for c in ("position_played", "is_starter", "man_of_match", "minutes", "rating", "age", "height"):
         if c not in m.columns:                           # 試合JSONが読めなかった場合も、列は空欄で作る
             m[c] = np.nan
+    m = add_on_pitch_goals(m, events).drop(columns=["on_min", "off_min"], errors="ignore")
     for extra, cols in ((sca, [f"sca_{k}" for k in SCA_KINDS] + ["sca", "gca"]),
                         (carries, ["carries", "carry_distance", "progressive_carries",
                                    "carries_final_third", "carries_into_box"])):
@@ -891,8 +1290,13 @@ def build_player_table(matches):
         if c not in m:
             m[c] = np.nan
         m[c] = pd.to_numeric(m[c], errors="coerce")
-    sum_cols = [c for c in COUNT_COLS if c != "save_events"] + [c for c in EXTRA_COUNT_COLS if c in m.columns]
-    gk_cols = [c for c in ("goals_conceded", "clean_sheets") if c in m.columns]   # GK以外は空欄のままにする
+    for c in ("age", "height"):
+        if c in m:
+            m[c] = pd.to_numeric(m[c], errors="coerce")
+    sum_cols = ([c for c in COUNT_COLS if c != "save_events"] + VALUE_COLS
+                + [c for c in EXTRA_COUNT_COLS if c in m.columns])
+    # GK以外・出場区間が不明な行は空欄のままにする（0にしない）
+    gk_cols = [c for c in ("goals_conceded", "clean_sheets", "on_pitch_gf", "on_pitch_ga") if c in m.columns]
     frames = []
     for venue in ("all", "home", "away"):
         mt = m if venue == "all" else m[m["venue"] == venue]
@@ -901,7 +1305,9 @@ def build_player_table(matches):
         g = mt.groupby(base, dropna=False)
         out = g[[c for c in sum_cols if c not in gk_cols]].sum()
         for c in out.columns:
-            if c != "carry_distance":
+            if c == "carry_distance" or c in VALUE_COLS:
+                out[c] = out[c].round(2)
+            else:
                 out[c] = out[c].astype(int)
         for c in gk_cols:
             out[c] = g[c].sum(min_count=1)
@@ -910,6 +1316,9 @@ def build_player_table(matches):
         out.insert(2, "minutes", g["minutes"].sum(min_count=1))
         out.insert(3, "motm", g["man_of_match"].sum(min_count=1))
         out.insert(4, "rating_avg", g["rating"].mean().round(2))
+        for c in ("age", "height"):
+            if c in mt:
+                out[c] = g[c].max()
         out = _add_rates(out).reset_index()
         out.insert(2, "venue", venue)
         frames.append(out)
@@ -958,9 +1367,13 @@ _P90_BASE = ["passes", "progressive_passes", "passes_final_third", "passes_into_
              "crosses", "long_balls", "through_balls", "take_ons_won", "dispossessed", "errors",
              "tackles", "tackles_won", "interceptions", "clearances", "blocked_passes", "ball_recoveries",
              "def_actions_att_third", "aerials_won", "fouls_committed", "fouls_won", "dribbled_past",
-             "shots", "shots_on_target", "goals", "touches", "touches_att_pen",
+             "shots", "shots_on_target", "goals", "assists", "touches", "touches_att_pen",
              "carries", "progressive_carries", "sca", "gca", "saves", "goals_conceded",
-             "us_xg", "us_xa", "xg_diff"]
+             "us_xg", "us_xa", "xg_diff",
+             "np_goals", "big_chances", "big_chances_missed", "big_chances_created", "headed_shots",
+             "yellow_cards", "offsides", "offsides_provoked", "key_passes_set_piece", "corners_taken",
+             "throw_ins", "bad_touches", "passes_forward", "tackles_padj", "interceptions_padj",
+             "ball_recoveries_padj", "clearances_padj", "on_pitch_gf", "on_pitch_ga"]
 DEFAULT_P90 = list(dict.fromkeys(
     _P90_BASE + [c[:-4] for specs in RANK_SPECS.values() for c, *_ in specs if c.endswith("_p90")]))
 
@@ -979,7 +1392,8 @@ def add_per90(stats, cols=None):
 # ---- ポジションと順位 ----------------------------------------------------------
 def add_positions(players, matches):
     """
-    選手ごとに position（FW/MF/DF/GK）と position_detail（DFはCB/SB、それ以外は position と同じ）を付ける。
+    選手ごとに position（FW/WG/MF/DF/GK）と position_detail（DFはCB/SB、それ以外は position と同じ）、
+    position_role（MFは DM/CM/AM、それ以外は position_detail と同じ）を付ける。
     試合ごとのポジション（position_played）のうち、出場時間が最も長い系統を採用する。
     交代で入った試合（Sub）は判定に使わない。Subでしか出ていない選手は空欄になる。
     """
@@ -1006,16 +1420,45 @@ def add_positions(players, matches):
         main["position"] == "DF", np.where(main["_sb_share"].fillna(0) >= SB_MIN_SHARE, "SB", "CB"),
         main["position"])
     p = p.merge(main[keys + ["position", "position_detail"]], on=keys, how="left")
-    cols = [c for c in p.columns if c not in ("position", "position_detail")]
+    # MFの役割: 守備的（DM）・中央（CM）・攻撃的（AM）のうち、出場時間が最も長いもの。MF以外は position_detail と同じ
+    mr = m[m["position_played"].isin(MF_ROLE_OF)].copy()
+    mr["role"] = mr["position_played"].map(MF_ROLE_OF)
+    if len(mr):
+        gr = mr.groupby(keys + ["role"])["w"].sum().reset_index()
+        role = gr.loc[gr.groupby(keys)["w"].idxmax(), keys + ["role"]].rename(columns={"role": "_role"})
+        p = p.merge(role, on=keys, how="left")
+    else:
+        p["_role"] = np.nan
+    p["position_role"] = np.where(p["position"] == "MF", p["_role"].fillna("CM"), p["position_detail"])
+    p.loc[p["position"].isna(), "position_role"] = np.nan
+    p = p.drop(columns="_role")
+    cols = [c for c in p.columns if c not in ("position", "position_detail", "position_role")]
     i = cols.index("player") + 1
-    return p[cols[:i] + ["position", "position_detail"] + cols[i:]]
+    return p[cols[:i] + ["position", "position_detail", "position_role"] + cols[i:]]
 
 
-def add_ranks(players, min_minutes=RANK_MIN_MINUTES):
+def rank_thresholds(players, min_minutes=None):
+    """
+    リーグ・シーズンごとの、順位を付ける出場時間の下限（分）を返す。戻り値: {(league, season): 分}
+    min_minutes を渡せば、すべてのリーグ・シーズンでその値に固定する。
+    渡さない（None）場合は、消化した試合数に合わせる: 消化した試合数（選手の最大出場試合数）×90分×RANK_MIN_SHARE。
+    ただし RANK_MIN_FLOOR 以上、RANK_MIN_MINUTES（900分）以下。1シーズンを消化したあとは、これまでどおり900分になる。
+    """
+    base = players[players["venue"] == "all"]
+    games = base.groupby(["league", "season"])["matches"].max()
+    if min_minutes is not None:
+        return {k: float(min_minutes) for k in games.index}
+    return {k: float(min(RANK_MIN_MINUTES, max(RANK_MIN_FLOOR, RANK_MIN_SHARE * n * MAX_MATCH_MINUTES)))
+            for k, n in games.items()}
+
+
+def add_ranks(players, min_minutes=None):
     """
     RANK_SPECS の指標について、順位（<指標>_順位）と母数（<指標>_順位_母数）を付ける。
     順位は「同じリーグ・同じシーズン・同じ集団（FW / MF / CB / SB / GK）・同じ venue」の中で付け、
-    シーズン通算の出場時間が min_minutes 以上で、分母（試行数）が下限以上の選手だけが対象になる。
+    シーズン通算の出場時間が下限以上で、分母（試行数）が下限以上の選手だけが対象になる。
+    出場時間の下限は rank_thresholds() で決める（既定は、1シーズンを消化したあとは900分。シーズン途中は消化した試合数に合わせて下げる）。
+    分母（試行数）の下限も、出場時間の下限が900分より小さいときは、同じ割合で下げる。
     条件を満たさない行は、順位・母数とも空欄。母数は、順位を付けた対象の人数。1位が最も良い。
     venue が home / away の行は、その venue の値で順位を付ける（出場時間の条件は通算で判定する）。
     """
@@ -1030,10 +1473,17 @@ def add_ranks(players, min_minutes=RANK_MIN_MINUTES):
         return pd.Series(series.reindex(idx).to_numpy(), index=p.index)
 
     tot_min = from_all(pd.to_numeric(base["minutes"], errors="coerce"))
+    thr_map = rank_thresholds(p, min_minutes)
+    thr = pd.Series([thr_map.get((lg, se), float(RANK_MIN_MINUTES)) for lg, se in zip(p["league"], p["season"])], index=p.index)
+    scale = (thr / RANK_MIN_MINUTES).clip(upper=1.0)         # 分母の下限を下げる割合（900分のときは1）
+    if (thr < RANK_MIN_MINUTES).any():
+        low = {f"{lg} {se}": int(v) for (lg, se), v in thr_map.items() if v < RANK_MIN_MINUTES}
+        print(f"  順位の出場時間の下限（シーズン途中のため引き下げ）: {low}")
     derived = {                                   # 列としては無い分母（通算の値から作る）
         "challenges": lambda b: b["tackles"] + b["dribbled_past"],
         "duels": lambda b: b["tackles"] + b["aerials"],
         "shots_faced": lambda b: b["saves"] + b["goals_conceded"],
+        "shots_np": lambda b: b["shots"] - b["penalties_taken"],                 # PKを除くシュート
     }
     denoms = {}
     for specs in RANK_SPECS.values():
@@ -1045,16 +1495,19 @@ def add_ranks(players, min_minutes=RANK_MIN_MINUTES):
                     denoms[denom] = None          # その分母の列が無い（例: ボール運びを取っていない）→ 指標ごと飛ばす
     group = pd.Series(np.where(p["position"] == "DF", p["position_detail"], p["position"]), index=p.index)
 
-    new = {}
+    new, skipped = {}, []
     for key, specs in RANK_SPECS.items():
         for col, direction, denom, dmin in specs:
             if col not in p:
+                if col not in skipped:
+                    skipped.append(col)
                 continue
-            ok = (group == key) & (tot_min >= min_minutes) & p[col].notna()
+            ok = (group == key) & (tot_min >= thr) & p[col].notna()
             if denom:
                 if denoms.get(denom) is None:
                     continue
-                ok &= denoms[denom].fillna(0) >= dmin
+                need = np.ceil(dmin * scale).clip(lower=1) if dmin else 0
+                ok &= denoms[denom].fillna(0) >= need
             rk, pop = f"{col}_順位", f"{col}_順位_母数"
             if rk not in new:
                 new[rk] = pd.Series(pd.array([pd.NA] * len(p), dtype="Int64"), index=p.index)
@@ -1064,6 +1517,8 @@ def add_ranks(players, min_minutes=RANK_MIN_MINUTES):
             grp = p.loc[ok].groupby(["league", "season", "venue"])[col]
             new[rk].loc[ok] = grp.rank(ascending=(direction == "low"), method="min").astype(int)
             new[pop].loc[ok] = grp.transform("size").astype(int)
+    if skipped:
+        print(f"  注意: 次の指標は列が無いため、順位を付けません（Understat・ボール運びを取っていない場合など）: {', '.join(skipped)}")
     return pd.concat([p, pd.DataFrame(new, index=p.index)], axis=1)
 
 
@@ -1145,7 +1600,7 @@ def load_existing_matches(path):
 
 
 def process_job(name, year, out, n=None, last=False, rebuild=False, use_understat=True,
-                use_approx=True, fetch=None, fetch_us=None):
+                use_approx=True, fetch=None, fetch_us=None, rank_min_minutes=None):
     """
     1リーグ・1シーズンを取得して保存する。既存のxlsxがあれば、その matches に新しい試合の行を足す
     （取得済みの試合は取り直さない）。players は、足したあとの matches から作り直す。
@@ -1164,6 +1619,7 @@ def process_job(name, year, out, n=None, last=False, rebuild=False, use_understa
         global _QUALIFIERS_CHECKED
         if not _QUALIFIERS_CHECKED:
             check_qualifiers(events)                   # 初回はqualifier名を確認
+            report_qualifier_events(events)
             _QUALIFIERS_CHECKED = True
         events = add_match_info(events, schedule)
         mp = read_match_players(files)
@@ -1171,7 +1627,27 @@ def process_job(name, year, out, n=None, last=False, rebuild=False, use_understa
         if mp.empty or mp["rating"].isna().all():
             print("  注意: 試合JSONから評価・出場時間を読めませんでした（rating等は空欄になります）")
         sca = compute_sca(events) if use_approx else None   # シュートにつながったプレー（近似）
+        if sca is not None and len(sca):
+            print("  SCA（シュートにつながったプレー）: "
+                  + " / ".join(f"{k} {int(sca[f'sca_{k}'].sum())}" for k in SCA_KINDS)
+                  + "（foul_won がほぼ0のままなら、SCA_MAX_GAP_FOUL_S の設定を確認する）")
+        if use_approx and carries is None:
+            carries = compute_carries_from_events(events)          # イベントから推定（socceraction は使わない）
+            if len(carries):
+                n_g = events["game_id"].nunique()
+                print(f"  ボール運び {int(carries['carries'].sum())}回 / プログレッシブ {int(carries['progressive_carries'].sum())}回"
+                      f"（1試合あたり、両チームで {carries['progressive_carries'].sum() / max(n_g, 1):.0f}回。数十回程度が目安）")
         new = build_match_table(events, mp, sca=sca, carries=carries)
+        if new["age"].isna().all():
+            print("  注意: 試合JSONに年齢・身長が無かったため、age・height は空欄です")
+        n_a, n_g = int(new["assists"].sum()), int(new["goals"].sum())
+        print(f"  アシスト{n_a}本 / ゴール{n_g}本（目安: アシストはゴールの6〜7割）")
+        print(f"  PK{int(new['penalties_taken'].sum())}本（成功{int(new['penalty_goals'].sum())}本） / "
+              f"ビッグチャンス{int(new['big_chances'].sum())}本（創出{int(new['big_chances_created'].sum())}本） / "
+              f"カード 黄{int(new['yellow_cards'].sum())}・赤{int(new['red_cards'].sum())} / "
+              f"オフサイド{int(new['offsides'].sum())}・誘った{int(new['offsides_provoked'].sum())}")
+        if n_g and n_a == 0:
+            print("  警告: アシストを数えられませんでした（イベントに related_event_id / related_player_id が無い可能性）")
         new["league"], new["season"] = name, season_label(year)
         n_new = new["game_id"].nunique()
 
@@ -1189,7 +1665,7 @@ def process_job(name, year, out, n=None, last=False, rebuild=False, use_understa
             print(f"  Understatの結合をスキップ: {e}")
     elif n is not None:
         print("  注意: --n 指定のため Understat は結合しません（動作確認用）")
-    players = add_ranks(add_per90(players))          # 順位は同じリーグの中で付ける
+    players = add_ranks(add_per90(players), min_minutes=rank_min_minutes)   # 順位は同じリーグの中で付ける
     players["league"], players["season"] = name, season_label(year)
     return players, matches, save_job(out, name, year, players, matches), n_new
 
@@ -1213,6 +1689,9 @@ def _event_files(out):
     return sorted(found, key=lambda t: (t[1], order.get(t[0].parent.name, 99)))
 
 
+SPLIT_BY_LEAGUE = True         # True なら、matches の結合ファイルをリーグ別に分けて書く（既定。--no-split-by-league で1ファイル）
+
+
 def write_by_season(d, kind, sheets):
     """
     結合ファイルをシーズンごとに分けたxlsxも作る（結合/<開幕年>年/all_leagues_<players|matches>_<開幕年>.xlsx）。
@@ -1227,19 +1706,32 @@ def write_by_season(d, kind, sheets):
         print("  ※ xlsxwriter が無いため、結合ファイルが大きめになります（python -m pip install xlsxwriter で入ります）")
     for label, df in sheets.items():
         year = label[:4]
-        path = Path(d) / f"{year}年" / f"all_leagues_{kind}_{year}.xlsx"
-        path.parent.mkdir(parents=True, exist_ok=True)
         df = df.assign(player_id=pd.to_numeric(df["player_id"], errors="coerce").astype("Int64"))
-        with pd.ExcelWriter(path, engine=engine) as xw:
-            df.to_excel(xw, sheet_name=label[:31], index=False)
-        print(f"  結合（{kind}）: {label} → {path}（{path.stat().st_size / 1048576:.1f}MiB）")
+        if SPLIT_BY_LEAGUE and kind == "matches":       # リーグ別: all_leagues_matches_<年>_<リーグ>.xlsx
+            parts = [(f"all_leagues_{kind}_{year}_{lg}.xlsx", g) for lg, g in df.groupby("league", sort=False)]
+            old = Path(d) / f"{year}年" / f"all_leagues_{kind}_{year}.xlsx"     # 以前の、全リーグ1ファイルは消す（25MiB超で上げられない）
+            if old.exists():
+                old.unlink()
+                print(f"  古い全リーグ1ファイルを削除: {old}")
+        else:
+            parts = [(f"all_leagues_{kind}_{year}.xlsx", df)]
+        for fname, part in parts:
+            path = Path(d) / f"{year}年" / fname
+            path.parent.mkdir(parents=True, exist_ok=True)
+            with pd.ExcelWriter(path, engine=engine) as xw:
+                part.to_excel(xw, sheet_name=label[:31], index=False)
+            mib = path.stat().st_size / 1048576
+            print(f"  結合（{kind}）: {label} → {path}（{mib:.1f}MiB）")
+            if mib > 24:
+                print(f"  警告: {mib:.1f}MiB はGitHubのブラウザアップロード上限（25MiB）に近いか、超えています。"
+                      "リーグ別に分けても超える場合は、列を減らすなどの対応が必要です")
 
 
 def rebuild_combined(out):
     """
     全リーグのファイル（過去の実行分も含む）を、シーズンごとに結合して、次のxlsxを作り直す（GitHubへブラウザで上げる用に、シーズン別に分けている）。
       結合/<開幕年>年/all_leagues_players_<開幕年>.xlsx  … 選手のシーズン集計（全リーグ・1シーズン。1シート）
-      結合/<開幕年>年/all_leagues_matches_<開幕年>.xlsx  … 選手×試合の表（同上）
+      結合/<開幕年>年/all_leagues_matches_<開幕年>_<リーグ>.xlsx  … 選手×試合の表（リーグ別）
     """
     files = _event_files(out)
     if not files:
@@ -1278,8 +1770,16 @@ def main():
                    help="取得のあとに結合しない（並列で実行するときに使い、最後に --combine-only で1回だけ結合する）")
     g.add_argument("--combine-only", action="store_true",
                    help="取得はせず、出力フォルダにあるファイルの結合だけを行う")
+    p.add_argument("--rank-min-minutes", type=float, default=None,
+                   help="順位を付ける出場時間の下限（分）を固定する。省略時は、1シーズンを消化したあとは900分、"
+                        "シーズン途中は消化した試合数に合わせて下げる")
+    p.add_argument("--split-by-league", action="store_true",
+                   help="（既定なので指定しなくてよい）結合した matches のxlsxを、リーグ別のファイルに分ける。"
+                        "all_leagues_matches_<年>_<リーグ>.xlsx")
+    p.add_argument("--no-split-by-league", action="store_true",
+                   help="結合した matches を、リーグ別に分けず、全リーグ1ファイル（all_leagues_matches_<年>.xlsx）にする。25MiBを超える")
     p.add_argument("--out", default=str(DEFAULT_OUT),
-                   help="出力フォルダ（省略時はこのスクリプトと同じ場所の output フォルダ）")
+                   help="出力フォルダ（省略時はこのスクリプトと同じ場所（scripts フォルダの中なら、その1つ上）の output フォルダ）")
     args = p.parse_args()
 
     try:
@@ -1288,6 +1788,8 @@ def main():
         raise SystemExit("Excel出力に openpyxl が必要です: python -m pip install openpyxl")
 
     print(f"出力先: {Path(args.out).resolve()}")
+    global SPLIT_BY_LEAGUE
+    SPLIT_BY_LEAGUE = not args.no_split_by_league
     if args.combine_only:
         rebuild_combined(args.out)
         return
@@ -1297,7 +1799,8 @@ def main():
         try:
             players, matches, path, n_new = process_job(
                 name, year, args.out, n=args.n, last=args.last, rebuild=args.rebuild,
-                use_understat=not args.no_understat, use_approx=not args.no_approx)
+                use_understat=not args.no_understat, use_approx=not args.no_approx,
+                rank_min_minutes=args.rank_min_minutes)
         except PermissionError:
             print(f"[{label}] xlsxに保存できません（Excelで開いていれば閉じて再実行してください）")
             continue
