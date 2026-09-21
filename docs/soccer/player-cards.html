@@ -98,7 +98,8 @@
   .mtx-flow{ display:flex; flex-wrap:wrap; gap:8px 18px; align-items:flex-start; }        /* 幅に余裕があれば、表を横に並べる */
   .mtx-block{ min-width:0; max-width:100%; }
   .mtx-block .sub-h{ margin:6px 0 4px; }
-  .mtx-wrap{ overflow-x:auto; -webkit-overflow-scrolling:touch; max-width:100%; }
+  .mtx-wrap{ overflow-x:auto; -webkit-overflow-scrolling:touch; max-width:100%; scrollbar-width:none; }      /* スクロールバーは出さない */
+  .mtx-wrap::-webkit-scrollbar{ display:none; }
   table.mtx{ width:auto; border-collapse:collapse; font-family:'DM Mono',monospace; }
   .mtx th{ padding:6px 8px; font-size:9px; font-weight:600; color:var(--text-dim); white-space:nowrap; text-align:left;
     background:var(--panel-alt); border-bottom:1px solid rgba(148,163,184,0.15); }
@@ -241,7 +242,7 @@ const AI_GROUPS = [["play_style", "プレースタイル"], ["season_metrics", "
 //   LAYOUT … 大カテゴリ → 中カテゴリ → 指標の一覧（指標の置き場所と、表示名・単位・良い方向を決める）
 //            指標: [列名, 表示名, 単位(省略可: "%" / "m"), 良い方向(省略可: "low"=小さいほど良い / "neutral"=良し悪しなし)]
 //            中カテゴリが null の大カテゴリは、見出し1段だけになる
-//   SHOW   … ポジションごとに出す指標。core＝「コア」印つき（先に並ぶ）、more＝それ以外。MFは役割（DM/CM/AM）でコアが変わる
+//   SHOW   … ポジションごとに出す指標（core と more は、どちらも表に出る。並びは LAYOUT の順）。MFは、役割（DM/CM/AM）で core が変わる
 //            LAYOUT に無い指標、stats に値が無い指標は、自動で出ない
 const DEFAULT_CAT_ORDER = ["シュート", "チャンス創出", "パス", "ドリブル", "守備", "空中戦・デュエル", "規律・ミス", "GK"];
 const CAT_ORDER = {                                    // 大カテゴリの並び（ここに無いポジションは DEFAULT_CAT_ORDER）
@@ -384,8 +385,9 @@ const SHOW = {
 };
 
 const METRIC_DEFS = new Map();                           // 列名 → {key, label, unit, better, cat, sub, li}
+let _pi = 0;                                             // LAYOUT の上から数えた通し番号（表の列の並びに使う）
 LAYOUT.forEach(([cat, sub, list], li) => list.forEach(([key, label, unit, better]) =>
-  METRIC_DEFS.set(key, { key, label, unit: unit || "", better: better || "high", cat, sub, li })));
+  METRIC_DEFS.set(key, { key, label, unit: unit || "", better: better || "high", cat, sub, li, pi: _pi++ })));
 // ══════════════════════════════════════════════════════════════════════════════════════
 
 const $ = (s) => document.querySelector(s);
@@ -674,8 +676,8 @@ function itemsFor(c){
   const items = [];
   wanted.forEach(([k, core]) => { const d = METRIC_DEFS.get(k); if(d && c.stats[k]) items.push({ ...d, core }); });
   const order = CAT_ORDER[c.group] || DEFAULT_CAT_ORDER, ci = (cat) => { const i = order.indexOf(cat); return i < 0 ? order.length : i; };
-  // 並び：大カテゴリ → 中カテゴリ（LAYOUT の順）→ SHOW で core に入れた指標が先 → SHOW の順
-  return items.map((m, n) => ({ m, n })).sort((a, b) => ci(a.m.cat) - ci(b.m.cat) || a.m.li - b.m.li || (+b.m.core) - (+a.m.core) || a.n - b.n).map(x => x.m);
+  // 並び：大カテゴリ（CAT_ORDER の順）→ LAYOUT に書いた順（中カテゴリ・指標とも）
+  return items.map((m, n) => ({ m, n })).sort((a, b) => ci(a.m.cat) - ci(b.m.cat) || a.m.pi - b.m.pi || a.n - b.n).map(x => x.m);
 }
 
 // ── 指標の表（大カテゴリごと。行＝年度、または年度×ホーム/アウェイ。列＝中カテゴリ＞指標）──
@@ -698,7 +700,12 @@ function tierOf(c){
   const p = c.rank / c.pop;                                               // 0に近いほど上位（順位は、良い方向を反映済み）
   return p <= 0.15 ? "top15" : p <= 0.30 ? "top30" : p <= 0.40 ? "top40" : p > 0.85 ? "bot85" : p > 0.70 ? "bot70" : p > 0.60 ? "bot60" : "mid";
 }
-const statCell = (card, key, v) => { const a = card.stats && card.stats[key] && card.stats[key][VIDX[v]]; return a ? { v: a[0], rank: a[1] ?? null, pop: a[2] ?? null } : null; };
+// stats のマス：[値, 順位, 母数]。run.py に順位が無く、build 側で作った順位は [値, 大きい順, 母数, 小さい順] の4要素（小さいほど良い指標は、小さい順を使う）
+const statCell = (card, key, v, better) => {
+  const a = card.stats && card.stats[key] && card.stats[key][VIDX[v]];
+  if(!a) return null;
+  return { v: a[0], rank: (a.length >= 4 && better === "low") ? a[3] : (a[1] ?? null), pop: a[2] ?? null };
+};
 const statTotal = (card, key, v) => { const a = card.stats && card.stats[key.replace(/_p90$/, "")]; return a && a[VIDX[v]] ? a[VIDX[v]][0] : null; };
 
 // 表示桁：90分あたり＝小数2桁、割合・平均（m）＝小数1桁、累計・回数＝整数（小数があれば2桁）。「1」と「1.00」が混ざらないようにする
@@ -714,9 +721,9 @@ function metricTd(card, m, v, gl){
   if(mtEff === "total" && isPer90(m)){
     text = fmtCell(statTotal(card, m.key, v), m, true);                     // 累計には順位が無いので、色も順位も付けない
   }else{
-    const c = statCell(card, m.key, v);
+    const c = statCell(card, m.key, v, m.better);
     text = fmtCell(c && c.v, m, false);
-    if(c && m.better !== "neutral" && c.rank != null){ rk = `<span class="hr">${c.rank}位 / ${c.pop}人</span>`; bg = TIER_COLOR[tierOf(c)]; }
+    if(c && c.rank != null){ rk = `<span class="hr">${c.rank}位 / ${c.pop}人</span>`; bg = TIER_COLOR[tierOf(c)]; }
   }
   return `<td${gl ? ' class="gl"' : ""}${bg ? ` style="background:${bg}"` : ""}><span class="hv">${text}</span>${rk}</td>`;
 }
@@ -755,8 +762,8 @@ function metricsSection(cards){
   const blocks = cats.map(k => `<div class="mtx-block"><h3 class="sub-h">${esc(k)}</h3>${metricsTable(cards, [...byCat.get(k)])}</div>`).join("");
   return `<div class="card"><h2><span>指標</span><span class="seg-row">${hasTotal ? seg(MT_BASIS, mtEff, "mtBasisSeg", "b") : ""}${seg(MT_ROWS, mtRows, "mtRowsSeg", "r")}</span></h2>
     <div class="mtx-flow">${blocks}</div>
-    <p class="note">色は、同じリーグ・同じ集団（FW / WG / MF / CB / SB / GK）の中での順位です（青緑＝上位、赤＝下位。上位・下位15% / 30% / 40%で濃さが変わる）。値の下は、順位 / 母数です。対象は、出場時間が900分以上（シーズン途中は、消化した試合数に合わせて下げた条件）で、試行数が一定以上の選手です。「ノンPK」は、PKを除いた値です。</p>
-    <p class="note">${hasTotal ? "「全体」は累計の回数で、順位が無いので色は付きません（割合の指標だけ、色が付きます）。" : ""}色が付かない指標は、良し悪しではないスタイルの指標や、順位の計算対象外の指標です。</p></div>`;
+    <p class="note">値の下は、同じリーグ・同じ集団（FW / WG / MF / CB / SB / GK）の中での順位 / 母数です。色は、その順位で決まります（青緑＝上位、赤＝下位。上位・下位15% / 30% / 40%で濃さが変わる）。対象は、出場時間が900分以上（シーズン途中は、消化した試合数に合わせて下げた条件）で、試行数が一定以上の選手です。「ノンPK」は、PKを除いた値です。</p>
+    <p class="note">${hasTotal ? "「全体」は累計の回数で、順位が無いので色は付きません（割合の指標だけ、色が付きます）。" : ""}良し悪しのない指標（前方パスの割合、平均パス距離など）は、値が大きい順の順位で、青緑＝値が大きい、赤＝値が小さい、です。順位が付かない指標は、試行数が少ないなどで、順位の対象外の指標です。</p></div>`;
 }
 
 function playtypeBody(x){
