@@ -92,6 +92,18 @@
   .seg button{ border:none; background:transparent; color:var(--text-dim); font-size:11.5px; font-weight:700; padding:4px 11px; border-radius:6px; cursor:pointer; }
   .seg button.active{ background:var(--panel-alt); color:var(--text-bright); }
 
+  /* 指標セクション（カテゴリ別のタイル） */
+  .seg-row{ display:inline-flex; gap:8px; flex-wrap:wrap; }
+  .mt-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:8px; }
+  .mt{ background:var(--panel-alt); border:1px solid var(--border); border-radius:10px; padding:8px 10px; min-width:0; }
+  .mt.core{ border-color:rgba(59,130,246,0.5); }
+  .mt-l{ display:flex; justify-content:space-between; align-items:flex-start; gap:6px; font-size:11px; color:var(--text-dim); line-height:1.35; }
+  .core-tag{ flex-shrink:0; font-size:9px; font-weight:800; color:var(--blue-text); background:rgba(59,130,246,0.18); padding:0 5px; border-radius:4px; }
+  .mt-l .sub-mark{ display:block; margin:1px 0 0; }
+  .mt-v{ margin-top:4px; white-space:nowrap; }
+  .mt-v .val{ font-size:17px; }
+  .mt-v .u{ font-size:10px; color:var(--text-dim); margin-left:3px; }
+
   .pt-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(230px,1fr)); gap:10px; }
   .pt{ background:var(--panel-alt); border:1px solid var(--border); border-radius:12px; padding:11px 13px; }
   .pt-title{ font-size:13px; font-weight:800; color:var(--text-bright); }
@@ -137,6 +149,7 @@
     .body-layout:not(.has-selection) main{ display:none; }
     .back-btn{ display:inline-block; }
     main{ padding:0 12px 60px; }
+    .mt-grid{ grid-template-columns:repeat(2,minmax(0,1fr)); }
     .back-btn{ margin-top:10px; }
     .p-head{ margin:0 -12px 12px; padding:8px 12px 8px; gap:8px; align-items:stretch; }
     .p-name{ font-size:18px; }
@@ -215,6 +228,7 @@ const leagueEl = $("#leagueSelect"), seasonEl = $("#seasonSelect");
 
 let manifest = null, league = "all", seasonSel = "all";     // league: リーグ名または "all"（全リーグ） / seasonSel: 年（"2025"）または "all"（すべての年度）
 let allPlayers = [], activeId = null, sortField = "rating_avg", sortDir = "desc";
+let mtBasis = "p90", mtVenue = "all", mtEff = "p90";           // 指標セクションの切替（全体=累計 / 90分あたり、全試合 / ホーム / アウェイ）
 let ptVenue = "all", activeCards = [], primaryIdx = 0;      // activeCards: [{year, title, card, llm}]（新しい年度が先頭）。primaryIdx = ヘッダーなどに使う年度
 let logSort = { key: "date", dir: "desc" };                 // シーズン成績の並び順（既定は日付の降順）
 let openState = {};                                         // 年度ブロックの開閉状態
@@ -445,7 +459,7 @@ async function selectPlayer(key){
     cards.forEach(x => { x.title = yLabel(x.year) + (multi ? ` ・ ${x.card.team}` : ""); });
     activeCards = cards;
     primaryIdx = Math.max(0, cards.findIndex(x => isReady(x.card.league, x.year)));
-    ptVenue = "all";
+    ptVenue = "all"; mtVenue = "all";
     renderCard();
     mainEl.scrollTop = 0;
   }catch(e){
@@ -484,33 +498,49 @@ function aiBody(x){
 }
 const aiSection = (cards) => `<div class="card"><h2>AI解釈</h2>${yearBlocks("ai", cards, aiBody)}</div>`;
 
-// 指標の表（コア指標・詳細指標で共通）。良し悪しではない指標（better = neutral）には、順位を出さない
-function metricsTable(list){
-  const rows = list.map(m => `<tr><td>${esc(lbl(m.label))}${m.better === "low" ? '<span class="sub-mark">（小さいほど良い）</span>' : ""}</td>
-    ${["all", "home", "away"].map(v => `<td class="num"><span class="val">${fmt(m[v]?.v, m.unit)}</span>${m.better === "neutral" ? "" : rankChip(m[v])}</td>`).join("")}</tr>`).join("");
-  return `<div class="table-scroll"><table>
-    <thead><tr><th>指標</th><th class="num">全体</th><th class="num">ホーム</th><th class="num">アウェイ</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+// ── 指標（コア指標＋詳細指標を、カテゴリ別のタイルにまとめる）──
+// card.metrics: [{key, label, unit, better, cat, core, all/home/away:{v,rank,pop}, total:{all,home,away}}]
+// total（累計）は、90分あたりの指標にだけ付く。割合・平均の指標は、どちらのタブでも同じ値を出す。
+const MT_BASIS = [["total", "全体"], ["p90", "90分あたり"]];
+const MT_VENUE = [["all", "全試合"], ["home", "ホーム"], ["away", "アウェイ"]];
+const P90_RE = /\/90(?=$|[（(\s])/;
+const isPer90 = (m) => /_p90$/.test(m.key || "") || P90_RE.test(m.label || "");
+const noP90 = (s) => String(s ?? "").replace(P90_RE, "");
+function metricItems(c){
+  if(Array.isArray(c.metrics) && c.metrics.length) return c.metrics;
+  // 旧形式のJSON（core / detail のみ）：カテゴリも累計値も無いので、旧テーマ名をそのままカテゴリにする
+  return [...(c.core || []).map(m => ({ ...m, cat: "コア指標", core: true })),
+          ...(c.detail || []).flatMap(sec => (sec.metrics || []).map(m => ({ ...m, cat: sec.title })))];
 }
-function coreBody(c){
-  if(!(c.core || []).length) return "";
-  return metricsTable(c.core);
+function metricTile(m){
+  const per = isPer90(m), asTotal = mtEff === "total" && per;
+  let val, chip = "", unit = "";
+  if(asTotal){
+    val = fmt(m.total ? m.total[mtVenue] : null, m.unit);                 // 累計には順位が無い
+  }else{
+    val = fmt(m[mtVenue]?.v, m.unit);
+    if(per) unit = '<span class="u">/90分</span>';
+    if(m.better !== "neutral") chip = rankChip(m[mtVenue]);
+  }
+  return `<div class="mt${m.core ? " core" : ""}"><div class="mt-l"><span>${esc(noP90(m.label))}${m.better === "low" ? '<span class="sub-mark">（小さいほど良い）</span>' : ""}</span>${m.core ? '<span class="core-tag">コア</span>' : ""}</div>
+    <div class="mt-v"><span class="val">${val}</span>${unit}</div>${chip}</div>`;
 }
-function coreSection(cards){
-  const blocks = yearBlocks("core", cards, x => coreBody(x.card));
+function metricsBody(c){
+  const items = metricItems(c);
+  if(!items.length) return "";
+  const cats = [], by = new Map();                                         // カテゴリは、出てくる順（並びはビルド側で決める）
+  items.forEach(m => { const k = m.cat || "その他"; if(!by.has(k)){ by.set(k, []); cats.push(k); } by.get(k).push(m); });
+  return cats.map(k => `<h3 class="sub-h">${esc(k)}</h3><div class="mt-grid">${by.get(k).map(metricTile).join("")}</div>`).join("");
+}
+function metricsSection(cards){
+  const hasTotal = cards.some(x => metricItems(x.card).some(m => m.total));
+  mtEff = hasTotal ? mtBasis : "p90";                                      // 累計値が無いデータのときは「90分あたり」だけ
+  const blocks = yearBlocks("metrics", cards, x => metricsBody(x.card));
   if(!blocks) return "";
-  return `<div class="card"><h2>コア指標</h2>${blocks}
-    <p class="note">順位は、同じリーグ・同じ集団（FW / WG / MF / CB / SB / GK）の中での順位です。対象は、出場時間が900分以上（シーズン途中は、消化した試合数に合わせて下げた条件）で、試行数が一定以上の選手です。「ノンPK」は、PKを除いた値です。</p></div>`;
-}
-function detailBody(c){
-  const secs = c.detail || [];
-  if(!secs.length) return "";
-  return secs.map(sec => `<h3 class="sub-h">${esc(sec.title)}</h3>${metricsTable(sec.metrics)}`).join("");
-}
-function detailSection(cards){
-  const blocks = yearBlocks("detail", cards, x => detailBody(x.card));
-  if(!blocks) return "";
-  return `<div class="card"><h2>詳細指標</h2>${blocks}
-    <p class="note">順位が出ていない指標は、値だけを表示しています（良し悪しではないスタイルの指標や、順位の計算対象外の指標）。</p></div>`;
+  const seg = (list, cur, id, attr) => `<span class="seg" id="${id}">${list.map(([k, l]) => `<button data-${attr}="${k}" class="${k === cur ? "active" : ""}">${l}</button>`).join("")}</span>`;
+  return `<div class="card"><h2><span>指標</span><span class="seg-row">${hasTotal ? seg(MT_BASIS, mtEff, "mtBasisSeg", "b") : ""}${seg(MT_VENUE, mtVenue, "mtVenueSeg", "v")}</span></h2>${blocks}
+    <p class="note">青い枠の「コア」は、そのポジションで特に重視する指標です。順位は、同じリーグ・同じ集団（FW / WG / MF / CB / SB / GK）の中での順位です。対象は、出場時間が900分以上（シーズン途中は、消化した試合数に合わせて下げた条件）で、試行数が一定以上の選手です。「ノンPK」は、PKを除いた値です。</p>
+    <p class="note">${hasTotal ? "「全体」は累計の回数で、順位は付きません（順位は「90分あたり」と、割合の指標に出ます）。" : ""}順位が出ていない指標は、値だけを表示しています（良し悪しではないスタイルの指標や、順位の計算対象外の指標）。</p></div>`;
 }
 
 function playtypeBody(x){
@@ -655,7 +685,7 @@ function renderCard(){
         <div class="p-sub"><span class="pos-badge" title="${esc(pb.map(x => `${x.pos}(${x.label}) ${Math.round(x.share*100)}%`).join(" / "))}">${esc(pb.length ? pb[0].label : S.group)}</span>${esc(S.team)}${pb.length > 1 ? ` <span class="pos-mix">・ ${pb.slice(0, 3).map(x => `${esc(x.label)} ${Math.round(x.share*100)}%`).join(" / ")}</span>` : ""}${seasonSel === "all" ? (primaryIdx === 0 ? ` <span class="pos-mix">・ 最新年度（${esc(yLabel(cards[0].year))}）</span>` : ` <span class="pos-mix">・ ${esc(yLabel(cards[primaryIdx].year))}のデータ（${esc(yLabel(cards[0].year))}は消化した試合が少ないため）</span>`) : ""}</div></div>
       <div class="kpis">${kpiHtml}</div>
     </div>
-    ${aiSection(cards)}${coreSection(cards)}${detailSection(cards)}${playtypeSection(cards)}${logSection(cards)}`;
+    ${aiSection(cards)}${metricsSection(cards)}${playtypeSection(cards)}${logSection(cards)}`;
 }
 
 // 描き直しても、スクロール位置と年度ブロックの開閉を保つ
@@ -663,6 +693,10 @@ function rerender(){ const y = mainEl.scrollTop; renderCard(); mainEl.scrollTop 
 mainEl.addEventListener("click", (e) => {
   const back = e.target.closest("#backBtn");
   if(back){ bodyEl.classList.remove("has-selection"); return; }
+  const mb = e.target.closest("#mtBasisSeg button");
+  if(mb){ mtBasis = mb.dataset.b; rerender(); return; }
+  const mv = e.target.closest("#mtVenueSeg button");
+  if(mv){ mtVenue = mv.dataset.v; rerender(); return; }
   const seg = e.target.closest("#ptSeg button");
   if(seg){ ptVenue = seg.dataset.v; rerender(); return; }
   const th = e.target.closest("th.sortable");
