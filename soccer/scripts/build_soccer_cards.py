@@ -184,7 +184,8 @@ GROUPS = ("FW", "WG", "MF", "CB", "SB", "GK")
 # ---- stats：カードに載せる「全指標の生データ」------------------------------------------------
 # 画面（player-cards.html）は、この stats から、出したい指標を自分で選んで並べる。
 # → どの指標を・どのカテゴリに・どのポジションに出すかを変えるときは、HTML だけを直せばよく、このスクリプトの再実行は要らない。
-# 形式: {列名: [全体, ホーム, アウェイ]}、各要素は [値, 順位, 母数]（順位が無ければ [値]、その試合区分に値が無ければ null）
+# 形式: {列名: [全体, ホーム, アウェイ]}、各要素は [値, 順位, 母数]（順位が無ければ [値]、その試合区分に値が無ければ null）。
+# run.py に順位が無い指標は、[値, 大きい順の順位, 母数, 小さい順の順位] の4要素（add_derived_ranks）
 STATS_SKIP = {"player_id", "touch_pos_n", "pass_distance", "goal_kick_distance",          # ID・内部用の合計値は載せない
               "touch_x_sum", "touch_y_sum", "touch_width_sum"}
 STATS_SKIP_SUFFIX = ("_順位", "_順位_母数")
@@ -290,6 +291,35 @@ def stats_entries(rows, stat_cols):
     return out
 
 
+# run.py が順位（_順位）を作っていない指標にも、順位を付ける（画面で、すべての指標に順位とカラースケールを出すため）。
+# 対象：90分あたり（_p90）・割合（_pct）・平均（avg_）と、下の EXTRA。累計の回数は対象外。
+# 同じリーグ・シーズン・ポジション（FW/WG/MF/CB/SB/GK）で、カードを作った選手の中での順位。
+# 値の大きい順（rank_desc）と小さい順（rank_asc）の両方を入れ、どちらを使うか（大きいほど良い/小さいほど良い）は画面側で決める。
+# run.py が一部の選手にだけ順位を付けている指標（試行数の下限があるもの）は、その基準を尊重して、ここでは順位を足さない。
+RANK_EXTRA = {"red_cards", "carries", "carries_final_third", "carries_into_box", "progressive_carries"}
+
+
+def wants_derived_rank(col):
+    return col.endswith(("_p90", "_pct")) or col.startswith("avg_") or col in RANK_EXTRA
+
+
+def add_derived_ranks(cards):
+    by_group = {}
+    for c in cards:
+        by_group.setdefault(c["group"], []).append(c)
+    for cs in by_group.values():
+        cols = {k for c in cs for k in c["stats"] if wants_derived_rank(k)}
+        for col in cols:
+            for vi in range(len(VENUES)):
+                cells = [(c, c["stats"][col][vi]) for c in cs if col in c["stats"] and c["stats"][col][vi] is not None]
+                if not cells or any(len(cell) >= 3 for _, cell in cells):
+                    continue                                       # 順位が無い、または run.py が順位を付けている指標
+                vals = pd.Series([cell[0] for _, cell in cells], dtype=float)
+                desc, asc = vals.rank(ascending=False, method="min"), vals.rank(ascending=True, method="min")
+                for (c, cell), d, a in zip(cells, desc, asc):
+                    c["stats"][col][vi] = [cell[0], int(d), len(vals), int(a)]      # [値, 大きい順の順位, 母数, 小さい順の順位]
+
+
 def core_specs(group, role):
     if group == "MF":
         return CORE_MF.get(role) or CORE_MF["CM"]
@@ -384,6 +414,7 @@ def build_cards(players, matches, league, year, min_minutes_fixed):
         for c in INDEX_SORT_COLS:
             idx[c] = num(a.get(c)) if c in columns else None
         index.append(idx)
+    add_derived_ranks(cards)
     return cards, index, threshold, games
 
 
