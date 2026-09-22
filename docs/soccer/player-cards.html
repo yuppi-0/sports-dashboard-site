@@ -100,26 +100,27 @@
   .mtx-block .sub-h{ margin:6px 0 4px; }
   .mtx-wrap{ overflow-x:auto; -webkit-overflow-scrolling:touch; max-width:100%; scrollbar-width:none; }      /* スクロールバーは出さない */
   .mtx-wrap::-webkit-scrollbar{ display:none; }
-  table.mtx{ width:auto; border-collapse:collapse; font-family:'DM Mono',monospace; }
-  .mtx th{ padding:6px 8px; font-size:9px; font-weight:600; color:var(--text-dim); white-space:nowrap; text-align:left;
-    background:var(--panel-alt); border-bottom:1px solid rgba(148,163,184,0.15); }
+  table.mtx{ table-layout:fixed; border-collapse:collapse; font-family:'DM Mono',monospace; }
+  .mtx th{ padding:5px 4px; font-size:8.5px; font-weight:600; color:var(--text-dim); white-space:normal; line-height:1.25; text-align:left;
+    background:var(--panel-alt); border-bottom:1px solid rgba(148,163,184,0.15); word-break:keep-all; overflow-wrap:normal; }
   .mtx th.grp{ color:var(--text); font-size:9.5px; font-weight:700; }
-  .mtx .ti{ display:inline-flex; align-items:center; justify-content:center; width:11px; height:11px; margin-left:3px; border-radius:50%;
-    background:rgba(148,163,184,0.25); color:var(--text-dim); font-size:8px; font-style:normal; cursor:help; }
-  .mtx td{ padding:5px 8px; font-size:12px; text-align:left; white-space:nowrap; vertical-align:middle; border-bottom:1px solid rgba(255,255,255,0.04);
-    box-shadow:inset -1px 0 0 rgba(5,8,15,0.35); }                                         /* 色付きのマスはセル全体。隣との境目に細い線 */
-  .mtx .hv{ display:block; font-size:12px; color:var(--text-bright); line-height:1.25; }
-  .mtx .hr{ display:block; font-size:8.5px; color:var(--text-dim); margin-top:1px; letter-spacing:0.02em; }
+  .mtx .ti{ display:inline-flex; align-items:center; justify-content:center; width:10px; height:10px; margin-left:2px; border-radius:50%; flex-shrink:0;
+    background:rgba(148,163,184,0.25); color:var(--text-dim); font-size:7.5px; font-style:normal; cursor:help; }
+  .mtx td{ padding:5px 4px; font-size:11px; text-align:left; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; vertical-align:middle;
+    border-bottom:1px solid rgba(255,255,255,0.04); box-shadow:inset -1px 0 0 rgba(5,8,15,0.35); }   /* 色付きのマスはセル全体。隣との境目に細い線 */
+  .mtx .hv{ display:block; font-size:11px; color:var(--text-bright); line-height:1.2; }
+  .mtx .hr{ display:block; font-size:7.5px; color:var(--text-dim); margin-top:1px; letter-spacing:0.01em; }
   .mtx .gl{ border-left:1px solid rgba(148,163,184,0.15); }                              /* 中カテゴリの区切り線 */
   /* 年度・区分（ホーム/アウェイ）の列は、横スクロールしても固定。2列目は1列目の幅の分だけ右に置く */
   .mtx th.stick, .mtx td.stick{ position:sticky; z-index:2; box-sizing:border-box; overflow:hidden; text-overflow:ellipsis; box-shadow:none; }
   .mtx td.stick{ background:var(--panel); font-size:11px; color:var(--text-bright); font-weight:700; }
   .mtx th.stick{ background:var(--panel-alt); z-index:3; }
-  .mtx .s1{ left:0; width:84px; min-width:84px; max-width:84px; }
-  .mtx .s2{ left:84px; width:64px; min-width:64px; max-width:64px; }
+  .mtx .s1{ left:0; }
+  .mtx .s2{ left:76px; }
   .mtx td.s2{ font-weight:400; color:var(--text-dim); }
   .mtx .stick.last{ box-shadow:2px 0 4px rgba(0,0,0,0.25); }
-  .mtx td.stick .rt{ display:block; font-size:9px; font-weight:400; color:var(--text-dim); overflow:hidden; text-overflow:ellipsis; }
+  .mtx td.stick{ padding:5px 6px; }
+  .mtx td.stick .rt{ display:block; font-size:8px; font-weight:400; color:var(--text-dim); overflow:hidden; text-overflow:ellipsis; }
   .mtx tr.yr-first td{ border-top:1px solid rgba(59,130,246,0.3); }
   .mtx tbody tr.yr-first:first-child td{ border-top:none; }
 
@@ -739,6 +740,8 @@ function metricTd(card, m, v, gl){
 function metricsTable(cards, subs){           // subs: [[中カテゴリ名, 指標[]], ...]
   const venueMode = mtRows === "venue", vs = venueMode ? ["all", "home", "away"] : ["all"];
   const cols = subs.flatMap(([sk, list], n) => list.map((m, i) => ({ m, gl: i === 0 && n > 0 })));   // gl＝中カテゴリの区切り線
+  const S1_W = 76, S2_W = 56, COL_W = 63;                                   // 列幅（px）。スマホで指標が4つ前後見える大きさ
+  const colgroup = `<colgroup><col style="width:${S1_W}px">${venueMode ? `<col style="width:${S2_W}px">` : ""}${cols.map(() => `<col style="width:${COL_W}px">`).join("")}</colgroup>`;
   const stH = venueMode ? '<th class="stick s1">年度</th><th class="stick s2 last">区分</th>' : '<th class="stick s1 last">年度</th>';
   const grpRow = subs.some(([sk]) => sk)
     ? `<tr><th class="stick s1${venueMode ? "" : " last"}"></th>${venueMode ? '<th class="stick s2 last"></th>' : ""}${subs.map(([sk, list], n) => `<th class="grp${n > 0 ? " gl" : ""}" colspan="${list.length}">${esc(sk || "")}</th>`).join("")}</tr>` : "";
@@ -751,7 +754,7 @@ function metricsTable(cards, subs){           // subs: [[中カテゴリ名, 指
     const c2 = venueMode ? `<td class="stick s2 last">${VENUE_LABEL[v]}</td>` : "";
     return `<tr class="${vi === 0 && ci > 0 ? "yr-first" : ""}">${c1}${c2}${cols.map(({ m, gl }) => metricTd(x.card, m, v, gl)).join("")}</tr>`;
   })).join("");
-  return `<div class="mtx-wrap"><table class="mtx"><thead>${grpRow}${head}</thead><tbody>${body}</tbody></table></div>`;
+  return `<div class="mtx-wrap"><table class="mtx">${colgroup}<thead>${grpRow}${head}</thead><tbody>${body}</tbody></table></div>`;
 }
 function metricsSection(cards){
   const main = cards[primaryIdx].card;                                     // 列（どの指標を出すか）は、消化済みの最新年度のカードで決める
