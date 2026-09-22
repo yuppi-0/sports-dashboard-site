@@ -141,6 +141,8 @@
   .section-strength{ background:var(--panel-alt); border:1px solid rgba(16,185,129,0.25); }
   .section-weakness{ background:#221417; border:1px solid rgba(248,113,113,0.25); }
   .section-pitchdetail{ background:var(--panel); }
+  .section-coursedist{ background:var(--panel); }
+  .section-countpattern{ background:var(--panel); }
   .section-gamelog{ background:var(--panel); border:1px solid rgba(148,163,184,0.15); }
   .section-profile{ background:var(--panel); border:1px solid rgba(148,163,184,0.15); }
 
@@ -281,11 +283,11 @@
     background:rgba(59,130,246,0.18); color:var(--blue-text); white-space:nowrap;
   }
   /* 球種別成績の各指標セル：値の下に小さく「n位/m人中」を添える（スクショ1の見た目を参考に） */
-  .pmix-rank{ font-size:8.5px; color:var(--text-dim); margin-top:1px; line-height:1.2; white-space:nowrap; }
+  .pmix-val{ display:block; font-size:12px; color:var(--text-bright); line-height:1.25; }
+  .pmix-rank{ display:block; font-size:8.5px; color:var(--text-dim); margin-top:1px; line-height:1.2; white-space:nowrap; letter-spacing:0.02em; }
   .pmix-scroll-compact .pmix-rank{ font-size:7.5px; }
   /* カウント別配球：遷移列は「42% → 2-1」のような幅広テキストが入るため、他のpmix-table列と
      違って折り返しを許可し、最小幅も少し広めに確保する */
-  .count-trans-table td, .count-trans-table th{ white-space:normal; min-width:78px; }
   .count-pmix-table .count-total-row td{ font-weight:700; color:var(--text-dim); border-top:1px solid rgba(148,163,184,0.2); }
 
   /* 球種・投球数（先頭2列）を横スクロール時も固定表示 */
@@ -547,8 +549,7 @@
     .p-sticky-header{ padding:6px 0; }
     /* 決め球は横向きでは非表示にし、残り5つのKPIを1段で横並びにすることで
        上部固定領域の高さをさらに削る */
-    .stat-grid{ grid-template-columns:repeat(5,1fr); gap:5px; margin-top:6px; }
-    .stat-grid .stat-box:last-child{ display:none; }
+    .stat-grid{ grid-template-columns:repeat(3,1fr); gap:5px; margin-top:6px; }
     .stat-box{ padding:4px 3px; }
     .stat-box .label{ font-size:8px; margin-bottom:1px; }
     .stat-box .value{ font-size:11px; }
@@ -1289,9 +1290,6 @@ function renderCard(d){
     { label: "BB%", value: d.bb_pct_season != null ? d.bb_pct_season + "%" : "-", color: (d.bb_pct_season != null && d.bb_pct_season <= 8) ? "var(--green-text)" : "var(--red-text)", rankKey: "bb_pct" },
     { label: "ゴロ率", value: d.gb_pct != null ? d.gb_pct + "%" : "-", color: "var(--green-text)", rankKey: "gb_pct" },
     { label: "空振り率", value: d.swstr_pct_season != null ? d.swstr_pct_season + "%" : "-", color: "var(--green-text)", rankKey: "swstr_pct" },
-    { label: "ボール球SW%", value: d.chase_pct_season != null ? d.chase_pct_season + "%" : "-", color: "var(--green-text)", rankKey: "chase_pct" },
-    { label: "ストライク率", value: d.strike_pct_season != null ? d.strike_pct_season + "%" : "-", color: "var(--green-text)", rankKey: "strike_pct" },
-    { label: "決め球", valueList: signaturePitchList.length ? signaturePitchList : ["なし"], color: "var(--blue-text)", small: true }
   ];
 
   const gameLogHtml = buildGameLogTable(d);
@@ -1329,7 +1327,7 @@ function renderCard(d){
   // カウント別配球：シーズン球種別成績の下・コース分布セクションのさらに下に独立セクションとして配置
   const countPitchSectionHtml = (d.season_pitch_detail && d.season_pitch_detail.all && d.season_pitch_detail.all.length) ? `
     <div class="section section-countpattern">
-      ${sectionHeader({ bar:"var(--amber)", label:"カウント別配球", labelColor:"var(--text-bright)" })}
+      ${sectionHeader({ bar:"var(--amber)", label:"シーズンカウント別配球", labelColor:"var(--text-bright)" })}
       <div class="section-body">
         <div class="hand-toggle count-pattern-hand-toggle">
           <button class="hand-btn active" data-hand="all">全体</button>
@@ -1383,7 +1381,7 @@ function renderCard(d){
           <div>
             <div class="p-name">${escapeHtml(d.name)}</div>
             <div class="p-meta-row">
-              <span class="p-meta">${escapeHtml(d.team || "")}・${escapeHtml(d.throws_bats || "")}・${escapeHtml(d.role || "")}・${d.games ?? "-"}登板 ${d.innings ?? "-"}回</span>
+              <span class="p-meta">${escapeHtml(d.team || "")}・${escapeHtml(d.throws_bats || "")}・${escapeHtml(d.role || "")}・${escapeHtml(formatSeasonResult(d))}</span>
               ${d._farmData ? `
               <div class="farm-toggle">
                 <button type="button" class="farm-toggle-btn ${!d._isFarm ? "active" : ""}" data-farm="0">1軍</button>
@@ -1411,9 +1409,9 @@ function renderCard(d){
       ${seasonPitchDetailHtml}
 
       <div class="section section-coursedist">
-        ${sectionHeader({ bar:"var(--blue)", label:"コース分布", labelColor:"var(--text-bright)" })}
+        ${sectionHeader({ bar:"var(--blue)", label:"シーズンコース分布", labelColor:"var(--text-bright)" })}
         <div class="section-body">
-          <div id="comparePanel"></div>
+          <div id="seasonCourseSection"></div>
         </div>
       </div>
 
@@ -1486,11 +1484,15 @@ function renderCard(d){
 
   // 試合ログ: 行クリック＝この行だけ選んで比較パネルへスクロール／チェックボックス＝複数比較に追加・削除
   compareSelectedKeys = new Set(); // 選手が変わったら比較選択はリセット
-  previewGidx = "season"; // コース分布セクションは常にシーズン成績をデフォルト表示する（試合行クリックで切り替え可）
+  previewGidx = null; // 試合ログの比較パネルは行クリックがあるまで非表示（シーズンコース分布は別セクションで常時表示）
   window._hmResultFilter = "all";
   window._hmSplitMode = "25";
   window._hmSelectedPitchKeys = null;
-  renderComparePanel(d); // 上で初期化したprevewGidxを使って、コース分布セクションを即座に描画する
+  // シーズンコース分布セクションはフィルター状態を選手ごとにリセットして常に表示する
+  seasonHmState._hmResultFilter = "all";
+  seasonHmState._hmSplitMode = "25";
+  seasonHmState._hmSelectedPitchKeys = null;
+  renderSeasonCourseSection(d);
 
   function toggleCompareRow(gidx, cb){
     previewGidx = null; // チェックボックス操作が優先。行クリックのプレビューは破棄する
@@ -1721,14 +1723,14 @@ function pitchDetailTableHtml(pitches, trueTotal, metricsOverride, tagsByName){
     <tr>
       <td style="width:${C1}px"><span class="pmix-pname"><span class="pmix-dot" style="background:${pitchColor(i)}"></span>${escapeHtml(p.name)}</span></td>
       <td style="width:${C2}px;left:${C1}px">${countCellHtml(p.count, p.pct)}</td>
-      ${compact ? "" : `<td style="width:${C3}px">${p.pct != null ? p.pct + "%" : "—"}</td>`}
+      ${compact ? "" : `<td style="width:${C3}px;background:${p.pct != null ? `rgba(59,130,246,${(0.05 + Math.min(100,p.pct)/100*0.5).toFixed(2)})` : ""}"><span class="pmix-val">${p.pct != null ? p.pct + "%" : "—"}</span>${p.ranks && p.ranks.pct ? `<div class="pmix-rank">${p.ranks.pct.rank}位/${p.ranks.pct.total}人中</div>` : ""}</td>`}
       ${metrics.map(m => {
         const v = p[m.key];
         const tier = p[m.tierKey];
         const bg = tier ? (TIER_COLOR[tier] || "") : "";
         const rk = p.ranks && p.ranks[m.key];
         const rankHtml = rk ? `<div class="pmix-rank">${rk.rank}位/${rk.total}人中</div>` : "";
-        return `<td style="width:${sw(m.width)}px;background:${bg}">${fmtMetricVal(m, v)}${rankHtml}</td>`;
+        return `<td style="width:${sw(m.width)}px;background:${bg}"><span class="pmix-val">${fmtMetricVal(m, v)}</span>${rankHtml}</td>`;
       }).join("")}
       ${showTagCol ? `<td class="pmix-tag-cell" style="width:${TAG_COL_WIDTH}px">${tagsByName[p.name] ? `<span class="pmix-tag">${escapeHtml(tagsByName[p.name])}</span>` : "—"}</td>` : ""}
     </tr>
@@ -1767,6 +1769,10 @@ function countPatternTableHtml(pitchRows){
   COUNT_KEYS.forEach(ck => {
     countTotals[ck] = rows.reduce((s,p) => s + ((p.cbs[ck] && p.cbs[ck].c) || 0), 0);
   });
+  // カラースケール：球種選択割合セルは青、ストライク系の率セルは緑がかった色で濃淡をつける
+  // （割合が高いほど濃く）。パーセンタイル順位のような他選手比較ではなく、この表の中だけの
+  // 単純な値ベースの濃淡なので、母集団データが無くても常に表示できる。
+  const scaleBg = (pct, rgb) => pct == null ? "" : `rgba(${rgb},${(0.05 + Math.min(100,Math.max(0,pct))/100*0.5).toFixed(2)})`;
 
   // 球種選択割合：そのカウントで実際に投げられた球のうち、その球種が占めた割合
   const pitchTableHtml = `
@@ -1782,7 +1788,7 @@ function countPatternTableHtml(pitchRows){
                 const cnt = c ? (c.c || 0) : 0;
                 const total = countTotals[ck];
                 const pct = total > 0 ? Math.round(cnt / total * 100) : null;
-                return `<td>${pct != null ? pct + "%" : "-"}</td>`;
+                return `<td style="background:${scaleBg(pct, "59,130,246")}">${pct != null ? pct + "%" : "-"}</td>`;
               }).join("")}
             </tr>
           `).join("")}
@@ -1795,46 +1801,43 @@ function countPatternTableHtml(pitchRows){
     </div>
   `;
 
-  // 次カウント遷移：ボール/ストライク相当（空振り・見逃し）/ファウル/打球の内訳から、
-  // 次にどのカウントへ進みやすいかを球種横断で集計する
-  const transHtml = `
+  // ストライク率・空振り率・見逃し率：そのカウントで投げられた球のうち、球種を問わず
+  // 何%がストライク相当（＝ボール球以外）だったか／空振りだったか／見逃しだったかを示す
+  const rateSpecs = [
+    { label: "ストライク率", calc: (agg, t) => t > 0 ? Math.round((t - agg.ba) / t * 100) : null },
+    { label: "空振り率",     calc: (agg, t) => t > 0 ? Math.round(agg.sw / t * 100) : null },
+    { label: "見逃し率",     calc: (agg, t) => t > 0 ? Math.round(agg.lo / t * 100) : null },
+  ];
+  const countAgg = {};
+  COUNT_KEYS.forEach(ck => {
+    countAgg[ck] = rows.reduce((acc, p) => {
+      const c = p.cbs[ck];
+      if(!c) return acc;
+      acc.sw += c.sw || 0; acc.lo += c.lo || 0; acc.fo += c.fo || 0;
+      acc.ba += c.ba || 0; acc.ou += c.ou || 0; acc.hi += c.hi || 0;
+      return acc;
+    }, {sw:0, lo:0, fo:0, ba:0, ou:0, hi:0});
+  });
+  const rateTableHtml = `
     <div class="pmix-scroll" style="margin-top:10px">
-      <table class="pmix-table count-trans-table">
-        <thead><tr><th>カウント</th><th>ボール</th><th>ストライク</th><th>ファウル</th><th>打席終了</th></tr></thead>
+      <table class="pmix-table count-rate-table">
+        <thead><tr><th>指標</th>${COUNT_KEYS.map(ck => `<th>${ck}</th>`).join("")}</tr></thead>
         <tbody>
-          ${COUNT_KEYS.map(ck => {
-            const [b, s] = ck.split("-").map(Number);
-            const agg = rows.reduce((acc, p) => {
-              const c = p.cbs[ck];
-              if(!c) return acc;
-              acc.sw += c.sw || 0; acc.lo += c.lo || 0; acc.fo += c.fo || 0;
-              acc.ba += c.ba || 0; acc.ou += c.ou || 0; acc.hi += c.hi || 0;
-              return acc;
-            }, {sw:0, lo:0, fo:0, ba:0, ou:0, hi:0});
-            const strikeEquiv = agg.sw + agg.lo; // 空振り・見逃しはストライク扱い
-            const bip = agg.ou + agg.hi; // 打球による打席終了
-            const total = agg.ba + strikeEquiv + agg.fo + bip;
-            const pct = (v) => total > 0 ? Math.round(v / total * 100) : null;
-            const fmt = (v, label) => { const p = pct(v); return p != null ? `${p}% → ${label}` : "-"; };
-            const nextBall = b < 3 ? `${b + 1}-${s}` : "満球";
-            const nextStrike = s < 2 ? `${b}-${s + 1}` : "三振";
-            const nextFoul = s < 2 ? `${b}-${s + 1}` : "変化なし";
-            return `
-              <tr>
-                <td>${ck}</td>
-                <td>${fmt(agg.ba, nextBall)}</td>
-                <td>${fmt(strikeEquiv, nextStrike)}</td>
-                <td>${fmt(agg.fo, nextFoul)}</td>
-                <td>${fmt(bip, "打球")}</td>
-              </tr>
-            `;
-          }).join("")}
+          ${rateSpecs.map(spec => `
+            <tr>
+              <td>${spec.label}</td>
+              ${COUNT_KEYS.map(ck => {
+                const pct = spec.calc(countAgg[ck], countTotals[ck]);
+                return `<td style="background:${scaleBg(pct, "18,165,178")}">${pct != null ? pct + "%" : "-"}</td>`;
+              }).join("")}
+            </tr>
+          `).join("")}
         </tbody>
       </table>
     </div>
   `;
 
-  return pitchTableHtml + transHtml;
+  return pitchTableHtml + rateTableHtml;
 }
 
 // 日本語（全角）と英数字（半角）が混ざった短い文言のセル幅を見積もる。
@@ -1952,6 +1955,88 @@ window._hmSelectedPitchKeys = window._hmSelectedPitchKeys || null; // null=全�
 // swstr_vs_swingだけ、分母を「スイングした球」に絞る（=空振り/スイング数）。
 const HM_RATE_DENOM_FILTER = { swstr_vs_swing: "swing" };
 
+// ── シーズンコース分布セクション（常にシーズン全体を表示。試合ログの比較パネルとは独立） ──
+// 試合ログ側（renderComparePanel）はwindow._hmResultFilter等の共有状態を使うが、
+// こちらは同じ変数を共有すると「片方でフィルターを変えたのにもう片方の表示が古いまま」に
+// なってしまうため、専用の状態オブジェクトを持たせている。
+const seasonHmState = { _hmResultFilter: "all", _hmSplitMode: "25", _hmSelectedPitchKeys: null };
+
+function renderSeasonCourseSection(d){
+  const container = document.getElementById("seasonCourseSection");
+  if(!container) return;
+  const courseLocs = d.season_course_locs || {};
+  if(!Object.keys(courseLocs).length){
+    container.innerHTML = `<div style="font-size:12px;color:var(--text-dim)">コース分布データがありません</div>`;
+    return;
+  }
+
+  const pitchCounts = {};
+  Object.entries(courseLocs).forEach(([pkey, info]) => {
+    pitchCounts[pkey] = (info.locsR ? info.locsR.length : 0) + (info.locsL ? info.locsL.length : 0);
+  });
+  const sortedPitchKeysMap = {};
+  Object.keys(courseLocs)
+    .sort((a, b) => (pitchCounts[b] || 0) - (pitchCounts[a] || 0))
+    .forEach(k => { sortedPitchKeysMap[k] = courseLocs[k]; });
+
+  const locsR = hmCombinedLocs(courseLocs, true, undefined, seasonHmState);
+  const locsL = hmCombinedLocs(courseLocs, false, undefined, seasonHmState);
+  const isAllFilter = seasonHmState._hmResultFilter === "all";
+  const denomFilter = HM_RATE_DENOM_FILTER[seasonHmState._hmResultFilter] || "all";
+  const allLocsR = isAllFilter ? null : hmCombinedLocs(courseLocs, true, denomFilter, seasonHmState);
+  const allLocsL = isAllFilter ? null : hmCombinedLocs(courseLocs, false, denomFilter, seasonHmState);
+  const flipR = hmDisplayFlip(currentLeague, d.throws, true);
+  const flipL = hmDisplayFlip(currentLeague, d.throws, false);
+
+  container.innerHTML = `
+    ${hmControlsHtml(sortedPitchKeysMap, seasonHmState)}
+    <div class="course-row">
+      <div class="course-pair">
+        ${hmBuildGridHtml("対右打者", locsR, flipR, allLocsR, seasonHmState._hmSplitMode)}
+        <div class="hm-canvas-block">
+          <div class="hm-canvas-title">対右打者 配球</div>
+          <canvas id="season-hmcanvas-R" width="200" height="210"></canvas>
+        </div>
+      </div>
+      <div class="course-pair">
+        ${hmBuildGridHtml("対左打者", locsL, flipL, allLocsL, seasonHmState._hmSplitMode)}
+        <div class="hm-canvas-block">
+          <div class="hm-canvas-title">対左打者 配球</div>
+          <canvas id="season-hmcanvas-L" width="200" height="210"></canvas>
+        </div>
+      </div>
+    </div>
+  `;
+
+  container.querySelectorAll(".hm-filter-btn--result").forEach(btn => {
+    btn.addEventListener("click", () => { seasonHmState._hmResultFilter = btn.dataset.result; renderSeasonCourseSection(d); });
+  });
+  container.querySelectorAll(".hm-filter-btn--split").forEach(btn => {
+    btn.addEventListener("click", () => { seasonHmState._hmSplitMode = btn.dataset.split; renderSeasonCourseSection(d); });
+  });
+  container.querySelectorAll(".hm-pitch-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const pkey = btn.dataset.pkey;
+      seasonHmState._hmSelectedPitchKeys = (pkey === "__all__") ? null : new Set([pkey]);
+      renderSeasonCourseSection(d);
+    });
+  });
+
+  // canvas描画（DOM挿入後に実行する必要がある）
+  const buildColored = (isR) => {
+    const out = [];
+    Object.entries(courseLocs).forEach(([pkey, info]) => {
+      if(seasonHmState._hmSelectedPitchKeys && !seasonHmState._hmSelectedPitchKeys.has(pkey)) return;
+      let raw = hmFilterLocs((isR ? info.locsR : info.locsL) || [], seasonHmState._hmResultFilter);
+      if(seasonHmState._hmSplitMode === "9") raw = raw.filter(l => l[3] === 1);
+      raw.forEach(loc => { const l = loc.slice(); l._color = info.color; out.push(l); });
+    });
+    return out;
+  };
+  hmDrawHeatmap("season-hmcanvas-R", buildColored(true), true, flipR);
+  hmDrawHeatmap("season-hmcanvas-L", buildColored(false), false, flipL);
+}
+
 function hmFilterLocs(locs, resultFilter){
   return (locs || []).filter(loc => {
     const [x, y, flag, inZone, rtype] = loc;
@@ -1975,10 +2060,14 @@ function hmGetCell(v, edges){
 }
 
 // pitchLocsMap: {球種コード: {name,color,locsR,locsL}} → 指定した打者方向の、フィルター適用済み結合locs配列
-function hmCombinedLocs(pitchLocsMap, isBatterRight, filterOverride){
+// stateOverride を渡すと、共有のwindow._hm*状態ではなくそちらを使う（シーズンコース分布セクションなど、
+// 試合ログの比較パネルとは独立してフィルター状態を持たせたい箇所向け）
+function hmCombinedLocs(pitchLocsMap, isBatterRight, filterOverride, stateOverride){
+  const state = stateOverride || window;
+  const selectedKeys = state._hmSelectedPitchKeys;
   const locsKey = isBatterRight ? "locsR" : "locsL";
-  const keys = Object.keys(pitchLocsMap).filter(k => !window._hmSelectedPitchKeys || window._hmSelectedPitchKeys.has(k));
-  const filter = filterOverride !== undefined ? filterOverride : window._hmResultFilter;
+  const keys = Object.keys(pitchLocsMap).filter(k => !selectedKeys || selectedKeys.has(k));
+  const filter = filterOverride !== undefined ? filterOverride : state._hmResultFilter;
   return keys.flatMap(k => hmFilterLocs(pitchLocsMap[k][locsKey] || [], filter));
 }
 
@@ -1994,11 +2083,11 @@ function hmDisplayFlip(league, pitcherHand, isBatterRight){
   return league === "mlb" ? (pitcherHand === "L") : (pitcherHand === "R");
 }
 
-function hmBuildGridHtml(label, locs, flipX, allLocs){
+function hmBuildGridHtml(label, locs, flipX, allLocs, splitModeOverride){
   const ZONE = 1.0, OUTER = 1.67;
   const edges9  = [-ZONE, -ZONE/3, ZONE/3, ZONE];
   const edges25 = [-OUTER, -ZONE, -ZONE/3, ZONE/3, ZONE, OUTER];
-  const mode = window._hmSplitMode;
+  const mode = splitModeOverride || window._hmSplitMode;
   const edges = mode === "9" ? edges9 : edges25;
   const N = edges.length - 1;
 
@@ -2163,12 +2252,15 @@ function hexToRgb(hex){
   return m ? { r:parseInt(m[1],16), g:parseInt(m[2],16), b:parseInt(m[3],16) } : { r:59,g:130,b:246 };
 }
 
-// 球種フィルターボタン + 結果フィルタータブ + 9/25分割トグル（比較パネル全体で共有・1セットだけ表示）
-function hmControlsHtml(allPitchKeysMap){
+// 球種フィルターボタン + 結果フィルタータブ + 9/25分割トグル
+// stateOverrideを渡すと、共有のwindow._hm*状態ではなくそちらのactive判定・data属性名を使う
+// （シーズンコース分布セクション用。ボタンのdata-*属性は共通、クリック側で呼び分ける）
+function hmControlsHtml(allPitchKeysMap, stateOverride){
+  const state = stateOverride || window;
   // 「全球種」が選ばれている（＝絞り込みなし）ときは、個別の球種ボタンまで
   // 緑色にする必要はないので、全球種以外がactiveになるのは個別に選択されている場合のみにする
   const pitchBtns = Object.entries(allPitchKeysMap).map(([key, info]) => `
-    <button class="hm-pitch-btn ${window._hmSelectedPitchKeys && window._hmSelectedPitchKeys.has(key) ? 'active' : ''}" data-pkey="${key}">
+    <button class="hm-pitch-btn ${state._hmSelectedPitchKeys && state._hmSelectedPitchKeys.has(key) ? 'active' : ''}" data-pkey="${key}">
       <span class="hm-pdot" style="background:${info.color}"></span>${escapeHtml(info.name)}
     </button>
   `).join("");
@@ -2177,21 +2269,21 @@ function hmControlsHtml(allPitchKeysMap){
       <div class="hm-controls-row">
         <span class="hm-controls-label">結果</span>
         <div class="hm-btn-group">
-          ${HM_RESULT_OPTIONS.map(o => `<button class="hm-filter-btn hm-filter-btn--result ${window._hmResultFilter===o.key?'active':''}" data-result="${o.key}">${o.label}</button>`).join("")}
+          ${HM_RESULT_OPTIONS.map(o => `<button class="hm-filter-btn hm-filter-btn--result ${state._hmResultFilter===o.key?'active':''}" data-result="${o.key}">${o.label}</button>`).join("")}
         </div>
       </div>
       <div class="hm-controls-row">
         <span class="hm-controls-label">球種</span>
         <div class="hm-btn-group">
-          <button class="hm-pitch-btn ${!window._hmSelectedPitchKeys ? 'active' : ''}" data-pkey="__all__">全球種</button>
+          <button class="hm-pitch-btn ${!state._hmSelectedPitchKeys ? 'active' : ''}" data-pkey="__all__">全球種</button>
           ${pitchBtns}
         </div>
       </div>
       <div class="hm-controls-row">
         <span class="hm-controls-label">分割</span>
         <div class="hm-btn-group">
-          <button class="hm-filter-btn hm-filter-btn--split ${window._hmSplitMode==='25'?'active':''}" data-split="25">25分割</button>
-          <button class="hm-filter-btn hm-filter-btn--split ${window._hmSplitMode==='9'?'active':''}" data-split="9">9分割</button>
+          <button class="hm-filter-btn hm-filter-btn--split ${state._hmSplitMode==='25'?'active':''}" data-split="25">25分割</button>
+          <button class="hm-filter-btn hm-filter-btn--split ${state._hmSplitMode==='9'?'active':''}" data-split="9">9分割</button>
         </div>
       </div>
     </div>
@@ -2336,6 +2428,7 @@ function buildGameLogTable(d){
             ${folderRowsHtml}
           </table>
         </div>
+        <div id="comparePanel"></div>
       </div>
     </div>
   `;
