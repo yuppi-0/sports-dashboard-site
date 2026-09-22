@@ -121,6 +121,12 @@
   }
   .p-name{ font-size:18px; font-weight:700; color:var(--text-bright); line-height:1.25; }
   .p-meta-row{ display:flex; align-items:center; flex-wrap:wrap; gap:8px; margin-top:3px; }
+  .farm-toggle{ display:flex; gap:3px; background:var(--panel); border-radius:6px; padding:2px; }
+  .farm-toggle-btn{
+    border:none; background:transparent; color:var(--text-dim); font-size:10px; font-weight:700;
+    padding:3px 9px; border-radius:5px; cursor:pointer;
+  }
+  .farm-toggle-btn.active{ background:var(--panel-alt); color:var(--text-bright); }
   .p-meta{ font-size:12px; color:var(--text-dim); }
 
   .stat-grid{ display:grid; grid-template-columns:repeat(6,1fr); gap:8px; margin-top:14px; }
@@ -274,6 +280,13 @@
     display:inline-block; font-size:10px; font-weight:700; border-radius:5px; padding:2px 7px;
     background:rgba(59,130,246,0.18); color:var(--blue-text); white-space:nowrap;
   }
+  /* 球種別成績の各指標セル：値の下に小さく「n位/m人中」を添える（スクショ1の見た目を参考に） */
+  .pmix-rank{ font-size:8.5px; color:var(--text-dim); margin-top:1px; line-height:1.2; white-space:nowrap; }
+  .pmix-scroll-compact .pmix-rank{ font-size:7.5px; }
+  /* カウント別配球：遷移列は「42% → 2-1」のような幅広テキストが入るため、他のpmix-table列と
+     違って折り返しを許可し、最小幅も少し広めに確保する */
+  .count-trans-table td, .count-trans-table th{ white-space:normal; min-width:78px; }
+  .count-pmix-table .count-total-row td{ font-weight:700; color:var(--text-dim); border-top:1px solid rgba(148,163,184,0.2); }
 
   /* 球種・投球数（先頭2列）を横スクロール時も固定表示 */
   .pmix-table th:nth-child(1), .pmix-table td:nth-child(1){ position:sticky; left:0; width:104px; z-index:2; overflow:hidden; text-overflow:ellipsis; }
@@ -609,6 +622,13 @@
           </select>
         </div>
         <div class="filter-panel-row">
+          <select id="roleSelect" class="filter-select">
+            <option value="">先発・中継ぎ 両方</option>
+            <option value="先発">先発のみ</option>
+            <option value="中継ぎ">中継ぎのみ</option>
+          </select>
+        </div>
+        <div class="filter-panel-row">
           <label class="filter-row">
             投球回
             <input id="minIpFilter" type="number" min="0" step="1" placeholder="0">
@@ -638,16 +658,38 @@ const LEAGUE_PATHS = {
   npb: {
     numeric: "data/プロ野球/2026年/1軍/レギュラーシーズン/pitcher_cards_numeric",
     batches: "data/プロ野球/2026年/1軍/レギュラーシーズン/pitcher_cards_llm/batches",
+    // 2軍データ（1軍と同じ選手を同一タブ内で見比べられるように使う。run.py --2軍 の出力先に合わせている。
+    // 実際のフォルダ名が異なる場合はここだけ直せばよい。2軍のシーズン種別は「公式戦」を既定値としている
+    // （春季教育リーグ等と分けたい場合は複数エントリの配列にして順にfetchを試す形へ拡張してください）。
+    farmNumeric: "data/プロ野球/2026年/2軍/公式戦/pitcher_cards_numeric",
   },
   mlb: {
     numeric: "data/MLB/2026年/公式戦/pitcher_cards_numeric",
     batches: "data/MLB/2026年/公式戦/pitcher_cards_llm/batches",
+    farmNumeric: null, // MLBのマイナー版はまだ未対応（データが整い次第ここにパスを追加）
   },
 };
 
 let currentLeague = "npb";
 let allPlayers = [];
+// プロ野球/MLBタブを行き来しても、それぞれのタブで見ていた検索条件・並び替え・選択中の選手を
+// 覚えておいて復元するためのキャッシュ（タブ切り替えのたびに絞り込みや選手選択がリセットされて
+// しまうのを防ぐ）。キーはリーグ名、値は下のsnapshotLeagueState()の形式。
+const leagueStateCache = {};
+function snapshotLeagueState(){
+  return {
+    search: searchInputEl.value,
+    team: teamSelectEl.value,
+    category: selectedCategory,
+    role: selectedRole,
+    sortField, sortDir,
+    aiOnly: aiOnlyFilterEl.checked,
+    minIp: minIpFilterEl.value,
+    activePlayerId, activePlayerName: activeCardData ? activeCardData.name : null,
+  };
+}
 let selectedCategory = null; // カテゴリで絞り込み中の値（null=絞り込みなし）
+let selectedRole = null; // 先発/中継ぎで絞り込み中の値（null=絞り込みなし）
 let activePlayerId = null;
 let activeCardData = null; // 現在表示中のカードのmerge済みデータ（投球回フィルタ変更時の再描画用）
 // デフォルトはK-BB%の降順・AIコメントがある選手のみ表示
@@ -670,6 +712,7 @@ const mainContentEl = el("#mainContent");
 const searchInputEl = el("#searchInput");
 const teamSelectEl = el("#teamSelect");
 const categorySelectEl = el("#categorySelect");
+const roleSelectEl = el("#roleSelect");
 const sortFieldEl = el("#sortField");
 const sortDirBtnEl = el("#sortDirBtn");
 const aiOnlyFilterEl = el("#aiOnlyFilter");
@@ -734,20 +777,26 @@ function bust(url){
 }
 
 async function loadPlayerIndex(league){
+  // このリーグを前回開いていたときの状態が残っていればそれを復元し、初めて開くリーグだけ
+  // 従来どおりの既定値（AIコメントがある選手のみ・K-BB%降順）にする。
+  const saved = leagueStateCache[league] || null;
   playerListEl.innerHTML = '<div class="empty-list">読み込み中…</div>';
   mainContentEl.innerHTML = '<div class="placeholder">左の一覧から選手を選んでください</div>';
   activePlayerId = null;
   llmDataLoaded = false;
   playersWithLlmData = new Set();
-  // デフォルトはAIコメントがある選手のみ・K-BB%降順
-  aiOnlyFilterEl.checked = true;
-  selectedCategory = null;
-  categorySelectEl.value = "";
-  sortField = "k_bb_pct";
-  sortDir = "desc";
-  sortFieldEl.value = "k_bb_pct";
-  sortDirBtnEl.dataset.dir = "desc";
-  sortDirBtnEl.textContent = "降順 ↓";
+  aiOnlyFilterEl.checked = saved ? saved.aiOnly : true;
+  selectedCategory = saved ? saved.category : null;
+  categorySelectEl.value = selectedCategory || "";
+  selectedRole = saved ? saved.role : null;
+  roleSelectEl.value = selectedRole || "";
+  sortField = saved ? saved.sortField : "k_bb_pct";
+  sortDir = saved ? saved.sortDir : "desc";
+  sortFieldEl.value = sortField;
+  sortDirBtnEl.dataset.dir = sortDir;
+  sortDirBtnEl.textContent = sortDir === "asc" ? "昇順 ↑" : "降順 ↓";
+  searchInputEl.value = saved ? saved.search : "";
+  if(saved) minIpFilterEl.value = saved.minIp || "";
   sidebarEl.classList.remove("collapsed");
   bodyLayoutEl.classList.remove("has-selection");
   updateSidebarSummary("選手を選択してください", "");
@@ -759,6 +808,7 @@ async function loadPlayerIndex(league){
     allPlayers = data.players || [];
     populateTeamSelect(allPlayers);
     populateCategorySelect(allPlayers);
+    if(saved) teamSelectEl.value = saved.team || "";
     // デフォルトで「AIコメントがある選手のみ」がONのため、絞り込みが正しく効くよう
     // 一覧を描画する前にAIコメントの有無データを読み込んでおく
     if(aiOnlyFilterEl.checked && !llmDataLoaded){
@@ -767,6 +817,14 @@ async function loadPlayerIndex(league){
       aiOnlyFilterEl.disabled = false;
     }
     renderPlayerList(applyFilters());
+    // 前回このタブで選手を選んでいた場合は、一覧を出すだけでなくその選手のカードまで復元する
+    if(saved && saved.activePlayerId){
+      const stillThere = allPlayers.find(p => p.id === saved.activePlayerId);
+      if(stillThere){
+        selectPlayer(saved.activePlayerId, saved.activePlayerName || stillThere.name);
+        updateSidebarSummary(stillThere.name, `${stillThere.team || ""}${stillThere.role ? " ・ " + stillThere.role : ""}`);
+      }
+    }
   }catch(e){
     playerListEl.innerHTML = `<div class="empty-list">選手一覧を読み込めませんでした。<br>(${escapeHtml(e.message)})</div>`;
   }
@@ -986,6 +1044,24 @@ function mergeCardData(numeric, llm){
   };
 }
 
+// 2軍データ：1軍と同じ選手を名前で探して取得する（見つからなければnull＝2軍データなしとして扱う）。
+// 1軍側のLLM解釈と違い、2軍側は数値データのみで十分なのでmergeCardDataにはllm=nullを渡す。
+async function fetchFarmData(league, playerName){
+  const farmNumeric = LEAGUE_PATHS[league] && LEAGUE_PATHS[league].farmNumeric;
+  if(!farmNumeric || !playerName) return null;
+  try{
+    const idxRes = await fetch(bust(`${farmNumeric}/index.json`), { cache: "no-store" });
+    if(!idxRes.ok) return null;
+    const idx = await idxRes.json();
+    const hit = (idx.players || []).find(p => p.name === playerName);
+    if(!hit) return null;
+    const res = await fetch(bust(`${farmNumeric}/${hit.id}.json`), { cache: "no-store" });
+    if(!res.ok) return null;
+    const numeric = await res.json();
+    return mergeCardData(numeric, {});
+  }catch(e){ return null; }
+}
+
 async function selectPlayer(id, name){
   activePlayerId = id;
   bodyLayoutEl.classList.add("has-selection");
@@ -1004,6 +1080,15 @@ async function selectPlayer(id, name){
     const numeric = await res.json();
     const { data: llm, debugLog } = await findLlmDataForPlayer(name || numeric.name, numeric.team, numeric.role);
     const merged = mergeCardData(numeric, llm);
+    // 1軍カードを表示中の裏で2軍データも並行して探しておく（見つかった場合だけ
+    // カード側に「1軍/2軍」の切り替えボタンが出る）
+    const farmMerged = await fetchFarmData(currentLeague, numeric.name);
+    if(farmMerged){
+      merged._farmData = farmMerged;
+      merged._isFarm = false;
+      farmMerged._farmData = merged;
+      farmMerged._isFarm = true;
+    }
     activeCardData = merged;
     renderCard(merged);
     if(!llm){
@@ -1028,7 +1113,8 @@ function applyFilters(){
     const matchesAi = !aiOnly || playersWithLlmData.has(p.name);
     const matchesIp = isNaN(minIp) || (p.innings_num != null && p.innings_num >= minIp);
     const matchesCategory = !selectedCategory || (p.categories || []).includes(selectedCategory);
-    return matchesQuery && matchesTeam && matchesAi && matchesIp && matchesCategory;
+    const matchesRole = !selectedRole || p.role === selectedRole;
+    return matchesQuery && matchesTeam && matchesAi && matchesIp && matchesCategory && matchesRole;
   });
   return sortPlayers(filtered);
 }
@@ -1055,6 +1141,11 @@ searchInputEl.addEventListener("input", () => {
 
 categorySelectEl.addEventListener("change", () => {
   selectedCategory = categorySelectEl.value || null;
+  renderPlayerList(applyFilters());
+});
+
+roleSelectEl.addEventListener("change", () => {
+  selectedRole = roleSelectEl.value || null;
   renderPlayerList(applyFilters());
 });
 
@@ -1114,10 +1205,10 @@ async function loadAllLlmPlayerNames(){
 document.querySelectorAll(".league-toggle button").forEach(btn => {
   btn.addEventListener("click", () => {
     if(btn.dataset.league === currentLeague) return;
+    leagueStateCache[currentLeague] = snapshotLeagueState(); // 今見ていた条件・選手を退避してから切り替える
     document.querySelectorAll(".league-toggle button").forEach(b => b.classList.remove("active"));
     btn.classList.add("active");
     currentLeague = btn.dataset.league;
-    searchInputEl.value = "";
     loadPlayerIndex(currentLeague);
   });
 });
@@ -1149,6 +1240,7 @@ function sectionHeader({bar, label, labelColor, sub}){
 // 投球回フィルタの値を変えるたびに使うので、都度サーバーには問い合わせない。
 const LIVE_RANK_SPECS = [
   ["era", false], ["k_bb_pct", true], ["k_pct", true], ["bb_pct", false], ["gb_pct", true],
+  ["swstr_pct", true], ["chase_pct", true], ["strike_pct", true], ["zone_pct", true],
 ];
 function computeLiveRankings(playerId, minIp){
   const target = allPlayers.find(p => p.id === playerId);
@@ -1159,6 +1251,9 @@ function computeLiveRankings(playerId, minIp){
   );
   const result = {};
   LIVE_RANK_SPECS.forEach(([key, higherIsBetter]) => {
+    // 一覧(index.json)側にそもそもそのフィールドが無い場合は、ここで静かにスキップする
+    // （新しいランク項目を足しても、古い形式のindex.jsonではエラーにならず単に非表示になるだけ）
+    if(target[key] == null) return;
     const valid = pool
       .filter(p => p[key] != null)
       .map(p => [p.id, p[key]])
@@ -1172,7 +1267,9 @@ function computeLiveRankings(playerId, minIp){
 function renderCard(d){
   const initial = (d.name || "?").trim().charAt(0);
   const minIp = parseFloat(minIpFilterEl.value);
-  const rk = activePlayerId ? computeLiveRankings(activePlayerId, minIp) : (d.rankings || {});
+  // 2軍表示中は1軍選手一覧(allPlayers)を母集団にしたライブ順位を出すと数値と噛み合わなくなるため、
+  // その場合はJSONに焼き込み済みのd.rankings（あれば）を使う
+  const rk = (activePlayerId && !d._isFarm) ? computeLiveRankings(activePlayerId, minIp) : (d.rankings || {});
   const rankText = (key) => rk[key] ? `<div class="rank"><b>${rk[key].rank}</b>位 / ${rk[key].total}人中</div>` : "";
   // 決め球：専用フィールドが無い場合は、球種の特徴タグ（全体/対右/対左のいずれか）に
   // 「決め球」と付いている球種から補う。
@@ -1191,6 +1288,9 @@ function renderCard(d){
     { label: "K%", value: d.k_pct_season != null ? d.k_pct_season + "%" : "-", color: "var(--green-text)", rankKey: "k_pct" },
     { label: "BB%", value: d.bb_pct_season != null ? d.bb_pct_season + "%" : "-", color: (d.bb_pct_season != null && d.bb_pct_season <= 8) ? "var(--green-text)" : "var(--red-text)", rankKey: "bb_pct" },
     { label: "ゴロ率", value: d.gb_pct != null ? d.gb_pct + "%" : "-", color: "var(--green-text)", rankKey: "gb_pct" },
+    { label: "空振り率", value: d.swstr_pct_season != null ? d.swstr_pct_season + "%" : "-", color: "var(--green-text)", rankKey: "swstr_pct" },
+    { label: "ボール球SW%", value: d.chase_pct_season != null ? d.chase_pct_season + "%" : "-", color: "var(--green-text)", rankKey: "chase_pct" },
+    { label: "ストライク率", value: d.strike_pct_season != null ? d.strike_pct_season + "%" : "-", color: "var(--green-text)", rankKey: "strike_pct" },
     { label: "決め球", valueList: signaturePitchList.length ? signaturePitchList : ["なし"], color: "var(--blue-text)", small: true }
   ];
 
@@ -1222,6 +1322,21 @@ function renderCard(d){
           <button class="hand-btn" data-hand="vsL">対左</button>
         </div>
         <div class="pmix-wrap" data-season-pmix>${pitchDetailTableHtml(d.season_pitch_detail.all, d.season_totals && d.season_totals.all, undefined, buildPmixTagsByName("all"))}</div>
+      </div>
+    </div>
+  ` : "";
+
+  // カウント別配球：シーズン球種別成績の下・コース分布セクションのさらに下に独立セクションとして配置
+  const countPitchSectionHtml = (d.season_pitch_detail && d.season_pitch_detail.all && d.season_pitch_detail.all.length) ? `
+    <div class="section section-countpattern">
+      ${sectionHeader({ bar:"var(--amber)", label:"カウント別配球", labelColor:"var(--text-bright)" })}
+      <div class="section-body">
+        <div class="hand-toggle count-pattern-hand-toggle">
+          <button class="hand-btn active" data-hand="all">全体</button>
+          <button class="hand-btn" data-hand="vsR">対右</button>
+          <button class="hand-btn" data-hand="vsL">対左</button>
+        </div>
+        <div data-count-pattern>${countPatternTableHtml(d.season_pitch_detail.all)}</div>
       </div>
     </div>
   ` : "";
@@ -1269,6 +1384,11 @@ function renderCard(d){
             <div class="p-name">${escapeHtml(d.name)}</div>
             <div class="p-meta-row">
               <span class="p-meta">${escapeHtml(d.team || "")}・${escapeHtml(d.throws_bats || "")}・${escapeHtml(d.role || "")}・${d.games ?? "-"}登板 ${d.innings ?? "-"}回</span>
+              ${d._farmData ? `
+              <div class="farm-toggle">
+                <button type="button" class="farm-toggle-btn ${!d._isFarm ? "active" : ""}" data-farm="0">1軍</button>
+                <button type="button" class="farm-toggle-btn ${d._isFarm ? "active" : ""}" data-farm="1">2軍</button>
+              </div>` : ""}
             </div>
           </div>
         </div>
@@ -1289,6 +1409,15 @@ function renderCard(d){
       </div>
 
       ${seasonPitchDetailHtml}
+
+      <div class="section section-coursedist">
+        ${sectionHeader({ bar:"var(--blue)", label:"コース分布", labelColor:"var(--text-bright)" })}
+        <div class="section-body">
+          <div id="comparePanel"></div>
+        </div>
+      </div>
+
+      ${countPitchSectionHtml}
 
       ${profileHtml}
 
@@ -1312,6 +1441,39 @@ function renderCard(d){
     });
   }
 
+  // カウント別配球: 全体/対右/対左タブ切り替え（シーズン球種別成績と同じ仕組み）
+  const countPatternToggle = mainContentEl.querySelector(".count-pattern-hand-toggle");
+  if(countPatternToggle){
+    countPatternToggle.addEventListener("click", (e) => {
+      const btn = e.target.closest(".hand-btn");
+      if(!btn) return;
+      const hand = btn.dataset.hand;
+      countPatternToggle.querySelectorAll(".hand-btn").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      const wrap = mainContentEl.querySelector("[data-count-pattern]");
+      if(wrap && d.season_pitch_detail){
+        wrap.innerHTML = countPatternTableHtml(d.season_pitch_detail[hand]);
+      }
+    });
+  }
+
+  // 1軍/2軍 切り替え：同じ選手のもう一方のデータでカードを丸ごと再描画する
+  // （renderCard自体は毎回mainContentEl全体を作り直す設計なので、両データに互いへの
+  // 参照（_farmData）を持たせておき、切り替え先を選ぶだけでよいようにしている）
+  const farmToggle = mainContentEl.querySelector(".farm-toggle");
+  if(farmToggle){
+    farmToggle.addEventListener("click", (e) => {
+      const btn = e.target.closest(".farm-toggle-btn");
+      if(!btn) return;
+      const wantFarm = btn.dataset.farm === "1";
+      if(wantFarm === !!d._isFarm) return; // すでにその表示なら何もしない
+      const target = d._farmData;
+      if(!target) return;
+      activeCardData = target;
+      renderCard(target);
+    });
+  }
+
   // 各セクション枠（選手プロフィール／球種評価／提案／試合成績）の開閉
   mainContentEl.querySelectorAll(".section-title[data-toggle]").forEach(title => {
     title.addEventListener("click", () => {
@@ -1324,9 +1486,11 @@ function renderCard(d){
 
   // 試合ログ: 行クリック＝この行だけ選んで比較パネルへスクロール／チェックボックス＝複数比較に追加・削除
   compareSelectedKeys = new Set(); // 選手が変わったら比較選択はリセット
+  previewGidx = "season"; // コース分布セクションは常にシーズン成績をデフォルト表示する（試合行クリックで切り替え可）
   window._hmResultFilter = "all";
   window._hmSplitMode = "25";
   window._hmSelectedPitchKeys = null;
+  renderComparePanel(d); // 上で初期化したprevewGidxを使って、コース分布セクションを即座に描画する
 
   function toggleCompareRow(gidx, cb){
     previewGidx = null; // チェックボックス操作が優先。行クリックのプレビューは破棄する
@@ -1562,7 +1726,9 @@ function pitchDetailTableHtml(pitches, trueTotal, metricsOverride, tagsByName){
         const v = p[m.key];
         const tier = p[m.tierKey];
         const bg = tier ? (TIER_COLOR[tier] || "") : "";
-        return `<td style="width:${sw(m.width)}px;background:${bg}">${fmtMetricVal(m, v)}</td>`;
+        const rk = p.ranks && p.ranks[m.key];
+        const rankHtml = rk ? `<div class="pmix-rank">${rk.rank}位/${rk.total}人中</div>` : "";
+        return `<td style="width:${sw(m.width)}px;background:${bg}">${fmtMetricVal(m, v)}${rankHtml}</td>`;
       }).join("")}
       ${showTagCol ? `<td class="pmix-tag-cell" style="width:${TAG_COL_WIDTH}px">${tagsByName[p.name] ? `<span class="pmix-tag">${escapeHtml(tagsByName[p.name])}</span>` : "—"}</td>` : ""}
     </tr>
@@ -1583,6 +1749,93 @@ function pitchDetailTableHtml(pitches, trueTotal, metricsOverride, tagsByName){
 
 const PITCH_COLORS = ["#34D399","#FB923C","#F87171","#EC4899","#A78BFA","#60A5FA","#FBBF24","#22D3EE"];
 function pitchColor(i){ return PITCH_COLORS[i % PITCH_COLORS.length]; }
+
+// ── カウント別配球（球種選択割合＋次カウントへの遷移傾向）──
+// export_llm_input.py 側でseason_pitch_detailの各球種行に "cbs"（カウント別集計。
+// {count: {c,sw,fo,lo,ba,ou,hi}}）が入っている前提。まだ無い（run.py未再実行の）
+// 古いJSONの場合は、その旨を表示するだけにして他の表示は壊さない。
+const COUNT_KEYS = ["0-0","0-1","0-2","1-0","1-1","1-2","2-0","2-1","2-2","3-0","3-1","3-2"];
+
+function countPatternTableHtml(pitchRows){
+  const rows = (pitchRows || []).filter(p => p.cbs && Object.keys(p.cbs).length);
+  if(!rows.length){
+    return `<div style="font-size:11px;color:var(--text-dim);padding:4px 0 8px">
+      カウント別データがまだありません（export_llm_input.py / run.py の再実行後に表示されます）
+    </div>`;
+  }
+  const countTotals = {};
+  COUNT_KEYS.forEach(ck => {
+    countTotals[ck] = rows.reduce((s,p) => s + ((p.cbs[ck] && p.cbs[ck].c) || 0), 0);
+  });
+
+  // 球種選択割合：そのカウントで実際に投げられた球のうち、その球種が占めた割合
+  const pitchTableHtml = `
+    <div class="pmix-scroll">
+      <table class="pmix-table count-pmix-table">
+        <thead><tr><th>球種</th>${COUNT_KEYS.map(ck => `<th>${ck}</th>`).join("")}</tr></thead>
+        <tbody>
+          ${rows.map((p,i) => `
+            <tr>
+              <td><span class="pmix-pname"><span class="pmix-dot" style="background:${pitchColor(i)}"></span>${escapeHtml(p.name)}</span></td>
+              ${COUNT_KEYS.map(ck => {
+                const c = p.cbs[ck];
+                const cnt = c ? (c.c || 0) : 0;
+                const total = countTotals[ck];
+                const pct = total > 0 ? Math.round(cnt / total * 100) : null;
+                return `<td>${pct != null ? pct + "%" : "-"}</td>`;
+              }).join("")}
+            </tr>
+          `).join("")}
+          <tr class="count-total-row">
+            <td>投球数</td>
+            ${COUNT_KEYS.map(ck => `<td>${countTotals[ck] || "-"}</td>`).join("")}
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  `;
+
+  // 次カウント遷移：ボール/ストライク相当（空振り・見逃し）/ファウル/打球の内訳から、
+  // 次にどのカウントへ進みやすいかを球種横断で集計する
+  const transHtml = `
+    <div class="pmix-scroll" style="margin-top:10px">
+      <table class="pmix-table count-trans-table">
+        <thead><tr><th>カウント</th><th>ボール</th><th>ストライク</th><th>ファウル</th><th>打席終了</th></tr></thead>
+        <tbody>
+          ${COUNT_KEYS.map(ck => {
+            const [b, s] = ck.split("-").map(Number);
+            const agg = rows.reduce((acc, p) => {
+              const c = p.cbs[ck];
+              if(!c) return acc;
+              acc.sw += c.sw || 0; acc.lo += c.lo || 0; acc.fo += c.fo || 0;
+              acc.ba += c.ba || 0; acc.ou += c.ou || 0; acc.hi += c.hi || 0;
+              return acc;
+            }, {sw:0, lo:0, fo:0, ba:0, ou:0, hi:0});
+            const strikeEquiv = agg.sw + agg.lo; // 空振り・見逃しはストライク扱い
+            const bip = agg.ou + agg.hi; // 打球による打席終了
+            const total = agg.ba + strikeEquiv + agg.fo + bip;
+            const pct = (v) => total > 0 ? Math.round(v / total * 100) : null;
+            const fmt = (v, label) => { const p = pct(v); return p != null ? `${p}% → ${label}` : "-"; };
+            const nextBall = b < 3 ? `${b + 1}-${s}` : "満球";
+            const nextStrike = s < 2 ? `${b}-${s + 1}` : "三振";
+            const nextFoul = s < 2 ? `${b}-${s + 1}` : "変化なし";
+            return `
+              <tr>
+                <td>${ck}</td>
+                <td>${fmt(agg.ba, nextBall)}</td>
+                <td>${fmt(strikeEquiv, nextStrike)}</td>
+                <td>${fmt(agg.fo, nextFoul)}</td>
+                <td>${fmt(bip, "打球")}</td>
+              </tr>
+            `;
+          }).join("")}
+        </tbody>
+      </table>
+    </div>
+  `;
+
+  return pitchTableHtml + transHtml;
+}
 
 // 日本語（全角）と英数字（半角）が混ざった短い文言のセル幅を見積もる。
 // 「8/30 vs ソフトバンク」のような長いチーム名でも列が見切れないようにするため、
@@ -2025,11 +2278,20 @@ function buildGameLogTable(d){
     grp.indices.push(i);
   });
 
-  const folderRowsHtml = yearGroups.map((grp, gi) => {
-    const isOpen = gi === 0; // 最新（先頭）の年だけデフォルトで開いておく
+  // シーズン合計行は年フォルダの開閉状態に関わらず常に見える独立tbodyとして先頭に置く
+  // （以前は最新年フォルダの中に入っており、フォルダを開かないと見えなかった）。
+  // 個々の試合行は情報量が多く一覧性を下げるため、どの年フォルダもデフォルトは閉じておき、
+  // 見たい人だけ年フォルダをクリックして試合単位の内訳を開けるようにする。
+  const seasonHeadHtml = `
+    <tbody class="season-head-body">
+      ${headerRowHtml}
+      ${seasonRow}
+    </tbody>
+  `;
+
+  const folderRowsHtml = yearGroups.map((grp) => {
+    const isOpen = false; // 試合行は常にデフォルト非表示（シーズン行だけをデフォルト表示にするため）
     const rows = grp.indices.map(i => gameRowHtml(d.game_log[i], i)).join("");
-    // シーズン集計行は「現在のシーズン」＝一番新しい年グループの先頭に含める
-    const seasonRowHtml = gi === 0 ? seasonRow : "";
     return `
       <tbody class="folder-head-body">
         <tr class="row-folder" data-year="${escapeHtml(grp.year)}">
@@ -2044,7 +2306,7 @@ function buildGameLogTable(d){
         </tr>
       </tbody>
       <tbody class="folder-body" data-year-body="${escapeHtml(grp.year)}" style="display:${isOpen ? "table-row-group" : "none"}">
-        ${headerRowHtml}${seasonRowHtml}${rows}
+        ${headerRowHtml}${rows}
       </tbody>
     `;
   }).join("");
@@ -2070,10 +2332,10 @@ function buildGameLogTable(d){
         <div class="gamelog-scroll">
           <table class="gamelog-table">
             ${colgroupHtml}
+            ${seasonHeadHtml}
             ${folderRowsHtml}
           </table>
         </div>
-        <div id="comparePanel"></div>
       </div>
     </div>
   `;
