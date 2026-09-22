@@ -982,6 +982,7 @@ def build_season_pitch_detail(season_mix_all, season_mix_vs_r, season_mix_vs_l,
     def _fmt(mix_list):
         rows = [{
             "name": m["球種名"],
+            "pitch_key": key_lookup.get(m["球種名"]),  # 全選手の順位付け（attach_pitch_rankings_to_cards）で使う突合キー
             "count": m["投球数"],
             "pct": m["投球割合%"],
             "swstr_pct": m["空振り率"],
@@ -1003,6 +1004,11 @@ def build_season_pitch_detail(season_mix_all, season_mix_vs_r, season_mix_vs_l,
             "ivb": m.get("縦変化量"),
             "hb": m.get("横変化量"),
             "ext": m.get("Extension"),
+            # カウント別配球（ダッシュボードのカウント別配球セクション用）。
+            # _aggregateSeasonMix() 側では出力シートに含めないため "_cbs" のまま保持しているが、
+            # カードJSON（このseason_pitch_detail）には必要なので、ここで通常の "cbs" として含める。
+            # defaultdictのままJSONにdumpすると型によっては挙動が不安定なので、必ずdict化する。
+            "cbs": {ck: dict(cv) for ck, cv in (m.get("_cbs") or {}).items()},
         } for m in mix_list]
         _single_game_pitch_tiers(rows, role_key, pitch_scale_stats, key_lookup)
         return rows
@@ -1190,6 +1196,61 @@ def compute_pitch_rankings(mix_rows: list[dict], role_map: dict[str, str], ip_ma
         for side_prefix, count_field in (("対右", "対右_投球数"), ("対左", "対左_投球数")):
             for field, higher in _PITCH_RANK_METRICS_HAND:
                 assign(rows, f"{side_prefix}_{field}", min_ip, higher, count_field=count_field)
+
+
+# ダッシュボードのカードJSON（season_pitch_detail）向け：mix_rowsの日本語フィールド名を
+# season_pitch_detailの英語キーに対応させる表。全体側はGB%、対右/対左側はゴロ率という
+# 列名の違いに注意（merge_lr_split / _PITCH_RANK_METRICS_HAND と同じ対応）。
+_PITCH_RANK_FIELD_MAP_ALL = [
+    ("空振り率", "swstr_pct"), ("ゾーン外スイング率", "chase_pct"),
+    ("ストライク率", "strike_pct"), ("ゾーン率", "zone_pct"), ("GB%", "gb_pct"),
+]
+_PITCH_RANK_FIELD_MAP_HAND = [
+    ("空振り率", "swstr_pct"), ("ゾーン外スイング率", "chase_pct"),
+    ("ストライク率", "strike_pct"), ("ゾーン率", "zone_pct"), ("ゴロ率", "gb_pct"),
+]
+
+
+def attach_pitch_rankings_to_cards(numeric_cards: dict[str, dict], mix_rows: list[dict]) -> None:
+    """
+    compute_pitch_rankings() 実行後（mix_rowsの各行に「{指標}_順位」「{指標}_順位_母数」が
+    付与済み）のmix_rowsから、numeric_cards[選手名]["season_pitch_detail"] の各球種行
+    （all/vsR/vsL）に "ranks": {swstr_pct: {rank, total}, ...} を付与する。
+
+    mix_rows側は選手名＋球種コードの組で1行なので、season_pitch_detail側の各行に
+    build_season_pitch_detail() で追加した "pitch_key"（球種コード）と選手名で突き合わせる。
+    順位が付かない（資格投球回未満・対戦数不足など）指標はranksに含めない
+    （フロント側は「その指標のランクバッジを出さない」だけで、他の表示には影響しない）。
+    """
+    by_key: dict[tuple[str, str], dict] = {}
+    for row in mix_rows:
+        name = row.get("選手名")
+        pitch_key = row.get("球種コード")
+        if name is None or pitch_key is None:
+            continue
+        by_key[(name, pitch_key)] = row
+
+    def build_ranks(src_row: dict, field_map: list[tuple[str, str]], prefix: str) -> dict:
+        ranks = {}
+        for jp, en in field_map:
+            field = f"{prefix}{jp}" if prefix else jp
+            rank = src_row.get(f"{field}_順位")
+            total = src_row.get(f"{field}_順位_母数")
+            if rank is not None and total:
+                ranks[en] = {"rank": rank, "total": total}
+        return ranks
+
+    for name, card in numeric_cards.items():
+        detail = card.get("season_pitch_detail") or {}
+        for hand, field_map, prefix in (
+            ("all", _PITCH_RANK_FIELD_MAP_ALL, ""),
+            ("vsR", _PITCH_RANK_FIELD_MAP_HAND, "対右_"),
+            ("vsL", _PITCH_RANK_FIELD_MAP_HAND, "対左_"),
+        ):
+            for prow in (detail.get(hand) or []):
+                pitch_key = prow.get("pitch_key")
+                src_row = by_key.get((name, pitch_key)) if pitch_key else None
+                prow["ranks"] = build_ranks(src_row, field_map, prefix) if src_row else {}
 
 
 def determine_pitcher_role(appearances: list[dict]) -> str:
@@ -1396,6 +1457,10 @@ def export_llm_input_xlsx(games_json_dir: str, out_path: str, min_ip: float = 0.
     role_map = {row["選手名"]: row.get("役割") for row in season_rows}
     ip_map = {row["選手名"]: row.get("投球回") for row in season_rows}
     compute_pitch_rankings(mix_rows, role_map, ip_map)
+    # ダッシュボードのカードJSON側（season_pitch_detailの各球種行）にも、上で計算した
+    # 球種別順位を "ranks" として反映する（xlsx用の集計を流用しているだけで、新たな
+    # 集計処理は発生しない）
+    attach_pitch_rankings_to_cards(numeric_cards, mix_rows)
 
     os.makedirs(os.path.dirname(out_path), exist_ok=True)
     with pd.ExcelWriter(out_path, engine="openpyxl") as writer:
@@ -1427,6 +1492,9 @@ def export_llm_input_xlsx(games_json_dir: str, out_path: str, min_ip: float = 0.
                 "k_pct": card.get("k_pct_season"),
                 "bb_pct": card.get("bb_pct_season"),
                 "swstr_pct": card.get("swstr_pct_season"),
+                "chase_pct": card.get("chase_pct_season"),
+                "strike_pct": card.get("strike_pct_season"),
+                "zone_pct": card.get("zone_pct_season"),
                 "gb_pct": card.get("gb_pct"),
             })
         with open(os.path.join(numeric_json_dir, "index.json"), "w", encoding="utf-8") as f:
