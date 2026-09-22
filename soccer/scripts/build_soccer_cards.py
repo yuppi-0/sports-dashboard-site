@@ -134,6 +134,11 @@ DETAIL = {
 # 列が無いが、ほかの列から作れる指標（順位は付かない）
 DERIVED = {
     "shots_in_box_pct": lambda r: (r["shots_in_box"] / r["shots"] * 100) if (r.get("shots") or 0) else None,
+    # ボールロスト・ボールタッチのミスは、タッチ数（touches）に対する割合も出す（回数だけだと、出場時間やボール関与量の違いで比較しにくいため）
+    "dispossessed_pct": lambda r: (r["dispossessed"] / r["touches"] * 100) if (r.get("touches") or 0) else None,
+    "bad_touches_pct": lambda r: (r["bad_touches"] / r["touches"] * 100) if (r.get("touches") or 0) else None,
+    # 「成功率」ではなく、全パスのうち前進パスが占める割合（量ではなくスタイルを見る指標）
+    "progressive_passes_pct": lambda r: (r["progressive_passes"] / r["passes"] * 100) if (r.get("passes") or 0) else None,
 }
 
 # プレータイプ。name はプロンプト付録Bの名前と完全一致させる（LLM解釈JSONの play_evaluations[].name と突き合わせる）。
