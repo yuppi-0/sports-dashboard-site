@@ -1130,6 +1130,7 @@ RANK_MIN_PITCHES_VS_HAND = 20                          # 対右/対左側の順�
 _PITCH_RANK_METRICS_ALL = [
     ("空振り率", True), ("ゾーン外スイング率", True),
     ("ストライク率", True), ("ゾーン率", True), ("GB%", True),
+    ("投球割合%", True), ("平均球速", True), ("最高球速", True),
 ]
 _PITCH_RANK_METRICS_HAND = [
     ("空振り率", True), ("ゾーン外スイング率", True),
@@ -1204,6 +1205,7 @@ def compute_pitch_rankings(mix_rows: list[dict], role_map: dict[str, str], ip_ma
 _PITCH_RANK_FIELD_MAP_ALL = [
     ("空振り率", "swstr_pct"), ("ゾーン外スイング率", "chase_pct"),
     ("ストライク率", "strike_pct"), ("ゾーン率", "zone_pct"), ("GB%", "gb_pct"),
+    ("投球割合%", "pct"), ("平均球速", "avg_vel"), ("最高球速", "max_vel"),
 ]
 _PITCH_RANK_FIELD_MAP_HAND = [
     ("空振り率", "swstr_pct"), ("ゾーン外スイング率", "chase_pct"),
