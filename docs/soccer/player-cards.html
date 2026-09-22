@@ -104,6 +104,8 @@
   .mtx th{ padding:6px 8px; font-size:9px; font-weight:600; color:var(--text-dim); white-space:nowrap; text-align:left;
     background:var(--panel-alt); border-bottom:1px solid rgba(148,163,184,0.15); }
   .mtx th.grp{ color:var(--text); font-size:9.5px; font-weight:700; }
+  .mtx .ti{ display:inline-flex; align-items:center; justify-content:center; width:11px; height:11px; margin-left:3px; border-radius:50%;
+    background:rgba(148,163,184,0.25); color:var(--text-dim); font-size:8px; font-style:normal; cursor:help; }
   .mtx td{ padding:5px 8px; font-size:12px; text-align:left; white-space:nowrap; vertical-align:middle; border-bottom:1px solid rgba(255,255,255,0.04);
     box-shadow:inset -1px 0 0 rgba(5,8,15,0.35); }                                         /* 色付きのマスはセル全体。隣との境目に細い線 */
   .mtx .hv{ display:block; font-size:12px; color:var(--text-bright); line-height:1.25; }
@@ -254,34 +256,34 @@ const CAT_ORDER = {                                    // 大カテゴリの並�
 const LAYOUT = [
   ["シュート", "得点", [
     ["goals_p90", "ゴール/90（PK込み）"],
-    ["np_goals_p90", "ノンPKゴール/90"],
-    ["us_xg_p90", "xG（Understat）/90"]
+    ["np_goals_p90", "ゴール/90（PK抜き）"],
+    ["us_xg_p90", "xG/90"]
   ]],
   ["シュート", "シュート機会", [
     ["shots_p90", "シュート/90"],
     ["shots_on_target_p90", "枠内シュート/90"],
-    ["shots_in_box_pct", "ボックス内シュート率", "%"],
     ["headed_shots_p90", "ヘディングシュート/90"],
-    ["touches_att_pen_p90", "PA内タッチ/90"],
-    ["big_chances_p90", "ビッグチャンス/90"]
+    ["big_chances_p90", "ビッグチャンス/90"],
+    ["shots_in_box_pct", "ボックス内シュート率", "%"],
+    ["touches_att_pen_p90", "PA内タッチ/90"]
   ]],
   ["シュート", "精度・決定力", [
     ["shot_on_target_pct", "シュート枠内率", "%"],
-    ["np_goal_conversion_pct", "ノンPKゴール決定率", "%"],
+    ["np_goal_conversion_pct", "ゴール決定率（PK抜き）", "%"],
     ["big_chance_conversion_pct", "ビッグチャンス決定率", "%"],
-    ["big_chances_missed_p90", "ビッグチャンス逸失/90", "", "low"],
-    ["xg_diff_p90", "xG差分/90"]
+    ["xg_diff_p90", "xG差分/90"],
+    ["big_chances_missed_p90", "ビッグチャンス逸失/90", "", "low"]
   ]],
   ["チャンス創出", "ゴールに直結", [
     ["assists_p90", "アシスト/90"],
     ["big_chances_created_p90", "ビッグチャンス創出/90"],
-    ["gca_p90", "ゴール創出アクション/90（近似）"],
-    ["us_xa_p90", "xA（Understat）/90"]
+    ["us_xa_p90", "xA/90"],
+    ["gca_p90", "ゴール創出アクション/90（近似）"]
   ]],
   ["チャンス創出", "チャンスの起点", [
     ["key_passes_p90", "キーパス/90"],
-    ["sca_p90", "シュート創出アクション/90（近似）"],
-    ["key_passes_set_piece_p90", "セットプレーからのキーパス/90"]
+    ["sca_p90", "シュート創出アクション/90（近似）", null, null,
+      "パス・ドリブル・被ファウルなど、シュートに直結した最後2つのオフェンスアクションに関わった回数（近似値）。ゴールになったかは問いません。"]
   ]],
   ["パス", "基本", [
     ["passes_p90", "パス/90"],
@@ -289,9 +291,12 @@ const LAYOUT = [
   ]],
   ["パス", "前進・崩し", [
     ["progressive_passes_p90", "プログレッシブパス/90"],
+    ["progressive_passes_pct", "プログレッシブパス比率", "%", "neutral",
+      "全パスのうち、前進パス（プログレッシブパス）が占める割合。「成功率」ではなく、パスの前進志向を見る指標。量（プログレッシブパス/90）とは別の角度"],
     ["passes_final_third_p90", "ファイナルサードへのパス/90"],
     ["passes_into_box_p90", "ボックスへのパス/90"],
-    ["through_balls_p90", "スルーパス/90"]
+    ["through_balls_p90", "スルーパス/90"],
+    ["through_ball_pct", "スルーパス成功率", "%"]
   ]],
   ["パス", "パスの種類", [
     ["crosses_p90", "クロス/90"],
@@ -315,7 +320,11 @@ const LAYOUT = [
   ]],
   ["ドリブル", "ロスト", [
     ["dispossessed_p90", "ボールロスト/90", "", "low"],
-    ["bad_touches_p90", "ボールタッチのミス/90", "", "low"]
+    ["dispossessed_pct", "ボールロスト率", "%", "low",
+      "ボールを持ったときに、相手に奔われた回数を、タッチ数で割った割合。ボール関与の多い選手でも比較しやすい"],
+    ["bad_touches_p90", "ボールタッチのミス/90", "", "low"],
+    ["bad_touches_pct", "ボールタッチのミス率", "%", "low",
+      "トラップを乱した回数を、タッチ数で割った割合。ボール関与の多い選手でも比較しやすい"]
   ]],
   ["守備", "ボールを奪う", [
     ["tackles_won_p90", "タックル成功/90"],
@@ -367,27 +376,27 @@ const LAYOUT = [
 
 const SHOW = {
   FW: { core: ["np_goals_p90", "shots_p90", "np_goal_conversion_pct", "big_chances_p90", "big_chance_conversion_pct", "touches_att_pen_p90", "xg_diff_p90"],
-    more: ["goals_p90", "shot_on_target_pct", "shots_in_box_pct", "headed_shots_p90", "assists_p90", "gca_p90", "key_passes_p90", "aerial_win_pct", "fouls_won_p90", "take_ons_won_p90", "dispossessed_p90", "bad_touches_p90", "def_actions_att_third_p90", "yellow_cards_p90", "shots_on_target_p90", "big_chances_missed_p90", "us_xg_p90", "big_chances_created_p90", "us_xa_p90", "sca_p90", "key_passes_set_piece_p90", "passes_p90", "pass_pct", "progressive_passes_p90", "passes_into_box_p90", "through_balls_p90", "take_on_pct", "progressive_carries_p90", "tackles_won_p90", "ball_recoveries_p90", "aerials_won_p90", "fouls_committed_p90", "offsides_p90"] },
+    more: ["goals_p90", "shot_on_target_pct", "shots_in_box_pct", "headed_shots_p90", "assists_p90", "key_passes_p90", "aerial_win_pct", "fouls_won_p90", "take_ons_won_p90", "dispossessed_p90", "dispossessed_pct", "bad_touches_p90", "bad_touches_pct", "def_actions_att_third_p90", "yellow_cards_p90", "shots_on_target_p90", "us_xg_p90", "big_chances_created_p90", "us_xa_p90", "sca_p90", "passes_p90", "pass_pct", "progressive_passes_p90", "progressive_passes_pct", "passes_into_box_p90", "through_balls_p90", "through_ball_pct", "take_on_pct", "progressive_carries_p90", "tackles_won_p90", "ball_recoveries_p90", "aerials_won_p90", "fouls_committed_p90", "offsides_p90"] },
   WG: { core: ["take_ons_won_p90", "take_on_pct", "key_passes_p90", "assists_p90", "big_chances_created_p90", "np_goals_p90", "progressive_carries_p90"],
-    more: ["goals_p90", "shots_p90", "np_goal_conversion_pct", "touches_att_pen_p90", "gca_p90", "crosses_p90", "cross_pct", "passes_into_box_p90", "progressive_passes_p90", "fouls_won_p90", "dispossessed_p90", "bad_touches_p90", "def_actions_att_third_p90", "tackles_won_p90", "shots_on_target_p90", "shots_in_box_pct", "big_chances_p90", "shot_on_target_pct", "big_chance_conversion_pct", "big_chances_missed_p90", "xg_diff_p90", "us_xg_p90", "us_xa_p90", "sca_p90", "key_passes_set_piece_p90", "passes_p90", "pass_pct", "passes_final_third_p90", "through_balls_p90", "carries_final_third", "carries_into_box", "ball_recoveries_p90", "fouls_committed_p90", "yellow_cards_p90", "offsides_p90"] },
+    more: ["goals_p90", "shots_p90", "np_goal_conversion_pct", "touches_att_pen_p90", "crosses_p90", "cross_pct", "passes_into_box_p90", "progressive_passes_p90", "progressive_passes_pct", "fouls_won_p90", "dispossessed_p90", "dispossessed_pct", "bad_touches_p90", "bad_touches_pct", "def_actions_att_third_p90", "tackles_won_p90", "shots_on_target_p90", "shots_in_box_pct", "big_chances_p90", "shot_on_target_pct", "big_chance_conversion_pct", "big_chances_missed_p90", "xg_diff_p90", "us_xg_p90", "us_xa_p90", "sca_p90", "passes_p90", "pass_pct", "passes_final_third_p90", "through_balls_p90", "through_ball_pct", "carries_final_third", "carries_into_box", "ball_recoveries_p90", "fouls_committed_p90", "yellow_cards_p90", "offsides_p90"] },
   MF: { core: {
-    DM: ["pass_pct", "progressive_passes_p90", "tackles_padj_p90", "interceptions_padj_p90", "tackles_won_p90", "interceptions_p90"],
-    CM: ["pass_pct", "progressive_passes_p90", "key_passes_p90", "tackles_padj_p90", "interceptions_padj_p90", "ball_recoveries_padj_p90"],
-    AM: ["pass_pct", "progressive_passes_p90", "key_passes_p90", "big_chances_created_p90", "assists_p90", "gca_p90"],
+    DM: ["pass_pct", "progressive_passes_p90", "progressive_passes_pct", "tackles_padj_p90", "interceptions_padj_p90", "tackles_won_p90", "interceptions_p90"],
+    CM: ["pass_pct", "progressive_passes_p90", "progressive_passes_pct", "key_passes_p90", "tackles_padj_p90", "interceptions_padj_p90", "ball_recoveries_padj_p90"],
+    AM: ["pass_pct", "progressive_passes_p90", "progressive_passes_pct", "key_passes_p90", "big_chances_created_p90", "assists_p90"],
   },
-    more: ["passes_p90", "forward_pass_pct", "avg_pass_distance", "dispossessed_p90", "passes_final_third_p90", "passes_into_box_p90", "through_balls_p90", "shots_p90", "ball_recoveries_p90", "blocked_passes_p90", "duel_win_pct", "dribbled_past_p90", "fouls_committed_p90", "yellow_cards_p90", "goals_p90", "np_goals_p90", "shots_on_target_p90", "shot_on_target_pct", "touches_att_pen_p90", "us_xg_p90", "us_xa_p90", "sca_p90", "key_passes_set_piece_p90", "crosses_p90", "cross_pct", "long_balls_p90", "long_ball_pct", "take_ons_won_p90", "take_on_pct", "fouls_won_p90", "progressive_carries_p90", "carries_final_third", "bad_touches_p90", "tackle_win_pct", "tackles_p90", "clearances_p90", "dribbled_past_pct", "aerials_won_p90", "aerial_win_pct", "errors_p90", "offsides_provoked_p90"] },
+    more: ["passes_p90", "forward_pass_pct", "avg_pass_distance", "dispossessed_p90", "dispossessed_pct", "passes_final_third_p90", "passes_into_box_p90", "through_balls_p90", "through_ball_pct", "shots_p90", "ball_recoveries_p90", "blocked_passes_p90", "duel_win_pct", "dribbled_past_p90", "fouls_committed_p90", "yellow_cards_p90", "goals_p90", "np_goals_p90", "shots_on_target_p90", "shot_on_target_pct", "touches_att_pen_p90", "us_xg_p90", "us_xa_p90", "sca_p90", "crosses_p90", "cross_pct", "long_balls_p90", "long_ball_pct", "take_ons_won_p90", "take_on_pct", "fouls_won_p90", "progressive_carries_p90", "carries_final_third", "bad_touches_p90", "bad_touches_pct", "tackle_win_pct", "tackles_p90", "clearances_p90", "dribbled_past_pct", "aerials_won_p90", "aerial_win_pct", "errors_p90", "offsides_provoked_p90"] },
   CB: { core: ["tackle_win_pct", "interceptions_p90", "interceptions_padj_p90", "clearances_p90", "aerial_win_pct", "dribbled_past_pct"],
-    more: ["tackles_padj_p90", "clearances_padj_p90", "tackles_won_p90", "blocked_passes_p90", "aerials_won_p90", "pass_pct", "progressive_passes_p90", "passes_p90", "forward_pass_pct", "avg_pass_distance", "long_ball_pct", "long_balls_p90", "errors_p90", "fouls_committed_p90", "yellow_cards_p90", "offsides_provoked_p90", "goals_p90", "headed_shots_p90", "assists_p90", "passes_final_third_p90", "progressive_carries_p90", "dispossessed_p90", "bad_touches_p90", "ball_recoveries_p90", "dribbled_past_p90", "ball_recoveries_padj_p90", "duel_win_pct", "red_cards"] },
+    more: ["tackles_padj_p90", "clearances_padj_p90", "tackles_won_p90", "blocked_passes_p90", "aerials_won_p90", "pass_pct", "progressive_passes_p90", "progressive_passes_pct", "passes_p90", "forward_pass_pct", "avg_pass_distance", "long_ball_pct", "long_balls_p90", "errors_p90", "fouls_committed_p90", "yellow_cards_p90", "offsides_provoked_p90", "goals_p90", "headed_shots_p90", "assists_p90", "passes_final_third_p90", "progressive_carries_p90", "dispossessed_p90", "dispossessed_pct", "bad_touches_p90", "bad_touches_pct", "ball_recoveries_p90", "dribbled_past_p90", "ball_recoveries_padj_p90", "duel_win_pct", "red_cards"] },
   SB: { core: ["tackle_win_pct", "dribbled_past_pct", "crosses_p90", "key_passes_p90", "assists_p90", "duel_win_pct", "progressive_carries_p90"],
-    more: ["big_chances_created_p90", "cross_pct", "passes_into_box_p90", "progressive_passes_p90", "take_ons_won_p90", "interceptions_p90", "tackles_won_p90", "tackles_padj_p90", "fouls_committed_p90", "yellow_cards_p90", "goals_p90", "shots_p90", "gca_p90", "sca_p90", "key_passes_set_piece_p90", "passes_p90", "pass_pct", "passes_final_third_p90", "long_balls_p90", "long_ball_pct", "forward_pass_pct", "avg_pass_distance", "take_on_pct", "fouls_won_p90", "carries_final_third", "carries_into_box", "dispossessed_p90", "bad_touches_p90", "ball_recoveries_p90", "blocked_passes_p90", "clearances_p90", "dribbled_past_p90", "interceptions_padj_p90", "clearances_padj_p90", "ball_recoveries_padj_p90", "aerials_won_p90", "aerial_win_pct", "errors_p90", "offsides_provoked_p90"] },
+    more: ["big_chances_created_p90", "cross_pct", "passes_into_box_p90", "progressive_passes_p90", "progressive_passes_pct", "take_ons_won_p90", "interceptions_p90", "tackles_won_p90", "tackles_padj_p90", "fouls_committed_p90", "yellow_cards_p90", "goals_p90", "shots_p90", "sca_p90", "passes_p90", "pass_pct", "passes_final_third_p90", "long_balls_p90", "long_ball_pct", "forward_pass_pct", "avg_pass_distance", "take_on_pct", "fouls_won_p90", "carries_final_third", "carries_into_box", "dispossessed_p90", "dispossessed_pct", "bad_touches_p90", "bad_touches_pct", "ball_recoveries_p90", "blocked_passes_p90", "clearances_p90", "dribbled_past_p90", "interceptions_padj_p90", "clearances_padj_p90", "ball_recoveries_padj_p90", "aerials_won_p90", "aerial_win_pct", "errors_p90", "offsides_provoked_p90"] },
   GK: { core: ["gk_save_pct", "goals_conceded_p90", "clean_sheet_pct", "pass_pct", "long_ball_pct", "gk_sweeper_actions_p90"],
     more: ["saves_p90", "long_balls_p90", "goal_kick_long_pct", "avg_goal_kick_distance", "passes_p90", "forward_pass_pct", "avg_pass_distance", "errors_p90"] },
 };
 
 const METRIC_DEFS = new Map();                           // 列名 → {key, label, unit, better, cat, sub, li}
 let _pi = 0;                                             // LAYOUT の上から数えた通し番号（表の列の並びに使う）
-LAYOUT.forEach(([cat, sub, list], li) => list.forEach(([key, label, unit, better]) =>
-  METRIC_DEFS.set(key, { key, label, unit: unit || "", better: better || "high", cat, sub, li, pi: _pi++ })));
+LAYOUT.forEach(([cat, sub, list], li) => list.forEach(([key, label, unit, better, tip]) =>
+  METRIC_DEFS.set(key, { key, label, unit: unit || "", better: better || "high", cat, sub, li, pi: _pi++, tip })));
 // ══════════════════════════════════════════════════════════════════════════════════════
 
 const $ = (s) => document.querySelector(s);
@@ -733,7 +742,8 @@ function metricsTable(cards, subs){           // subs: [[中カテゴリ名, 指
   const stH = venueMode ? '<th class="stick s1">年度</th><th class="stick s2 last">区分</th>' : '<th class="stick s1 last">年度</th>';
   const grpRow = subs.some(([sk]) => sk)
     ? `<tr><th class="stick s1${venueMode ? "" : " last"}"></th>${venueMode ? '<th class="stick s2 last"></th>' : ""}${subs.map(([sk, list], n) => `<th class="grp${n > 0 ? " gl" : ""}" colspan="${list.length}">${esc(sk || "")}</th>`).join("")}</tr>` : "";
-  const head = `<tr>${stH}${cols.map(({ m, gl }) => `<th${gl ? ' class="gl"' : ""}>${esc(noP90(m.label))}</th>`).join("")}</tr>`;
+  const tipIc = (m) => m.tip ? `<span class="ti" title="${esc(m.tip)}">?</span>` : "";
+  const head = `<tr>${stH}${cols.map(({ m, gl }) => `<th${gl ? ' class="gl"' : ""}>${esc(noP90(m.label))}${tipIc(m)}</th>`).join("")}</tr>`;
   const multiTeam = new Set(cards.map(x => x.card.team)).size > 1;         // 移籍した選手だけ、年度の下にクラブ名を添える
   const body = cards.flatMap((x, ci) => vs.map((v, vi) => {
     const yr = `${esc(seasonFull(x.year))}${multiTeam ? `<span class="rt">${esc(x.card.team)}</span>` : ""}`;
