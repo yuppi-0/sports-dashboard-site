@@ -336,7 +336,12 @@ def calc_season_stats_by_hand(appearances: list[dict]) -> dict:
 # Section 3. 球種別シーズン集計（_aggregateSeasonMix のポート）
 # ==================================================
 
-_CBS_FIELDS = ["c", "sw", "fo", "lo", "ba", "ou", "hi", "iz", "oz", "izlo", "ozsw", "ozwh"]
+_CBS_FIELDS = [
+    "c", "sw", "fo", "lo", "ba", "ou", "hi", "iz", "oz", "izlo", "ozsw", "ozwh", "xh",
+    # MLB独自（Statcastのestimated_woba_using_speedangleより。NPBのcbsにはキーが無いので
+    # defaultdictの初期値0のまま蓄積され、xwoba_n=0のカウントはフロント側で「-」扱いにできる）
+    "xwoba_sum", "xwoba_n",
+]
 
 
 def aggregate_season_mix(appearances: list[dict], mix_key: str = "mix") -> list[dict]:
@@ -368,7 +373,7 @@ def aggregate_season_mix(appearances: list[dict], mix_key: str = "mix") -> list[
                     "swstr_sum": 0.0, "zone_sum": 0.0,
                     "oswing_sum": 0.0, "oswing_cnt": 0,
                     "vel_sum": 0.0, "vel_cnt": 0, "max_vel": 0.0,
-                    "hits": 0, "hr": 0,
+                    "hits": 0, "hr": 0, "xh": 0,
                     "strike_sum": 0.0, "strike_cnt": 0,
                     "gb_sum": 0.0, "gb_cnt": 0,
                     # MLB独自（NPBのmixにはキーが無いのでcnt=0のまま→Noneで出力）
@@ -403,6 +408,7 @@ def aggregate_season_mix(appearances: list[dict], mix_key: str = "mix") -> list[
                 k["max_vel"] = m["maxVel"]
             k["hits"] += m.get("hits", 0) or 0
             k["hr"]   += m.get("hr", 0) or 0
+            k["xh"]   += m.get("xh", 0) or 0
             if m.get("strike") is not None:
                 k["strike_sum"] += (m["strike"] or 0) * count
                 k["strike_cnt"] += count
@@ -466,6 +472,10 @@ def aggregate_season_mix(appearances: list[dict], mix_key: str = "mix") -> list[
             "ゾーン外投球数": round(m["oswing_cnt"]) if m["oswing_cnt"] else 0,
             "H": m["hits"],
             "HR": m["hr"],
+            "XH": m["xh"],
+            # 被安打率・被長打率：この球種の投球数に対する割合（他の指標と同じ「投球数」分母に揃えている）
+            "被安打率": round(m["hits"] / m["count"] * 100, 1) if m["count"] > 0 else None,
+            "被長打率": round(m["xh"] / m["count"] * 100, 1) if m["count"] > 0 else None,
             # MLB独自（NPBはcnt=0のままなのでNone）
             "xwOBA": round(m["xwoba_sum"] / m["xwoba_cnt"], 3) if m["xwoba_cnt"] > 0 else None,
             "回転数": round(m["spin_sum"] / m["spin_cnt"]) if m["spin_cnt"] > 0 else None,
@@ -1004,6 +1014,8 @@ def build_season_pitch_detail(season_mix_all, season_mix_vs_r, season_mix_vs_l,
             "oz_n": m.get("ゾーン外投球数"),
             "avg_vel": m.get("平均球速"),
             "max_vel": m.get("最高球速"),
+            "hit_pct": m.get("被安打率"),
+            "xh_pct": m.get("被長打率"),
             # MLB独自（NPBはaggregate_season_mix側でNoneになる）
             "xwoba": m.get("xwOBA"),
             "avg_spin": m.get("回転数"),

@@ -1562,6 +1562,7 @@ def run_datamart(
         batted_by_pitch[(gid, pname, pitch)] = {
             "被安打数":   int(res.str.contains("安打|2塁打|3塁打|本塁打", na=False).sum()),
             "被本塁打数": int(res.str.contains("本塁打", na=False).sum()),
+            "被長打数":   int(res.str.contains("2塁打|3塁打|本塁打", na=False).sum()),
             "全打球数":   bstats["全打球数"],
             "GB":         bstats["GB"],   "LD":         bstats["LD"],
             "FB":         bstats["FB"],   "IFFB":       bstats["IFFB"],
@@ -1645,6 +1646,7 @@ def run_datamart(
             "判断不可打球":    _bd("判断不可打球"),
             "HR":              _bd("HR"),
             "H":               _bd("被安打数"),
+            "XH":              _bd("被長打数"),
             "GB%":             _pct(_bd("GB%")),  "LD%":   _pct(_bd("LD%")),
             "FB%":             _pct(_bd("FB%")),  "HR%":   _pct(_bd("HR%")),
             "IFFB%":           _pct(_bd("IFFB%")),
@@ -2015,6 +2017,7 @@ def run_datamart(
         batted_by_pitch_lr[(gid, pname, hand, pitch)] = {
             "被安打数":   int(res.str.contains("安打|2塁打|3塁打|本塁打", na=False).sum()),
             "被本塁打数": int(res.str.contains("本塁打", na=False).sum()),
+            "被長打数":   int(res.str.contains("2塁打|3塁打|本塁打", na=False).sum()),
             "全打球数":   bstats["全打球数"],
             "GB":         bstats["GB"],   "LD":         bstats["LD"],
             "FB":         bstats["FB"],   "IFFB":       bstats["IFFB"],
@@ -2079,6 +2082,7 @@ def run_datamart(
             "判断不可打球":    _bd("判断不可打球"),
             "HR":              _bd("HR",),
             "H":               _bd("被安打数"),
+            "XH":              _bd("被長打数"),
             "GB%":             _pct(_bd("GB%")),  "LD%":   _pct(_bd("LD%")),
             "FB%":             _pct(_bd("FB%")),  "HR%":   _pct(_bd("HR%")),
             "IFFB%":           _pct(_bd("IFFB%")),
@@ -2319,6 +2323,7 @@ def _mix_row(row) -> dict:
         "pct":     _fv(row.get("投球割合%")),
         "hits":    _iv(row.get("H")),
         "hr":      _iv(row.get("HR")),
+        "xh":      _iv(row.get("XH")),
         "vel":     _fv(row.get("平均球速")),
         "maxVel":  _fv(row.get("最高球速")),
         "swstr":   _fv(row.get("空振り率")),
@@ -2629,11 +2634,13 @@ def run_dashboard(datamart_path: str, html_template: str | None = None,
             df_valid = df_locs.dropna(subset=["_top", "_left"])
 
             # カウント別集計（全投球・座標なし含む）
-            # キー: (gid, pname, pitch_name, bat_hand) → {countKey: {c,sw,fo,lo,ba,ou,hi,iz,oz,izlo,ozsw,ozwh}}
+            # キー: (gid, pname, pitch_name, bat_hand) → {countKey: {c,sw,fo,lo,ba,ou,hi,iz,oz,izlo,ozsw,ozwh,xh}}
             # iz/oz/izlo/ozsw/ozwh は「ゾーン率」「ゾーン見逃し率」「ボール球SW率」「ボール球空振り率」用の
             # 追加集計（preprocess_pitch()が計算済みのin_zone/out_zone/is_swingをそのまま使う）。
-            # 座標が無い行（_top/_leftがNaN）はゾーン判定ができないため、この4つには数えない
-            # （c/sw/fo/lo/ba/ou/hiは従来通り座標の有無を問わず数える）。
+            # 座標が無い行（_top/_leftがNaN）はゾーン判定ができないため、この5つには数えない
+            # （c/sw/fo/lo/ba/ou/hi/xhは従来通り座標の有無を問わず数える）。
+            # xh は「被長打（2塁打・3塁打・本塁打）」の数。被安打率・被長打率を球種別成績に
+            # 出すためのカウント別内訳用。
             cbs_idx = {}
             for _, crow in df_locs.iterrows():
                 _cgid  = str(crow["試合ID"])
@@ -2655,6 +2662,7 @@ def run_dashboard(datamart_path: str, html_template: str | None = None,
                 _cba = _ccat == "ボール系"
                 _cou = _ccat == "アウト系"
                 _chi = _ccat in ("出塁/ヒット系", "犠打/犠飛系") and ("安打" in _cres or "ヒット" in _cres)
+                _cxh = _ccat in ("出塁/ヒット系", "犠打/犠飛系") and any(t in _cres for t in ("2塁打", "3塁打", "本塁打"))
                 # ゾーン判定（座標がある行だけ。preprocess_pitch()で算出済みのin_zone/is_swingを利用）
                 _chas_coord = pd.notna(crow.get("_top")) and pd.notna(crow.get("_left"))
                 _ciz = _chas_coord and bool(crow.get("in_zone", False))
@@ -2662,7 +2670,7 @@ def run_dashboard(datamart_path: str, html_template: str | None = None,
                 _cswing = bool(crow.get("is_swing", False))
                 for _ck in [(_cgid, _cpn, _cpitch, "ALL"), (_cgid, _cpn, _cpitch, _chand)]:
                     if _ck not in cbs_idx: cbs_idx[_ck] = {}
-                    if _ckey not in cbs_idx[_ck]: cbs_idx[_ck][_ckey] = {"c":0,"sw":0,"fo":0,"lo":0,"ba":0,"ou":0,"hi":0,"iz":0,"oz":0,"izlo":0,"ozsw":0,"ozwh":0}
+                    if _ckey not in cbs_idx[_ck]: cbs_idx[_ck][_ckey] = {"c":0,"sw":0,"fo":0,"lo":0,"ba":0,"ou":0,"hi":0,"iz":0,"oz":0,"izlo":0,"ozsw":0,"ozwh":0,"xh":0}
                     d2 = cbs_idx[_ck][_ckey]
                     d2["c"]  += 1
                     d2["sw"] += int(_csw)
@@ -2671,6 +2679,7 @@ def run_dashboard(datamart_path: str, html_template: str | None = None,
                     d2["ba"] += int(_cba)
                     d2["ou"] += int(_cou)
                     d2["hi"] += int(_chi)
+                    d2["xh"] += int(_cxh)
                     if _chas_coord:
                         d2["iz"] += int(_ciz)
                         d2["oz"] += int(_coz)

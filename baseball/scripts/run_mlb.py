@@ -996,6 +996,7 @@ def calc_batted_stats(g: pd.DataFrame) -> dict:
     pu  = (batted["bb_type"] == "popup").sum()
     hr  = (batted["events"]  == "home_run").sum()
     h   = batted["events"].isin(["single","double","triple","home_run"]).sum()
+    xh  = batted["events"].isin(["double","triple","home_run"]).sum()  # 被長打（2ベース以上）
 
     # EV / LA / 飛距離
     ev   = batted["launch_speed"].dropna()   if "launch_speed"   in batted.columns else pd.Series(dtype=float)
@@ -1012,7 +1013,7 @@ def calc_batted_stats(g: pd.DataFrame) -> dict:
     return {
         "全打球数":     total,
         "GB": int(gb), "LD": int(ld), "FB": int(fb), "IFFB": int(pu),
-        "HR": int(hr), "H":  int(h),  "判断不可打球": 0,
+        "HR": int(hr), "H":  int(h),  "XH": int(xh), "判断不可打球": 0,
         "GB%":   _pct(gb, total), "LD%": _pct(ld, total), "FB%":  _pct(fb, total),
         "IFFB%": _pct(pu, fb)    if fb  > 0 else np.nan,
         "HR%":   _pct(hr, fb)    if fb  > 0 else np.nan,
@@ -1288,7 +1289,7 @@ def calc_pitch_type_stats(g: pd.DataFrame, pitch_col: str = "pitch_type") -> pd.
             "球種名": get_pitch_type_jp(code), "球種コード": str(code),
             "投球数": n, "投球割合%": _pct(n, total_pitches),
             "平均球速": mph2kmh(_mean(pg["release_speed"])), "最高球速": mph2kmh(_max_val(pg["release_speed"])),
-            **{k: bd[k] for k in ["全打球数","GB","LD","FB","IFFB","判断不可打球","HR","H",
+            **{k: bd[k] for k in ["全打球数","GB","LD","FB","IFFB","判断不可打球","HR","H","XH",
                                    "GB%","LD%","FB%","IFFB%","HR%",
                                    "平均打球速度EV(km/h)","Hard-Hit%","Barrel%","xwOBA"] if k in bd},
             **{k: sw[k] for k in ["空振り率","ゾーン内スイング率","ゾーン外スイング率","ゾーン率",
@@ -2144,6 +2145,16 @@ def _build_mlb_locs_and_cbs(df: pd.DataFrame) -> tuple[dict, dict]:
         is_ball  = desc in {"ball","blocked_ball","intent_ball","pitchout","automatic_ball"}
         is_inplay = desc.startswith("hit_into_play")
         is_hit   = event in {"single","double","triple","home_run"}
+        is_xh    = event in {"double","triple","home_run"}  # 被長打（2ベース以上）
+        # xwOBA（打球結果の期待値）。カウント別配球のカラム候補として、cbs側にも投球数の
+        # 少ないカウントでも意味を持たせられるよう合計値(xwoba_sum)と有効件数(xwoba_n)を
+        # 別々に持たせておき、平均はフロント側で sum/n として計算する想定
+        # （HTML側への反映は別対応。ここではデータの取りこぼしを防ぐのが目的）。
+        xwoba_val = row.get("estimated_woba_using_speedangle", None)
+        try:
+            xwoba_val = float(xwoba_val) if xwoba_val is not None and str(xwoba_val) not in ("", "nan", "None") else None
+        except (ValueError, TypeError):
+            xwoba_val = None
         # ゾーン率・ゾーン見逃し率・ボール球SW率・ボール球空振り率用（NPB側run.pyと同じ考え方）。
         # StatcastのzoneはNaNになることがある（トラッキング欠損等）ので、その場合はゾーン集計に含めない。
         zone_val  = row.get("zone")
@@ -2154,7 +2165,7 @@ def _build_mlb_locs_and_cbs(df: pd.DataFrame) -> tuple[dict, dict]:
 
         for ck in [(gid, pname, pt, "ALL"), (gid, pname, pt, hand)]:
             if ck not in cbs_idx: cbs_idx[ck] = {}
-            if ckey not in cbs_idx[ck]: cbs_idx[ck][ckey] = {"c":0,"sw":0,"fo":0,"lo":0,"ba":0,"ou":0,"hi":0,"iz":0,"oz":0,"izlo":0,"ozsw":0,"ozwh":0}
+            if ckey not in cbs_idx[ck]: cbs_idx[ck][ckey] = {"c":0,"sw":0,"fo":0,"lo":0,"ba":0,"ou":0,"hi":0,"iz":0,"oz":0,"izlo":0,"ozsw":0,"ozwh":0,"xh":0,"xwoba_sum":0.0,"xwoba_n":0}
             d2 = cbs_idx[ck][ckey]
             d2["c"]  += 1
             d2["sw"] += int(is_swstr)
@@ -2163,6 +2174,10 @@ def _build_mlb_locs_and_cbs(df: pd.DataFrame) -> tuple[dict, dict]:
             d2["ba"] += int(is_ball)
             d2["ou"] += int(is_inplay and not is_hit)
             d2["hi"] += int(is_inplay and is_hit)
+            d2["xh"] += int(is_inplay and is_xh)
+            if xwoba_val is not None:
+                d2["xwoba_sum"] += xwoba_val
+                d2["xwoba_n"]   += 1
             if has_zone:
                 d2["iz"] += int(in_zone)
                 d2["oz"] += int(out_zone)
@@ -2221,14 +2236,8 @@ def _build_mlb_locs_and_cbs(df: pd.DataFrame) -> tuple[dict, dict]:
         elif is_inplay and bb_type == "line_drive":           rtype = 2
         else:                                                  rtype = 0
 
-        # xwOBA（打球結果の期待値）
-        xwoba_val = row.get("estimated_woba_using_speedangle", None)
-        try:
-            xwoba_val = round(float(xwoba_val), 3) if xwoba_val is not None and str(xwoba_val) not in ('', 'nan', 'None') else None
-        except (ValueError, TypeError):
-            xwoba_val = None
-
-        entry = [cx, cy, flag, 1 if in_zone else 0, rtype, is_strike_f, balls, strikes, xwoba_val]
+        entry = [cx, cy, flag, 1 if in_zone else 0, rtype, is_strike_f, balls, strikes,
+                 round(xwoba_val, 3) if xwoba_val is not None else None]
         for lk in [(gid, pname, pt, "ALL"), (gid, pname, pt, hand)]:
             if lk not in pitch_locs: pitch_locs[lk] = []
             pitch_locs[lk].append(entry)
@@ -2355,6 +2364,7 @@ def _build_game_json(dm_path: str, date: str,
             "oz_n":       _iv(r.get("ゾーン外投球数")) or 0,
             "hits":       _iv(r.get("H")),
             "hr":         _iv(r.get("HR")),
+            "xh":         _iv(r.get("XH")),
             "xwoba":      _fv(r.get("xwOBA"), d=3),
             # MLB独自
             "avgSpin":    _fv(r.get("平均回転数(rpm)"), d=0),
