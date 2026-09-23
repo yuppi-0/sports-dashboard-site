@@ -309,6 +309,21 @@
   /* カウント別配球：遷移列は「42% → 2-1」のような幅広テキストが入るため、他のpmix-table列と
      違って折り返しを許可し、最小幅も少し広めに確保する */
   .count-pmix-table .count-total-row td{ font-weight:700; color:var(--text-bright); background:none; border-top:1px solid rgba(148,163,184,0.25); }
+  /* カウント表：ストライク数ごと（4列ずつ）のグループ。見出しに色付きの帯を付け、
+     グループの境目（5列目・9列目の手前＝nth-child(6)/(10)）に縦の区切り線を入れる。
+     セル本体はカラースケールで塗られているので、グループの区別は見出しと区切り線だけで表す。 */
+  .pmix-table .count-grp-row th{ font-size:10px; font-weight:700; letter-spacing:0.02em; padding:5px 6px 4px; text-align:center; }
+  .pmix-table .count-grp-row th:first-child{ border-bottom:none; }
+  .pmix-table .count-grp-row th.count-grp-0{ color:var(--text); background:rgba(148,163,184,0.12); box-shadow:inset 0 -2px 0 rgba(148,163,184,0.55); }
+  .pmix-table .count-grp-row th.count-grp-1{ color:var(--blue-text); background:rgba(59,130,246,0.14); box-shadow:inset 0 -2px 0 rgba(96,165,250,0.7); }
+  .pmix-table .count-grp-row th.count-grp-2{ color:var(--amber-text); background:rgba(245,158,11,0.13); box-shadow:inset 0 -2px 0 rgba(251,191,36,0.7); }
+  .pmix-table .count-key-row th.count-grp-1{ color:var(--blue-text); }
+  .pmix-table .count-key-row th.count-grp-2{ color:var(--amber-text); }
+  .count-pmix-table tr > :nth-child(6), .count-pmix-table tr > :nth-child(10),
+  .count-rate-table tr > :nth-child(6), .count-rate-table tr > :nth-child(10){
+    border-left:2px solid rgba(148,163,184,0.35);
+  }
+  .pmix-table .count-grp-row th:nth-child(3), .pmix-table .count-grp-row th:nth-child(4){ border-left:2px solid rgba(148,163,184,0.35); }
   .count-rate-label{ color:var(--text-dim); font-size:11px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .count-subtitle{ font-size:11.5px; font-weight:700; color:var(--text-dim); margin-bottom:6px; letter-spacing:0.02em; }
   .count-subtitle-hint{ font-weight:400; color:var(--text-dim); font-size:10px; margin-left:6px; opacity:0.75; }
@@ -1916,7 +1931,14 @@ function pitchColor(i){ return PITCH_COLORS[i % PITCH_COLORS.length]; }
 // export_llm_input.py 側でseason_pitch_detailの各球種行に "cbs"（カウント別集計。
 // {count: {c,sw,fo,lo,ba,ou,hi}}）が入っている前提。まだ無い（run.py未再実行の）
 // 古いJSONの場合は、その旨を表示するだけにして他の表示は壊さない。
-const COUNT_KEYS = ["0-0","0-1","0-2","1-0","1-1","1-2","2-0","2-1","2-2","3-0","3-1","3-2"];
+// 列の並びはストライク数ごとにまとめる（0ストライク → 1ストライク → 2ストライク、各グループ内はボール数順）。
+// 4列ずつのグループ見出し・区切り線（countTheadHtml / CSSの .count-grp-*）はこの並びが前提。
+const COUNT_KEYS = ["0-0","1-0","2-0","3-0","0-1","1-1","2-1","3-1","0-2","1-2","2-2","3-2"];
+const COUNT_STRIKE_GROUPS = [
+  { label: "0ストライク", cls: "count-grp-0" },
+  { label: "1ストライク", cls: "count-grp-1" },
+  { label: "2ストライク", cls: "count-grp-2" },
+];
 // 2つの表（球種別カウント割合／球種別ストライク・空振り・見逃し率）で列幅を完全に揃えるための共通定数
 // ラベル列の幅はシーズン球種別成績の表（pitchDetailTableHtml）の1列目と揃え（104px）、
 // 横スクロール開始位置の見た目・固定表示の挙動を統一する。
@@ -1928,6 +1950,15 @@ function countTableColgroupHtml(){
   return `<colgroup><col style="width:${COUNT_TABLE_LABEL_W}px">${COUNT_KEYS.map(() => `<col style="width:${COUNT_TABLE_COL_W}px">`).join("")}</colgroup>`;
 }
 const COUNT_TABLE_WIDTH = COUNT_TABLE_LABEL_W + COUNT_TABLE_COL_W * COUNT_KEYS.length;
+// カウント表の見出し：1段目にストライク数のグループ見出し、2段目に各カウント。
+// 1段目の先頭は空セルにして、2段目と列位置（nth-child）を揃える（1列目の固定表示CSSをそのまま使うため）。
+function countTheadHtml(firstLabel){
+  const perGroup = COUNT_KEYS.length / COUNT_STRIKE_GROUPS.length;
+  return `<thead>
+    <tr class="count-grp-row"><th></th>${COUNT_STRIKE_GROUPS.map(g => `<th colspan="${perGroup}" class="${g.cls}">${g.label}</th>`).join("")}</tr>
+    <tr class="count-key-row"><th>${firstLabel}</th>${COUNT_KEYS.map((ck, i) => `<th class="${COUNT_STRIKE_GROUPS[Math.floor(i / perGroup)].cls}">${ck}</th>`).join("")}</tr>
+  </thead>`;
+}
 // カラースケール：割合が高いほど濃く塗る。他選手比較ではなく、この表の中だけの単純な値ベースの濃淡。
 function countScaleBg(pct, rgb){
   return pct == null ? "" : `rgba(${rgb},${(0.04 + Math.min(100,Math.max(0,pct))/100*0.32).toFixed(2)})`;
@@ -2009,7 +2040,7 @@ function countRateBlockHtml(rows, countTotals, groupIdx){
     <div class="pmix-scroll">
       <table class="pmix-table count-rate-table" style="width:${COUNT_TABLE_WIDTH}px">
         ${countTableColgroupHtml()}
-        <thead><tr><th>指標</th>${COUNT_KEYS.map(ck => `<th>${ck}</th>`).join("")}</tr></thead>
+        ${countTheadHtml("指標")}
         <tbody>${rowsHtml}</tbody>
       </table>
     </div>
@@ -2036,7 +2067,7 @@ function countPatternTableHtml(pitchRows, label){
     <div class="pmix-scroll">
       <table class="pmix-table count-pmix-table" style="width:${COUNT_TABLE_WIDTH}px">
         ${countTableColgroupHtml()}
-        <thead><tr><th>球種</th>${COUNT_KEYS.map(ck => `<th>${ck}</th>`).join("")}</tr></thead>
+        ${countTheadHtml("球種")}
         <tbody>
           ${rows.map((p,i) => `
             <tr class="count-pmix-row" data-group-idx="${i}">
