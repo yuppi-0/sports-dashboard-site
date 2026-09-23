@@ -1004,6 +1004,30 @@ def bat_counts(res) -> dict:
     }
 
 
+# 被打率（カウント別・球種別）用：打席完了球の結果から「打数・安打・長打」を判定する。
+# bat_counts() と同じ文言パターンを使うが、こちらは「打数に数える結果」を正の条件で判定する
+# （三振 or インプレー系の判定カテゴリ、かつ四死球・犠打・犠飛ではない）。
+# 盗塁死などで打席が途中で終わったケースを、誤って打数に数えないようにするため。
+_AB_EXCLUDE_PAT = re.compile(r"^四球$|敬遠|^死球$|犠打|犠飛")
+_HR_PAT         = re.compile(r"本塁打|右中本$|左中本$|^中本$")
+_INPLAY_CATS    = ("アウト系", "出塁/ヒット系", "犠打/犠飛系")
+
+
+def ab_result_flags(category: str, result: str) -> tuple[int, int, int]:
+    """打席完了球の (打数, 安打, 長打[2塁打以上]) を 0/1 で返す。打数に数えない結果は全て0。"""
+    res = str(result or "").strip()
+    if not res or res == "nan":
+        return 0, 0, 0
+    is_k = "三振" in res
+    if not (is_k or category in _INPLAY_CATS):
+        return 0, 0, 0
+    if _AB_EXCLUDE_PAT.search(res):
+        return 0, 0, 0
+    is_xbh = bool(_HR_PAT.search(res)) or ("2塁打" in res) or ("3塁打" in res)
+    is_hit = is_xbh or ("安打" in res)
+    return 1, int(is_hit), int(is_xbh)
+
+
 def swing_counts(sw_g) -> dict:
     """投球DataFrameからスイング実数を返す"""
     if sw_g is None or (hasattr(sw_g, "empty") and sw_g.empty) or "is_swing" not in sw_g.columns:
@@ -2641,8 +2665,13 @@ def run_dashboard(datamart_path: str, html_template: str | None = None,
             # 追加集計（preprocess_pitch()が計算済みのin_zone/out_zone/is_swingをそのまま使う）。
             # 座標が無い行（_top/_leftがNaN）はゾーン判定ができないため、この5つには数えない
             # （c/sw/fo/lo/ba/ou/hi/xhは従来通り座標の有無を問わず数える）。
-            # xh は「被長打（2塁打・3塁打・本塁打）」の数。被安打率・被長打率を球種別成績に
-            # 出すためのカウント別内訳用。
+            # ab/hi/xh は「打数」「被安打」「被長打（2塁打・3塁打・本塁打）」の数（打席の最終球のみ）。
+            # 被打率（hi/ab）・被長打割合（xh/ab）をカウント別・球種別に出すための内訳用。
+            # 打席の最終球かどうか（被打率の「打数」「被安打」「被長打」は打席完了球だけで数える）。
+            # 「打席完了結果」は同じ打席の全投球行に同じ文言が入っているため、最終球に限定しないと
+            # 1打席を投球数ぶん重複して数えてしまう。
+            _pa_seq = pd.to_numeric(df_locs["打席内球数"], errors="coerce")
+            df_locs["_is_pa_last"] = _pa_seq == _pa_seq.groupby(df_locs["打席番号"]).transform("max")
             cbs_idx = {}
             for _, crow in df_locs.iterrows():
                 _cgid  = str(crow["試合ID"])
@@ -2663,8 +2692,12 @@ def run_dashboard(datamart_path: str, html_template: str | None = None,
                 _clo = _ccat == "ストライク/ファウル系" and not _csw and not _cfo
                 _cba = _ccat == "ボール系"
                 _cou = _ccat == "アウト系"
-                _chi = _ccat in ("出塁/ヒット系", "犠打/犠飛系") and ("安打" in _cres or "ヒット" in _cres)
-                _cxh = _ccat in ("出塁/ヒット系", "犠打/犠飛系") and any(t in _cres for t in ("2塁打", "3塁打", "本塁打"))
+                # 打数・被安打・被長打（打席の最終球のみ）。以前のhiは「安打」を含む結果だけを数えていたため
+                # 2塁打・3塁打・本塁打が漏れていた。ab_result_flags()で本塁打の略称表記も含めて判定する。
+                if bool(crow.get("_is_pa_last", False)):
+                    _cab, _chi, _cxh = ab_result_flags(_ccat, _cres)
+                else:
+                    _cab, _chi, _cxh = 0, 0, 0
                 # ゾーン判定（座標がある行だけ。preprocess_pitch()で算出済みのin_zone/is_swingを利用）
                 _chas_coord = pd.notna(crow.get("_top")) and pd.notna(crow.get("_left"))
                 _ciz = _chas_coord and bool(crow.get("in_zone", False))
@@ -2672,7 +2705,7 @@ def run_dashboard(datamart_path: str, html_template: str | None = None,
                 _cswing = bool(crow.get("is_swing", False))
                 for _ck in [(_cgid, _cpn, _cpitch, "ALL"), (_cgid, _cpn, _cpitch, _chand)]:
                     if _ck not in cbs_idx: cbs_idx[_ck] = {}
-                    if _ckey not in cbs_idx[_ck]: cbs_idx[_ck][_ckey] = {"c":0,"sw":0,"fo":0,"lo":0,"ba":0,"ou":0,"hi":0,"iz":0,"oz":0,"izlo":0,"ozsw":0,"ozwh":0,"xh":0}
+                    if _ckey not in cbs_idx[_ck]: cbs_idx[_ck][_ckey] = {"c":0,"sw":0,"fo":0,"lo":0,"ba":0,"ou":0,"hi":0,"iz":0,"oz":0,"izlo":0,"ozsw":0,"ozwh":0,"xh":0,"ab":0}
                     d2 = cbs_idx[_ck][_ckey]
                     d2["c"]  += 1
                     d2["sw"] += int(_csw)
@@ -2682,6 +2715,7 @@ def run_dashboard(datamart_path: str, html_template: str | None = None,
                     d2["ou"] += int(_cou)
                     d2["hi"] += int(_chi)
                     d2["xh"] += int(_cxh)
+                    d2["ab"] += int(_cab)
                     if _chas_coord:
                         d2["iz"] += int(_ciz)
                         d2["oz"] += int(_coz)

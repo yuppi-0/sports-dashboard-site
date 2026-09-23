@@ -338,6 +338,10 @@ def calc_season_stats_by_hand(appearances: list[dict]) -> dict:
 
 _CBS_FIELDS = [
     "c", "sw", "fo", "lo", "ba", "ou", "hi", "iz", "oz", "izlo", "ozsw", "ozwh", "xh",
+    # ab: その球で打席が完了し、かつ「打数」に数える結果（安打・凡打・三振・失策・野選など。
+    #     四死球・犠打・犠飛は含まない）だった球の数。被打率（hi/ab）の分母。
+    #     run.py/run_mlb.py側で追加したキーなので、古いcbsには無く0のまま（→被打率はNone）。
+    "ab",
     # MLB独自（Statcastのestimated_woba_using_speedangleより。NPBのcbsにはキーが無いので
     # defaultdictの初期値0のまま蓄積され、xwoba_n=0のカウントはフロント側で「-」扱いにできる）
     "xwoba_sum", "xwoba_n",
@@ -453,6 +457,11 @@ def aggregate_season_mix(appearances: list[dict], mix_key: str = "mix") -> list[
 
     out = []
     for m in merged:
+        # 被打率 = 被安打 ÷ 打数。打数は打席単位の情報（その球で打席が完了したか・四死球/犠打飛か）が
+        # 必要なので、試合単位のmix（hits等）ではなく、打席完了球ベースで集計済みのcbs（ab/hi）を
+        # 全カウントぶん合算して求める（カウント別配球の被打率とも同じ定義・同じソースになる）。
+        cbs_ab = sum((cv.get("ab", 0) or 0) for cv in m["cbs_merged"].values())
+        cbs_h  = sum((cv.get("hi", 0) or 0) for cv in m["cbs_merged"].values())
         out.append({
             "球種名": m["name"],
             "球種コード": m["key"],
@@ -473,9 +482,10 @@ def aggregate_season_mix(appearances: list[dict], mix_key: str = "mix") -> list[
             "H": m["hits"],
             "HR": m["hr"],
             "XH": m["xh"],
-            # 被安打率・被長打率：この球種の投球数に対する割合（他の指標と同じ「投球数」分母に揃えている）
-            "被安打率": round(m["hits"] / m["count"] * 100, 1) if m["count"] > 0 else None,
-            "被長打率": round(m["xh"] / m["count"] * 100, 1) if m["count"] > 0 else None,
+            # 被打率（被安打÷打数）。他の率系指標と単位を揃えて%で持ち、表示側で「.234」表記にする。
+            "被打数": cbs_ab,
+            "被打数_安打": cbs_h,
+            "被打率": round(cbs_h / cbs_ab * 100, 1) if cbs_ab > 0 else None,
             # MLB独自（NPBはcnt=0のままなのでNone）
             "xwOBA": round(m["xwoba_sum"] / m["xwoba_cnt"], 3) if m["xwoba_cnt"] > 0 else None,
             "回転数": round(m["spin_sum"] / m["spin_cnt"]) if m["spin_cnt"] > 0 else None,
@@ -856,7 +866,9 @@ def build_count_pattern_rows(player_name: str, season_mix: list[dict]) -> list[d
                 "見逃し": cv.get("lo", 0),
                 "ボール": cv.get("ba", 0),
                 "凡打": cv.get("ou", 0),
+                "打数": cv.get("ab", 0),
                 "被安打": cv.get("hi", 0),
+                "被長打": cv.get("xh", 0),
                 "空振り率%": round(cv.get("sw", 0) / c * 100, 1),
                 "ファウル率%": round(cv.get("fo", 0) / c * 100, 1),
             })
@@ -1014,8 +1026,9 @@ def build_season_pitch_detail(season_mix_all, season_mix_vs_r, season_mix_vs_l,
             "oz_n": m.get("ゾーン外投球数"),
             "avg_vel": m.get("平均球速"),
             "max_vel": m.get("最高球速"),
-            "hit_pct": m.get("被安打率"),
-            "xh_pct": m.get("被長打率"),
+            "hit_pct": m.get("被打率"),
+            # 合計行で被打率を正しく合算する（打数で加重する）ための実数
+            "ab_n": m.get("被打数"),
             # MLB独自（NPBはaggregate_season_mix側でNoneになる）
             "xwoba": m.get("xwOBA"),
             "avg_spin": m.get("回転数"),
@@ -1169,8 +1182,8 @@ _PITCH_RANK_METRICS_ALL = [
     ("空振り率", True), ("ゾーン外スイング率", True),
     ("ストライク率", True), ("ゾーン率", True), ("GB%", True),
     ("投球割合%", True), ("平均球速", True), ("最高球速", True),
-    # 被安打率・被長打率は「低いほど良い」指標なので、他と方向が逆（False）
-    ("被安打率", False), ("被長打率", False),
+    # 被打率は「低いほど良い」指標なので、他と方向が逆（False）
+    ("被打率", False),
 ]
 _PITCH_RANK_METRICS_HAND = [
     ("空振り率", True), ("ゾーン外スイング率", True),
@@ -1243,7 +1256,7 @@ _PITCH_RANK_FIELD_MAP_ALL = [
     ("空振り率", "swstr_pct"), ("ゾーン外スイング率", "chase_pct"),
     ("ストライク率", "strike_pct"), ("ゾーン率", "zone_pct"), ("GB%", "gb_pct"),
     ("投球割合%", "pct"), ("平均球速", "avg_vel"), ("最高球速", "max_vel"),
-    ("被安打率", "hit_pct"), ("被長打率", "xh_pct"),
+    ("被打率", "hit_pct"),
 ]
 _PITCH_RANK_FIELD_MAP_HAND = [
     ("空振り率", "swstr_pct"), ("ゾーン外スイング率", "chase_pct"),

@@ -2093,12 +2093,21 @@ def _nv(v, default=""):
     return v
 
 
+# 被打率の分母（打数）に数えるStatcastのevents
+MLB_AB_EVENTS = {
+    "single", "double", "triple", "home_run",
+    "field_out", "force_out", "fielders_choice", "fielders_choice_out", "field_error",
+    "grounded_into_double_play", "double_play", "triple_play",
+    "strikeout", "strikeout_double_play",
+}
+
+
 def _build_mlb_locs_and_cbs(df: pd.DataFrame) -> tuple[dict, dict]:
     """
     Statcast DataFrame から pitch_locs と cbs_idx を生成する。
 
     pitch_locs : {(game_pk, player_name, pitch_type, hand): [[cx,cy,flag,in_zone,rtype,is_strike,balls,strikes], ...]}
-    cbs_idx    : {(game_pk, player_name, pitch_type, hand): {countKey: {c,sw,fo,lo,ba,ou,hi,iz,oz,izlo,ozsw,ozwh}}}
+    cbs_idx    : {(game_pk, player_name, pitch_type, hand): {countKey: {c,sw,fo,lo,ba,ou,hi,iz,oz,izlo,ozsw,ozwh,xh,ab,...}}}
 
     座標正規化:
       cx = plate_x / MLB_PLATE_HALF_W  （右打者外角=+1）
@@ -2146,6 +2155,9 @@ def _build_mlb_locs_and_cbs(df: pd.DataFrame) -> tuple[dict, dict]:
         is_inplay = desc.startswith("hit_into_play")
         is_hit   = event in {"single","double","triple","home_run"}
         is_xh    = event in {"double","triple","home_run"}  # 被長打（2ベース以上）
+        # 打数に数えるイベント（eventsは打席の最終球にだけ入る）。四死球・犠打飛・打撃妨害・
+        # 盗塁死などで打席が途中終了したケース（truncated_pa, caught_stealing_*）は含めない。
+        is_ab    = event in MLB_AB_EVENTS
         # xwOBA（打球結果の期待値）。カウント別配球のカラム候補として、cbs側にも投球数の
         # 少ないカウントでも意味を持たせられるよう合計値(xwoba_sum)と有効件数(xwoba_n)を
         # 別々に持たせておき、平均はフロント側で sum/n として計算する想定
@@ -2165,7 +2177,7 @@ def _build_mlb_locs_and_cbs(df: pd.DataFrame) -> tuple[dict, dict]:
 
         for ck in [(gid, pname, pt, "ALL"), (gid, pname, pt, hand)]:
             if ck not in cbs_idx: cbs_idx[ck] = {}
-            if ckey not in cbs_idx[ck]: cbs_idx[ck][ckey] = {"c":0,"sw":0,"fo":0,"lo":0,"ba":0,"ou":0,"hi":0,"iz":0,"oz":0,"izlo":0,"ozsw":0,"ozwh":0,"xh":0,"xwoba_sum":0.0,"xwoba_n":0}
+            if ckey not in cbs_idx[ck]: cbs_idx[ck][ckey] = {"c":0,"sw":0,"fo":0,"lo":0,"ba":0,"ou":0,"hi":0,"iz":0,"oz":0,"izlo":0,"ozsw":0,"ozwh":0,"xh":0,"ab":0,"xwoba_sum":0.0,"xwoba_n":0}
             d2 = cbs_idx[ck][ckey]
             d2["c"]  += 1
             d2["sw"] += int(is_swstr)
@@ -2175,6 +2187,7 @@ def _build_mlb_locs_and_cbs(df: pd.DataFrame) -> tuple[dict, dict]:
             d2["ou"] += int(is_inplay and not is_hit)
             d2["hi"] += int(is_inplay and is_hit)
             d2["xh"] += int(is_inplay and is_xh)
+            d2["ab"] += int(is_ab)
             if xwoba_val is not None:
                 d2["xwoba_sum"] += xwoba_val
                 d2["xwoba_n"]   += 1
