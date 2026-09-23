@@ -142,7 +142,7 @@
   .stat-box .label{ font-size:10px; color:var(--text-dim); margin-bottom:3px; }
   .stat-box .value{ font-size:16px; font-weight:700; }
   .stat-box .rank{ font-size:9px; color:var(--text-dim); margin-top:3px; }
-  .stat-box .rank b{ color:var(--blue-text); font-weight:700; }
+  .stat-box .rank b{ color:inherit; font-weight:700; }
 
   .section{ border-radius:10px; padding:12px 14px; margin-bottom:10px; text-align:left; }
   .section-type{ background:var(--panel); }
@@ -295,9 +295,15 @@
   /* 順位バッジ：サッカー版player-cards.htmlの .rk と同じ配色・サイズ感に合わせている
      （top=緑＝好成績、low=赤＝低評価、mid/none=中間・対象外はグレー） */
   .rk{ display:block; font-size:9px; color:var(--text-dim); margin-top:1px; line-height:1.2; white-space:nowrap; letter-spacing:0.01em; }
-  .rk.top{ color:var(--green-text); }
-  .rk.low{ color:var(--red-text); }
-  .rk.mid{ color:var(--text-dim); }
+  /* 順位の文字色は7段階（tierFromRank）。値はJSのTIER_TEXT_COLORと同じ。 */
+  .rk.t-top15, .stat-box.t-top15 .rank{ color:#5EEAD4; }
+  .rk.t-top30, .stat-box.t-top30 .rank{ color:#7FD8CD; }
+  .rk.t-top40, .stat-box.t-top40 .rank{ color:#A9DAD5; }
+  .rk.t-mid,   .stat-box.t-mid .rank{ color:var(--text-dim); }
+  .rk.t-bot60, .stat-box.t-bot60 .rank{ color:#E9B8C4; }
+  .rk.t-bot70, .stat-box.t-bot70 .rank{ color:#F59AB1; }
+  .rk.t-bot85, .stat-box.t-bot85 .rank{ color:#FFA6BD; }
+  .rk.t-top15, .rk.t-bot85{ font-weight:700; }
   .rk.none{ opacity:0.55; }
   .pmix-scroll-compact .rk{ font-size:8px; }
   /* カウント別配球：遷移列は「42% → 2-1」のような幅広テキストが入るため、他のpmix-table列と
@@ -1370,10 +1376,11 @@ function renderCard(d){
   const signaturePitchList = d.signature_pitch
     ? [d.signature_pitch]
     : signaturePitchEntries.map(p => p.name);
-  // KPIの値の文字色は、シーズン球種別成績の表と同じ7段階（tierFromRank）で決める。
-  // 表のセルは背景色で塗るが、KPIは文字だけに色を付ける（TIER_TEXT_COLOR）。
-  // 順位が無い（対象外・データ無し）場合は色なし（通常の文字色）。
-  const kpiColor = (key) => TIER_TEXT_COLOR[tierFromRank(rk[key])] || "var(--text-bright)";
+  // KPIは、シーズン球種別成績の表と同じ7段階（tierFromRank）で「カード背景」を塗り、
+  // 順位の文字もその段階の色にする。値の数字は背景に関わらず読みやすいよう白のまま。
+  // （以前は値の文字色だけで表していたが、平均付近の白と薄い色の区別がつきにくかったため変更）
+  // 順位が無い（対象外・データ無し）場合は色なし。
+  const kpiTier = (key) => tierFromRank(rk[key]) || "mid";
   const stats = [
     { label: "防御率", value: d.era ?? "-", rankKey: "era" },
     { label: "K-BB%", value: d.k_bb_pct != null ? d.k_bb_pct + "%" : "-", rankKey: "k_bb_pct" },
@@ -1381,7 +1388,7 @@ function renderCard(d){
     { label: "BB%", value: d.bb_pct_season != null ? d.bb_pct_season + "%" : "-", rankKey: "bb_pct" },
     { label: "ゴロ率", value: d.gb_pct != null ? d.gb_pct + "%" : "-", rankKey: "gb_pct" },
     { label: "空振り率", value: d.swstr_pct_season != null ? d.swstr_pct_season + "%" : "-", rankKey: "swstr_pct" },
-  ].map(s => ({ ...s, color: kpiColor(s.rankKey) }));
+  ].map(s => ({ ...s, color: "var(--text-bright)", tier: kpiTier(s.rankKey) }));
 
   const gameLogHtml = buildGameLogTable(d);
 
@@ -1490,7 +1497,7 @@ function renderCard(d){
               ? `<div class="value multi-line" style="color:${s.color}; ${s.small ? 'font-size:13px' : ''}">${s.valueList.map(v => `<span>${escapeHtml(v)}</span>`).join("")}</div>`
               : `<div class="value" style="color:${s.color}; ${s.small ? 'font-size:13px' : ''}">${escapeHtml(String(s.value))}</div>`;
             return `
-            <div class="stat-box">
+            <div class="stat-box t-${s.tier || "mid"}" style="${TIER_COLOR[s.tier] ? `background:linear-gradient(${TIER_COLOR[s.tier]},${TIER_COLOR[s.tier]}),var(--panel)` : ""}">
               <div class="label">${s.label}</div>
               ${valueHtml}
               ${s.rankKey ? rankText(s.rankKey) : ""}
@@ -1734,9 +1741,12 @@ const TIER_COLOR = {
   mid: "", bot60: "rgba(238,122,151,0.10)", bot70: "rgba(238,122,151,0.18)", bot85: "rgba(238,122,151,0.38)"
 };
 // KPIカード用：同じ7段階を文字色で表す（背景は塗らない）。濃い段階ほど彩度の高い色にしている。
+// 順位の文字色（表の「n位/m人中」とKPIの順位で共通）。濃い段階ほど彩度を上げている。
+// 文字は同じ段階の背景色（TIER_COLOR）の上に乗るため、どの段階でも背景とのコントラスト比
+// 4.5以上（WCAGのAA相当）になるよう明度を調整している。上位15%・下位15%の最上位段階は太字にもする（CSS側）。
 const TIER_TEXT_COLOR = {
-  top15: "#2FE0CF", top30: "#6CD3CA", top40: "#A8DDD8",
-  mid: "", bot60: "#F4C4D0", bot70: "#F79AB1", bot85: "#FB6F92"
+  top15: "#5EEAD4", top30: "#7FD8CD", top40: "#A9DAD5",
+  mid: "", bot60: "#E9B8C4", bot70: "#F59AB1", bot85: "#FFA6BD"
 };
 
 // 順位バッジ（サッカー版player-cards.htmlの .rk / rankChip と同じ見た目・判定ロジックに合わせている）。
@@ -1746,9 +1756,8 @@ const TIER_TEXT_COLOR = {
 function rankBadgeHtml(rk){
   if(!rk) return "";
   if(rk.rank == null) return `<div class="rk none">-</div>`;
-  const tier = tierFromRank(rk);
-  const cls = (tier && tier.startsWith("top")) ? "top" : ((tier && tier.startsWith("bot")) ? "low" : "mid");
-  return `<div class="rk ${cls}">${rk.rank}位/${rk.total}人中</div>`;
+  const tier = tierFromRank(rk) || "mid";
+  return `<div class="rk t-${tier}">${rk.rank}位/${rk.total}人中</div>`;
 }
 
 // 「合計」行（シーズン全体の値）にも、球種別セルと同じ緑〜赤のカラースケールを付けるための変換。
