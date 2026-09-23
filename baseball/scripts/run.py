@@ -60,6 +60,8 @@ except ImportError:
 
 # LLM入力用xlsx生成（選手詳細カード用のシーズン集計・球種別・コース分布・カウント別パターン）
 from export_llm_input import export_llm_input_xlsx
+# 打者版（シーズン集計・対左右投手別・試合ログ。球種別・コース別は打者側データに無いため対象外）
+from export_llm_input_batter import export_llm_input_batter_xlsx
 
 # %%
 # ==================================================
@@ -3137,15 +3139,16 @@ def run_all():
 import argparse
 
 # 使用できるステップ（json は datamart に自動付与されるため単独指定不要）
-STEP_CHOICES = ["all", "games", "pitch", "highlights", "datamart", "llm_input"]
+STEP_CHOICES = ["all", "games", "pitch", "highlights", "datamart", "llm_input", "batter_llm_input"]
 
 STEP_LABELS = {
-    "games"     : "Step1 試合データ取得",
-    "pitch"     : "Step2 投球データ取得",
-    "highlights": "Step3 活躍選手選出",
-    "datamart"  : "Step4 データマート&JSON作成",
-    "json"      : "Step4 ダッシュボードJSON生成",
-    "llm_input" : "Step5 LLM入力用xlsx生成",
+    "games"            : "Step1 試合データ取得",
+    "pitch"            : "Step2 投球データ取得",
+    "highlights"       : "Step3 活躍選手選出",
+    "datamart"         : "Step4 データマート&JSON作成",
+    "json"             : "Step4 ダッシュボードJSON生成",
+    "llm_input"        : "Step5 投手LLM入力用xlsx生成",
+    "batter_llm_input" : "Step6 打者LLM入力用xlsx生成",
 
 }
 
@@ -3202,6 +3205,15 @@ def parse_args():
             "失敗して全ジョブがエラー終了する）ことがあるため、そのようなケースで使う。\n"
             "並列ジョブすべてが完了した後、--steps llm_input を単独で1回実行して\n"
             "シーズンデータを最終的に揃えること。"
+        ),
+    )
+    parser.add_argument(
+        "--skip-batter-llm-input",
+        action="store_true",
+        help=(
+            "datamart等で自動付与されるbatter_llm_inputステップを止める。用途は--skip-llm-inputと同じ\n"
+            "（並列実行時のxlsx/数値JSON競合を避けるため）。並列ジョブすべてが完了した後、\n"
+            "--steps batter_llm_input を単独で1回実行してシーズンデータを最終的に揃えること。"
         ),
     )
 
@@ -3293,7 +3305,7 @@ def _check_datamart_quality(datamart_path: str) -> None:
 
 def run_steps(steps: list[str], target_game_ids: list[str] | None = None,
               league: str = "ichi", date: str | None = None,
-              skip_llm_input: bool = False):
+              skip_llm_input: bool = False, skip_batter_llm_input: bool = False):
     """
     ステップ順:
       Step1: games     → raw/all_games_{date}.xlsx
@@ -3308,10 +3320,11 @@ def run_steps(steps: list[str], target_game_ids: list[str] | None = None,
       players 単独           → 他ステップ付与なし
 
     skip_llm_input=True にすると、datamart等による llm_input の自動付与を止める。
+    skip_batter_llm_input=True にすると、同様に batter_llm_input の自動付与を止める（用途はllm_input側と同じ）。
     複数の日付範囲を並列実行する際、各ジョブが同時にシーズン全体のxlsx・数値JSONを
     書き換えようとして競合する（バイナリxlsxはgitが自動マージできず、rebaseが失敗して
     全ジョブがエラー終了する）ことがあるため、そのようなケースで使う。並列ジョブすべてが
-    完了した後、--steps llm_input を単独で1回実行してシーズンデータを最終的に揃えること。
+    完了した後、--steps llm_input batter_llm_input を単独で1回実行してシーズンデータを最終的に揃えること。
     """
     _run_date = date if date else TARGET_DATE
     set_league_dirs(league, _run_date)
@@ -3319,7 +3332,7 @@ def run_steps(steps: list[str], target_game_ids: list[str] | None = None,
     type_label   = _current_game_type
 
     # FULL_ORDER（新しいステップ順）
-    FULL_ORDER = ["games", "pitch", "highlights", "datamart", "llm_input"]
+    FULL_ORDER = ["games", "pitch", "highlights", "datamart", "llm_input", "batter_llm_input"]
 
     # "all" → 全ステップ
     if "all" in steps:
@@ -3334,11 +3347,14 @@ def run_steps(steps: list[str], target_game_ids: list[str] | None = None,
     if any(s in steps for s in ["games", "pitch", "highlights"]):
         if "datamart" not in steps:
             steps.append("datamart")
-    # datamart がある → llm_input も自動付与（シーズン全体のxlsx/数値JSONを最新化するため）
-    # ただしskip_llm_input指定時は、明示的に"llm_input"がstepsに含まれている場合を除き付与しない
+    # datamart がある → llm_input / batter_llm_input も自動付与（シーズン全体のxlsx/数値JSONを最新化するため）
+    # ただしskip_llm_input / skip_batter_llm_input指定時は、明示的にstepsに含まれている場合を除き付与しない
     if "datamart" in steps and "llm_input" not in steps:
         if not skip_llm_input:
             steps.append("llm_input")
+    if "datamart" in steps and "batter_llm_input" not in steps:
+        if not skip_batter_llm_input:
+            steps.append("batter_llm_input")
     # 並び替え
     steps = [s for s in FULL_ORDER if s in set(steps)]
 
@@ -3431,6 +3447,26 @@ def run_steps(steps: list[str], target_game_ids: list[str] | None = None,
                 )
                 results["llm_input"] = path_llm_input
                 print(f"  数値JSON: {numeric_json_dir}")
+            except Exception as e:
+                print(f"  [WARN] {STEP_LABELS[step]} に失敗しました: {e}")
+
+        elif step == "batter_llm_input":
+            try:
+                year = TARGET_DATE[:4]
+                batter_llm_input_dir = os.path.join(BASE_DATA_DIR, f"{year}年", league_label, _current_game_type, "llm_input")
+                path_batter_llm_input = os.path.join(batter_llm_input_dir, f"プロ野球{league_label}_打者データ_{year}.xlsx")
+                # 数値JSON（batter_cards_numeric）は batter-cards.html が直接fetchするので、
+                # 非公開のBASE_DATA_DIRではなく公開側のBASE_PUBLIC_DIRに出力する（pitcher_cards_numericと同じ置き方）
+                batter_numeric_json_dir = os.path.join(
+                    BASE_PUBLIC_DIR, f"{year}年", league_label, _current_game_type, "batter_cards_numeric"
+                )
+                export_llm_input_batter_xlsx(
+                    games_json_dir=GAMES_JSON_DIR,
+                    out_path=path_batter_llm_input,
+                    numeric_json_dir=batter_numeric_json_dir,
+                )
+                results["batter_llm_input"] = path_batter_llm_input
+                print(f"  数値JSON: {batter_numeric_json_dir}")
             except Exception as e:
                 print(f"  [WARN] {STEP_LABELS[step]} に失敗しました: {e}")
 
@@ -3557,11 +3593,14 @@ if __name__ == "__main__":
             print("▶ 1軍 & 2軍 両方実行モード")
             print("=" * 50)
             print()
-            run_steps(_steps, target_game_ids=_target_game_ids, league="ichi", date=_date, skip_llm_input=args.skip_llm_input)
+            run_steps(_steps, target_game_ids=_target_game_ids, league="ichi", date=_date,
+                      skip_llm_input=args.skip_llm_input, skip_batter_llm_input=args.skip_batter_llm_input)
             print()
-            run_steps(_steps, target_game_ids=_target_game_ids, league="ni",   date=_date, skip_llm_input=args.skip_llm_input)
+            run_steps(_steps, target_game_ids=_target_game_ids, league="ni",   date=_date,
+                      skip_llm_input=args.skip_llm_input, skip_batter_llm_input=args.skip_batter_llm_input)
         else:
-            run_steps(_steps, target_game_ids=_target_game_ids, league=_league_flag, date=_date, skip_llm_input=args.skip_llm_input)
+            run_steps(_steps, target_game_ids=_target_game_ids, league=_league_flag, date=_date,
+                      skip_llm_input=args.skip_llm_input, skip_batter_llm_input=args.skip_batter_llm_input)
 
     if len(_date_list) > 1:
         print(f"\n{'=' * 50}")
