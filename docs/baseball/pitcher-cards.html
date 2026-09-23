@@ -1673,6 +1673,12 @@ const PMIX_METRICS_VEL = [
   { key:"avg_vel", tierKey:"平均球速_ランク", label:"平均球速", unit:"km/h", decimals:1, width:108 },
   { key:"max_vel", tierKey:"最高球速_ランク", label:"最高球速", unit:"km/h", decimals:1, width:108 },
 ];
+// 被安打率・被長打率：最高球速のすぐ右に置く。ランキング・カラースケールは今回未対応
+// （値の表示のみ）なので、tierKeyは持たせていない。
+const PMIX_METRICS_HIT = [
+  { key:"hit_pct", label:"被安打率", unit:"%", decimals:1, width:90 },
+  { key:"xh_pct",  label:"被長打率", unit:"%", decimals:1, width:90 },
+];
 const PMIX_METRICS_MLB_EXTRA = [
   { key:"xwoba",       tierKey:"xwOBA_ランク",     label:"xwOBA",         unit:"",    decimals:3, width:78 },
   { key:"avg_spin",    tierKey:"回転数_ランク",     label:"回転数",         unit:"rpm", decimals:0, width:86 },
@@ -1685,8 +1691,8 @@ const PMIX_METRICS_MLB_EXTRA = [
 ];
 function currentPmixMetrics(){
   return currentLeague === "mlb"
-    ? [...PMIX_METRICS_BASE, ...PMIX_METRICS_VEL, ...PMIX_METRICS_MLB_EXTRA]
-    : [...PMIX_METRICS_BASE, ...PMIX_METRICS_VEL];
+    ? [...PMIX_METRICS_BASE, ...PMIX_METRICS_VEL, ...PMIX_METRICS_HIT, ...PMIX_METRICS_MLB_EXTRA]
+    : [...PMIX_METRICS_BASE, ...PMIX_METRICS_VEL, ...PMIX_METRICS_HIT];
 }
 function fmtMetricVal(m, v){
   if(v == null || Number.isNaN(v)) return "—";
@@ -1868,6 +1874,10 @@ const COUNT_RATE_SPECS = [
   // 被安打率：打球になった球（アウト＋安打）のうち何%が安打だったか。カウント単位だとサンプルが
   // 小さくなりがちでブレやすい指標なので、-（データ無し）になりやすい点は他の指標より多め。
   { label: "被安打率",           calc: (agg, t) => (agg.ou + agg.hi) > 0 ? Math.round(agg.hi / (agg.ou + agg.hi) * 100) : null },
+  // 被長打率（2ベース以上）：同じ考え方で、安打のうち何%が長打だったかではなく、
+  // 被安打率と同じ分母（打球になった球）に対する長打の割合にしている（被安打率と並べて
+  // 見比べやすいように）。
+  { label: "被長打率",           calc: (agg, t) => (agg.ou + agg.hi) > 0 ? Math.round(agg.xh / (agg.ou + agg.hi) * 100) : null },
 ];
 function countAggOf(cbsRows){
   const out = {};
@@ -1882,8 +1892,9 @@ function countAggOf(cbsRows){
       // 該当する行だけ自動的に「-」表示になる（他の指標や表全体は壊れない）。
       acc.iz += c.iz || 0; acc.oz += c.oz || 0;
       acc.izlo += c.izlo || 0; acc.ozsw += c.ozsw || 0; acc.ozwh += c.ozwh || 0;
+      acc.xh += c.xh || 0; // 被長打（2塁打・3塁打・本塁打）。古いJSONには無いので同様に || 0 で吸収
       return acc;
-    }, {sw:0, lo:0, fo:0, ba:0, ou:0, hi:0, iz:0, oz:0, izlo:0, ozsw:0, ozwh:0});
+    }, {sw:0, lo:0, fo:0, ba:0, ou:0, hi:0, iz:0, oz:0, izlo:0, ozsw:0, ozwh:0, xh:0});
   });
   return out;
 }
