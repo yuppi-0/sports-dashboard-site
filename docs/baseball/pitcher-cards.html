@@ -1939,14 +1939,16 @@ function countCellHtmlHelper(pct, rgb, format){
 }
 
 const COUNT_RATE_SPECS = [
-  // 表示順：ゾーン率 → ゾーン見逃し率 → ボール球SW率 → 空振り率 → ボール球空振り率 → 被打率 → 被長打割合
+  // 表示順：ゾーン率 → ゾーン見逃し率 → ストライク率 → 空振り率 → ボール球SW率 → ボール球空振り率 → 被打率 → 被長打割合
   { label: "ゾーン率",           calc: (agg, t) => t > 0 ? Math.round(agg.iz / t * 100) : null },
   // ゾーン見逃し率：ゾーン内に来た球のうち何%を見逃したか（分母は投球数全体ではなくゾーン内投球数）
   { label: "ゾーン見逃し率",     calc: (agg, t) => agg.iz > 0 ? Math.round(agg.izlo / agg.iz * 100) : null },
+  // ストライク率：ボール判定以外（見逃し・空振り・ファウル・インプレー）になった球の割合
+  { label: "ストライク率",       calc: (agg, t) => t > 0 ? Math.round((t - agg.ba) / t * 100) : null },
+  { label: "空振り率",           calc: (agg, t) => t > 0 ? Math.round(agg.sw / t * 100) : null },
   // ボール球SW率／ボール球空振り率：ゾーン外の球のうち何%に手を出したか／その何%が空振りだったか
   // （分母はいずれもゾーン外投球数）
   { label: "ボール球SW率",       calc: (agg, t) => agg.oz > 0 ? Math.round(agg.ozsw / agg.oz * 100) : null },
-  { label: "空振り率",           calc: (agg, t) => t > 0 ? Math.round(agg.sw / t * 100) : null },
   { label: "ボール球空振り率",   calc: (agg, t) => agg.oz > 0 ? Math.round(agg.ozwh / agg.oz * 100) : null },
   // 被打率：そのカウントの球で打席が終わった「打数」のうち、何本安打にされたか（被安打÷打数）。
   // 三振も打数に含む（打席の最終球ベース。四死球・犠打・犠飛は含まない）。
