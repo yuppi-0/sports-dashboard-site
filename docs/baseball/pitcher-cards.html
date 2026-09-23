@@ -309,10 +309,18 @@
   .count-cell-empty{ opacity:0.35; }
   .count-pattern-divider{ height:1px; background:rgba(148,163,184,0.15); margin:14px 0; }
   .count-pmix-row{ cursor:pointer; }
-  .count-pmix-row:hover td{ background:rgba(148,163,184,0.08); }
-  .count-pmix-row.active td:first-child{ box-shadow:inset 3px 0 0 var(--blue-text); }
-  .count-rate-current{ font-size:11.5px; font-weight:700; color:var(--text-bright); display:flex; align-items:center; gap:4px; }
-  .count-rate-header{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:6px; }
+  /* ホバー時は行全体（固定列・カラースケールの付いたセル・投球数の行も含めて）を同じ明るさで
+     重ねて強調する。背景色で指定すると、セルごとのインライン背景色や固定列の背景指定に
+     負けて一部のセルしか色が変わらないため、inset box-shadowを上に重ねる方式にしている。 */
+  .count-pmix-table tr.count-pmix-row:hover td{ box-shadow:inset 0 0 0 100vmax rgba(148,163,184,0.12); }
+  .count-pmix-table tr.count-pmix-row.active td:first-child{ box-shadow:inset 3px 0 0 var(--blue-text); }
+  .count-pmix-table tr.count-pmix-row.active:hover td:first-child{ box-shadow:inset 3px 0 0 var(--blue-text), inset 0 0 0 100vmax rgba(148,163,184,0.12); }
+  /* 「球種別指標」の見出しの右隣に、いま表示している内訳（全体／球種名）をチップで並べる */
+  .count-rate-current{
+    font-size:11px; font-weight:700; color:var(--text-bright); display:inline-flex; align-items:center; gap:5px;
+    padding:2px 9px; border-radius:999px; background:rgba(148,163,184,0.14); line-height:1.4;
+  }
+  .count-rate-header{ display:flex; align-items:center; justify-content:flex-start; gap:8px; margin-bottom:6px; }
   .count-rate-header .count-subtitle{ margin-bottom:0; }
 
   /* 球種・投球数（先頭2列）を横スクロール時も固定表示 */
@@ -533,13 +541,15 @@
     .filter-row input[type="number"]{ width:36px; font-size:13px; padding:4px; }
     .player-item{ padding:13px 12px; }
 
-    /* KPI（防御率〜決め球）は横6列のままだとスマホでは狭すぎて数字や順位が詰まって見づらいので、
-       3列×2段に組み替える。タイプタグの行が無くなった分、縦幅も詰めている。 */
-    .stat-grid{ grid-template-columns:repeat(3,1fr); gap:6px; margin-top:8px; }
-    .stat-box{ padding:5px 4px; }
-    .stat-box .label{ font-size:9.5px; margin-bottom:1px; }
-    .stat-box .value{ font-size:13px; }
-    .stat-box .rank{ font-size:8.5px; margin-top:1px; }
+    /* KPI（6指標）はスマホでも1段に横並びにする（固定表示領域の高さを抑えるため）。
+       1枠あたりの幅が狭いので、文字を詰め、順位は「135位」と「/ 207人中」の2行に分ける。
+       minmax(0,1fr)にしないと、長い値の枠だけが広がって6列が均等にならない。 */
+    .stat-grid{ grid-template-columns:repeat(6,minmax(0,1fr)); gap:4px; margin-top:8px; }
+    .stat-box{ padding:5px 2px; border-radius:6px; }
+    .stat-box .label{ font-size:8.5px; margin-bottom:1px; white-space:nowrap; letter-spacing:-0.02em; }
+    .stat-box .value{ font-size:12.5px; white-space:nowrap; }
+    .stat-box .rank{ font-size:7.5px; margin-top:1px; line-height:1.25; white-space:nowrap; }
+    .stat-box .rank .rank-of{ display:block; }
 
     /* 選手プロフィール以降の各セクション（球種構成／指標評価／シーズン成績など）も、
        PC版と同じ余白のままだと縦に間延びするので、スマホでは全体的に一段詰める。
@@ -594,7 +604,7 @@
     .p-sticky-header{ padding:6px 0; }
     /* 決め球は横向きでは非表示にし、残り5つのKPIを1段で横並びにすることで
        上部固定領域の高さをさらに削る */
-    .stat-grid{ grid-template-columns:repeat(3,1fr); gap:5px; margin-top:6px; }
+    .stat-grid{ grid-template-columns:repeat(6,minmax(0,1fr)); gap:5px; margin-top:6px; }
     .stat-box{ padding:4px 3px; }
     .stat-box .label{ font-size:8px; margin-bottom:1px; }
     .stat-box .value{ font-size:11px; }
@@ -1347,7 +1357,7 @@ function renderCard(d){
     const r = rk[key];
     if(!r) return "";
     if(r.rank == null) return `<div class="rank">-</div>`;
-    return `<div class="rank"><b>${r.rank}</b>位 / ${r.total}人中</div>`;
+    return `<div class="rank"><b>${r.rank}</b>位<span class="rank-of"> / ${r.total}人中</span></div>`;
   };
   // 決め球：専用フィールドが無い場合は、球種の特徴タグ（全体/対右/対左のいずれか）に
   // 「決め球」と付いている球種から補う。
@@ -1360,14 +1370,18 @@ function renderCard(d){
   const signaturePitchList = d.signature_pitch
     ? [d.signature_pitch]
     : signaturePitchEntries.map(p => p.name);
+  // KPIの値の文字色は、シーズン球種別成績の表と同じ7段階（tierFromRank）で決める。
+  // 表のセルは背景色で塗るが、KPIは文字だけに色を付ける（TIER_TEXT_COLOR）。
+  // 順位が無い（対象外・データ無し）場合は色なし（通常の文字色）。
+  const kpiColor = (key) => TIER_TEXT_COLOR[tierFromRank(rk[key])] || "var(--text-bright)";
   const stats = [
-    { label: "防御率", value: d.era, color: (d.era != null && d.era < 3.5) ? "var(--green-text)" : "var(--red-text)", rankKey: "era" },
-    { label: "K-BB%", value: d.k_bb_pct != null ? d.k_bb_pct + "%" : "-", color: "var(--green-text)", rankKey: "k_bb_pct" },
-    { label: "K%", value: d.k_pct_season != null ? d.k_pct_season + "%" : "-", color: "var(--green-text)", rankKey: "k_pct" },
-    { label: "BB%", value: d.bb_pct_season != null ? d.bb_pct_season + "%" : "-", color: (d.bb_pct_season != null && d.bb_pct_season <= 8) ? "var(--green-text)" : "var(--red-text)", rankKey: "bb_pct" },
-    { label: "ゴロ率", value: d.gb_pct != null ? d.gb_pct + "%" : "-", color: "var(--green-text)", rankKey: "gb_pct" },
-    { label: "空振り率", value: d.swstr_pct_season != null ? d.swstr_pct_season + "%" : "-", color: "var(--green-text)", rankKey: "swstr_pct" },
-  ];
+    { label: "防御率", value: d.era ?? "-", rankKey: "era" },
+    { label: "K-BB%", value: d.k_bb_pct != null ? d.k_bb_pct + "%" : "-", rankKey: "k_bb_pct" },
+    { label: "K%", value: d.k_pct_season != null ? d.k_pct_season + "%" : "-", rankKey: "k_pct" },
+    { label: "BB%", value: d.bb_pct_season != null ? d.bb_pct_season + "%" : "-", rankKey: "bb_pct" },
+    { label: "ゴロ率", value: d.gb_pct != null ? d.gb_pct + "%" : "-", rankKey: "gb_pct" },
+    { label: "空振り率", value: d.swstr_pct_season != null ? d.swstr_pct_season + "%" : "-", rankKey: "swstr_pct" },
+  ].map(s => ({ ...s, color: kpiColor(s.rankKey) }));
 
   const gameLogHtml = buildGameLogTable(d);
 
@@ -1681,15 +1695,15 @@ const PMIX_METRICS_VEL = [
   { key:"avg_vel", tierKey:"平均球速_ランク", label:"平均球速", unit:"km/h", decimals:1, width:108 },
   { key:"max_vel", tierKey:"最高球速_ランク", label:"最高球速", unit:"km/h", decimals:1, width:108 },
 ];
-// 被安打率・被長打率：最高球速のすぐ右に置く。打率のような「.038」表記にしたいので
+// 被打率：最高球速のすぐ右に置く。打率のような「.038」表記にしたいので
 // format:"avg" を付け、fmtMetricVal側でその場合だけ特別扱いする。順位は他の指標と同じ仕組みで
 // 出るが、値が低いほど良い指標なので、ランキング側（export_llm_input.py）は方向を逆にしてある。
 // カラースケールは、他の指標のような球種別パーセンタイル（_ランク）がバックエンド側に無いので、
 // 代わりにuseRankTier:trueを付けて、既に持っている順位（p.ranks）から色を決める
 // （tierFromRank。合計行で使っているのと同じ仕組みを球種別の行にも流用）。
+// 被打率＝被安打÷打数（打率の投手版）。値は%（例:23.4）で来るので「.234」表記にする。
 const PMIX_METRICS_HIT = [
-  { key:"hit_pct", label:"被安打率", unit:"%", decimals:1, width:90, format:"avg", useRankTier:true },
-  { key:"xh_pct",  label:"被長打率", unit:"%", decimals:1, width:90, format:"avg", useRankTier:true },
+  { key:"hit_pct", label:"被打率", unit:"%", decimals:1, width:90, format:"avg", useRankTier:true },
 ];
 const PMIX_METRICS_MLB_EXTRA = [
   { key:"xwoba",       tierKey:"xwOBA_ランク",     label:"xwOBA",         unit:"",    decimals:3, width:78 },
@@ -1719,14 +1733,21 @@ const TIER_COLOR = {
   top15: "rgba(18,165,178,0.40)", top30: "rgba(18,165,178,0.25)", top40: "rgba(18,165,178,0.12)",
   mid: "", bot60: "rgba(238,122,151,0.10)", bot70: "rgba(238,122,151,0.18)", bot85: "rgba(238,122,151,0.38)"
 };
+// KPIカード用：同じ7段階を文字色で表す（背景は塗らない）。濃い段階ほど彩度の高い色にしている。
+const TIER_TEXT_COLOR = {
+  top15: "#2FE0CF", top30: "#6CD3CA", top40: "#A8DDD8",
+  mid: "", bot60: "#F4C4D0", bot70: "#F79AB1", bot85: "#FB6F92"
+};
 
 // 順位バッジ（サッカー版player-cards.htmlの .rk / rankChip と同じ見た目・判定ロジックに合わせている）。
 // rank===null（母数はあるが投球数などのしきい値未満で対象外）は「-」、rankデータ自体が無ければ何も出さない。
+// 文字色（緑/赤/グレー）もセルの背景色と同じ判定（tierFromRank）に揃え、
+// 「背景は青緑なのに文字は赤」のような食い違いが出ないようにしている。
 function rankBadgeHtml(rk){
   if(!rk) return "";
   if(rk.rank == null) return `<div class="rk none">-</div>`;
-  const p = rk.total > 1 ? (rk.rank - 1) / (rk.total - 1) : 0.5;
-  const cls = rk.total < 10 ? "mid" : (p <= 0.25 ? "top" : (p >= 0.75 ? "low" : "mid"));
+  const tier = tierFromRank(rk);
+  const cls = (tier && tier.startsWith("top")) ? "top" : ((tier && tier.startsWith("bot")) ? "low" : "mid");
   return `<div class="rk ${cls}">${rk.rank}位/${rk.total}人中</div>`;
 }
 
@@ -1735,16 +1756,31 @@ function rankBadgeHtml(rk){
 // tierを決めている（get_scale_tier、export_llm_input.py参照）が、「合計」行はJSON側に
 // そのパーセンタイル値が無く、順位（rank/total）だけを持っている。順位は値の単調な関数なので、
 // 順位のパーセンタイル位置を同じ6段階のtierにマッピングすることで近似している。
+// 順位（rank/total）→ 7段階のtier。表のセル背景・順位バッジ・KPIの文字色すべてこれで決める。
+//   top15: 上位15%以内 / top30: 上位15〜30% / top40: 上位30〜40% / mid: 上位40〜60%
+//   bot60: 上位60〜70%（下位30〜40%） / bot70: 上位70〜85%（下位15〜30%） / bot85: 下位15%以内
+// 例：66位/86人中 → 66/86=76.7% → bot70（中間の赤）
 function tierFromRank(rk){
   if(!rk || rk.rank == null || !rk.total) return null;
-  const pFromTop = (rk.rank - 1) / rk.total; // 0に近いほど上位
-  if(pFromTop < 0.15) return "top15";
-  if(pFromTop < 0.30) return "top30";
-  if(pFromTop < 0.40) return "top40";
-  if(pFromTop < 0.60) return "mid";
-  if(pFromTop < 0.70) return "bot60";
-  if(pFromTop < 0.85) return "bot70";
+  const pos = rk.rank / rk.total; // 上位から何%の位置か（1位/100人中=1%）
+  if(pos <= 0.15) return "top15";
+  if(pos <= 0.30) return "top30";
+  if(pos <= 0.40) return "top40";
+  if(pos <= 0.60) return "mid";
+  if(pos <= 0.70) return "bot60";
+  if(pos <= 0.85) return "bot70";
   return "bot85";
+}
+// 球種別セルのtier。順位データ（p.ranks[key]）があれば常に順位から決める
+// （以前はバックエンドの値ベースのパーセンタイル tier（_ランク）を使っていたため、
+//  順位は下位なのに青緑になる、といった食い違いが出ていた）。
+// 順位の母数はあるが対象外（rank:null＝「-」表示）の場合は色なし。
+// 順位データ自体が無い表示（試合ログの球種内訳など）だけ、従来の値ベースtierにフォールバックする。
+function cellTier(p, m){
+  const rk = p.ranks && p.ranks[m.key];
+  if(rk) return tierFromRank(rk);
+  if(m.useRankTier) return null;
+  return m.tierKey ? p[m.tierKey] : null;
 }
 
 function pitchDetailTableHtml(pitches, trueTotal, metricsOverride, tagsByName, totalsRanks){
@@ -1764,7 +1800,10 @@ function pitchDetailTableHtml(pitches, trueTotal, metricsOverride, tagsByName, t
   // trueTotalが無い場合（試合単位のログ表示など）のみ、フォールバックとして
   // 球種別内訳からの加重平均を使う。
   const TRUE_TOTAL_KEY = { swstr_pct: "空振り率", chase_pct: "ゾーン外スイング率", strike_pct: "ストライク率", zone_pct: "ゾーン率", gb_pct: "ゴロ率" };
-  const WEIGHT_FIELD = { gb_pct: "gb_n", chase_pct: "oz_n" };
+  const WEIGHT_FIELD = { gb_pct: "gb_n", chase_pct: "oz_n", hit_pct: "ab_n" };
+  // 被打率は打数(ab_n)で加重しないと意味が変わってしまう（＝合計被安打÷合計打数にならない）ので、
+  // ab_nが無い古いデータの場合は投球数で代用せず「—」にする。
+  const STRICT_WEIGHT = new Set(["hit_pct"]);
   const wavg = (key) => {
     if(trueTotal){
       const tKey = TRUE_TOTAL_KEY[key];
@@ -1774,6 +1813,7 @@ function pitchDetailTableHtml(pitches, trueTotal, metricsOverride, tagsByName, t
     const withVal = pitches.filter(m => m[key] != null);
     const weightOf = (m) => {
       if(wField && m[wField] != null) return m[wField];
+      if(STRICT_WEIGHT.has(key)) return 0;
       return m.count || 0;
     };
     const wsum = withVal.reduce((s,m)=>s+weightOf(m), 0);
@@ -1819,14 +1859,10 @@ function pitchDetailTableHtml(pitches, trueTotal, metricsOverride, tagsByName, t
     <tr>
       <td style="width:${C1}px"><span class="pmix-pname"><span class="pmix-dot" style="background:${pitchColor(i)}"></span>${escapeHtml(p.name)}</span></td>
       <td style="width:${C2}px;left:${C1}px">${countCellHtml(p.count, p.pct)}</td>
-      ${compact ? "" : (() => {
-        const pctTier = p["投球割合%_ランク"];
-        const bg = pctTier ? (TIER_COLOR[pctTier] || "") : "";
-        return `<td style="width:${C3}px;background:${bg}"><span class="pmix-val">${p.pct != null ? p.pct + "%" : "—"}</span>${rankBadgeHtml(p.ranks && p.ranks.pct)}</td>`;
-      })()}
+      ${compact ? "" : `<td style="width:${C3}px"><span class="pmix-val">${p.pct != null ? p.pct + "%" : "—"}</span></td>`}
       ${metrics.map(m => {
         const v = p[m.key];
-        const tier = m.useRankTier ? tierFromRank(p.ranks && p.ranks[m.key]) : p[m.tierKey];
+        const tier = cellTier(p, m);
         const bg = tier ? (TIER_COLOR[tier] || "") : "";
         return `<td style="width:${sw(m.width)}px;background:${bg}"><span class="pmix-val">${fmtMetricVal(m, v)}</span>${rankBadgeHtml(p.ranks && p.ranks[m.key])}</td>`;
       }).join("")}
@@ -1893,14 +1929,14 @@ const COUNT_RATE_SPECS = [
   // （分母はいずれもゾーン外投球数）
   { label: "ボール球SW率",       calc: (agg, t) => agg.oz > 0 ? Math.round(agg.ozsw / agg.oz * 100) : null },
   { label: "ボール球空振り率",   calc: (agg, t) => agg.oz > 0 ? Math.round(agg.ozwh / agg.oz * 100) : null },
-  // 被安打率：打球になった球（アウト＋安打）のうち何%が安打だったか。カウント単位だとサンプルが
-  // 小さくなりがちでブレやすい指標なので、-（データ無し）になりやすい点は他の指標より多め。
-  // 打率のような「.310」表記にしたいので format:"avg" を付ける。
-  { label: "被安打率",           format: "avg", calc: (agg, t) => (agg.ou + agg.hi) > 0 ? Math.round(agg.hi / (agg.ou + agg.hi) * 100) : null },
-  // 被長打率（2ベース以上）：同じ考え方で、安打のうち何%が長打だったかではなく、
-  // 被安打率と同じ分母（打球になった球）に対する長打の割合にしている（被安打率と並べて
-  // 見比べやすいように）。
-  { label: "被長打率",           format: "avg", calc: (agg, t) => (agg.ou + agg.hi) > 0 ? Math.round(agg.xh / (agg.ou + agg.hi) * 100) : null },
+  // 被打率：そのカウントの球で打席が終わった「打数」のうち、何本安打にされたか（被安打÷打数）。
+  // 三振も打数に含む（打席の最終球ベース。四死球・犠打・犠飛は含まない）。
+  // 打率のような「.310」表記にしたいので format:"avg" を付ける（小数1桁の%で持つと.xxxの3桁が正確に出る）。
+  // カウント単位だとサンプルが小さくなりがちなので、打数0のカウントは「-」になる。
+  { label: "被打率",             format: "avg", calc: (agg, t) => agg.ab > 0 ? Math.round(agg.hi / agg.ab * 1000) / 10 : null },
+  // 被長打割合：同じ打数を分母にした長打（2塁打・3塁打・本塁打）の割合。被打率と分母が同じなので
+  // 「被打率.300のうち長打が.100」のように並べて読める（どのカウントで長打を打たれやすいか）。
+  { label: "被長打割合",         format: "avg", calc: (agg, t) => agg.ab > 0 ? Math.round(agg.xh / agg.ab * 1000) / 10 : null },
 ];
 function countAggOf(cbsRows){
   const out = {};
@@ -1916,8 +1952,9 @@ function countAggOf(cbsRows){
       acc.iz += c.iz || 0; acc.oz += c.oz || 0;
       acc.izlo += c.izlo || 0; acc.ozsw += c.ozsw || 0; acc.ozwh += c.ozwh || 0;
       acc.xh += c.xh || 0; // 被長打（2塁打・3塁打・本塁打）。古いJSONには無いので同様に || 0 で吸収
+      acc.ab += c.ab || 0; // 打数（打席の最終球ベース）。古いJSONには無い→分母0で「-」表示
       return acc;
-    }, {sw:0, lo:0, fo:0, ba:0, ou:0, hi:0, iz:0, oz:0, izlo:0, ozsw:0, ozwh:0, xh:0});
+    }, {sw:0, lo:0, fo:0, ba:0, ou:0, hi:0, iz:0, oz:0, izlo:0, ozsw:0, ozwh:0, xh:0, ab:0});
   });
   return out;
 }
@@ -2064,7 +2101,7 @@ function buildPitchCompareTable(entries){
     if(metric.isCount) return `<td class="${sep}">${p.count ?? "—"}</td>`;
     if(metric.isPct)   return `<td class="${sep}">${p.pct != null ? p.pct + "%" : "—"}</td>`;
     const v = p[metric.key];
-    const tier = p[metric.tierKey];
+    const tier = cellTier(p, metric);
     const bg = tier ? (TIER_COLOR[tier] || "") : "";
     return `<td class="${sep}" style="background:${bg}">${fmtMetricVal(metric, v)}</td>`;
   }).join("");
