@@ -1011,6 +1011,9 @@ def bat_counts(res) -> dict:
 _AB_EXCLUDE_PAT = re.compile(r"^四球$|敬遠|^死球$|犠打|犠飛")
 _HR_PAT         = re.compile(r"本塁打|右中本$|左中本$|^中本$")
 _INPLAY_CATS    = ("アウト系", "出塁/ヒット系", "犠打/犠飛系")
+# 判定カテゴリが空の球で、打数に数える結果かどうかを文言で判定するためのパターン
+# （安打・長打・本塁打・凡打（ゴロ/飛球/ライナー/併殺）・失策・野選）
+_AB_RESULT_PAT  = re.compile(r"安打|2塁打|3塁打|本塁打|右中本$|左中本$|^中本$|ゴロ|飛|直|併殺|失|野選")
 
 
 def ab_result_flags(category: str, result: str) -> tuple[int, int, int]:
@@ -1019,8 +1022,11 @@ def ab_result_flags(category: str, result: str) -> tuple[int, int, int]:
     if not res or res == "nan":
         return 0, 0, 0
     is_k = "三振" in res
+    # 判定カテゴリはコース情報（投球チャート）から取っているため、座標が取れなかった球では
+    # 空になることがある。その場合は打席完了結果の文言（安打・凡打・三振など）で打数かどうかを判定する。
     if not (is_k or category in _INPLAY_CATS):
-        return 0, 0, 0
+        if category not in ("", "nan", "None") or not _AB_RESULT_PAT.search(res):
+            return 0, 0, 0
     if _AB_EXCLUDE_PAT.search(res):
         return 0, 0, 0
     is_xbh = bool(_HR_PAT.search(res)) or ("2塁打" in res) or ("3塁打" in res)
