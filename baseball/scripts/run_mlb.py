@@ -2097,7 +2097,7 @@ def _build_mlb_locs_and_cbs(df: pd.DataFrame) -> tuple[dict, dict]:
     Statcast DataFrame から pitch_locs と cbs_idx を生成する。
 
     pitch_locs : {(game_pk, player_name, pitch_type, hand): [[cx,cy,flag,in_zone,rtype,is_strike,balls,strikes], ...]}
-    cbs_idx    : {(game_pk, player_name, pitch_type, hand): {countKey: {c,sw,fo,lo,ba,ou,hi}}}
+    cbs_idx    : {(game_pk, player_name, pitch_type, hand): {countKey: {c,sw,fo,lo,ba,ou,hi,iz,oz,izlo,ozsw,ozwh}}}
 
     座標正規化:
       cx = plate_x / MLB_PLATE_HALF_W  （右打者外角=+1）
@@ -2144,10 +2144,17 @@ def _build_mlb_locs_and_cbs(df: pd.DataFrame) -> tuple[dict, dict]:
         is_ball  = desc in {"ball","blocked_ball","intent_ball","pitchout","automatic_ball"}
         is_inplay = desc.startswith("hit_into_play")
         is_hit   = event in {"single","double","triple","home_run"}
+        # ゾーン率・ゾーン見逃し率・ボール球SW率・ボール球空振り率用（NPB側run.pyと同じ考え方）。
+        # StatcastのzoneはNaNになることがある（トラッキング欠損等）ので、その場合はゾーン集計に含めない。
+        zone_val  = row.get("zone")
+        has_zone  = pd.notna(zone_val)
+        in_zone   = has_zone and is_in_zone(zone_val)
+        out_zone  = has_zone and not in_zone
+        is_swing  = is_swstr or is_foul or is_inplay
 
         for ck in [(gid, pname, pt, "ALL"), (gid, pname, pt, hand)]:
             if ck not in cbs_idx: cbs_idx[ck] = {}
-            if ckey not in cbs_idx[ck]: cbs_idx[ck][ckey] = {"c":0,"sw":0,"fo":0,"lo":0,"ba":0,"ou":0,"hi":0}
+            if ckey not in cbs_idx[ck]: cbs_idx[ck][ckey] = {"c":0,"sw":0,"fo":0,"lo":0,"ba":0,"ou":0,"hi":0,"iz":0,"oz":0,"izlo":0,"ozsw":0,"ozwh":0}
             d2 = cbs_idx[ck][ckey]
             d2["c"]  += 1
             d2["sw"] += int(is_swstr)
@@ -2156,6 +2163,12 @@ def _build_mlb_locs_and_cbs(df: pd.DataFrame) -> tuple[dict, dict]:
             d2["ba"] += int(is_ball)
             d2["ou"] += int(is_inplay and not is_hit)
             d2["hi"] += int(is_inplay and is_hit)
+            if has_zone:
+                d2["iz"] += int(in_zone)
+                d2["oz"] += int(out_zone)
+                d2["izlo"] += int(in_zone and is_look)
+                d2["ozsw"] += int(out_zone and is_swing)
+                d2["ozwh"] += int(out_zone and is_swstr)
 
         # ── pitch_locs（座標あり投球のみ） ──
         px = row.get("plate_x", None)

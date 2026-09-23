@@ -2629,7 +2629,11 @@ def run_dashboard(datamart_path: str, html_template: str | None = None,
             df_valid = df_locs.dropna(subset=["_top", "_left"])
 
             # カウント別集計（全投球・座標なし含む）
-            # キー: (gid, pname, pitch_name, bat_hand) → {countKey: {c,sw,fo,lo,ba,ou,hi}}
+            # キー: (gid, pname, pitch_name, bat_hand) → {countKey: {c,sw,fo,lo,ba,ou,hi,iz,oz,izlo,ozsw,ozwh}}
+            # iz/oz/izlo/ozsw/ozwh は「ゾーン率」「ゾーン見逃し率」「ボール球SW率」「ボール球空振り率」用の
+            # 追加集計（preprocess_pitch()が計算済みのin_zone/out_zone/is_swingをそのまま使う）。
+            # 座標が無い行（_top/_leftがNaN）はゾーン判定ができないため、この4つには数えない
+            # （c/sw/fo/lo/ba/ou/hiは従来通り座標の有無を問わず数える）。
             cbs_idx = {}
             for _, crow in df_locs.iterrows():
                 _cgid  = str(crow["試合ID"])
@@ -2651,9 +2655,14 @@ def run_dashboard(datamart_path: str, html_template: str | None = None,
                 _cba = _ccat == "ボール系"
                 _cou = _ccat == "アウト系"
                 _chi = _ccat in ("出塁/ヒット系", "犠打/犠飛系") and ("安打" in _cres or "ヒット" in _cres)
+                # ゾーン判定（座標がある行だけ。preprocess_pitch()で算出済みのin_zone/is_swingを利用）
+                _chas_coord = pd.notna(crow.get("_top")) and pd.notna(crow.get("_left"))
+                _ciz = _chas_coord and bool(crow.get("in_zone", False))
+                _coz = _chas_coord and not _ciz
+                _cswing = bool(crow.get("is_swing", False))
                 for _ck in [(_cgid, _cpn, _cpitch, "ALL"), (_cgid, _cpn, _cpitch, _chand)]:
                     if _ck not in cbs_idx: cbs_idx[_ck] = {}
-                    if _ckey not in cbs_idx[_ck]: cbs_idx[_ck][_ckey] = {"c":0,"sw":0,"fo":0,"lo":0,"ba":0,"ou":0,"hi":0}
+                    if _ckey not in cbs_idx[_ck]: cbs_idx[_ck][_ckey] = {"c":0,"sw":0,"fo":0,"lo":0,"ba":0,"ou":0,"hi":0,"iz":0,"oz":0,"izlo":0,"ozsw":0,"ozwh":0}
                     d2 = cbs_idx[_ck][_ckey]
                     d2["c"]  += 1
                     d2["sw"] += int(_csw)
@@ -2662,6 +2671,12 @@ def run_dashboard(datamart_path: str, html_template: str | None = None,
                     d2["ba"] += int(_cba)
                     d2["ou"] += int(_cou)
                     d2["hi"] += int(_chi)
+                    if _chas_coord:
+                        d2["iz"] += int(_ciz)
+                        d2["oz"] += int(_coz)
+                        d2["izlo"] += int(_ciz and _clo)
+                        d2["ozsw"] += int(_coz and _cswing)
+                        d2["ozwh"] += int(_coz and _csw)
             # デバッグ: 特定投手の集計数確認
             for _dk, _dv in list(cbs_idx.items())[:3]:
                 _dtotal = sum(v["c"] for v in _dv.values())

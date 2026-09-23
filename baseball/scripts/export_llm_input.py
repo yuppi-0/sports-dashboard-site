@@ -336,7 +336,7 @@ def calc_season_stats_by_hand(appearances: list[dict]) -> dict:
 # Section 3. 球種別シーズン集計（_aggregateSeasonMix のポート）
 # ==================================================
 
-_CBS_FIELDS = ["c", "sw", "fo", "lo", "ba", "ou", "hi"]
+_CBS_FIELDS = ["c", "sw", "fo", "lo", "ba", "ou", "hi", "iz", "oz", "izlo", "ozsw", "ozwh"]
 
 
 def aggregate_season_mix(appearances: list[dict], mix_key: str = "mix") -> list[dict]:
