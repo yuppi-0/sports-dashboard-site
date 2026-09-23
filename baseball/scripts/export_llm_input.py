@@ -1157,8 +1157,9 @@ def compute_pitch_rankings(mix_rows: list[dict], role_map: dict[str, str], ip_ma
         （シーズン投球回による足切りは行わない。1試合しか投げていない投手でも、その球種を
         十分な数投げていれば順位の対象に入る）
     _順位_母数:
-        上記の条件でフィルタせず、同じ役割内でその指標の値を持つ投手全員を母数にする
-        （投球数の条件を満たすかどうかは問わない）。
+        同じ球種・同じ役割の中で、上と同じ投球数のしきい値を満たす投手の数（固定値）。
+        以前は「その指標の値を持っている投手の数」だったため、指標によって母数がバラバラに
+        見えてしまっていたが、それを避けるため常に同じ母集団サイズになるようにしている。
     """
 
     groups: dict[tuple[str, str], list[dict]] = defaultdict(list)
@@ -1172,10 +1173,14 @@ def compute_pitch_rankings(mix_rows: list[dict], role_map: dict[str, str], ip_ma
 
     def assign(rows: list[dict], value_field: str, higher_is_better: bool,
                count_field: str, min_count: float) -> None:
-        all_pairs = [(r, r.get(value_field)) for r in rows if r.get(value_field) is not None]
-        total_all = len(all_pairs)
+        # 母数(_順位_母数)は「その指標の値を偶然持っているかどうか」で変わってしまわないよう、
+        # 同じ球種・同じ役割の中で投球数のしきい値を満たす投手の数に固定する
+        # （以前はvalue_fieldがNoneの投手を除外してから数えていたため、指標によって
+        # 母数がバラバラになってしまっていた）。
+        qualified_rows = [r for r in rows if (r.get(count_field) or 0) >= min_count]
+        total_all = len(qualified_rows)
 
-        qualified = [(r, v) for r, v in all_pairs if (r.get(count_field) or 0) >= min_count]
+        qualified = [(r, r.get(value_field)) for r in qualified_rows if r.get(value_field) is not None]
         qualified.sort(key=lambda x: -x[1] if higher_is_better else x[1])
 
         rank_field = f"{value_field}_順位"
