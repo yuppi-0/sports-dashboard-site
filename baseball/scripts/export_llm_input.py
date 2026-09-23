@@ -449,7 +449,15 @@ def aggregate_season_mix(appearances: list[dict], mix_key: str = "mix") -> list[
                     if not isinstance(cv, dict):
                         continue
                     cm = k["cbs_merged"][count_key]
+                    # 「ab」が無い＝run.py/run_mlb.pyの被打率対応前に作られた古い試合JSON。
+                    # その試合のhi/xhは旧定義（NPBは単打だけ等）で、分母のabも無いため、
+                    # そのまま足すと「安打＞打数」のような被打率になってしまう。
+                    # 古い試合のhi/xhは合算せず、被打率・被長打割合は新形式の試合だけで計算する
+                    # （過去日のJSONを再生成すれば全試合ぶんが入る）。
+                    has_ab = "ab" in cv
                     for f in _CBS_FIELDS:
+                        if not has_ab and f in ("hi", "xh"):
+                            continue
                         cm[f] += cv.get(f, 0) or 0
 
     merged = sorted(km.values(), key=lambda x: -x["count"])
@@ -1174,6 +1182,15 @@ def compute_rankings(season_rows: list[dict],
 RANK_MIN_IP = {"先発": 15.0, "中継ぎ": 10.0}      # シーズン合計行（season_totals）側の順位: 役割別の資格投球回
 RANK_MIN_PITCHES_VS_HAND = 20                          # 対右/対左側の順位: 球種ごとの対戦数条件（役割共通）
 RANK_MIN_PITCHES_ALL = 20                              # 全体側の順位: その球種を何球以上投げていれば対象にするか（役割共通）
+RANK_MIN_AB_HIT = 10                                   # 被打率の順位だけ追加で必要な打数（その球種で打席が完了した打数）
+
+# 投球数の条件に加えて、指標ごとに追加で満たす必要がある条件 {指標: (件数フィールド, 下限)}。
+# 被打率は投球数が多くても打数が1〜2しか無い球種があり（0/1で.000→1位など）、
+# 投球数だけの足切りでは順位が意味をなさないため、打数の下限を追加する。
+# この条件を足した指標だけは、母数（_順位_母数）も「投球数と打数の両方を満たす投手数」になる。
+_PITCH_RANK_EXTRA_MIN = {
+    "被打率": ("被打数", RANK_MIN_AB_HIT),
+}
 
 # 順位を出す指標。(全体側のフィールド名, 高いほど良いか)
 # 対右/対左側は同名の接頭辞（対右_/対左_）を付けたフィールドを見る。
@@ -1228,6 +1245,10 @@ def compute_pitch_rankings(mix_rows: list[dict], role_map: dict[str, str], ip_ma
         # （以前はvalue_fieldがNoneの投手を除外してから数えていたため、指標によって
         # 母数がバラバラになってしまっていた）。
         qualified_rows = [r for r in rows if (r.get(count_field) or 0) >= min_count]
+        extra = _PITCH_RANK_EXTRA_MIN.get(value_field)
+        if extra:
+            extra_field, extra_min = extra
+            qualified_rows = [r for r in qualified_rows if (r.get(extra_field) or 0) >= extra_min]
         total_all = len(qualified_rows)
 
         qualified = [(r, r.get(value_field)) for r in qualified_rows if r.get(value_field) is not None]
