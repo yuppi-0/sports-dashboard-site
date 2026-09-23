@@ -833,6 +833,10 @@ def annotate_mix_rows_with_tiers(mix_rows: list[dict], role_key: str, pitch_scal
         row["_rank_tier"] = tiers
 
 
+# MLB独自の球種別指標のうち、対右/対左でも順位を出すもの（NPBは値がNoneのまま＝順位も付かない）
+_MLB_HAND_FIELDS = ["xwOBA", "回転数", "VAA", "縦変化量", "横変化量", "Extension"]
+
+
 def merge_lr_split(mix_all: list[dict], mix_vs_r: list[dict], mix_vs_l: list[dict]) -> list[dict]:
     """
     球種ごとの対右/対左スタッツを、全体集計(mix_all)の行にマージする。
@@ -864,6 +868,8 @@ def merge_lr_split(mix_all: list[dict], mix_vs_r: list[dict], mix_vs_l: list[dic
         row["対右_被打率"] = r.get("被打率") if r else None
         row["対右_被長打割合"] = r.get("被長打割合") if r else None
         row["対右_HR"] = r["HR"] if r else 0
+        for _f in _MLB_HAND_FIELDS:
+            row[f"対右_{_f}"] = r.get(_f) if r else None
         row["対左_投球数"] = l["投球数"] if l else 0
         row["対左_投球割合%"] = l["投球割合%"] if l else None
         row["対左_平均球速"] = l["平均球速"] if l else None
@@ -878,6 +884,8 @@ def merge_lr_split(mix_all: list[dict], mix_vs_r: list[dict], mix_vs_l: list[dic
         row["対左_被打率"] = l.get("被打率") if l else None
         row["対左_被長打割合"] = l.get("被長打割合") if l else None
         row["対左_HR"] = l["HR"] if l else 0
+        for _f in _MLB_HAND_FIELDS:
+            row[f"対左_{_f}"] = l.get(_f) if l else None
         out.append(row)
     return out
 
@@ -926,6 +934,21 @@ def _single_game_mix_rows(mix_list) -> list[dict]:
     rows = []
     for m in sorted(valid, key=lambda x: -(x.get("count") or 0)):
         count = m.get("count") or 0
+        cbs_raw = m.get("cbs") if isinstance(m.get("cbs"), dict) else {}
+        cbs_out = {}
+        ab_n = h_n = xh_n = 0
+        for ck, cv in cbs_raw.items():
+            if not isinstance(cv, dict):
+                continue
+            has_ab = "ab" in cv
+            cbs_out[ck] = {f: (cv.get(f, 0) or 0) for f in _CBS_FIELDS
+                           if has_ab or f not in ("hi", "xh")}
+            if has_ab:
+                ab_n += cv.get("ab", 0) or 0
+                h_n += cv.get("hi", 0) or 0
+                xh_n += cv.get("xh", 0) or 0
+        hit_pct = round(h_n / ab_n * 100, 1) if ab_n > 0 else None
+        xbh_pct = round(xh_n / ab_n * 100, 1) if ab_n > 0 else None
         rows.append({
             "name": m.get("name"),
             "count": count,
@@ -950,6 +973,13 @@ def _single_game_mix_rows(mix_list) -> list[dict]:
             "ivb": m.get("ivb"),
             "hb": m.get("hb"),
             "ext": m.get("ext"),
+            # 被打率・被長打割合（シーズン側 aggregate_season_mix と同じく、打席完了球ベースの
+            # cbs の ab/hi/xh から算出。ab が無い古い形式の試合JSONでは None）
+            "hit_pct": hit_pct,
+            "xbh_pct": xbh_pct,
+            "ab_n": ab_n,
+            # カウント別配球（試合別・シーズン別の行クリック時に下のパネルでも表示するため）
+            "cbs": cbs_out,
         })
     return rows
 
@@ -1243,6 +1273,39 @@ _PITCH_RANK_METRICS_HAND = [
     ("被打率", False), ("被長打割合", False),
 ]
 
+# ── MLB独自指標（Statcast）の順位 ──
+# 回転数・VAA・縦変化量は「どちらが良いか」が球種によって逆になるため、球種コードを受け取って
+# 方向（"high"=高いほど良い / "low"=低いほど良い / "abs"=絶対値が大きいほど良い）を返す関数で持つ。
+# 回転軸・回転効率(近似)は順位付けの意味が無い（回転軸は向きであって大小に優劣が無い／
+# 回転効率は回転軸から機械的に出した近似値で、実際の回転効率ではない）ため表示・順位ともに外した。
+_LOW_SPIN_BETTER = {"FS", "FO", "CH", "SC", "KN"}  # 落ちる系・抜く系は低回転ほど良い
+_RIDE_BETTER = {"FF", "FC"}                         # 縦変化量が大きい（ホップする）ほど良い球種
+_FLAT_VAA_BETTER = {"FF"}                           # 入射角が浅い（0に近い）ほど良い球種
+
+
+def _dir_spin(pitch_key: str) -> str:
+    return "low" if pitch_key in _LOW_SPIN_BETTER else "high"
+
+
+def _dir_ivb(pitch_key: str) -> str:
+    # フォーシーム・カットはホップ量（大きいほど良い）、それ以外は落差（小さいほど良い）
+    return "high" if pitch_key in _RIDE_BETTER else "low"
+
+
+def _dir_vaa(pitch_key: str) -> str:
+    # フォーシームは浅いほど（0に近いほど）高めで空振りを取りやすい。変化球・沈む系は急角度ほど良い
+    return "high" if pitch_key in _FLAT_VAA_BETTER else "low"
+
+
+_PITCH_RANK_METRICS_MLB = [
+    ("xwOBA", "low"),        # 被打球の質。低いほど良い
+    ("回転数", _dir_spin),
+    ("VAA", _dir_vaa),
+    ("縦変化量", _dir_ivb),
+    ("横変化量", "abs"),     # 腕側・グラブ側どちらでも、横に大きく動くほど良い
+    ("Extension", "high"),   # リリースが打者に近いほど体感速度が上がる
+]
+
 
 def compute_pitch_rankings(mix_rows: list[dict], role_map: dict[str, str], ip_map: dict[str, str]) -> None:
     """
@@ -1273,8 +1336,13 @@ def compute_pitch_rankings(mix_rows: list[dict], role_map: dict[str, str], ip_ma
             continue
         groups[(role, pitch_key)].append(row)
 
-    def assign(rows: list[dict], value_field: str, higher_is_better: bool,
-               count_field: str, min_count: float) -> None:
+    def assign(rows: list[dict], value_field: str, higher_is_better,
+               count_field: str, min_count: float,
+               pitch_key: str | None = None, skip_if_no_values: bool = False) -> None:
+        # higher_is_better: True/False、または "high"/"low"/"abs"、または球種コード→それらを返す関数
+        direction = higher_is_better(pitch_key) if callable(higher_is_better) else higher_is_better
+        if direction is True: direction = "high"
+        if direction is False: direction = "low"
         # 母数(_順位_母数)は「その指標の値を偶然持っているかどうか」で変わってしまわないよう、
         # 同じ球種・同じ役割の中で投球数のしきい値を満たす投手の数に固定する
         # （以前はvalue_fieldがNoneの投手を除外してから数えていたため、指標によって
@@ -1287,22 +1355,37 @@ def compute_pitch_rankings(mix_rows: list[dict], role_map: dict[str, str], ip_ma
         total_all = len(qualified_rows)
 
         qualified = [(r, r.get(value_field)) for r in qualified_rows if r.get(value_field) is not None]
-        qualified.sort(key=lambda x: -x[1] if higher_is_better else x[1])
+        if direction == "abs":
+            qualified.sort(key=lambda x: -abs(x[1]))
+        elif direction == "high":
+            qualified.sort(key=lambda x: -x[1])
+        else:
+            qualified.sort(key=lambda x: x[1])
 
         rank_field = f"{value_field}_順位"
         total_field = f"{value_field}_順位_母数"
+        # MLB独自指標など、この母集団の誰も値を持っていない指標（NPBの回転数など）は、
+        # 母数を0にして順位そのものを出さない（カードJSON側でもranksに含めない）
+        if skip_if_no_values and not qualified:
+            total_all = 0
         for r in rows:
             r[rank_field] = None
             r[total_field] = total_all
         for i, (r, _v) in enumerate(qualified, start=1):
             r[rank_field] = i
 
-    for (role, _pitch_key), rows in groups.items():
+    for (role, pitch_key), rows in groups.items():
         for field, higher in _PITCH_RANK_METRICS_ALL:
             assign(rows, field, higher, count_field="投球数", min_count=RANK_MIN_PITCHES_ALL)
+        for field, direction in _PITCH_RANK_METRICS_MLB:
+            assign(rows, field, direction, count_field="投球数", min_count=RANK_MIN_PITCHES_ALL,
+                   pitch_key=pitch_key, skip_if_no_values=True)
         for side_prefix, count_field in (("対右", "対右_投球数"), ("対左", "対左_投球数")):
             for field, higher in _PITCH_RANK_METRICS_HAND:
                 assign(rows, f"{side_prefix}_{field}", higher, count_field=count_field, min_count=RANK_MIN_PITCHES_VS_HAND)
+            for field, direction in _PITCH_RANK_METRICS_MLB:
+                assign(rows, f"{side_prefix}_{field}", direction, count_field=count_field,
+                       min_count=RANK_MIN_PITCHES_VS_HAND, pitch_key=pitch_key, skip_if_no_values=True)
 
 
 # ダッシュボードのカードJSON（season_pitch_detail）向け：mix_rowsの日本語フィールド名を
@@ -1313,12 +1396,18 @@ _PITCH_RANK_FIELD_MAP_ALL = [
     ("ストライク率", "strike_pct"), ("ゾーン率", "zone_pct"), ("GB%", "gb_pct"),
     ("投球割合%", "pct"), ("平均球速", "avg_vel"), ("最高球速", "max_vel"),
     ("被打率", "hit_pct"), ("被長打割合", "xbh_pct"),
+    # MLB独自（NPBは母数0でranksに入らない）
+    ("xwOBA", "xwoba"), ("回転数", "avg_spin"), ("VAA", "vaa"),
+    ("縦変化量", "ivb"), ("横変化量", "hb"), ("Extension", "ext"),
 ]
 _PITCH_RANK_FIELD_MAP_HAND = [
     ("空振り率", "swstr_pct"), ("ゾーン外スイング率", "chase_pct"),
     ("ストライク率", "strike_pct"), ("ゾーン率", "zone_pct"), ("ゴロ率", "gb_pct"),
     ("投球割合%", "pct"), ("平均球速", "avg_vel"), ("最高球速", "max_vel"),
     ("被打率", "hit_pct"), ("被長打割合", "xbh_pct"),
+    # MLB独自（NPBは母数0でranksに入らない）
+    ("xwOBA", "xwoba"), ("回転数", "avg_spin"), ("VAA", "vaa"),
+    ("縦変化量", "ivb"), ("横変化量", "hb"), ("Extension", "ext"),
 ]
 
 
