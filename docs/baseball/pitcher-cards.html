@@ -680,9 +680,9 @@
             <option value="">全チーム</option>
           </select>
           <select id="roleSelect" class="filter-select">
-            <option value="">先発・中継ぎ 両方</option>
-            <option value="先発">先発のみ</option>
-            <option value="中継ぎ">中継ぎのみ</option>
+            <option value="">先発・中継ぎ</option>
+            <option value="先発">先発</option>
+            <option value="中継ぎ">中継ぎ</option>
           </select>
         </div>
         <div class="filter-panel-row">
@@ -1330,8 +1330,12 @@ function sectionHeader({bar, label, labelColor, sub}){
 const LIVE_RANK_SPECS = [
   ["era", false], ["k_bb_pct", true], ["k_pct", true], ["bb_pct", false], ["gb_pct", true],
   ["swstr_pct", true], ["chase_pct", true], ["strike_pct", true], ["zone_pct", true],
+  ["hit_pct", false], ["xbh_pct", false],
 ];
-function computeLiveRankings(playerId, minIp){
+// 対右/対左の合計行用。index.jsonの「{指標}_vsR」「{指標}_vsL」を使う（防御率などは対右/対左が無いので対象外）
+const LIVE_RANK_HAND_KEYS = ["swstr_pct", "chase_pct", "strike_pct", "zone_pct", "gb_pct", "hit_pct", "xbh_pct"];
+// suffix: "" なら全体、"_vsR"/"_vsL" なら対右/対左の値で順位を出す（返すキーは常にsuffix無しの指標名）
+function computeLiveRankings(playerId, minIp, suffix = ""){
   const target = allPlayers.find(p => p.id === playerId);
   if(!target) return {};
   const threshold = isNaN(minIp) ? 0 : minIp;
@@ -1339,7 +1343,9 @@ function computeLiveRankings(playerId, minIp){
     p.role === target.role && p.innings_num != null && p.innings_num >= threshold
   );
   const result = {};
-  LIVE_RANK_SPECS.forEach(([key, higherIsBetter]) => {
+  LIVE_RANK_SPECS.forEach(([baseKey, higherIsBetter]) => {
+    if(suffix && !LIVE_RANK_HAND_KEYS.includes(baseKey)) return;
+    const key = baseKey + suffix;
     // 一覧(index.json)側にそもそもそのフィールドが無い場合は、ここで静かにスキップする
     // （新しいランク項目を足しても、古い形式のindex.jsonではエラーにならず単に非表示になるだけ）
     if(target[key] == null) return;
@@ -1348,7 +1354,7 @@ function computeLiveRankings(playerId, minIp){
       .map(p => [p.id, p[key]])
       .sort((a, b) => higherIsBetter ? b[1] - a[1] : a[1] - b[1]);
     const idx = valid.findIndex(([id]) => id === playerId);
-    if(idx >= 0) result[key] = { rank: idx + 1, total: valid.length };
+    if(idx >= 0) result[baseKey] = { rank: idx + 1, total: valid.length };
   });
   return result;
 }
@@ -1359,6 +1365,14 @@ function renderCard(d){
   // 2軍表示中は1軍選手一覧(allPlayers)を母集団にしたライブ順位を出すと数値と噛み合わなくなるため、
   // その場合はJSONに焼き込み済みのd.rankings（あれば）を使う
   const rk = (activePlayerId && !d._isFarm) ? computeLiveRankings(activePlayerId, minIp) : (d.rankings || {});
+  // 球種別成績の「合計」行の順位：全体はKPIと同じrk、対右/対左はそれぞれの値で出した順位を使う
+  // （以前は対右/対左タブでも全体の順位をそのまま表示していた）
+  const HAND_SUFFIX = { vsR: "_vsR", vsL: "_vsL" };
+  const totalsRanksFor = (hand) => {
+    if(!hand || hand === "all") return rk;
+    if(activePlayerId && !d._isFarm) return computeLiveRankings(activePlayerId, minIp, HAND_SUFFIX[hand]);
+    return (d.rankings_by_hand && d.rankings_by_hand[hand]) || {};
+  };
   const rankText = (key) => {
     const r = rk[key];
     if(!r) return "";
@@ -1376,10 +1390,8 @@ function renderCard(d){
   const signaturePitchList = d.signature_pitch
     ? [d.signature_pitch]
     : signaturePitchEntries.map(p => p.name);
-  // KPIは、シーズン球種別成績の表と同じ7段階（tierFromRank）で「カード背景」を塗り、
-  // 順位の文字もその段階の色にする。値の数字は背景に関わらず読みやすいよう白のまま。
-  // （以前は値の文字色だけで表していたが、平均付近の白と薄い色の区別がつきにくかったため変更）
-  // 順位が無い（対象外・データ無し）場合は色なし。
+  // KPIは、シーズン球種別成績の表と同じ7段階（tierFromRank）で「順位の文字色」だけを変える
+  // （カード背景や値の数字には色を付けない。値は白のまま）。順位が無い場合は色なし。
   const kpiTier = (key) => tierFromRank(rk[key]) || "mid";
   const stats = [
     { label: "防御率", value: d.era ?? "-", rankKey: "era" },
@@ -1497,7 +1509,7 @@ function renderCard(d){
               ? `<div class="value multi-line" style="color:${s.color}; ${s.small ? 'font-size:13px' : ''}">${s.valueList.map(v => `<span>${escapeHtml(v)}</span>`).join("")}</div>`
               : `<div class="value" style="color:${s.color}; ${s.small ? 'font-size:13px' : ''}">${escapeHtml(String(s.value))}</div>`;
             return `
-            <div class="stat-box t-${s.tier || "mid"}" style="${TIER_COLOR[s.tier] ? `background:linear-gradient(${TIER_COLOR[s.tier]},${TIER_COLOR[s.tier]}),var(--panel)` : ""}">
+            <div class="stat-box t-${s.tier || "mid"}">
               <div class="label">${s.label}</div>
               ${valueHtml}
               ${s.rankKey ? rankText(s.rankKey) : ""}
@@ -1537,7 +1549,7 @@ function renderCard(d){
       btn.classList.add("active");
       const wrap = mainContentEl.querySelector("[data-season-pmix]");
       if(wrap && d.season_pitch_detail){
-        wrap.innerHTML = pitchDetailTableHtml(d.season_pitch_detail[hand], d.season_totals && d.season_totals[hand], undefined, buildPmixTagsByName(hand), rk);
+        wrap.innerHTML = pitchDetailTableHtml(d.season_pitch_detail[hand], d.season_totals && d.season_totals[hand], undefined, buildPmixTagsByName(hand), totalsRanksFor(hand));
       }
     });
   }
@@ -1711,6 +1723,8 @@ const PMIX_METRICS_VEL = [
 // 被打率＝被安打÷打数（打率の投手版）。値は%（例:23.4）で来るので「.234」表記にする。
 const PMIX_METRICS_HIT = [
   { key:"hit_pct", label:"被打率", unit:"%", decimals:1, width:90, format:"avg", useRankTier:true },
+  // 被長打割合＝長打（2塁打以上）÷打数。被打率と同じ分母なので並べて読める
+  { key:"xbh_pct", label:"被長打割合", unit:"%", decimals:1, width:100, format:"avg", useRankTier:true },
 ];
 const PMIX_METRICS_MLB_EXTRA = [
   { key:"xwoba",       tierKey:"xwOBA_ランク",     label:"xwOBA",         unit:"",    decimals:3, width:78 },
@@ -1808,11 +1822,11 @@ function pitchDetailTableHtml(pitches, trueTotal, metricsOverride, tagsByName, t
   // （一部の打席で球種が特定できず球種別内訳から漏れるケースがあっても影響を受けない）。
   // trueTotalが無い場合（試合単位のログ表示など）のみ、フォールバックとして
   // 球種別内訳からの加重平均を使う。
-  const TRUE_TOTAL_KEY = { swstr_pct: "空振り率", chase_pct: "ゾーン外スイング率", strike_pct: "ストライク率", zone_pct: "ゾーン率", gb_pct: "ゴロ率" };
-  const WEIGHT_FIELD = { gb_pct: "gb_n", chase_pct: "oz_n", hit_pct: "ab_n" };
+  const TRUE_TOTAL_KEY = { swstr_pct: "空振り率", chase_pct: "ゾーン外スイング率", strike_pct: "ストライク率", zone_pct: "ゾーン率", gb_pct: "ゴロ率", hit_pct: "被打率", xbh_pct: "被長打割合" };
+  const WEIGHT_FIELD = { gb_pct: "gb_n", chase_pct: "oz_n", hit_pct: "ab_n", xbh_pct: "ab_n" };
   // 被打率は打数(ab_n)で加重しないと意味が変わってしまう（＝合計被安打÷合計打数にならない）ので、
   // ab_nが無い古いデータの場合は投球数で代用せず「—」にする。
-  const STRICT_WEIGHT = new Set(["hit_pct"]);
+  const STRICT_WEIGHT = new Set(["hit_pct", "xbh_pct"]);
   const wavg = (key) => {
     if(trueTotal){
       const tKey = TRUE_TOTAL_KEY[key];
@@ -1925,18 +1939,14 @@ function countCellHtmlHelper(pct, rgb, format){
 }
 
 const COUNT_RATE_SPECS = [
+  // 表示順：ゾーン率 → ゾーン見逃し率 → ボール球SW率 → 空振り率 → ボール球空振り率 → 被打率 → 被長打割合
   { label: "ゾーン率",           calc: (agg, t) => t > 0 ? Math.round(agg.iz / t * 100) : null },
-  // ゾーン内スイング率（Z-Swing%）：ゾーン内に来た球のうち何%を振ったか
-  // （ゾーン内を見逃せば必ず「見逃し」判定になるため、iz-izloで計算できる）
-  { label: "ゾーン内スイング率", calc: (agg, t) => agg.iz > 0 ? Math.round((agg.iz - agg.izlo) / agg.iz * 100) : null },
-  { label: "ストライク率",       calc: (agg, t) => t > 0 ? Math.round((t - agg.ba) / t * 100) : null },
-  { label: "見逃し率",           calc: (agg, t) => t > 0 ? Math.round(agg.lo / t * 100) : null },
   // ゾーン見逃し率：ゾーン内に来た球のうち何%を見逃したか（分母は投球数全体ではなくゾーン内投球数）
   { label: "ゾーン見逃し率",     calc: (agg, t) => agg.iz > 0 ? Math.round(agg.izlo / agg.iz * 100) : null },
-  { label: "空振り率",           calc: (agg, t) => t > 0 ? Math.round(agg.sw / t * 100) : null },
   // ボール球SW率／ボール球空振り率：ゾーン外の球のうち何%に手を出したか／その何%が空振りだったか
   // （分母はいずれもゾーン外投球数）
   { label: "ボール球SW率",       calc: (agg, t) => agg.oz > 0 ? Math.round(agg.ozsw / agg.oz * 100) : null },
+  { label: "空振り率",           calc: (agg, t) => t > 0 ? Math.round(agg.sw / t * 100) : null },
   { label: "ボール球空振り率",   calc: (agg, t) => agg.oz > 0 ? Math.round(agg.ozwh / agg.oz * 100) : null },
   // 被打率：そのカウントの球で打席が終わった「打数」のうち、何本安打にされたか（被安打÷打数）。
   // 三振も打数に含む（打席の最終球ベース。四死球・犠打・犠飛は含まない）。
