@@ -303,7 +303,7 @@
   /* カウント別配球：遷移列は「42% → 2-1」のような幅広テキストが入るため、他のpmix-table列と
      違って折り返しを許可し、最小幅も少し広めに確保する */
   .count-pmix-table .count-total-row td{ font-weight:700; color:var(--text-bright); background:none; border-top:1px solid rgba(148,163,184,0.25); }
-  .count-rate-label{ padding-left:16px !important; color:var(--text-dim); font-size:11px; }
+  .count-rate-label{ color:var(--text-dim); font-size:11px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .count-subtitle{ font-size:11.5px; font-weight:700; color:var(--text-dim); margin-bottom:6px; letter-spacing:0.02em; }
   .count-subtitle-hint{ font-weight:400; color:var(--text-dim); font-size:10px; margin-left:6px; opacity:0.75; }
   .count-cell-empty{ opacity:0.35; }
@@ -311,7 +311,9 @@
   .count-pmix-row{ cursor:pointer; }
   .count-pmix-row:hover td{ background:rgba(148,163,184,0.08); }
   .count-pmix-row.active td:first-child{ box-shadow:inset 3px 0 0 var(--blue-text); }
-  .count-rate-current{ font-size:11.5px; font-weight:700; color:var(--text-bright); margin:2px 0 6px; display:flex; align-items:center; }
+  .count-rate-current{ font-size:11.5px; font-weight:700; color:var(--text-bright); display:flex; align-items:center; gap:4px; }
+  .count-rate-header{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:6px; }
+  .count-rate-header .count-subtitle{ margin-bottom:0; }
 
   /* 球種・投球数（先頭2列）を横スクロール時も固定表示 */
   .pmix-table th:nth-child(1), .pmix-table td:nth-child(1){ position:sticky; left:0; width:104px; z-index:2; overflow:hidden; text-overflow:ellipsis; }
@@ -320,7 +322,13 @@
   .pmix-table td:nth-child(2){ box-shadow:2px 0 4px rgba(0,0,0,0.25), 8px 0 0 0 var(--panel); }
   /* カウント別配球の2つの表は「球種/指標」列だけを固定表示すればよく、2列目（0-0など）は
      通常のスクロール列にしたい。上の共通ルールが.pmix-table全体に2列固定を適用してしまうため、
-     ここで2列目のsticky指定だけを打ち消す（シーズン球種別成績側の「投球数」列の固定表示には影響しない）。 */
+     ここで2列目のsticky指定だけを打ち消す（シーズン球種別成績側の「投球数」列の固定表示には影響しない）。
+     1列目も、共通ルールのwidth:104pxのままだと指標名が長い場合に見切れるため、
+     COUNT_TABLE_LABEL_W（148px）に合わせて明示的に上書きする。 */
+  .count-pmix-table th:nth-child(1), .count-pmix-table td:nth-child(1),
+  .count-rate-table th:nth-child(1), .count-rate-table td:nth-child(1){
+    width:148px;
+  }
   .count-pmix-table th:nth-child(2), .count-pmix-table td:nth-child(2),
   .count-rate-table th:nth-child(2), .count-rate-table td:nth-child(2){
     position:static; left:auto; width:52px; box-shadow:none;
@@ -1673,11 +1681,15 @@ const PMIX_METRICS_VEL = [
   { key:"avg_vel", tierKey:"平均球速_ランク", label:"平均球速", unit:"km/h", decimals:1, width:108 },
   { key:"max_vel", tierKey:"最高球速_ランク", label:"最高球速", unit:"km/h", decimals:1, width:108 },
 ];
-// 被安打率・被長打率：最高球速のすぐ右に置く。ランキング・カラースケールは今回未対応
-// （値の表示のみ）なので、tierKeyは持たせていない。
+// 被安打率・被長打率：最高球速のすぐ右に置く。打率のような「.038」表記にしたいので
+// format:"avg" を付け、fmtMetricVal側でその場合だけ特別扱いする。順位は他の指標と同じ仕組みで
+// 出るが、値が低いほど良い指標なので、ランキング側（export_llm_input.py）は方向を逆にしてある。
+// カラースケールは、他の指標のような球種別パーセンタイル（_ランク）がバックエンド側に無いので、
+// 代わりにuseRankTier:trueを付けて、既に持っている順位（p.ranks）から色を決める
+// （tierFromRank。合計行で使っているのと同じ仕組みを球種別の行にも流用）。
 const PMIX_METRICS_HIT = [
-  { key:"hit_pct", label:"被安打率", unit:"%", decimals:1, width:90 },
-  { key:"xh_pct",  label:"被長打率", unit:"%", decimals:1, width:90 },
+  { key:"hit_pct", label:"被安打率", unit:"%", decimals:1, width:90, format:"avg", useRankTier:true },
+  { key:"xh_pct",  label:"被長打率", unit:"%", decimals:1, width:90, format:"avg", useRankTier:true },
 ];
 const PMIX_METRICS_MLB_EXTRA = [
   { key:"xwoba",       tierKey:"xwOBA_ランク",     label:"xwOBA",         unit:"",    decimals:3, width:78 },
@@ -1696,6 +1708,11 @@ function currentPmixMetrics(){
 }
 function fmtMetricVal(m, v){
   if(v == null || Number.isNaN(v)) return "—";
+  if(m.format === "avg"){
+    // 打率のような「.038」表記（先頭の"0"を落とす）。値は%表記（例:3.8）で来るので100で割る
+    const s = (+v / 100).toFixed(3);
+    return s.startsWith("0.") ? s.slice(1) : s;
+  }
   return (+v).toFixed(m.decimals) + (m.unit || "");
 }
 const TIER_COLOR = {
@@ -1809,7 +1826,7 @@ function pitchDetailTableHtml(pitches, trueTotal, metricsOverride, tagsByName, t
       })()}
       ${metrics.map(m => {
         const v = p[m.key];
-        const tier = p[m.tierKey];
+        const tier = m.useRankTier ? tierFromRank(p.ranks && p.ranks[m.key]) : p[m.tierKey];
         const bg = tier ? (TIER_COLOR[tier] || "") : "";
         return `<td style="width:${sw(m.width)}px;background:${bg}"><span class="pmix-val">${fmtMetricVal(m, v)}</span>${rankBadgeHtml(p.ranks && p.ranks[m.key])}</td>`;
       }).join("")}
@@ -1844,7 +1861,10 @@ const COUNT_KEYS = ["0-0","0-1","0-2","1-0","1-1","1-2","2-0","2-1","2-2","3-0",
 // 2つの表（球種別カウント割合／球種別ストライク・空振り・見逃し率）で列幅を完全に揃えるための共通定数
 // ラベル列の幅はシーズン球種別成績の表（pitchDetailTableHtml）の1列目と揃え（104px）、
 // 横スクロール開始位置の見た目・固定表示の挙動を統一する。
-const COUNT_TABLE_LABEL_W = 104, COUNT_TABLE_COL_W = 52;
+// ラベル列の幅：以前はシーズン球種別成績の表の1列目（104px）に揃えていたが、
+// 「ゾーン内スイング率」「ボール球空振り率」のような長い指標名が見切れてしまうため、
+// この2つの表専用にもう少し広げた（球種別カウント割合の「球種」列もこれで同じ幅になる）。
+const COUNT_TABLE_LABEL_W = 148, COUNT_TABLE_COL_W = 52;
 function countTableColgroupHtml(){
   return `<colgroup><col style="width:${COUNT_TABLE_LABEL_W}px">${COUNT_KEYS.map(() => `<col style="width:${COUNT_TABLE_COL_W}px">`).join("")}</colgroup>`;
 }
@@ -1853,8 +1873,10 @@ const COUNT_TABLE_WIDTH = COUNT_TABLE_LABEL_W + COUNT_TABLE_COL_W * COUNT_KEYS.l
 function countScaleBg(pct, rgb){
   return pct == null ? "" : `rgba(${rgb},${(0.04 + Math.min(100,Math.max(0,pct))/100*0.32).toFixed(2)})`;
 }
-function countCellHtmlHelper(pct, rgb){
-  return `<td style="background:${countScaleBg(pct, rgb)}">${pct != null ? pct + "%" : `<span class="count-cell-empty">-</span>`}</td>`;
+function countCellHtmlHelper(pct, rgb, format){
+  if(pct == null) return `<td style="background:${countScaleBg(pct, rgb)}"><span class="count-cell-empty">-</span></td>`;
+  const text = format === "avg" ? fmtMetricVal({format:"avg"}, pct) : pct + "%";
+  return `<td style="background:${countScaleBg(pct, rgb)}">${text}</td>`;
 }
 
 const COUNT_RATE_SPECS = [
@@ -1873,11 +1895,12 @@ const COUNT_RATE_SPECS = [
   { label: "ボール球空振り率",   calc: (agg, t) => agg.oz > 0 ? Math.round(agg.ozwh / agg.oz * 100) : null },
   // 被安打率：打球になった球（アウト＋安打）のうち何%が安打だったか。カウント単位だとサンプルが
   // 小さくなりがちでブレやすい指標なので、-（データ無し）になりやすい点は他の指標より多め。
-  { label: "被安打率",           calc: (agg, t) => (agg.ou + agg.hi) > 0 ? Math.round(agg.hi / (agg.ou + agg.hi) * 100) : null },
+  // 打率のような「.310」表記にしたいので format:"avg" を付ける。
+  { label: "被安打率",           format: "avg", calc: (agg, t) => (agg.ou + agg.hi) > 0 ? Math.round(agg.hi / (agg.ou + agg.hi) * 100) : null },
   // 被長打率（2ベース以上）：同じ考え方で、安打のうち何%が長打だったかではなく、
   // 被安打率と同じ分母（打球になった球）に対する長打の割合にしている（被安打率と並べて
   // 見比べやすいように）。
-  { label: "被長打率",           calc: (agg, t) => (agg.ou + agg.hi) > 0 ? Math.round(agg.xh / (agg.ou + agg.hi) * 100) : null },
+  { label: "被長打率",           format: "avg", calc: (agg, t) => (agg.ou + agg.hi) > 0 ? Math.round(agg.xh / (agg.ou + agg.hi) * 100) : null },
 ];
 function countAggOf(cbsRows){
   const out = {};
@@ -1917,11 +1940,14 @@ function countRateBlockHtml(rows, countTotals, groupIdx){
   const rowsHtml = COUNT_RATE_SPECS.map(spec => `
     <tr>
       <td class="count-rate-label">${spec.label}</td>
-      ${COUNT_KEYS.map(ck => countCellHtmlHelper(spec.calc(agg[ck], totals[ck]), "18,165,178")).join("")}
+      ${COUNT_KEYS.map(ck => countCellHtmlHelper(spec.calc(agg[ck], totals[ck]), "18,165,178", spec.format)).join("")}
     </tr>
   `).join("");
   return `
-    <div class="count-rate-current">${titleHtml}</div>
+    <div class="count-rate-header">
+      <span class="count-subtitle">球種別指標</span>
+      <span class="count-rate-current">${titleHtml}</span>
+    </div>
     <div class="pmix-scroll">
       <table class="pmix-table count-rate-table" style="width:${COUNT_TABLE_WIDTH}px">
         ${countTableColgroupHtml()}
@@ -1976,8 +2002,7 @@ function countPatternTableHtml(pitchRows, label){
   `;
 
   const rateSectionHtml = `
-    <div class="count-subtitle" style="margin-top:16px">球種別 ストライク率・空振り率・見逃し率</div>
-    <div data-count-rate-block>${countRateBlockHtml(rows, countTotals, -1)}</div>
+    <div style="margin-top:16px" data-count-rate-block>${countRateBlockHtml(rows, countTotals, -1)}</div>
   `;
 
   return `${label ? `<div class="compare-block-title">${escapeHtml(label)}</div>` : ""}${pitchTableHtml}${rateSectionHtml}`;
