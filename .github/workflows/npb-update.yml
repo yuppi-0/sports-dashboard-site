@@ -11,7 +11,7 @@ on:
         required: false
         default: ''
       steps:
-        description: '実行ステップ（games / pitch / highlights / datamart / llm_input / all。スペース区切りで複数可。datamartを含む場合はllm_inputが自動付与されます）'
+        description: '実行ステップ（games/pitch/highlights/datamart/llm_input/batter_llm_input/all。スペース区切りで複数可。）'
         required: false
         default: 'all'
       game_ids:
@@ -22,11 +22,6 @@ on:
         description: 'cron-job.org専用。空欄のままでOK'
         required: false
         default: ''
-      skip_llm_input:
-        description: '複数の日付範囲を並列実行する時だけチェックを付ける。OFFのままだと、並列実行中にエラーになることがある。並列ジョブが全部終わったら、実行ステップに「llm_input」とだけ入れて単独でもう1回実行してシーズン全体を最新化すること。'
-        required: false
-        type: boolean
-        default: false
 
 permissions:
   contents: write
@@ -69,6 +64,23 @@ jobs:
           echo "date=$TARGET" >> "$GITHUB_OUTPUT"
           echo "対象日: $TARGET"
 
+      - name: 実行ステップを整理（datamart / llm_input / batter_llm_input を独立させる）
+        id: steps
+        run: |
+          # 「all」のときだけ、シーズン全体のxlsx・数値JSON（llm_input / batter_llm_input）まで自動で実行する。
+          # それ以外は指定したステップだけを実行する（datamart を指定しても llm_input は自動付与しない）。
+          # llm_input / batter_llm_input はシーズン全体の共有ファイルを書き換えるため、並列実行すると
+          # git push時に競合する。datamart だけなら日付ごとのファイルしか書かないので並列実行できる。
+          STEPS="${{ inputs.steps || 'all' }}"
+          if echo " $STEPS " | grep -qw "all"; then
+            SKIP_FLAGS=""
+          else
+            SKIP_FLAGS="--skip-llm-input --skip-batter-llm-input"
+          fi
+          echo "steps=$STEPS" >> "$GITHUB_OUTPUT"
+          echo "skip_flags=$SKIP_FLAGS" >> "$GITHUB_OUTPUT"
+          echo "実行ステップ: $STEPS ${SKIP_FLAGS:+(llm_input系は指定時のみ実行)}"
+
       - name: 重複実行チェック（cron-job.orgからの自動実行のみ。手動実行は常に実行する）
         id: check
         run: |
@@ -89,9 +101,9 @@ jobs:
         run: |
           if [ -n "${{ inputs.game_ids }}" ]; then
             echo "特定試合の再取得モード: ${{ inputs.game_ids }}"
-            python baseball/scripts/run.py --steps games pitch datamart ${{ inputs.game_ids }} --date ${{ steps.date.outputs.date }} --1軍 ${{ inputs.skip_llm_input && '--skip-llm-input' || '' }}
+            python baseball/scripts/run.py --steps games pitch datamart ${{ inputs.game_ids }} --date ${{ steps.date.outputs.date }} --1軍
           else
-            python baseball/scripts/run.py --date ${{ steps.date.outputs.date }} --steps ${{ inputs.steps || 'all' }} --1軍 ${{ inputs.skip_llm_input && '--skip-llm-input' || '' }}
+            python baseball/scripts/run.py --date ${{ steps.date.outputs.date }} --steps ${{ steps.steps.outputs.steps }} --1軍 ${{ steps.steps.outputs.skip_flags }}
           fi
 
       - name: 活躍選手0件の日付がないか確認（1軍）
@@ -149,9 +161,9 @@ jobs:
         run: |
           if [ -n "${{ inputs.game_ids }}" ]; then
             echo "特定試合の再取得モード: ${{ inputs.game_ids }}"
-            python baseball/scripts/run.py --steps games pitch datamart ${{ inputs.game_ids }} --date ${{ steps.date.outputs.date }} --2軍 ${{ inputs.skip_llm_input && '--skip-llm-input' || '' }}
+            python baseball/scripts/run.py --steps games pitch datamart ${{ inputs.game_ids }} --date ${{ steps.date.outputs.date }} --2軍
           else
-            python baseball/scripts/run.py --date ${{ steps.date.outputs.date }} --steps ${{ inputs.steps || 'all' }} --2軍 ${{ inputs.skip_llm_input && '--skip-llm-input' || '' }}
+            python baseball/scripts/run.py --date ${{ steps.date.outputs.date }} --steps ${{ steps.steps.outputs.steps }} --2軍 ${{ steps.steps.outputs.skip_flags }}
           fi
 
       - name: 活躍選手0件の日付がないか確認（2軍）
