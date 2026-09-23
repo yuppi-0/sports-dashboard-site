@@ -291,12 +291,12 @@
   .pmix-val{ display:block; font-size:12px; color:var(--text-bright); line-height:1.25; }
   /* 順位バッジ：サッカー版player-cards.htmlの .rk と同じ配色・サイズ感に合わせている
      （top=緑＝好成績、low=赤＝低評価、mid/none=中間・対象外はグレー） */
-  .rk{ display:block; font-size:9.5px; color:var(--text-dim); margin-top:1px; line-height:1.2; white-space:nowrap; letter-spacing:0.02em; }
+  .rk{ display:block; font-size:9px; color:var(--text-dim); margin-top:1px; line-height:1.2; white-space:nowrap; letter-spacing:0.01em; }
   .rk.top{ color:var(--green-text); }
   .rk.low{ color:var(--red-text); }
   .rk.mid{ color:var(--text-dim); }
   .rk.none{ opacity:0.55; }
-  .pmix-scroll-compact .rk{ font-size:8.5px; }
+  .pmix-scroll-compact .rk{ font-size:8px; }
   /* カウント別配球：遷移列は「42% → 2-1」のような幅広テキストが入るため、他のpmix-table列と
      違って折り返しを許可し、最小幅も少し広めに確保する */
   .count-pmix-table .count-total-row td{ font-weight:700; color:var(--text-bright); background:rgba(59,130,246,0.10); border-top:1px solid rgba(148,163,184,0.25); }
@@ -307,7 +307,6 @@
   .count-pattern-divider{ height:1px; background:rgba(148,163,184,0.15); margin:14px 0; }
   .count-pmix-row{ cursor:pointer; }
   .count-pmix-row:hover td{ background:rgba(148,163,184,0.08); }
-  .count-pmix-row.active td{ border-top:1px solid var(--blue-text); border-bottom:1px solid var(--blue-text); }
   .count-pmix-row.active td:first-child{ box-shadow:inset 3px 0 0 var(--blue-text); }
   .count-rate-current{ font-size:11.5px; font-weight:700; color:var(--text-bright); margin:2px 0 6px; display:flex; align-items:center; }
 
@@ -316,6 +315,13 @@
   .pmix-table th:nth-child(2), .pmix-table td:nth-child(2){ position:sticky; left:104px; width:52px; z-index:2; }
   .pmix-table th:nth-child(2){ box-shadow:2px 0 4px rgba(0,0,0,0.25), 8px 0 0 0 var(--panel-alt); }
   .pmix-table td:nth-child(2){ box-shadow:2px 0 4px rgba(0,0,0,0.25), 8px 0 0 0 var(--panel); }
+  /* カウント別配球の2つの表は「球種/指標」列だけを固定表示すればよく、2列目（0-0など）は
+     通常のスクロール列にしたい。上の共通ルールが.pmix-table全体に2列固定を適用してしまうため、
+     ここで2列目のsticky指定だけを打ち消す（シーズン球種別成績側の「投球数」列の固定表示には影響しない）。 */
+  .count-pmix-table th:nth-child(2), .count-pmix-table td:nth-child(2),
+  .count-rate-table th:nth-child(2), .count-rate-table td:nth-child(2){
+    position:static; left:auto; width:52px; box-shadow:none;
+  }
   .pmix-table th:nth-child(1), .pmix-table th:nth-child(2){ background:var(--panel-alt); z-index:3; }
   .pmix-table td:nth-child(1), .pmix-table td:nth-child(2){ background:var(--panel); }
   .pmix-table tfoot td:nth-child(1), .pmix-table tfoot td:nth-child(2){ background:var(--panel-alt); }
@@ -758,6 +764,17 @@ function updateHeaderHeightVar(){
 updateHeaderHeightVar();
 window.addEventListener("resize", updateHeaderHeightVar);
 window.addEventListener("orientationchange", () => setTimeout(updateHeaderHeightVar, 100));
+// resize/orientationchangeだけだと、Webフォント読み込み完了後のリフローや、リーグ切替ボタンの
+// 折り返しなどヘッダー自身のサイズ変化を取りこぼし、「選手を変更」ボタンがヘッダーに重なって
+// 見えることがあった（--header-hが古い＝実際より小さい値のまま固定されてしまうため）。
+// ResizeObserverでヘッダー自体のサイズ変化を直接監視し、原因を問わず常に最新の高さに追従させる。
+if(typeof ResizeObserver !== "undefined"){
+  const headerEl = document.querySelector("header");
+  if(headerEl) new ResizeObserver(() => updateHeaderHeightVar()).observe(headerEl);
+}
+if(document.fonts && document.fonts.ready){
+  document.fonts.ready.then(updateHeaderHeightVar); // 念のため、フォント確定後にも一度測り直す
+}
 // 画面回転などでスマホ用レイアウトに切り替わったとき、すでに選手を選択済みなら
 // サイドバー（選手一覧）を畳み直す（逆にPC用レイアウトに戻ったときは常に展開でよいので触らない）
 MOBILE_LAYOUT_MQ.addEventListener("change", (e) => {
@@ -1698,15 +1715,15 @@ function dateYear(dateStr){
 // ── 球種詳細テーブル（本家ダッシュボードと同じ列構成・パーセンタイル色付け）──
 // currentLeagueに応じて表示する指標を切り替える（MLB独自指標はNPBデータには存在しないため）
 const PMIX_METRICS_BASE = [
-  { key:"swstr_pct",  tierKey:"空振り率_ランク",         label:"空振り率",      unit:"%",   decimals:1, width:80 },
-  { key:"chase_pct",  tierKey:"ゾーン外スイング率_ランク", label:"ボール球SW%",   unit:"%",   decimals:1, width:100 },
-  { key:"strike_pct", tierKey:"ストライク率_ランク",       label:"ストライク率",  unit:"%",   decimals:1, width:90 },
-  { key:"zone_pct",   tierKey:"ゾーン率_ランク",          label:"ゾーン率",      unit:"%",   decimals:1, width:80 },
-  { key:"gb_pct",     tierKey:"GB%_ランク",              label:"ゴロ率",        unit:"%",   decimals:1, width:70 },
+  { key:"swstr_pct",  tierKey:"空振り率_ランク",         label:"空振り率",      unit:"%",   decimals:1, width:86 },
+  { key:"chase_pct",  tierKey:"ゾーン外スイング率_ランク", label:"ボール球SW%",   unit:"%",   decimals:1, width:104 },
+  { key:"strike_pct", tierKey:"ストライク率_ランク",       label:"ストライク率",  unit:"%",   decimals:1, width:96 },
+  { key:"zone_pct",   tierKey:"ゾーン率_ランク",          label:"ゾーン率",      unit:"%",   decimals:1, width:88 },
+  { key:"gb_pct",     tierKey:"GB%_ランク",              label:"ゴロ率",        unit:"%",   decimals:1, width:84 },
 ];
 const PMIX_METRICS_VEL = [
-  { key:"avg_vel", tierKey:"平均球速_ランク", label:"平均球速", unit:"km/h", decimals:1, width:100 },
-  { key:"max_vel", tierKey:"最高球速_ランク", label:"最高球速", unit:"km/h", decimals:1, width:100 },
+  { key:"avg_vel", tierKey:"平均球速_ランク", label:"平均球速", unit:"km/h", decimals:1, width:108 },
+  { key:"max_vel", tierKey:"最高球速_ランク", label:"最高球速", unit:"km/h", decimals:1, width:108 },
 ];
 const PMIX_METRICS_MLB_EXTRA = [
   { key:"xwoba",       tierKey:"xwOBA_ランク",     label:"xwOBA",         unit:"",    decimals:3, width:78 },
@@ -1852,7 +1869,9 @@ function pitchColor(i){ return PITCH_COLORS[i % PITCH_COLORS.length]; }
 // 古いJSONの場合は、その旨を表示するだけにして他の表示は壊さない。
 const COUNT_KEYS = ["0-0","0-1","0-2","1-0","1-1","1-2","2-0","2-1","2-2","3-0","3-1","3-2"];
 // 2つの表（球種別カウント割合／球種別ストライク・空振り・見逃し率）で列幅を完全に揃えるための共通定数
-const COUNT_TABLE_LABEL_W = 96, COUNT_TABLE_COL_W = 52;
+// ラベル列の幅はシーズン球種別成績の表（pitchDetailTableHtml）の1列目と揃え（104px）、
+// 横スクロール開始位置の見た目・固定表示の挙動を統一する。
+const COUNT_TABLE_LABEL_W = 104, COUNT_TABLE_COL_W = 52;
 function countTableColgroupHtml(){
   return `<colgroup><col style="width:${COUNT_TABLE_LABEL_W}px">${COUNT_KEYS.map(() => `<col style="width:${COUNT_TABLE_COL_W}px">`).join("")}</colgroup>`;
 }
@@ -1933,7 +1952,7 @@ function countPatternTableHtml(pitchRows, label){
   // 行をクリックすると、下の「球種別ストライク率・空振り率・見逃し率」がその球種の内訳に切り替わる
   // （投球数＝合計行をクリックすると「全体」に戻る）。クリック可能なことが分かるよう cursor:pointer にしている。
   const pitchTableHtml = `
-    <div class="count-subtitle">球種別カウント割合<span class="count-subtitle-hint">（行をクリックで下の内訳を切り替え）</span></div>
+    <div class="count-subtitle">カウント別球種割合<span class="count-subtitle-hint">（行をクリックで下の内訳を切り替え）</span></div>
     <div class="pmix-scroll">
       <table class="pmix-table count-pmix-table" style="width:${COUNT_TABLE_WIDTH}px">
         ${countTableColgroupHtml()}
