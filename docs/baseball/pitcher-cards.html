@@ -131,6 +131,15 @@
   }
   .farm-toggle-btn.active{ background:var(--panel-alt); color:var(--text-bright); }
   .no-llm-note{ font-size:11px; color:var(--text-dim); margin:0 0 12px; padding:2px 0; }
+  /* サイドバーの1軍/2軍切り替え（ヘッダーのプロ野球/MLB切り替えと同じ見た目の小型版） */
+  .level-toggle{ display:flex; gap:4px; background:var(--panel); border-radius:8px; padding:3px; }
+  .level-toggle button{
+    flex:1; border:none; background:transparent; color:var(--text-dim); font-size:11.5px; font-weight:700;
+    padding:5px 0; border-radius:6px; cursor:pointer;
+  }
+  .level-toggle button.active{ background:var(--panel-alt); color:var(--text-bright); }
+  .level-toggle button:focus-visible{ outline:2px solid var(--blue); outline-offset:1px; }
+  .filter-row.is-disabled{ opacity:0.4; pointer-events:none; }
   .farm-only-badge{
     display:inline-block; font-size:9px; font-weight:700; color:var(--amber-text);
     background:rgba(245,158,11,0.15); border-radius:4px; padding:1px 5px; margin-left:5px; vertical-align:middle;
@@ -690,6 +699,10 @@
           <button type="button" id="sortDirBtn" class="sort-dir-btn" data-dir="desc">降順 ↓</button>
         </div>
         <div class="filter-panel-label">フィルタ</div>
+        <div class="level-toggle" id="levelToggle">
+          <button type="button" data-level="1" class="active">1軍</button>
+          <button type="button" data-level="2">2軍</button>
+        </div>
         <div class="filter-panel-row">
           <select id="teamSelect" class="filter-select">
             <option value="">全チーム</option>
@@ -743,7 +756,10 @@ const LEAGUE_PATHS = {
 };
 
 let currentLeague = "npb";
-let allPlayers = [];
+let allPlayers = [];      // 現在サイドバーに出している一覧（1軍 or 2軍）
+let firstPlayers = [];    // 1軍index.jsonの選手一覧（ライブ順位の母集団）
+let farmPlayers = [];     // 2軍index.jsonの選手一覧（idは "farm:" 付き）
+let selectedLevel = "1";  // サイドバーの一覧を1軍/2軍のどちらで出すか（"1" | "2"）
 // プロ野球/MLBタブを行き来しても、それぞれのタブで見ていた検索条件・並び替え・選択中の選手を
 // 覚えておいて復元するためのキャッシュ（タブ切り替えのたびに絞り込みや選手選択がリセットされて
 // しまうのを防ぐ）。キーはリーグ名、値は下のsnapshotLeagueState()の形式。
@@ -756,6 +772,7 @@ function snapshotLeagueState(){
     sortField, sortDir,
     aiOnly: aiOnlyFilterEl.checked,
     minIp: minIpFilterEl.value,
+    level: selectedLevel,
     activePlayerId, activePlayerName: activeCardData ? activeCardData.name : null,
   };
 }
@@ -786,6 +803,7 @@ const sortFieldEl = el("#sortField");
 const sortDirBtnEl = el("#sortDirBtn");
 const aiOnlyFilterEl = el("#aiOnlyFilter");
 const minIpFilterEl = el("#minIpFilter");
+const levelToggleEl = el("#levelToggle");
 const sidebarEl = el("#sidebar");
 const bodyLayoutEl = document.querySelector(".body-layout");
 const sidebarSummaryNameEl = el("#sidebarSummaryName");
@@ -889,20 +907,19 @@ async function loadPlayerIndex(league){
     const res = await fetch(bust(`${LEAGUE_PATHS[league].numeric}/index.json`), { cache: "no-store" });
     if(!res.ok) throw new Error(`index.json の取得に失敗しました (${res.status})`);
     const data = await res.json();
-    allPlayers = data.players || [];
-    // 1軍に登板が無く2軍にしか登板が無い選手も一覧に出す（従来は1軍index.jsonにしか
-    // 選手一覧が存在しなかったため、そもそも選べなかった）。1軍側にも同名の選手がいれば
-    // そちらのエントリを優先し、2軍のみの選手だけ id に "farm:" を付けて追加する
-    // （selectPlayer側でこのprefixを見て2軍データを直接取得する）。
+    firstPlayers = data.players || [];
+    // 2軍の一覧は1軍と混ぜず別に持ち、サイドバーの「1軍/2軍」切り替えでどちらを出すか選ぶ
+    // （以前は2軍にしか登板が無い選手を1軍一覧に混ぜていたため、並び替えで1軍と2軍の成績が
+    // 同じ列に並んでいた）。2軍側は全員 id に "farm:" を付け、selectPlayer側でこのprefixを見て
+    // 2軍データを取得する（1軍にも同名の選手がいれば、カード上で1軍/2軍を切り替えられる）。
     const farmIdx = await getFarmIndex(league);
-    if(farmIdx && farmIdx.players){
-      const existingNames = new Set(allPlayers.map(p => p.name));
-      farmIdx.players.forEach(fp => {
-        if(existingNames.has(fp.name)) return;
-        allPlayers.push({ ...fp, id: `farm:${fp.id}`, is2GunOnly: true });
-      });
-    }
-    populateTeamSelect(allPlayers);
+    farmPlayers = (farmIdx && farmIdx.players ? farmIdx.players : [])
+      .map(fp => ({ ...fp, id: `farm:${fp.id}` }));
+    // 2軍データが無いリーグ（MLB）では切り替え自体を出さず、常に1軍
+    const hasFarm = farmPlayers.length > 0;
+    levelToggleEl.style.display = hasFarm ? "" : "none";
+    selectedLevel = (hasFarm && saved && saved.level === "2") ? "2" : "1";
+    applyLevelToList();
     if(saved) teamSelectEl.value = saved.team || "";
     // デフォルトで「AIコメントがある選手のみ」がONのため、絞り込みが正しく効くよう
     // 一覧を描画する前にAIコメントの有無データを読み込んでおく
@@ -914,7 +931,7 @@ async function loadPlayerIndex(league){
     renderPlayerList(applyFilters());
     // 前回このタブで選手を選んでいた場合は、一覧を出すだけでなくその選手のカードまで復元する
     if(saved && saved.activePlayerId){
-      const stillThere = allPlayers.find(p => p.id === saved.activePlayerId);
+      const stillThere = [...firstPlayers, ...farmPlayers].find(p => p.id === saved.activePlayerId);
       if(stillThere){
         selectPlayer(saved.activePlayerId, saved.activePlayerName || stillThere.name);
         updateSidebarSummary(stillThere.name, `${stillThere.team || ""}${stillThere.role ? " ・ " + stillThere.role : ""}`);
@@ -923,6 +940,18 @@ async function loadPlayerIndex(league){
   }catch(e){
     playerListEl.innerHTML = `<div class="empty-list">選手一覧を読み込めませんでした。<br>(${escapeHtml(e.message)})</div>`;
   }
+}
+
+// 1軍/2軍の切り替え：一覧の中身・チーム選択肢・AIコメント絞り込みの可否を切り替える。
+// 2軍はAI解釈を持たないので、2軍表示中は「AIコメントがある選手のみ」を無効化する
+// （チェックの状態自体は保持しておき、1軍に戻したときに元に戻す）。
+function applyLevelToList(){
+  allPlayers = selectedLevel === "2" ? farmPlayers : firstPlayers;
+  levelToggleEl.querySelectorAll("button").forEach(b => b.classList.toggle("active", b.dataset.level === selectedLevel));
+  aiOnlyFilterEl.closest(".filter-row").classList.toggle("is-disabled", selectedLevel === "2");
+  const prevTeam = teamSelectEl.value;
+  populateTeamSelect(allPlayers);
+  if([...teamSelectEl.options].some(o => o.value === prevTeam)) teamSelectEl.value = prevTeam;
 }
 
 function populateTeamSelect(players){
@@ -1163,6 +1192,7 @@ async function selectPlayer(id, name){
   // 選手を切り替えたら、前の選手で選んでいた比較チェックボックス／フィルターは引き継がない
   compareSelectedKeys = new Set();
   compareHand = "all";
+  compareCountHand = "all";
   previewGidx = null;
   window._hmResultFilter = "all";
   window._hmSplitMode = "25";
@@ -1171,7 +1201,10 @@ async function selectPlayer(id, name){
     // id が "farm:" で始まる選手は、1軍に登板が無く2軍にしか登板が無い選手
     // （loadPlayerIndexで2軍index.jsonから一覧に追加した分）。この場合は1軍側の
     // データが存在しないので、farmNumeric側を直接読みに行く。
-    if(id.startsWith("farm:")){
+    // 2軍一覧から選んだ選手でも、1軍にも同名の選手がいれば1軍側の読み込み経路を通し
+    // （AI解釈・1軍/2軍切り替えボタンを揃えるため）、最初に2軍側を表示する。
+    const firstCounterpart = id.startsWith("farm:") ? firstPlayers.find(p => p.name === name) : null;
+    if(id.startsWith("farm:") && !firstCounterpart){
       const farmId = id.slice("farm:".length);
       const farmNumeric = LEAGUE_PATHS[currentLeague] && LEAGUE_PATHS[currentLeague].farmNumeric;
       const res = await fetch(bust(`${farmNumeric}/${farmId}.json`), { cache: "no-store" });
@@ -1185,7 +1218,8 @@ async function selectPlayer(id, name){
       renderCard(merged);
       return;
     }
-    const res = await fetch(bust(`${LEAGUE_PATHS[currentLeague].numeric}/${id}.json`), { cache: "no-store" });
+    const firstId = firstCounterpart ? firstCounterpart.id : id;
+    const res = await fetch(bust(`${LEAGUE_PATHS[currentLeague].numeric}/${firstId}.json`), { cache: "no-store" });
     if(!res.ok) throw new Error(`選手データの取得に失敗しました (${res.status})`);
     const numeric = await res.json();
     const { data: llm, debugLog } = await findLlmDataForPlayer(name || numeric.name, numeric.team, numeric.role);
@@ -1200,9 +1234,11 @@ async function selectPlayer(id, name){
       farmMerged._isFarm = true;
       farmMerged._noLlm = true; // 2軍データは現状AI解釈を持たない
     }
-    activeCardData = merged;
     merged._noLlm = !llm; // AI解釈がまだ無い選手かどうか（renderCard内でバナー表示の判定に使う）
-    renderCard(merged);
+    // 2軍一覧から開いた場合は2軍側を先に表示する（カード上のボタンで1軍に切り替えられる）
+    const toShow = (firstCounterpart && merged._farmData) ? merged._farmData : merged;
+    activeCardData = toShow;
+    renderCard(toShow);
   }catch(e){
     mainContentEl.innerHTML = `<div class="error">カードを読み込めませんでした。<br>(${escapeHtml(e.message)})</div>`;
   }
@@ -1211,7 +1247,7 @@ async function selectPlayer(id, name){
 function applyFilters(){
   const q = (searchInputEl.value || "").trim().toLowerCase();
   const team = teamSelectEl.value;
-  const aiOnly = aiOnlyFilterEl.checked;
+  const aiOnly = aiOnlyFilterEl.checked && selectedLevel !== "2";
   const minIp = parseFloat(minIpFilterEl.value);
   const filtered = allPlayers.filter(p => {
     const matchesQuery = !q || (p.name || "").toLowerCase().includes(q);
@@ -1262,6 +1298,14 @@ sortDirBtnEl.addEventListener("click", () => {
 });
 
 teamSelectEl.addEventListener("change", () => {
+  renderPlayerList(applyFilters());
+});
+
+levelToggleEl.addEventListener("click", (e) => {
+  const btn = e.target.closest("button[data-level]");
+  if(!btn || btn.dataset.level === selectedLevel) return;
+  selectedLevel = btn.dataset.level;
+  applyLevelToList();
   renderPlayerList(applyFilters());
 });
 
@@ -1350,11 +1394,15 @@ const LIVE_RANK_SPECS = [
 // 対右/対左の合計行用。index.jsonの「{指標}_vsR」「{指標}_vsL」を使う（防御率などは対右/対左が無いので対象外）
 const LIVE_RANK_HAND_KEYS = ["swstr_pct", "chase_pct", "strike_pct", "zone_pct", "gb_pct", "hit_pct", "xbh_pct"];
 // suffix: "" なら全体、"_vsR"/"_vsL" なら対右/対左の値で順位を出す（返すキーは常にsuffix無しの指標名）
-function computeLiveRankings(playerId, minIp, suffix = ""){
-  const target = allPlayers.find(p => p.id === playerId);
+// 母集団は常に1軍の一覧（firstPlayers）。サイドバーで2軍表示に切り替えていても、
+// 1軍カードの順位が2軍選手と混ざらないよう、表示中の一覧（allPlayers）ではなくこちらを使う。
+// 選手の特定は名前で行う（2軍一覧から開いた選手はidが "farm:..." になっているため）。
+function computeLiveRankings(playerName, minIp, suffix = ""){
+  const target = firstPlayers.find(p => p.name === playerName);
   if(!target) return {};
+  const playerId = target.id;
   const threshold = isNaN(minIp) ? 0 : minIp;
-  const pool = allPlayers.filter(p =>
+  const pool = firstPlayers.filter(p =>
     p.role === target.role && p.innings_num != null && p.innings_num >= threshold
   );
   const result = {};
@@ -1379,15 +1427,17 @@ function renderCard(d){
   const minIp = parseFloat(minIpFilterEl.value);
   // 2軍表示中は1軍選手一覧(allPlayers)を母集団にしたライブ順位を出すと数値と噛み合わなくなるため、
   // その場合はJSONに焼き込み済みのd.rankings（あれば）を使う
-  const rk = (activePlayerId && !d._isFarm) ? computeLiveRankings(activePlayerId, minIp) : (d.rankings || {});
+  const rk = !d._isFarm ? computeLiveRankings(d.name, minIp) : (d.rankings || {});
   // 球種別成績の「合計」行の順位：全体はKPIと同じrk、対右/対左はそれぞれの値で出した順位を使う
   // （以前は対右/対左タブでも全体の順位をそのまま表示していた）
   const HAND_SUFFIX = { vsR: "_vsR", vsL: "_vsL" };
   const totalsRanksFor = (hand) => {
     if(!hand || hand === "all") return rk;
-    if(activePlayerId && !d._isFarm) return computeLiveRankings(activePlayerId, minIp, HAND_SUFFIX[hand]);
+    if(!d._isFarm) return computeLiveRankings(d.name, minIp, HAND_SUFFIX[hand]);
     return (d.rankings_by_hand && d.rankings_by_hand[hand]) || {};
   };
+  // 試合ログの「シーズン」行をクリックしたときの下のパネルでも、合計行に同じ順位を出すために持たせておく
+  d._totalsRanksFor = totalsRanksFor;
   const rankText = (key) => {
     const r = rk[key];
     if(!r) return "";
@@ -1741,15 +1791,26 @@ const PMIX_METRICS_HIT = [
   // 被長打割合＝長打（2塁打以上）÷打数。被打率と同じ分母なので並べて読める
   { key:"xbh_pct", label:"被長打割合", unit:"%", decimals:1, width:100, format:"avg", useRankTier:true },
 ];
+// MLB独自指標。回転軸（向きであって大小に優劣が無い／角度の単純平均は0°・360°付近で破綻する）と
+// 回転効率(近似)（回転軸から機械的に出した値で、実際の回転効率ではない）は意味が薄いため外した。
+// 順位はexport_llm_input.pyの_PITCH_RANK_METRICS_MLBで算出（回転数・VAA・縦変化量は球種によって
+// 良い方向が逆になる。見出しのtitle属性＝ホバー時の説明に方向を書いてある）。
+// noTotal: 「合計」行で球種をまたいで平均しても意味が無い（球種ごとの物理特性）ので「—」にする。
+// useRankTier: 順位が無い表示（試合単位の球種内訳）では色を付けない
+//   （値ベースtierは球種ごとの良い方向を考慮していないため、順位の色と食い違ってしまう）。
 const PMIX_METRICS_MLB_EXTRA = [
-  { key:"xwoba",       tierKey:"xwOBA_ランク",     label:"xwOBA",         unit:"",    decimals:3, width:78 },
-  { key:"avg_spin",    tierKey:"回転数_ランク",     label:"回転数",         unit:"rpm", decimals:0, width:86 },
-  { key:"spin_axis",   tierKey:"回転軸_ランク",     label:"回転軸",         unit:"°",   decimals:0, width:74 },
-  { key:"active_spin", tierKey:"回転効率_ランク",   label:"回転効率(近似)", unit:"%",   decimals:1, width:112 },
-  { key:"vaa",         tierKey:"VAA_ランク",        label:"VAA",           unit:"°",   decimals:1, width:66 },
-  { key:"ivb",         tierKey:"縦変化量_ランク",   label:"縦変化量",       unit:"cm",  decimals:1, width:84 },
-  { key:"hb",          tierKey:"横変化量_ランク",   label:"横変化量",       unit:"cm",  decimals:1, width:84 },
-  { key:"ext",         tierKey:"Extension_ランク",  label:"Extension",     unit:"m",   decimals:2, width:84 },
+  { key:"xwoba",    tierKey:"xwOBA_ランク",      label:"xwOBA",    unit:"",    decimals:3, width:78,
+    hint:"打球の速度・角度から見た被打撃の質。低いほど良い" },
+  { key:"avg_spin", label:"回転数",   unit:"rpm", decimals:0, width:86, noTotal:true, useRankTier:true,
+    hint:"スプリット・フォーク・チェンジアップ等は低いほど、それ以外は高いほど上位" },
+  { key:"vaa",      label:"VAA",      unit:"°",   decimals:1, width:66, noTotal:true, useRankTier:true,
+    hint:"ホーム到達時の縦の入射角。フォーシームは浅い（0に近い）ほど、それ以外は急なほど上位" },
+  { key:"ivb",      label:"縦変化量", unit:"cm",  decimals:1, width:84, noTotal:true, useRankTier:true,
+    hint:"重力を除いた縦の変化量（＋はホップ方向）。フォーシーム・カットは大きいほど、それ以外は小さい（落ちる）ほど上位" },
+  { key:"hb",       label:"横変化量", unit:"cm",  decimals:1, width:84, noTotal:true, useRankTier:true,
+    hint:"横の変化量（＋は投手の腕側、−はグラブ側）。向きを問わず大きく動くほど上位" },
+  { key:"ext",      tierKey:"Extension_ランク",  label:"Extension", unit:"m",  decimals:2, width:84,
+    hint:"リリースの打者寄りの位置。長いほど体感速度が上がるため上位" },
 ];
 function currentPmixMetrics(){
   return currentLeague === "mlb"
@@ -1910,11 +1971,12 @@ function pitchDetailTableHtml(pitches, trueTotal, metricsOverride, tagsByName, t
   return `
     <div class="pmix-scroll${compact ? ' pmix-scroll-compact' : ''}">
       <table class="pmix-table" style="width:${totalWidth}px">
-        <thead><tr><th style="width:${C1}px">球種</th><th style="width:${C2}px;left:${C1}px">投球数</th>${compact ? "" : `<th style="width:${C3}px">投球割合</th>`}${metrics.map(m => `<th style="width:${sw(m.width)}px">${m.label}</th>`).join("")}${showTagCol ? `<th style="width:${TAG_COL_WIDTH}px">特徴</th>` : ""}</tr></thead>
+        <thead><tr><th style="width:${C1}px">球種</th><th style="width:${C2}px;left:${C1}px">投球数</th>${compact ? "" : `<th style="width:${C3}px">投球割合</th>`}${metrics.map(m => `<th style="width:${sw(m.width)}px"${m.hint ? ` title="${escapeHtml(m.hint)}"` : ""}>${m.label}</th>`).join("")}${showTagCol ? `<th style="width:${TAG_COL_WIDTH}px">特徴</th>` : ""}</tr></thead>
         <tbody>${rows}</tbody>
         <tfoot><tr><td style="width:${C1}px">合計</td><td style="width:${C2}px;left:${C1}px">${countCellHtml(tc, compact ? 100 : null)}</td>${compact ? "" : `<td style="width:${C3}px"><span class="pmix-val">100%</span></td>`}${metrics.map(m => {
           const rk = totalsRanks && totalsRanks[m.key];
           if(m.key === "max_vel") return `<td style="width:${sw(m.width)}px"><span class="pmix-val">${maxVel > 0 ? maxVel + "km/h" : "—"}</span></td>`;
+          if(m.noTotal) return `<td style="width:${sw(m.width)}px"><span class="pmix-val">—</span></td>`;
           const tier = tierFromRank(rk);
           const bg = tier ? (TIER_COLOR[tier] || "") : "";
           return `<td style="width:${sw(m.width)}px;background:${bg}"><span class="pmix-val">${fmtMetricVal(m, wavg(m.key))}</span>${rankBadgeHtml(rk)}</td>`;
@@ -2576,6 +2638,7 @@ function hmControlsHtml(allPitchKeysMap, stateOverride){
 let compareSelectedKeys = new Set(); // "season" | 数字(game index、文字列)。チェックボックスでのみ操作する
 let previewGidx = null; // 行クリックでの単体プレビュー表示用（チェックボックスの状態とは独立）
 let compareHand = "all"; // 複数選択時の球種比較テーブルで使う 全体/対右/対左
+let compareCountHand = "all"; // 行クリック／比較パネル内のカウント別配球で使う 全体/対右/対左
 
 function buildGameLogTable(d){
   if(!d.game_log || !d.game_log.length) return "";
@@ -2727,11 +2790,11 @@ function colgroupHtml(cols){
 // 選択中のキーに対応する {pitch_detail, course_locs, label, summary} を取得
 function getRowDataFor(d, gidx){
   if(gidx === "season"){
-    return { label: "シーズン", pitchDetail: d.season_pitch_detail, courseLocs: d.season_course_locs, summary: formatSeasonResult(d), seasonTotals: d.season_totals || null };
+    return { label: "シーズン", pitchDetail: d.season_pitch_detail, courseLocs: d.season_course_locs, summary: formatSeasonResult(d), seasonTotals: d.season_totals || null, totalsRanksFor: d._totalsRanksFor || null };
   }
   const g = d.game_log[parseInt(gidx,10)];
   if(!g) return null;
-  return { label: `${formatDateShort(g.date)} ${g.opponent || ""}`.trim(), pitchDetail: g.pitch_detail, courseLocs: g.course_locs, summary: formatGameResult(g), seasonTotals: null };
+  return { label: `${formatDateShort(g.date)} ${g.opponent || ""}`.trim(), pitchDetail: g.pitch_detail, courseLocs: g.course_locs, summary: formatGameResult(g), seasonTotals: null, totalsRanksFor: null };
 }
 
 function renderComparePanel(d){
@@ -2806,7 +2869,7 @@ function renderComparePanel(d){
         <button class="hand-btn" data-hand="vsR">対右</button>
         <button class="hand-btn" data-hand="vsL">対左</button>
       </div>
-      <div class="pmix-wrap" data-gidx="${gidx}">${pitchDetailTableHtml(rd.pitchDetail.all, rd.seasonTotals && rd.seasonTotals.all)}</div>
+      <div class="pmix-wrap" data-gidx="${gidx}">${pitchDetailTableHtml(rd.pitchDetail.all, rd.seasonTotals && rd.seasonTotals.all, undefined, undefined, rd.totalsRanksFor ? rd.totalsRanksFor("all") : undefined)}</div>
     `;
   })();
 
@@ -2848,6 +2911,25 @@ function renderComparePanel(d){
     `;
   }).join("");
 
+  // カウント別配球：選択した試合（またはシーズン）ぶんの球種ごとのcbsから、シーズンの
+  // 「カウント別配球」セクションと同じ表を作る。複数選択時は選択ぶんを縦に並べ、全体/対右/対左は共通のタブで切り替える。
+  // 試合単位のcbsはexport_llm_input.pyの_single_game_mix_rowsで追加したもの（再出力前の古いJSONでは
+  // countPatternTableHtml側が「データがまだありません」と表示するだけで、他の表示は壊れない）。
+  const countHandBtn = (h, label) => `<button class="hand-btn ${compareCountHand===h?'active':''}" data-hand="${h}">${label}</button>`;
+  const countEntriesHtml = keys.map(gidx => {
+    const rd = getRowDataFor(d, gidx);
+    if(!rd || !rd.pitchDetail) return "";
+    return `<div class="cmp-count-entry" data-count-gidx="${gidx}"${isMulti ? ' style="margin-bottom:18px"' : ""}>${countPatternTableHtml(rd.pitchDetail[compareCountHand], isMulti ? rd.label : null)}</div>`;
+  }).join("");
+  const countSectionHtml = `
+    <div class="compare-divider"></div>
+    <div class="compare-block-title" style="margin-bottom:8px">カウント別配球</div>
+    <div class="chand-toggle ccount-toggle">
+      ${countHandBtn("all","全体")}${countHandBtn("vsR","対右")}${countHandBtn("vsL","対左")}
+    </div>
+    ${countEntriesHtml}
+  `;
+
   // 表部分と配球部分は、2つの枠に分けず1つの囲み枠の中を区切り線で分ける
   const combinedBoxHtml = `
     <div class="compare-block">
@@ -2855,6 +2937,7 @@ function renderComparePanel(d){
       <div class="compare-divider"></div>
       ${controlsHtml}
       ${courseEntriesHtml}
+      ${countSectionHtml}
     </div>
   `;
 
@@ -2889,9 +2972,33 @@ function wireComparePanelEvents(d){
   const panel = document.getElementById("comparePanel");
   if(!panel) return;
 
-  panel.querySelectorAll(".chand-toggle .hand-btn").forEach(btn => {
+  panel.querySelectorAll(".chand-toggle:not(.ccount-toggle) .hand-btn").forEach(btn => {
     btn.addEventListener("click", () => { compareHand = btn.dataset.hand; renderComparePanel(d); });
   });
+  // カウント別配球のタブ：その部分だけ差し替える（パネル全体を再描画すると配球図の選択状態などまで作り直しになるため）
+  const ccountToggle = panel.querySelector(".ccount-toggle");
+  const wireCountEntries = () => {
+    panel.querySelectorAll(".cmp-count-entry").forEach(entry => {
+      const rd = getRowDataFor(d, entry.dataset.countGidx);
+      if(rd && rd.pitchDetail) wireCountPatternBlock(entry, rd.pitchDetail[compareCountHand]);
+    });
+  };
+  if(ccountToggle){
+    ccountToggle.addEventListener("click", (e) => {
+      const btn = e.target.closest(".hand-btn");
+      if(!btn) return;
+      compareCountHand = btn.dataset.hand;
+      ccountToggle.querySelectorAll(".hand-btn").forEach(b => b.classList.toggle("active", b === btn));
+      const isMulti = panel.querySelectorAll(".cmp-count-entry").length >= 2;
+      panel.querySelectorAll(".cmp-count-entry").forEach(entry => {
+        const rd = getRowDataFor(d, entry.dataset.countGidx);
+        if(!rd || !rd.pitchDetail) return;
+        entry.innerHTML = countPatternTableHtml(rd.pitchDetail[compareCountHand], isMulti ? rd.label : null);
+      });
+      wireCountEntries();
+    });
+  }
+  wireCountEntries();
   panel.querySelectorAll(".hm-filter-btn[data-result]").forEach(btn => {
     btn.addEventListener("click", () => { window._hmResultFilter = btn.dataset.result; renderComparePanel(d); });
   });
@@ -2917,7 +3024,7 @@ function wireComparePanelEvents(d){
       toggle.querySelectorAll(".hand-btn").forEach(b => b.classList.remove("active"));
       btn.classList.add("active");
       const wrap = panel.querySelector(`.pmix-wrap[data-gidx="${idx}"]`);
-      if(wrap) wrap.innerHTML = pitchDetailTableHtml(rd.pitchDetail[hand], rd.seasonTotals && rd.seasonTotals[hand]);
+      if(wrap) wrap.innerHTML = pitchDetailTableHtml(rd.pitchDetail[hand], rd.seasonTotals && rd.seasonTotals[hand], undefined, undefined, rd.totalsRanksFor ? rd.totalsRanksFor(hand) : undefined);
     });
   });
 }
