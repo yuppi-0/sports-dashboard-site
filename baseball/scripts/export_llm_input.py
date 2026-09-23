@@ -654,13 +654,15 @@ def aggregate_course_distribution(appearances: list[dict]) -> dict:
 # ==================================================
 
 _COLOR_SCALE_METRICS = [
-    "swstr", "oSwing", "strike", "zone", "gbpct", "vel", "maxVel",
+    "swstr", "oSwing", "strike", "zone", "gbpct", "vel", "maxVel", "pct",
     # MLB独自（Statcast由来。NPBデータには存在しないため自動的にNoneスキップされる）
     "avgSpin", "spinAxis", "activeSpin", "vaa", "ivb", "hb", "ext", "xwoba",
 ]
 _COLOR_SCALE_DIR = {
     "swstr": True, "oSwing": True, "strike": True, "zone": True, "gbpct": True,
     "vel": True, "maxVel": True,
+    # 投球割合：多く投げている（＝持ち球として確立している）ことをポジティブ方向として扱う
+    "pct": True,
     # MLB独自。index.html の COL_SCALE_DIR と同じ方向定義。
     "avgSpin": True, "spinAxis": False, "activeSpin": True, "vaa": False,
     "ivb": True, "hb": True, "ext": True, "xwoba": False,
@@ -901,6 +903,7 @@ def _single_game_pitch_tiers(mix_rows: list[dict], role_key: str, pitch_scale_st
         row["ストライク率_ランク"] = get_scale_tier("strike", row.get("strike_pct"), stats_for_pitch)
         row["ゾーン率_ランク"] = get_scale_tier("zone", row.get("zone_pct"), stats_for_pitch)
         row["GB%_ランク"] = get_scale_tier("gbpct", row.get("gb_pct"), stats_for_pitch)
+        row["投球割合%_ランク"] = get_scale_tier("pct", row.get("pct"), stats_for_pitch)
         row["平均球速_ランク"] = get_scale_tier("vel", row.get("avg_vel"), stats_for_pitch)
         row["最高球速_ランク"] = get_scale_tier("maxVel", row.get("max_vel"), stats_for_pitch)
         # MLB独自（NPBはvalueがNoneなのでget_scale_tierがNoneを返して自動的に色なしになる）
@@ -1121,8 +1124,9 @@ def compute_rankings(season_rows: list[dict],
 # ==================================================
 
 # 順位算出の対象条件。自動実行パイプラインのためCLI引数にはせず定数で固定する。
-RANK_MIN_IP = {"先発": 15.0, "中継ぎ": 10.0}      # 全体側の順位: 役割別の資格投球回
+RANK_MIN_IP = {"先発": 15.0, "中継ぎ": 10.0}      # シーズン合計行（season_totals）側の順位: 役割別の資格投球回
 RANK_MIN_PITCHES_VS_HAND = 20                          # 対右/対左側の順位: 球種ごとの対戦数条件（役割共通）
+RANK_MIN_PITCHES_ALL = 20                              # 全体側の順位: その球種を何球以上投げていれば対象にするか（役割共通）
 
 # 順位を出す指標。(全体側のフィールド名, 高いほど良いか)
 # 対右/対左側は同名の接頭辞（対右_/対左_）を付けたフィールドを見る。
@@ -1148,16 +1152,14 @@ def compute_pitch_rankings(mix_rows: list[dict], role_map: dict[str, str], ip_ma
 
     _順位:
         以下の条件を満たす投手だけの母集団内で計算する順位。満たさない投手はnull。
-          - 役割別の資格投球回（RANK_MIN_IP、シーズン通算投球回で判定）以上
-          - 対右/対左側はさらに、その球種の対右_投球数/対左_投球数が
-            RANK_MIN_PITCHES_VS_HAND 以上
+          - 全体側: その球種の投球数がRANK_MIN_PITCHES_ALL以上
+          - 対右/対左側: その球種の対右_投球数/対左_投球数がRANK_MIN_PITCHES_VS_HAND以上
+        （シーズン投球回による足切りは行わない。1試合しか投げていない投手でも、その球種を
+        十分な数投げていれば順位の対象に入る）
     _順位_母数:
         上記の条件でフィルタせず、同じ役割内でその指標の値を持つ投手全員を母数にする
-        （投球回や対戦数の条件を満たすかどうかは問わない）。
+        （投球数の条件を満たすかどうかは問わない）。
     """
-
-    def ip_float(name: str) -> float:
-        return _ip_to_outs(ip_map.get(name)) / 3
 
     groups: dict[tuple[str, str], list[dict]] = defaultdict(list)
     for row in mix_rows:
@@ -1168,18 +1170,12 @@ def compute_pitch_rankings(mix_rows: list[dict], role_map: dict[str, str], ip_ma
             continue
         groups[(role, pitch_key)].append(row)
 
-    def assign(rows: list[dict], value_field: str, min_ip: float | None,
-               higher_is_better: bool, count_field: str | None) -> None:
+    def assign(rows: list[dict], value_field: str, higher_is_better: bool,
+               count_field: str, min_count: float) -> None:
         all_pairs = [(r, r.get(value_field)) for r in rows if r.get(value_field) is not None]
         total_all = len(all_pairs)
 
-        qualified = []
-        for r, v in all_pairs:
-            if min_ip is None or ip_float(r["選手名"]) < min_ip:
-                continue
-            if count_field is not None and (r.get(count_field) or 0) < RANK_MIN_PITCHES_VS_HAND:
-                continue
-            qualified.append((r, v))
+        qualified = [(r, v) for r, v in all_pairs if (r.get(count_field) or 0) >= min_count]
         qualified.sort(key=lambda x: -x[1] if higher_is_better else x[1])
 
         rank_field = f"{value_field}_順位"
@@ -1191,12 +1187,11 @@ def compute_pitch_rankings(mix_rows: list[dict], role_map: dict[str, str], ip_ma
             r[rank_field] = i
 
     for (role, _pitch_key), rows in groups.items():
-        min_ip = RANK_MIN_IP.get(role)
         for field, higher in _PITCH_RANK_METRICS_ALL:
-            assign(rows, field, min_ip, higher, count_field=None)
+            assign(rows, field, higher, count_field="投球数", min_count=RANK_MIN_PITCHES_ALL)
         for side_prefix, count_field in (("対右", "対右_投球数"), ("対左", "対左_投球数")):
             for field, higher in _PITCH_RANK_METRICS_HAND:
-                assign(rows, f"{side_prefix}_{field}", min_ip, higher, count_field=count_field)
+                assign(rows, f"{side_prefix}_{field}", higher, count_field=count_field, min_count=RANK_MIN_PITCHES_VS_HAND)
 
 
 # ダッシュボードのカードJSON（season_pitch_detail）向け：mix_rowsの日本語フィールド名を
@@ -1238,7 +1233,10 @@ def attach_pitch_rankings_to_cards(numeric_cards: dict[str, dict], mix_rows: lis
             field = f"{prefix}{jp}" if prefix else jp
             rank = src_row.get(f"{field}_順位")
             total = src_row.get(f"{field}_順位_母数")
-            if rank is not None and total:
+            # rankがNone（投球数がしきい値未満で順位対象外）でも、totalさえあれば
+            # {rank:null, total:N} という形で残す。フロント側はこれを見て「-」（対象外）と
+            # 表示できるようにするため。totalも無い（この指標自体のデータが無い）場合だけ省く。
+            if total:
                 ranks[en] = {"rank": rank, "total": total}
         return ranks
 
