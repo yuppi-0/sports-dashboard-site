@@ -1,0 +1,87 @@
+name: NPB被安打ずれ調査（一時的な調査用）
+
+# 打数判定で数えた被安打（cbsのhi）と、試合集計の被安打（mixのhits）がずれている
+# 試合・投手を洗い出し、該当日の投球RAW（daily_pitch_data_{日付}.xlsx）を
+# ダウンロードできる形（Artifacts）で添付する。データは書き換えないので何度実行してもOK。
+on:
+  workflow_dispatch:
+    inputs:
+      max_dates:
+        description: 'RAWを添付する日付の最大数（ずれが多い日付から順に）'
+        required: false
+        default: '2'
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: サイト側リポジトリを取得（公開JSONはこちら）
+        uses: actions/checkout@v4
+
+      - name: データ側リポジトリを取得（投球RAWはこちら）
+        uses: actions/checkout@v4
+        with:
+          repository: yuppi-0/sports-dashboard-data
+          token: ${{ secrets.DATA_REPO_TOKEN }}
+          path: data
+
+      - name: ずれている試合・投手を洗い出してRAWを集める
+        env:
+          MAX_DATES: ${{ inputs.max_dates }}
+        run: |
+          python - <<'PYEOF'
+          import json, os, shutil
+          from collections import Counter
+          from pathlib import Path
+
+          rows = []
+          for f in sorted(Path(".").rglob("1軍/レギュラーシーズン/games/json/2026-*.json")):
+              date = f.stem
+              data = json.load(open(f, encoding="utf-8"))
+              for g in data.get(date) or []:
+                  for side in ("home", "away"):
+                      for p in (g.get("pitchers") or {}).get(side) or []:
+                          mix = p.get("mix") or []
+                          h_dm = sum((m.get("hits") or 0) for m in mix)
+                          h_cbs = sum(v.get("hi", 0) for m in mix for v in (m.get("cbs") or {}).values())
+                          if h_dm != h_cbs:
+                              rows.append((date, g.get("gameId"), p.get("name"), h_dm, h_cbs))
+
+          out = Path("hit_gap"); out.mkdir(exist_ok=True)
+          lines = ["日付\t試合ID\t投手名\t試合集計\t打数判定\t差"]
+          lines += [f"{d}\t{gid}\t{n}\t{a}\t{b}\t{b-a}" for d, gid, n, a, b in rows]
+          (out / "hit_gap.tsv").write_text("\n".join(lines), encoding="utf-8")
+          print("\n".join(lines))
+          print(f"\nずれている投手×試合: {len(rows)}件 / 差の合計: {sum(b-a for *_, a, b in rows)}")
+
+          # ずれの大きい日付から順に、投球RAWを添付用フォルダへコピー
+          gap_by_date = Counter()
+          for d, _, _, a, b in rows:
+              gap_by_date[d] += abs(b - a)
+          max_dates = int(os.environ.get("MAX_DATES") or 2)
+          for d, _ in gap_by_date.most_common(max_dates):
+              hits = [p for p in Path("data").rglob(f"daily_pitch_data_{d}.xlsx") if "1軍" in str(p)]
+              if not hits:
+                  print(f"[WARN] {d} の投球RAWが見つかりません")
+              for p in hits:
+                  shutil.copy(p, out / p.name)
+                  print(f"添付: {p}")
+
+          # Actionsの実行結果画面（Summary）にも表を出す
+          summary = os.environ.get("GITHUB_STEP_SUMMARY")
+          if summary:
+              with open(summary, "a", encoding="utf-8") as s:
+                  s.write(f"### 被安打のずれ: {len(rows)}件\n\n| 日付 | 試合ID | 投手名 | 試合集計 | 打数判定 |\n|---|---|---|---|---|\n")
+                  for d, gid, n, a, b in rows[:200]:
+                      s.write(f"| {d} | {gid} | {n} | {a} | {b} |\n")
+          PYEOF
+
+      - name: 結果とRAWをダウンロードできるようにする
+        uses: actions/upload-artifact@v4
+        with:
+          name: hit-gap
+          path: hit_gap/
+          retention-days: 7
