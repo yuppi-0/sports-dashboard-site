@@ -803,6 +803,9 @@ def merge_lr_split(mix_all: list[dict], mix_vs_r: list[dict], mix_vs_l: list[dic
         r = r_by_key.get(m["球種コード"])
         l = l_by_key.get(m["球種コード"])
         row["対右_投球数"] = r["投球数"] if r else 0
+        row["対右_投球割合%"] = r["投球割合%"] if r else None
+        row["対右_平均球速"] = r["平均球速"] if r else None
+        row["対右_最高球速"] = r["最高球速"] if r else None
         row["対右_空振り率"] = r["空振り率"] if r else None
         row["対右_ゾーン外スイング率"] = r["ゾーン外スイング率"] if r else None
         row["対右_ストライク率"] = r["ストライク率"] if r else None
@@ -811,6 +814,9 @@ def merge_lr_split(mix_all: list[dict], mix_vs_r: list[dict], mix_vs_l: list[dic
         row["対右_H"] = r["H"] if r else 0
         row["対右_HR"] = r["HR"] if r else 0
         row["対左_投球数"] = l["投球数"] if l else 0
+        row["対左_投球割合%"] = l["投球割合%"] if l else None
+        row["対左_平均球速"] = l["平均球速"] if l else None
+        row["対左_最高球速"] = l["最高球速"] if l else None
         row["対左_空振り率"] = l["空振り率"] if l else None
         row["対左_ゾーン外スイング率"] = l["ゾーン外スイング率"] if l else None
         row["対左_ストライク率"] = l["ストライク率"] if l else None
@@ -1074,7 +1080,12 @@ def build_game_log_rows(name: str, appearances: list[dict], role_key: str, pitch
 def compute_rankings(season_rows: list[dict],
                       rank_min_ip: dict[str, float] | None = None) -> dict:
     """
-    シーズン集計の投手分から、防御率・K-BB%・K%・BB%・ゴロ率の順位を算出する。
+    シーズン集計の投手分から、防御率・K-BB%・K%・BB%・ゴロ率・空振り率・ボール球SW%・
+    ストライク率・ゾーン率の順位を算出する（カードJSONの"rankings"に入り、KPIスタッツボックスや
+    球種別成績表の「合計」行で使われる。1軍データはブラウザ側でほぼ同じロジックをその場で
+    再計算する computeLiveRankings() を使うが、2軍（ファーム）はブラウザ側に一覧データが無いため、
+    ここで計算した静的な値をそのまま使う。両者の項目を揃えておかないと、1軍では出るのに
+    2軍では出ないランクが発生してしまう）。
 
     役割（先発/中継ぎ）ごとに母集団を分けて順位を出す（「先発の中での順位」「中継ぎの中での
     順位」になる。全投手混合の順位は出さない）。
@@ -1084,8 +1095,10 @@ def compute_rankings(season_rows: list[dict],
     デフォルトの資格投球回は、球種別詳細側の順位（RANK_MIN_IP）と同じ
     先発=投球回15回以上、中継ぎ=投球回10回以上に揃えている。
 
-    戻り値: {選手名: {"era":{"rank":n,"total":m}, "k_bb_pct":{...}, "k_pct":{...}, "bb_pct":{...}, "gb_pct":{...}}}
-    （資格投球回に満たない選手のエントリは空辞書 {} のまま＝どの指標も順位が付かない）
+    戻り値: {選手名: {"era":{"rank":n or null,"total":m}, "k_bb_pct":{...}, ...}}
+    （資格投球回（投球回しきい値）未満の選手も、rank:null, total:資格を満たす投手数 という形で
+    エントリ自体は持つ＝カード側はこれを見て「-」と表示できる。資格を満たさない役割自体が
+    無い等でtotalも出せない場合のみ、そのキー自体が無い）
     """
     if rank_min_ip is None:
         rank_min_ip = {"先発": 15.0, "中継ぎ": 10.0}
@@ -1096,20 +1109,29 @@ def compute_rankings(season_rows: list[dict],
         ("K%", "k_pct", True),         # 高いほど良い
         ("BB%", "bb_pct", False),      # 低いほど良い
         ("ゴロ率", "gb_pct", True),    # 高いほど良い
+        ("空振り率", "swstr_pct", True),
+        ("ゾーン外スイング率", "chase_pct", True),
+        ("ストライク率", "strike_pct", True),
+        ("ゾーン率", "zone_pct", True),
     ]
     result = {row["選手名"]: {} for row in season_rows}
 
     for role, threshold in rank_min_ip.items():
-        role_rows = [
-            row for row in season_rows
-            if row.get("役割") == role and (_ip_to_outs(row.get("投球回")) / 3) >= threshold
+        # role_rows: この役割の全投手（資格投球回を満たすかどうかは問わない）。
+        # qualified_rows: そのうち資格投球回を満たす投手だけ（順位算出・母数のどちらにも使う）。
+        role_rows = [row for row in season_rows if row.get("役割") == role]
+        qualified_rows = [
+            row for row in role_rows
+            if (_ip_to_outs(row.get("投球回")) / 3) >= threshold
         ]
         for jp_key, out_key, higher_is_better in specs:
-            valid = [(row["選手名"], row[jp_key]) for row in role_rows if row.get(jp_key) is not None]
+            valid = [(row["選手名"], row[jp_key]) for row in qualified_rows if row.get(jp_key) is not None]
             valid.sort(key=lambda x: -x[1] if higher_is_better else x[1])
-            total = len(valid)
-            for rank, (name, _) in enumerate(valid, start=1):
-                result[name][out_key] = {"rank": rank, "total": total, "role": role}
+            total = len(qualified_rows)
+            rank_by_name = {name: i for i, (name, _) in enumerate(valid, start=1)}
+            for row in role_rows:
+                name = row["選手名"]
+                result[name][out_key] = {"rank": rank_by_name.get(name), "total": total, "role": role}
     return result
 
 
@@ -1139,6 +1161,7 @@ _PITCH_RANK_METRICS_ALL = [
 _PITCH_RANK_METRICS_HAND = [
     ("空振り率", True), ("ゾーン外スイング率", True),
     ("ストライク率", True), ("ゾーン率", True), ("ゴロ率", True),
+    ("投球割合%", True), ("平均球速", True), ("最高球速", True),
 ]
 
 
@@ -1210,6 +1233,7 @@ _PITCH_RANK_FIELD_MAP_ALL = [
 _PITCH_RANK_FIELD_MAP_HAND = [
     ("空振り率", "swstr_pct"), ("ゾーン外スイング率", "chase_pct"),
     ("ストライク率", "strike_pct"), ("ゾーン率", "zone_pct"), ("ゴロ率", "gb_pct"),
+    ("投球割合%", "pct"), ("平均球速", "avg_vel"), ("最高球速", "max_vel"),
 ]
 
 
