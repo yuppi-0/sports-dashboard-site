@@ -24,6 +24,17 @@ export_llm_input_batter.py
     numeric_json側にはキーだけ用意してNoneを入れてある。追加するには、run.py側に
     守備成績（刺殺・補殺・失策・捕逸）と盗塁死を取得する新しいスクレイピングの
     ステップを追加する必要がある（別途対応）。
+  - run.py（NPB）・run_mlb.py（MLB）どちらの games/json からも同じ関数で処理できるよう
+    共通の入力形式（games/json/{date}.json、pitchers.hand・batters.pa等）に依存する
+    作りにしている。ただしMLB側のbatterエントリには、NPB側にある
+    chase(O-Swing%)/whiff(whiff%)/contact(Z-Swing%) の3項目が無い（Statcastベースの
+    Hard-Hit%/Barrel%/xwOBA等に置き換わっている）ため、MLBで実行すると season の
+    "O-Swing%"/"Z-Swing%"/"whiff%" は必ずNoneになる（エラーにはならず、そのまま欠損として
+    出力される）。MLBの選球眼相当の指標を出したい場合は、run_mlb.py側のbuild_batter()に
+    Statcast由来のchase/whiff/contact相当の値を追加する必要がある。
+  - MLB側の"bb"は「四球」のみ（死球を含まない）。NPB側の"bb"は「四死球」（四球+死球）。
+    このスクリプトはどちらも同じ"bb"キーとして合算するため、リーグ間で出塁率近似の
+    厳密な計算根拠が微妙に異なる点に注意（どちらも近似値であることに変わりはない）。
 
 使い方:
     python export_llm_input_batter.py \
@@ -85,16 +96,18 @@ def build_all_batter_names(all_data: dict) -> set[str]:
 
 def _opp_pitcher_hand(game: dict, batter_side: str) -> str | None:
     """打者側(home/away)から見た相手チーム先発投手の投球腕(R/L)を返す。
-    run.py側で pitchers.home/away は (役割!=先発, 投手試合ID) 順にソート済みのため、
-    先頭要素=その試合の先発投手とみなせる。取れなければNone。"""
+    role/役割 == "先発" のエントリを優先的に探し、無ければ（役割情報が無いデータ側の
+    保険として）先頭要素を先発とみなす。取れなければNone。"""
     pitchers = game.get("pitchers") or {}
     if not isinstance(pitchers, dict):
         return None
     opp_side = "away" if batter_side == "home" else "home"
     opp_list = pitchers.get(opp_side) or []
-    if not opp_list or not isinstance(opp_list[0], dict):
+    opp_list = [p for p in opp_list if isinstance(p, dict)]
+    if not opp_list:
         return None
-    return opp_list[0].get("hand")
+    starter = next((p for p in opp_list if p.get("role") == "先発"), opp_list[0])
+    return starter.get("hand")
 
 
 def build_appearances_batter(all_data: dict, player_name: str) -> list[dict]:

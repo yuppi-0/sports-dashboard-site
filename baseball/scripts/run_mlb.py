@@ -69,6 +69,7 @@ import openpyxl
 
 # LLM入力用xlsx生成（選手詳細カード用のシーズン集計・球種別・コース分布・カウント別パターン）
 from export_llm_input import export_llm_input_xlsx
+from export_llm_input_batter import export_llm_input_batter_xlsx
 from openpyxl.styles import PatternFill, Font, Alignment
 from openpyxl.utils import get_column_letter
 
@@ -2723,8 +2724,20 @@ def main():
             "  llm_input  LLM入力xlsx・数値JSON(pitcher_cards_numeric)だけ再生成\n"
             "             （Statcastは再取得せず、games_json_dir内の既存データから作り直す。\n"
             "             export_llm_input.pyだけ直した時などに使う）\n"
+            "  batter_llm_input  打者版LLM入力xlsx・数値JSON(batter_cards_numeric)だけ再生成\n"
+            "             （llm_inputと同様、Statcastは再取得せず既存データから作り直す）\n"
             "  例) --steps games highlights\n"
             "  例) --steps llm_input"
+        ),
+    )
+    parser.add_argument(
+        "--skip-batter-llm-input",
+        action="store_true",
+        help=(
+            "datamart/games/highlights実行時に自動付与されるbatter_llm_inputステップを止める。\n"
+            "用途は--skip-llm-inputと同じ（並列実行時のxlsx/数値JSON競合を避けるため）。\n"
+            "並列ジョブすべてが完了した後、--steps batter_llm_input を単独で1回実行して\n"
+            "シーズンデータを最終的に揃えること。"
         ),
     )
     parser.add_argument(
@@ -2768,6 +2781,13 @@ def main():
     if args.skip_llm_input and "llm_input" not in raw_steps:
         run_llm_input = False
 
+    run_batter_llm_input = (
+        run_all or run_games or run_highlights or run_datamart
+        or "batter_llm_input" in raw_steps
+    )
+    if args.skip_batter_llm_input and "batter_llm_input" not in raw_steps:
+        run_batter_llm_input = False
+
     label = date_list[0] if len(date_list)==1 else f"{date_list[0]} 〜 {date_list[-1]}"
     # ステップ名を日本語に
     STEP_NAMES = {
@@ -2775,6 +2795,7 @@ def main():
         "highlights": "Step2 活躍選手選出 → datamart更新 → JSON更新",
         "datamart":   "datamart再生成 → JSON",
         "llm_input":  "LLM入力xlsx・数値JSON再生成のみ",
+        "batter_llm_input": "打者版LLM入力xlsx・数値JSON再生成のみ",
         "all":        "全ステップ",
     }
     steps_label = " → ".join(STEP_NAMES.get(s, s) for s in raw_steps)
@@ -2868,11 +2889,36 @@ def main():
     else:
         print(f"\n--- LLM入力用xlsx生成: スキップ（--steps に llm_input/games/highlights/datamart/all のいずれも無し）---")
 
+    # ── 打者版LLM入力用xlsx生成 ──
+    path_batter_llm_input = ""
+    if run_batter_llm_input:
+        print(f"\n--- 打者版LLM入力用xlsx生成 ---")
+        try:
+            year = TARGET_DATE[:4]
+            batter_llm_input_dir = os.path.join(BASE_DATA_DIR, f"{year}年", args.game_type, "llm_input")
+            path_batter_llm_input = os.path.join(batter_llm_input_dir, f"MLB_打者データ_{year}.xlsx")
+            # 数値JSON（batter_cards_numeric）は batter-cards.html が直接fetchするので、
+            # 非公開のBASE_DATA_DIRではなく公開側のBASE_PUBLIC_DIRに出力する（pitcher_cards_numericと同じ置き方）
+            batter_numeric_json_dir = os.path.join(BASE_PUBLIC_DIR, f"{year}年", args.game_type, "batter_cards_numeric")
+            export_llm_input_batter_xlsx(
+                games_json_dir=GAMES_JSON_DIR,
+                out_path=path_batter_llm_input,
+                numeric_json_dir=batter_numeric_json_dir,
+            )
+            print(f"  完了: {path_batter_llm_input}")
+            print(f"  数値JSON: {batter_numeric_json_dir}")
+        except Exception as e:
+            print(f"  [WARN] 打者版LLM入力用xlsx生成失敗: {e}")
+    else:
+        print(f"\n--- 打者版LLM入力用xlsx生成: スキップ（--steps に batter_llm_input/games/highlights/datamart/all のいずれも無し）---")
+
     # ── 完了サマリー ──
     print("\n" + "=" * 55)
     print("✅ 完了!")
     if path_llm_input:
         print(f"  LLM入力用xlsx: {path_llm_input}")
+    if path_batter_llm_input:
+        print(f"  打者版LLM入力用xlsx: {path_batter_llm_input}")
     for date, r in results.items():
         dm = r.get("datamart", "")
         if dm:
