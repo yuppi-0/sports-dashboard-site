@@ -281,6 +281,22 @@ def calc_season_stats(appearances: list[dict]) -> dict:
     }
 
 
+def season_hit_stats_from_mix(season_mix: list[dict]) -> dict:
+    """
+    aggregate_season_mix() の結果（球種ごとの被打数・安打・長打）を全球種ぶん合算して、
+    シーズン全体（またはその対右/対左）の被打率・被長打割合を返す。
+    打数は打席完了球ベース（cbsのab）なので、球種が特定できなかった打席はわずかに漏れうる。
+    """
+    ab = sum((m.get("被打数") or 0) for m in season_mix)
+    h  = sum((m.get("被打数_安打") or 0) for m in season_mix)
+    xh = sum((m.get("被打数_長打") or 0) for m in season_mix)
+    return {
+        "被打数": ab,
+        "被打率": round(h / ab * 100, 1) if ab > 0 else None,
+        "被長打割合": round(xh / ab * 100, 1) if ab > 0 else None,
+    }
+
+
 def calc_season_stats_by_hand(appearances: list[dict]) -> dict:
     """
     対右打者・対左打者それぞれの「本当のシーズン実数」を、試合ごとのpitStatVsR/pitStatVsL
@@ -470,6 +486,7 @@ def aggregate_season_mix(appearances: list[dict], mix_key: str = "mix") -> list[
         # 全カウントぶん合算して求める（カウント別配球の被打率とも同じ定義・同じソースになる）。
         cbs_ab = sum((cv.get("ab", 0) or 0) for cv in m["cbs_merged"].values())
         cbs_h  = sum((cv.get("hi", 0) or 0) for cv in m["cbs_merged"].values())
+        cbs_xh = sum((cv.get("xh", 0) or 0) for cv in m["cbs_merged"].values())
         out.append({
             "球種名": m["name"],
             "球種コード": m["key"],
@@ -494,6 +511,9 @@ def aggregate_season_mix(appearances: list[dict], mix_key: str = "mix") -> list[
             "被打数": cbs_ab,
             "被打数_安打": cbs_h,
             "被打率": round(cbs_h / cbs_ab * 100, 1) if cbs_ab > 0 else None,
+            # 被長打割合（長打[2塁打以上]÷打数）。被打率と同じ分母なので並べて読める。
+            "被打数_長打": cbs_xh,
+            "被長打割合": round(cbs_xh / cbs_ab * 100, 1) if cbs_ab > 0 else None,
             # MLB独自（NPBはcnt=0のままなのでNone）
             "xwOBA": round(m["xwoba_sum"] / m["xwoba_cnt"], 3) if m["xwoba_cnt"] > 0 else None,
             "回転数": round(m["spin_sum"] / m["spin_cnt"]) if m["spin_cnt"] > 0 else None,
@@ -840,6 +860,9 @@ def merge_lr_split(mix_all: list[dict], mix_vs_r: list[dict], mix_vs_l: list[dic
         row["対右_ゾーン率"] = r["ゾーン率"] if r else None
         row["対右_ゴロ率"] = r["GB%"] if r else None
         row["対右_H"] = r["H"] if r else 0
+        row["対右_被打数"] = r.get("被打数", 0) if r else 0
+        row["対右_被打率"] = r.get("被打率") if r else None
+        row["対右_被長打割合"] = r.get("被長打割合") if r else None
         row["対右_HR"] = r["HR"] if r else 0
         row["対左_投球数"] = l["投球数"] if l else 0
         row["対左_投球割合%"] = l["投球割合%"] if l else None
@@ -851,6 +874,9 @@ def merge_lr_split(mix_all: list[dict], mix_vs_r: list[dict], mix_vs_l: list[dic
         row["対左_ゾーン率"] = l["ゾーン率"] if l else None
         row["対左_ゴロ率"] = l["GB%"] if l else None
         row["対左_H"] = l["H"] if l else 0
+        row["対左_被打数"] = l.get("被打数", 0) if l else 0
+        row["対左_被打率"] = l.get("被打率") if l else None
+        row["対左_被長打割合"] = l.get("被長打割合") if l else None
         row["対左_HR"] = l["HR"] if l else 0
         out.append(row)
     return out
@@ -1035,6 +1061,7 @@ def build_season_pitch_detail(season_mix_all, season_mix_vs_r, season_mix_vs_l,
             "avg_vel": m.get("平均球速"),
             "max_vel": m.get("最高球速"),
             "hit_pct": m.get("被打率"),
+            "xbh_pct": m.get("被長打割合"),
             # 合計行で被打率を正しく合算する（打数で加重する）ための実数
             "ab_n": m.get("被打数"),
             # MLB独自（NPBはaggregate_season_mix側でNoneになる）
@@ -1146,6 +1173,8 @@ def compute_rankings(season_rows: list[dict],
         ("ゾーン外スイング率", "chase_pct", True),
         ("ストライク率", "strike_pct", True),
         ("ゾーン率", "zone_pct", True),
+        ("被打率", "hit_pct", False),       # 低いほど良い
+        ("被長打割合", "xbh_pct", False),   # 低いほど良い
     ]
     result = {row["選手名"]: {} for row in season_rows}
 
@@ -1190,6 +1219,11 @@ RANK_MIN_AB_HIT = 10                                   # 被打率の順位だ�
 # この条件を足した指標だけは、母数（_順位_母数）も「投球数と打数の両方を満たす投手数」になる。
 _PITCH_RANK_EXTRA_MIN = {
     "被打率": ("被打数", RANK_MIN_AB_HIT),
+    "被長打割合": ("被打数", RANK_MIN_AB_HIT),
+    "対右_被打率": ("対右_被打数", RANK_MIN_AB_HIT),
+    "対右_被長打割合": ("対右_被打数", RANK_MIN_AB_HIT),
+    "対左_被打率": ("対左_被打数", RANK_MIN_AB_HIT),
+    "対左_被長打割合": ("対左_被打数", RANK_MIN_AB_HIT),
 }
 
 # 順位を出す指標。(全体側のフィールド名, 高いほど良いか)
@@ -1199,13 +1233,14 @@ _PITCH_RANK_METRICS_ALL = [
     ("空振り率", True), ("ゾーン外スイング率", True),
     ("ストライク率", True), ("ゾーン率", True), ("GB%", True),
     ("投球割合%", True), ("平均球速", True), ("最高球速", True),
-    # 被打率は「低いほど良い」指標なので、他と方向が逆（False）
-    ("被打率", False),
+    # 被打率・被長打割合は「低いほど良い」指標なので、他と方向が逆（False）
+    ("被打率", False), ("被長打割合", False),
 ]
 _PITCH_RANK_METRICS_HAND = [
     ("空振り率", True), ("ゾーン外スイング率", True),
     ("ストライク率", True), ("ゾーン率", True), ("ゴロ率", True),
     ("投球割合%", True), ("平均球速", True), ("最高球速", True),
+    ("被打率", False), ("被長打割合", False),
 ]
 
 
@@ -1277,12 +1312,13 @@ _PITCH_RANK_FIELD_MAP_ALL = [
     ("空振り率", "swstr_pct"), ("ゾーン外スイング率", "chase_pct"),
     ("ストライク率", "strike_pct"), ("ゾーン率", "zone_pct"), ("GB%", "gb_pct"),
     ("投球割合%", "pct"), ("平均球速", "avg_vel"), ("最高球速", "max_vel"),
-    ("被打率", "hit_pct"),
+    ("被打率", "hit_pct"), ("被長打割合", "xbh_pct"),
 ]
 _PITCH_RANK_FIELD_MAP_HAND = [
     ("空振り率", "swstr_pct"), ("ゾーン外スイング率", "chase_pct"),
     ("ストライク率", "strike_pct"), ("ゾーン率", "zone_pct"), ("ゴロ率", "gb_pct"),
     ("投球割合%", "pct"), ("平均球速", "avg_vel"), ("最高球速", "max_vel"),
+    ("被打率", "hit_pct"), ("被長打割合", "xbh_pct"),
 ]
 
 
@@ -1414,6 +1450,19 @@ def export_llm_input_xlsx(games_json_dir: str, out_path: str, min_ip: float = 0.
             season_mix_vs_r = aggregate_season_mix(appearances, "mixVsR")
             season_mix_vs_l = aggregate_season_mix(appearances, "mixVsL")
             season_mix_merged = merge_lr_split(season_mix_all, season_mix_vs_r, season_mix_vs_l)
+            # シーズン全体・対右・対左それぞれの被打率／被長打割合（合計行・順位用）
+            hit_all = season_hit_stats_from_mix(season_mix_all)
+            hit_by_hand = {"vsR": season_hit_stats_from_mix(season_mix_vs_r),
+                           "vsL": season_hit_stats_from_mix(season_mix_vs_l)}
+            season["被打率"] = hit_all["被打率"]
+            season["被長打割合"] = hit_all["被長打割合"]
+            for hk in ("vsR", "vsL"):
+                season_by_hand[hk]["被打率"] = hit_by_hand[hk]["被打率"]
+                season_by_hand[hk]["被長打割合"] = hit_by_hand[hk]["被長打割合"]
+            # 対右/対左の合計行の順位を出すため、シーズン集計の行に対右_/対左_の値も持たせておく
+            for hk, prefix in (("vsR", "対右_"), ("vsL", "対左_")):
+                for k, v in season_by_hand[hk].items():
+                    season[f"{prefix}{k}"] = v
             annotate_mix_rows_with_tiers(season_mix_merged, role_key, pitch_scale_stats)
 
             pitch_numeric_rows = []
@@ -1503,6 +1552,8 @@ def export_llm_input_xlsx(games_json_dir: str, out_path: str, min_ip: float = 0.
                             "ストライク率": season["ストライク率"],
                             "ゾーン率": season["ゾーン率"],
                             "ゴロ率": season["ゴロ率"],
+                            "被打率": season["被打率"],
+                            "被長打割合": season["被長打割合"],
                         },
                         "vsR": season_by_hand["vsR"],
                         "vsL": season_by_hand["vsL"],
@@ -1531,6 +1582,24 @@ def export_llm_input_xlsx(games_json_dir: str, out_path: str, min_ip: float = 0.
         row["ゴロ率_順位"] = rk.get("gb_pct", {}).get("rank")
         row["ゴロ率_順位_母数"] = rk.get("gb_pct", {}).get("total")
 
+    # 対右/対左の合計行用の順位（KPI・合計行の「全体」と同じ母集団条件で、値だけ対右/対左に差し替えて算出）
+    _HAND_TOTAL_KEYS = ["空振り率", "ゾーン外スイング率", "ストライク率", "ゾーン率", "ゴロ率", "被打率", "被長打割合"]
+    rankings_by_hand = {}
+    for hk, prefix in (("vsR", "対右_"), ("vsL", "対左_")):
+        hand_rows = []
+        for row in season_rows:
+            hr = {"選手名": row["選手名"], "役割": row.get("役割"), "投球回": row.get("投球回"),
+                  "防御率": None, "K-BB%": None, "K%": None, "BB%": None}
+            for k in _HAND_TOTAL_KEYS:
+                hr[k] = row.get(f"{prefix}{k}")
+            hand_rows.append(hr)
+        rk_hand = compute_rankings(hand_rows, rank_min_ip=RANK_MIN_IP)
+        for name, d in rk_hand.items():
+            # 防御率などの対右/対左は無いので、値のある指標だけ残す
+            rankings_by_hand.setdefault(name, {})[hk] = {
+                k: v for k, v in d.items() if k not in ("era", "k_bb_pct", "k_pct", "bb_pct")
+            }
+
     # 球種別詳細シート向け：全体/対右/対左の球種別順位を算出し、mix_rowsに列として付与
     role_map = {row["選手名"]: row.get("役割") for row in season_rows}
     ip_map = {row["選手名"]: row.get("投球回") for row in season_rows}
@@ -1554,6 +1623,7 @@ def export_llm_input_xlsx(games_json_dir: str, out_path: str, min_ip: float = 0.
         index_players = []
         for name, card in numeric_cards.items():
             card["rankings"] = rankings.get(name, {})
+            card["rankings_by_hand"] = rankings_by_hand.get(name, {})
             card["categories"] = classify_pitcher_categories(card)
             player_id = _slugify_name(name)
             with open(os.path.join(numeric_json_dir, f"{player_id}.json"), "w", encoding="utf-8") as f:
@@ -1574,6 +1644,16 @@ def export_llm_input_xlsx(games_json_dir: str, out_path: str, min_ip: float = 0.
                 "strike_pct": card.get("strike_pct_season"),
                 "zone_pct": card.get("zone_pct_season"),
                 "gb_pct": card.get("gb_pct"),
+                "hit_pct": ((card.get("season_totals") or {}).get("all") or {}).get("被打率"),
+                "xbh_pct": ((card.get("season_totals") or {}).get("all") or {}).get("被長打割合"),
+                # 対右/対左の合計行の順位を、ブラウザ側（投球回フィルタ連動）でも計算できるように
+                **{
+                    f"{en}_{hk}": ((card.get("season_totals") or {}).get(hk) or {}).get(jp)
+                    for hk in ("vsR", "vsL")
+                    for jp, en in (("空振り率", "swstr_pct"), ("ゾーン外スイング率", "chase_pct"),
+                                   ("ストライク率", "strike_pct"), ("ゾーン率", "zone_pct"),
+                                   ("ゴロ率", "gb_pct"), ("被打率", "hit_pct"), ("被長打割合", "xbh_pct"))
+                },
             })
         with open(os.path.join(numeric_json_dir, "index.json"), "w", encoding="utf-8") as f:
             json.dump({"players": index_players}, f, ensure_ascii=False, indent=2)
