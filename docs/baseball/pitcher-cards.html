@@ -127,6 +127,11 @@
     padding:3px 9px; border-radius:5px; cursor:pointer;
   }
   .farm-toggle-btn.active{ background:var(--panel-alt); color:var(--text-bright); }
+  .no-llm-note{ font-size:11px; color:var(--text-dim); margin:0 0 12px; padding:2px 0; }
+  .farm-only-badge{
+    display:inline-block; font-size:9px; font-weight:700; color:var(--amber-text);
+    background:rgba(245,158,11,0.15); border-radius:4px; padding:1px 5px; margin-left:5px; vertical-align:middle;
+  }
   .p-meta{ font-size:12px; color:var(--text-dim); }
 
   .stat-grid{ display:grid; grid-template-columns:repeat(6,1fr); gap:8px; margin-top:14px; }
@@ -284,11 +289,19 @@
   }
   /* 球種別成績の各指標セル：値の下に小さく「n位/m人中」を添える（スクショ1の見た目を参考に） */
   .pmix-val{ display:block; font-size:12px; color:var(--text-bright); line-height:1.25; }
-  .pmix-rank{ display:block; font-size:8.5px; color:var(--text-dim); margin-top:1px; line-height:1.2; white-space:nowrap; letter-spacing:0.02em; }
-  .pmix-scroll-compact .pmix-rank{ font-size:7.5px; }
+  /* 順位バッジ：サッカー版player-cards.htmlの .rk と同じ配色・サイズ感に合わせている
+     （top=緑＝好成績、low=赤＝低評価、mid/none=中間・対象外はグレー） */
+  .rk{ display:block; font-size:9.5px; color:var(--text-dim); margin-top:1px; line-height:1.2; white-space:nowrap; letter-spacing:0.02em; }
+  .rk.top{ color:var(--green-text); }
+  .rk.low{ color:var(--red-text); }
+  .rk.mid{ color:var(--text-dim); }
+  .rk.none{ opacity:0.55; }
+  .pmix-scroll-compact .rk{ font-size:8.5px; }
   /* カウント別配球：遷移列は「42% → 2-1」のような幅広テキストが入るため、他のpmix-table列と
      違って折り返しを許可し、最小幅も少し広めに確保する */
   .count-pmix-table .count-total-row td{ font-weight:700; color:var(--text-dim); border-top:1px solid rgba(148,163,184,0.2); }
+  .count-rate-group-row td{ font-weight:700; font-size:10.5px; color:var(--text-bright); background:rgba(148,163,184,0.08); padding-top:6px; padding-bottom:6px; }
+  .count-pattern-divider{ height:1px; background:rgba(148,163,184,0.15); margin:14px 0; }
 
   /* 球種・投球数（先頭2列）を横スクロール時も固定表示 */
   .pmix-table th:nth-child(1), .pmix-table td:nth-child(1){ position:sticky; left:0; width:104px; z-index:2; overflow:hidden; text-overflow:ellipsis; }
@@ -761,6 +774,10 @@ el("#sidebarToggleBtn").addEventListener("click", () => {
 // AIコメントがある選手名の集合。リーグを開いたときに一度だけバッチ全件を読んで作る
 let playersWithLlmData = new Set();
 let llmDataLoaded = false;
+// 選手名 → AI解釈データ本体 のキャッシュ。loadAllLlmPlayerNames()で全バッチを読み込んだ際に
+// 一緒に埋めておき、findLlmDataForPlayer()の②フォールバック（直接fetchで見つからなかった場合）が
+// バッチを1件ずつ逐次re-fetchしなくて済むようにする（選手切り替えが遅い問題の主因だったため）。
+let llmDataByName = new Map();
 
 function escapeHtml(s){
   return String(s ?? "").replace(/[&<>"']/g, c => ({
@@ -807,6 +824,18 @@ async function loadPlayerIndex(league){
     if(!res.ok) throw new Error(`index.json の取得に失敗しました (${res.status})`);
     const data = await res.json();
     allPlayers = data.players || [];
+    // 1軍に登板が無く2軍にしか登板が無い選手も一覧に出す（従来は1軍index.jsonにしか
+    // 選手一覧が存在しなかったため、そもそも選べなかった）。1軍側にも同名の選手がいれば
+    // そちらのエントリを優先し、2軍のみの選手だけ id に "farm:" を付けて追加する
+    // （selectPlayer側でこのprefixを見て2軍データを直接取得する）。
+    const farmIdx = await getFarmIndex(league);
+    if(farmIdx && farmIdx.players){
+      const existingNames = new Set(allPlayers.map(p => p.name));
+      farmIdx.players.forEach(fp => {
+        if(existingNames.has(fp.name)) return;
+        allPlayers.push({ ...fp, id: `farm:${fp.id}`, is2GunOnly: true });
+      });
+    }
     populateTeamSelect(allPlayers);
     populateCategorySelect(allPlayers);
     if(saved) teamSelectEl.value = saved.team || "";
@@ -841,7 +870,15 @@ function populateTeamSelect(players){
 function populateCategorySelect(players){
   const counts = {};
   players.forEach(p => (p.categories || []).forEach(c => { counts[c] = (counts[c] || 0) + 1; }));
-  const cats = Object.keys(counts).sort((a,b) => counts[b] - counts[a]);
+  // 「ほぼ全員が該当する」カテゴリ（例：ストレートはほとんどの投手が投球割合20%以上で投げるため
+  // 「ストレートピッチャー」がほぼ全選手に付いてしまう）は、絞り込みとして機能しないので一覧から外す。
+  // 具体的なカテゴリ名を決め打ちで除外するのではなく、対象選手の6割を超えて該当するものを
+  // 機械的に除外することで、カテゴリの中身が変わっても追従できるようにしている。
+  const total = players.length || 1;
+  const COMMON_THRESHOLD = 0.6;
+  const cats = Object.keys(counts)
+    .filter(c => (counts[c] / total) <= COMMON_THRESHOLD)
+    .sort((a,b) => counts[b] - counts[a]);
   categorySelectEl.innerHTML = '<option value="">全カテゴリ</option>' +
     cats.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}（${counts[c]}）</option>`).join("");
 }
@@ -866,7 +903,7 @@ function renderPlayerList(players){
       : "";
     return `
     <div class="player-item ${p.id === activePlayerId ? 'active' : ''}" data-id="${escapeHtml(p.id)}" data-name="${escapeHtml(p.name)}">
-      <div class="name">${escapeHtml(p.name)}</div>
+      <div class="name">${escapeHtml(p.name)}${p.is2GunOnly ? '<span class="farm-only-badge">2軍</span>' : ""}</div>
       <div class="meta">
         <span>${escapeHtml(p.team || "")}${p.role ? " ・ " + escapeHtml(p.role) : ""}</span>
         ${metricHtml}
@@ -933,33 +970,21 @@ async function findLlmDataForPlayer(playerName, team, role){
     debugLog.push("team/roleが不明なため、直接fetchはスキップしてフォールバックへ");
   }
 
-  // ② フォールバック: index.json内の全バッチをファイル名降順（新しい順）で走査
-  //    旧・日付名バッチ（例: 20260903_2001.json）にしかデータが無い選手のためのルート。
-  //    ※ team_role形式のファイル名同士では「降順」に新しい順という意味は無いが、
-  //      ①で見つからなかった場合の最後の手段として、念のため全件を見に行く。
-  try{
-    const idxRes = await fetch(bust(`${LEAGUE_PATHS[currentLeague].batches}/index.json`), { cache: "no-store" });
-    if(!idxRes.ok){ debugLog.push(`index.json取得失敗: ${idxRes.status}`); return { data: null, debugLog }; }
-    const idx = await idxRes.json();
-    const directFile = (team && role) ? `${team}_${role}.json` : null;
-    const files = (idx.batches || []).filter(f => f !== directFile).slice().sort().reverse(); // ①で試した分は除外
-    debugLog.push(`バッチファイル一覧（フォールバック走査対象）: ${JSON.stringify(files)}`);
-    for(const file of files){
-      try{
-        const batch = await fetchBatchFile(file);
-        if(!batch) continue;
-        const entries = normalizeBatchEntries(batch);
-        const namesWithCodes = entries.map(e => {
-          const cc = e.name ? [...e.name].map(c=>c.codePointAt(0).toString(16)).join(" ") : "";
-          return `${JSON.stringify(e.name)} [${cc}]`;
-        });
-        debugLog.push(`${file} 内の選手名: ${namesWithCodes.join(" / ")}`);
-        const hit = entries.find(e => e.name === playerName);
-        if(hit){ debugLog.push(`ヒット（フォールバック走査）: ${file}`); return { data: hit.data, debugLog }; }
-      }catch(e){ continue; }
-    }
-    debugLog.push("どのバッチにも見つかりませんでした");
-  }catch(e){ debugLog.push(`エラー: ${e.message}`); }
+  // ② フォールバック: 直接fetchで見つからなかった場合。
+  //    以前はここでバッチファイルを1件ずつ逐次re-fetchして選手名を探しており、これが選手切り替えを
+  //    大きく遅くする原因になっていた。loadAllLlmPlayerNames()は全バッチを並列fetchして
+  //    llmDataByNameにキャッシュ済み（デフォルトで有効な「AIコメントがある選手のみ」フィルターの
+  //    ために選手一覧表示時点で読み込まれていることが多い）なので、まずそのキャッシュを使う。
+  //    まだ読み込まれていなければ、ここで一度だけ読み込む（以降の選手選択では再利用される）。
+  if(!llmDataLoaded){
+    debugLog.push("LLMデータキャッシュが未読み込みのため、ここで読み込む");
+    await loadAllLlmPlayerNames();
+  }
+  if(llmDataByName.has(playerName)){
+    debugLog.push("ヒット（キャッシュ）");
+    return { data: llmDataByName.get(playerName), debugLog };
+  }
+  debugLog.push("どのバッチにも見つかりませんでした");
   return { data: null, debugLog };
 }
 
@@ -1045,15 +1070,31 @@ function mergeCardData(numeric, llm){
   };
 }
 
+// 2軍のindex.jsonは選手を切り替えるたびに読みに行くと無駄が大きい（内容はほぼ変わらないため）ので、
+// リーグごとに一度だけ取得してキャッシュする。取得できなかった場合はnullをキャッシュして
+// リトライし続けないようにする（2軍データが元々無いリーグ・パス未設定のときに毎回失敗fetchが
+// 走るのを防ぐ）。
+const farmIndexCache = {};
+async function getFarmIndex(league){
+  if(league in farmIndexCache) return farmIndexCache[league];
+  const farmNumeric = LEAGUE_PATHS[league] && LEAGUE_PATHS[league].farmNumeric;
+  if(!farmNumeric){ farmIndexCache[league] = null; return null; }
+  try{
+    const idxRes = await fetch(bust(`${farmNumeric}/index.json`), { cache: "no-store" });
+    const idx = idxRes.ok ? await idxRes.json() : null;
+    farmIndexCache[league] = idx;
+    return idx;
+  }catch(e){ farmIndexCache[league] = null; return null; }
+}
+
 // 2軍データ：1軍と同じ選手を名前で探して取得する（見つからなければnull＝2軍データなしとして扱う）。
 // 1軍側のLLM解釈と違い、2軍側は数値データのみで十分なのでmergeCardDataにはllm=nullを渡す。
 async function fetchFarmData(league, playerName){
   const farmNumeric = LEAGUE_PATHS[league] && LEAGUE_PATHS[league].farmNumeric;
   if(!farmNumeric || !playerName) return null;
   try{
-    const idxRes = await fetch(bust(`${farmNumeric}/index.json`), { cache: "no-store" });
-    if(!idxRes.ok) return null;
-    const idx = await idxRes.json();
+    const idx = await getFarmIndex(league);
+    if(!idx) return null;
     const hit = (idx.players || []).find(p => p.name === playerName);
     if(!hit) return null;
     const res = await fetch(bust(`${farmNumeric}/${hit.id}.json`), { cache: "no-store" });
@@ -1076,6 +1117,23 @@ async function selectPlayer(id, name){
   window._hmSplitMode = "25";
   window._hmSelectedPitchKeys = null;
   try{
+    // id が "farm:" で始まる選手は、1軍に登板が無く2軍にしか登板が無い選手
+    // （loadPlayerIndexで2軍index.jsonから一覧に追加した分）。この場合は1軍側の
+    // データが存在しないので、farmNumeric側を直接読みに行く。
+    if(id.startsWith("farm:")){
+      const farmId = id.slice("farm:".length);
+      const farmNumeric = LEAGUE_PATHS[currentLeague] && LEAGUE_PATHS[currentLeague].farmNumeric;
+      const res = await fetch(bust(`${farmNumeric}/${farmId}.json`), { cache: "no-store" });
+      if(!res.ok) throw new Error(`選手データの取得に失敗しました (${res.status})`);
+      const numeric = await res.json();
+      const merged = mergeCardData(numeric, {});
+      merged._isFarm = true;
+      merged._noLlm = true; // 2軍データは現状AI解釈を持たない
+      merged._2gunOnly = true; // 1軍データが無い（1軍/2軍切り替えボタンを出さない）ことをrenderCardに伝える
+      activeCardData = merged;
+      renderCard(merged);
+      return;
+    }
     const res = await fetch(bust(`${LEAGUE_PATHS[currentLeague].numeric}/${id}.json`), { cache: "no-store" });
     if(!res.ok) throw new Error(`選手データの取得に失敗しました (${res.status})`);
     const numeric = await res.json();
@@ -1089,15 +1147,11 @@ async function selectPlayer(id, name){
       merged._isFarm = false;
       farmMerged._farmData = merged;
       farmMerged._isFarm = true;
+      farmMerged._noLlm = true; // 2軍データは現状AI解釈を持たない
     }
     activeCardData = merged;
+    merged._noLlm = !llm; // AI解釈がまだ無い選手かどうか（renderCard内でバナー表示の判定に使う）
     renderCard(merged);
-    if(!llm){
-      mainContentEl.insertAdjacentHTML("afterbegin",
-        `<div style="font-size:11px;color:var(--text-dim);margin-bottom:10px">
-          ※ この選手のAI解釈テキストはまだ生成されていません（数値データのみ表示中）
-        </div>`);
-    }
   }catch(e){
     mainContentEl.innerHTML = `<div class="error">カードを読み込めませんでした。<br>(${escapeHtml(e.message)})</div>`;
   }
@@ -1183,6 +1237,7 @@ aiOnlyFilterEl.addEventListener("change", async () => {
 // リーグ内の全バッチファイルを読み、「AI解釈テキストがある選手名」の集合を作る（1回だけキャッシュ）
 async function loadAllLlmPlayerNames(){
   playersWithLlmData = new Set();
+  llmDataByName = new Map();
   try{
     const idxRes = await fetch(bust(`${LEAGUE_PATHS[currentLeague].batches}/index.json`), { cache: "no-store" });
     if(idxRes.ok){
@@ -1194,7 +1249,10 @@ async function loadAllLlmPlayerNames(){
           if(!res.ok) return;
           const batch = await res.json();
           normalizeBatchEntries(batch).forEach(e => {
-            if(e.name) playersWithLlmData.add(e.name);
+            if(e.name){
+              playersWithLlmData.add(e.name);
+              if(!llmDataByName.has(e.name)) llmDataByName.set(e.name, e.data); // 直接fetchのほうを優先したいので、既にあれば上書きしない
+            }
           });
         }catch(e){ /* このバッチはスキップ */ }
       }));
@@ -1319,22 +1377,23 @@ function renderCard(d){
           <button class="hand-btn" data-hand="vsR">対右</button>
           <button class="hand-btn" data-hand="vsL">対左</button>
         </div>
-        <div class="pmix-wrap" data-season-pmix>${pitchDetailTableHtml(d.season_pitch_detail.all, d.season_totals && d.season_totals.all, undefined, buildPmixTagsByName("all"))}</div>
+        <div class="pmix-wrap" data-season-pmix>${pitchDetailTableHtml(d.season_pitch_detail.all, d.season_totals && d.season_totals.all, undefined, buildPmixTagsByName("all"), rk)}</div>
       </div>
     </div>
   ` : "";
 
-  // カウント別配球：シーズン球種別成績の下・コース分布セクションのさらに下に独立セクションとして配置
+  // カウント別配球：シーズン球種別成績の下・コース分布セクションのさらに下に独立セクションとして配置。
+  // 以前は全体/対右/対左をタブ切り替えにしていたが、対右・対左を見比べたいという要望があったため、
+  // タブではなく3つとも縦に並べて同時に見られるようにしている。
   const countPitchSectionHtml = (d.season_pitch_detail && d.season_pitch_detail.all && d.season_pitch_detail.all.length) ? `
     <div class="section section-countpattern">
       ${sectionHeader({ bar:"var(--amber)", label:"シーズンカウント別配球", labelColor:"var(--text-bright)" })}
       <div class="section-body">
-        <div class="hand-toggle count-pattern-hand-toggle">
-          <button class="hand-btn active" data-hand="all">全体</button>
-          <button class="hand-btn" data-hand="vsR">対右</button>
-          <button class="hand-btn" data-hand="vsL">対左</button>
-        </div>
-        <div data-count-pattern>${countPatternTableHtml(d.season_pitch_detail.all)}</div>
+        ${countPatternTableHtml(d.season_pitch_detail.all, "全体")}
+        <div class="count-pattern-divider"></div>
+        ${countPatternTableHtml(d.season_pitch_detail.vsR, "対右")}
+        <div class="count-pattern-divider"></div>
+        ${countPatternTableHtml(d.season_pitch_detail.vsL, "対左")}
       </div>
     </div>
   ` : "";
@@ -1406,6 +1465,9 @@ function renderCard(d){
         </div>
       </div>
 
+      ${d._2gunOnly ? `<div class="no-llm-note">※ この選手は1軍での登板記録が無いため、2軍のデータを表示しています</div>` : ""}
+      ${(d._noLlm && !d._2gunOnly) ? `<div class="no-llm-note">※ この選手のAI解釈テキストはまだ生成されていません（数値データのみ表示中）</div>` : ""}
+
       ${seasonPitchDetailHtml}
 
       <div class="section section-coursedist">
@@ -1434,23 +1496,7 @@ function renderCard(d){
       btn.classList.add("active");
       const wrap = mainContentEl.querySelector("[data-season-pmix]");
       if(wrap && d.season_pitch_detail){
-        wrap.innerHTML = pitchDetailTableHtml(d.season_pitch_detail[hand], d.season_totals && d.season_totals[hand], undefined, buildPmixTagsByName(hand));
-      }
-    });
-  }
-
-  // カウント別配球: 全体/対右/対左タブ切り替え（シーズン球種別成績と同じ仕組み）
-  const countPatternToggle = mainContentEl.querySelector(".count-pattern-hand-toggle");
-  if(countPatternToggle){
-    countPatternToggle.addEventListener("click", (e) => {
-      const btn = e.target.closest(".hand-btn");
-      if(!btn) return;
-      const hand = btn.dataset.hand;
-      countPatternToggle.querySelectorAll(".hand-btn").forEach(b => b.classList.remove("active"));
-      btn.classList.add("active");
-      const wrap = mainContentEl.querySelector("[data-count-pattern]");
-      if(wrap && d.season_pitch_detail){
-        wrap.innerHTML = countPatternTableHtml(d.season_pitch_detail[hand]);
+        wrap.innerHTML = pitchDetailTableHtml(d.season_pitch_detail[hand], d.season_totals && d.season_totals[hand], undefined, buildPmixTagsByName(hand), rk);
       }
     });
   }
@@ -1651,7 +1697,17 @@ const TIER_COLOR = {
   mid: "", bot60: "rgba(238,122,151,0.10)", bot70: "rgba(238,122,151,0.18)", bot85: "rgba(238,122,151,0.38)"
 };
 
-function pitchDetailTableHtml(pitches, trueTotal, metricsOverride, tagsByName){
+// 順位バッジ（サッカー版player-cards.htmlの .rk / rankChip と同じ見た目・判定ロジックに合わせている）。
+// rank===null（母数はあるが投球数などのしきい値未満で対象外）は「-」、rankデータ自体が無ければ何も出さない。
+function rankBadgeHtml(rk){
+  if(!rk) return "";
+  if(rk.rank == null) return `<div class="rk none">-</div>`;
+  const p = rk.total > 1 ? (rk.rank - 1) / (rk.total - 1) : 0.5;
+  const cls = rk.total < 10 ? "mid" : (p <= 0.25 ? "top" : (p >= 0.75 ? "low" : "mid"));
+  return `<div class="rk ${cls}">${rk.rank}位/${rk.total}人中</div>`;
+}
+
+function pitchDetailTableHtml(pitches, trueTotal, metricsOverride, tagsByName, totalsRanks){
   if(!pitches || !pitches.length){
     return `<div style="padding:16px;text-align:center;color:var(--text-dim);font-size:12px">データなし</div>`;
   }
@@ -1696,7 +1752,7 @@ function pitchDetailTableHtml(pitches, trueTotal, metricsOverride, tagsByName){
   const sw = (px) => Math.round(px * WSCALE);
   const C1 = compact ? 82 : 104;
   const C2 = compact ? 54 : 52; // compact時は投球数セルに割合も同居させるので若干広げる
-  const C3 = sw(60);
+  const C3 = sw(80); // 「投球割合」列は「空振り率」列と同じ幅に揃える（PMIX_METRICS_BASEのswstr_pct.width=80と一致させる）
   // 「特徴」タグ列は、折り返しも省略もせず1行のまま全文を見せたいので、固定幅にせず、
   // 実際にこの表に出てくるタグ文字列のうち最長のものが1行に収まる幅を都度計算する
   // （タグは選手・球種によって長さがまちまちなので、決め打ちの固定幅だと長いタグで
@@ -1723,14 +1779,16 @@ function pitchDetailTableHtml(pitches, trueTotal, metricsOverride, tagsByName){
     <tr>
       <td style="width:${C1}px"><span class="pmix-pname"><span class="pmix-dot" style="background:${pitchColor(i)}"></span>${escapeHtml(p.name)}</span></td>
       <td style="width:${C2}px;left:${C1}px">${countCellHtml(p.count, p.pct)}</td>
-      ${compact ? "" : `<td style="width:${C3}px;background:${p.pct != null ? `rgba(59,130,246,${(0.05 + Math.min(100,p.pct)/100*0.5).toFixed(2)})` : ""}"><span class="pmix-val">${p.pct != null ? p.pct + "%" : "—"}</span>${p.ranks && p.ranks.pct ? `<div class="pmix-rank">${p.ranks.pct.rank}位/${p.ranks.pct.total}人中</div>` : ""}</td>`}
+      ${compact ? "" : (() => {
+        const pctTier = p["投球割合%_ランク"];
+        const bg = pctTier ? (TIER_COLOR[pctTier] || "") : "";
+        return `<td style="width:${C3}px;background:${bg}"><span class="pmix-val">${p.pct != null ? p.pct + "%" : "—"}</span>${rankBadgeHtml(p.ranks && p.ranks.pct)}</td>`;
+      })()}
       ${metrics.map(m => {
         const v = p[m.key];
         const tier = p[m.tierKey];
         const bg = tier ? (TIER_COLOR[tier] || "") : "";
-        const rk = p.ranks && p.ranks[m.key];
-        const rankHtml = rk ? `<div class="pmix-rank">${rk.rank}位/${rk.total}人中</div>` : "";
-        return `<td style="width:${sw(m.width)}px;background:${bg}"><span class="pmix-val">${fmtMetricVal(m, v)}</span>${rankHtml}</td>`;
+        return `<td style="width:${sw(m.width)}px;background:${bg}"><span class="pmix-val">${fmtMetricVal(m, v)}</span>${rankBadgeHtml(p.ranks && p.ranks[m.key])}</td>`;
       }).join("")}
       ${showTagCol ? `<td class="pmix-tag-cell" style="width:${TAG_COL_WIDTH}px">${tagsByName[p.name] ? `<span class="pmix-tag">${escapeHtml(tagsByName[p.name])}</span>` : "—"}</td>` : ""}
     </tr>
@@ -1740,9 +1798,10 @@ function pitchDetailTableHtml(pitches, trueTotal, metricsOverride, tagsByName){
       <table class="pmix-table" style="width:${totalWidth}px">
         <thead><tr><th style="width:${C1}px">球種</th><th style="width:${C2}px;left:${C1}px">投球数</th>${compact ? "" : `<th style="width:${C3}px">投球割合</th>`}${metrics.map(m => `<th style="width:${sw(m.width)}px">${m.label}</th>`).join("")}${showTagCol ? `<th style="width:${TAG_COL_WIDTH}px">特徴</th>` : ""}</tr></thead>
         <tbody>${rows}</tbody>
-        <tfoot><tr><td style="width:${C1}px">合計</td><td style="width:${C2}px;left:${C1}px">${countCellHtml(tc, compact ? 100 : null)}</td>${compact ? "" : `<td style="width:${C3}px">100%</td>`}${metrics.map(m => {
-          if(m.key === "max_vel") return `<td style="width:${sw(m.width)}px">${maxVel > 0 ? maxVel + "km/h" : "—"}</td>`;
-          return `<td style="width:${sw(m.width)}px">${fmtMetricVal(m, wavg(m.key))}</td>`;
+        <tfoot><tr><td style="width:${C1}px">合計</td><td style="width:${C2}px;left:${C1}px">${countCellHtml(tc, compact ? 100 : null)}</td>${compact ? "" : `<td style="width:${C3}px"><span class="pmix-val">100%</span></td>`}${metrics.map(m => {
+          const rk = totalsRanks && totalsRanks[m.key];
+          if(m.key === "max_vel") return `<td style="width:${sw(m.width)}px"><span class="pmix-val">${maxVel > 0 ? maxVel + "km/h" : "—"}</span></td>`;
+          return `<td style="width:${sw(m.width)}px"><span class="pmix-val">${fmtMetricVal(m, wavg(m.key))}</span>${rankBadgeHtml(rk)}</td>`;
         }).join("")}${showTagCol ? `<td style="width:${TAG_COL_WIDTH}px"></td>` : ""}</tr></tfoot>
       </table>
     </div>
@@ -1758,7 +1817,7 @@ function pitchColor(i){ return PITCH_COLORS[i % PITCH_COLORS.length]; }
 // 古いJSONの場合は、その旨を表示するだけにして他の表示は壊さない。
 const COUNT_KEYS = ["0-0","0-1","0-2","1-0","1-1","1-2","2-0","2-1","2-2","3-0","3-1","3-2"];
 
-function countPatternTableHtml(pitchRows){
+function countPatternTableHtml(pitchRows, label){
   const rows = (pitchRows || []).filter(p => p.cbs && Object.keys(p.cbs).length);
   if(!rows.length){
     return `<div style="font-size:11px;color:var(--text-dim);padding:4px 0 8px">
@@ -1801,43 +1860,59 @@ function countPatternTableHtml(pitchRows){
     </div>
   `;
 
-  // ストライク率・空振り率・見逃し率：そのカウントで投げられた球のうち、球種を問わず
-  // 何%がストライク相当（＝ボール球以外）だったか／空振りだったか／見逃しだったかを示す
+  // ストライク率・空振り率・見逃し率：まず全体（球種を問わず）の行を出し、続けて球種別の内訳も出す。
+  // 球種によって「ボールになりやすい球」「空振りを取りやすい球」の傾向が違うため、球種別の内訳が要望されていた。
   const rateSpecs = [
     { label: "ストライク率", calc: (agg, t) => t > 0 ? Math.round((t - agg.ba) / t * 100) : null },
     { label: "空振り率",     calc: (agg, t) => t > 0 ? Math.round(agg.sw / t * 100) : null },
     { label: "見逃し率",     calc: (agg, t) => t > 0 ? Math.round(agg.lo / t * 100) : null },
   ];
-  const countAgg = {};
-  COUNT_KEYS.forEach(ck => {
-    countAgg[ck] = rows.reduce((acc, p) => {
-      const c = p.cbs[ck];
-      if(!c) return acc;
-      acc.sw += c.sw || 0; acc.lo += c.lo || 0; acc.fo += c.fo || 0;
-      acc.ba += c.ba || 0; acc.ou += c.ou || 0; acc.hi += c.hi || 0;
-      return acc;
-    }, {sw:0, lo:0, fo:0, ba:0, ou:0, hi:0});
-  });
+  const aggOf = (cbsRows) => {
+    const out = {};
+    COUNT_KEYS.forEach(ck => {
+      out[ck] = cbsRows.reduce((acc, p) => {
+        const c = p.cbs[ck];
+        if(!c) return acc;
+        acc.sw += c.sw || 0; acc.lo += c.lo || 0; acc.fo += c.fo || 0;
+        acc.ba += c.ba || 0; acc.ou += c.ou || 0; acc.hi += c.hi || 0;
+        return acc;
+      }, {sw:0, lo:0, fo:0, ba:0, ou:0, hi:0});
+    });
+    return out;
+  };
+  const rateRowsHtml = (aggByCount, totalsByCount) => rateSpecs.map(spec => `
+    <tr>
+      <td>${spec.label}</td>
+      ${COUNT_KEYS.map(ck => {
+        const pct = spec.calc(aggByCount[ck], totalsByCount[ck]);
+        return `<td style="background:${scaleBg(pct, "18,165,178")}">${pct != null ? pct + "%" : "-"}</td>`;
+      }).join("")}
+    </tr>
+  `).join("");
+
+  const overallAgg = aggOf(rows);
+  const perPitchCounts = {}; // 球種別の投球数（率の分母）
+  rows.forEach(p => { perPitchCounts[p.__key || p.name] = {}; COUNT_KEYS.forEach(ck => { perPitchCounts[p.__key || p.name][ck] = (p.cbs[ck] && p.cbs[ck].c) || 0; }); });
+
   const rateTableHtml = `
     <div class="pmix-scroll" style="margin-top:10px">
       <table class="pmix-table count-rate-table">
         <thead><tr><th>指標</th>${COUNT_KEYS.map(ck => `<th>${ck}</th>`).join("")}</tr></thead>
         <tbody>
-          ${rateSpecs.map(spec => `
-            <tr>
-              <td>${spec.label}</td>
-              ${COUNT_KEYS.map(ck => {
-                const pct = spec.calc(countAgg[ck], countTotals[ck]);
-                return `<td style="background:${scaleBg(pct, "18,165,178")}">${pct != null ? pct + "%" : "-"}</td>`;
-              }).join("")}
+          <tr class="count-rate-group-row"><td colspan="${COUNT_KEYS.length + 1}">全体</td></tr>
+          ${rateRowsHtml(overallAgg, countTotals)}
+          ${rows.map((p,i) => `
+            <tr class="count-rate-group-row">
+              <td colspan="${COUNT_KEYS.length + 1}"><span class="pmix-dot" style="background:${pitchColor(i)}"></span>${escapeHtml(p.name)}</td>
             </tr>
+            ${rateRowsHtml(aggOf([p]), perPitchCounts[p.__key || p.name])}
           `).join("")}
         </tbody>
       </table>
     </div>
   `;
 
-  return pitchTableHtml + rateTableHtml;
+  return `${label ? `<div class="compare-block-title">${escapeHtml(label)}</div>` : ""}${pitchTableHtml}${rateTableHtml}`;
 }
 
 // 日本語（全角）と英数字（半角）が混ざった短い文言のセル幅を見積もる。
