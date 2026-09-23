@@ -1169,6 +1169,8 @@ _PITCH_RANK_METRICS_ALL = [
     ("空振り率", True), ("ゾーン外スイング率", True),
     ("ストライク率", True), ("ゾーン率", True), ("GB%", True),
     ("投球割合%", True), ("平均球速", True), ("最高球速", True),
+    # 被安打率・被長打率は「低いほど良い」指標なので、他と方向が逆（False）
+    ("被安打率", False), ("被長打率", False),
 ]
 _PITCH_RANK_METRICS_HAND = [
     ("空振り率", True), ("ゾーン外スイング率", True),
@@ -1241,6 +1243,7 @@ _PITCH_RANK_FIELD_MAP_ALL = [
     ("空振り率", "swstr_pct"), ("ゾーン外スイング率", "chase_pct"),
     ("ストライク率", "strike_pct"), ("ゾーン率", "zone_pct"), ("GB%", "gb_pct"),
     ("投球割合%", "pct"), ("平均球速", "avg_vel"), ("最高球速", "max_vel"),
+    ("被安打率", "hit_pct"), ("被長打率", "xh_pct"),
 ]
 _PITCH_RANK_FIELD_MAP_HAND = [
     ("空振り率", "swstr_pct"), ("ゾーン外スイング率", "chase_pct"),
