@@ -350,7 +350,12 @@
   .course-cell-bot{ font-size:9px; line-height:1.1; }
   .gamelog-table .cell-good{ background:rgba(16,185,129,0.18); color:var(--green-text); border-radius:4px; }
   .gamelog-table .cell-bad{ background:rgba(248,113,113,0.18); color:var(--red-text); border-radius:4px; }
-  .gamelog-scroll{ overflow-x:auto; overscroll-behavior-x:contain; -webkit-overflow-scrolling:touch; }
+  .gamelog-scroll{ overflow-x:auto; overscroll-behavior-x:contain; -webkit-overflow-scrolling:touch; scroll-snap-type:x proximity; }
+  /* 指標列（比較・日付・結果の固定3列より後ろ）の先頭で横スクロールがスナップするように。
+     以前はJSでスクロール停止後に最寄りの列へ再スクロールし直す実装だったが、
+     ネイティブのスクロールと別に補正が入ることでカクついて見えていたため、
+     ブラウザ標準のscroll-snapに置き換えてスクロール自体が自然に止まるようにした。 */
+  .gamelog-table th:nth-child(n+4), .gamelog-table td:nth-child(n+4){ scroll-snap-align:start; }
   .gamelog-table .cmp-checkbox{ accent-color:var(--blue); cursor:pointer; }
   .gamelog-table th:first-child, .gamelog-table td:first-child{ text-align:center; }
 
@@ -382,8 +387,8 @@
   .hm-controls{
     display:flex; flex-direction:column; gap:7px; margin-bottom:12px;
   }
-  .hm-controls-row{ display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
-  .hm-controls-label{ font-size:10px; color:var(--text-dim); font-weight:700; flex-shrink:0; width:28px; }
+  .hm-controls-row{ display:flex; flex-direction:column; align-items:flex-start; gap:6px; }
+  .hm-controls-label{ font-size:10px; color:var(--text-dim); font-weight:700; }
   .hm-btn-group{ display:flex; gap:4px; flex-wrap:wrap; }
   .hm-filter-btn{
     border:1px solid rgba(255,255,255,0.1); background:transparent; color:var(--text-dim);
@@ -474,10 +479,16 @@
     /* 選手選択前は「選手を選択してください」バーは不要なので非表示。
        選手を選んだあとは、名前・チームはカード側のsticky見出し（.p-sticky-header）に
        すでに出るのでここでは表示せず、「選手を変更」ボタンだけを幅を取らない
-       小さな固定ボタンとして右上に浮かせて表示する。 */
+       小さなボタンとして右上に表示する。
+       以前はposition:fixedで浮かせていたが、同じスクロールに対してheader側は
+       position:stickyで動いているため、iOSのアドレスバー表示/非表示に伴う可変ビューポートの
+       影響で両者の座標系がズレ、スクロール中にボタンだけ位置がずれて見える不具合があった。
+       header側と同じposition:stickyに揃えることで、常に同じ基準で一緒に動くようにする
+       （通常のドキュメントフローに乗るので、右寄せはflexで行う）。 */
     .sidebar-summary{ display:none; }
     .body-layout.has-selection .sidebar-summary{
-      display:block; position:fixed; top:calc(var(--header-h, 60px) + 8px); right:12px; z-index:25;
+      display:flex; justify-content:flex-end; position:sticky; top:calc(var(--header-h, 60px) + 8px); z-index:25;
+      height:0; overflow:visible; /* ボタンの高さぶん下の内容を押し下げない（フロー上の占有はheader分のみでよい） */
     }
     .sidebar-summary-info{ display:none; }
     .sidebar-summary button{
@@ -550,7 +561,7 @@
 
     /* 結果／球種／分割タブと、フィルタ（全チーム・全カテゴリ・並び替え）はPC版と同じ大きさだと
        ボタンが窮屈に折り返して縦に長くなりがちなので、文字とパディングを一回り小さくする */
-    .hm-controls-label{ font-size:9.5px; width:24px; }
+    .hm-controls-label{ font-size:9.5px; }
     .hm-filter-btn, .hm-pitch-btn{ font-size:9.5px; padding:3px 7px; }
     .hm-pdot{ width:6px; height:6px; }
 
@@ -645,11 +656,6 @@
           <select id="teamSelect" class="filter-select">
             <option value="">全チーム</option>
           </select>
-          <select id="categorySelect" class="filter-select">
-            <option value="">全カテゴリ</option>
-          </select>
-        </div>
-        <div class="filter-panel-row">
           <select id="roleSelect" class="filter-select">
             <option value="">先発・中継ぎ 両方</option>
             <option value="先発">先発のみ</option>
@@ -708,7 +714,6 @@ function snapshotLeagueState(){
   return {
     search: searchInputEl.value,
     team: teamSelectEl.value,
-    category: selectedCategory,
     role: selectedRole,
     sortField, sortDir,
     aiOnly: aiOnlyFilterEl.checked,
@@ -716,7 +721,6 @@ function snapshotLeagueState(){
     activePlayerId, activePlayerName: activeCardData ? activeCardData.name : null,
   };
 }
-let selectedCategory = null; // カテゴリで絞り込み中の値（null=絞り込みなし）
 let selectedRole = null; // 先発/中継ぎで絞り込み中の値（null=絞り込みなし）
 let activePlayerId = null;
 let activeCardData = null; // 現在表示中のカードのmerge済みデータ（投球回フィルタ変更時の再描画用）
@@ -739,7 +743,6 @@ const playerListEl = el("#playerList");
 const mainContentEl = el("#mainContent");
 const searchInputEl = el("#searchInput");
 const teamSelectEl = el("#teamSelect");
-const categorySelectEl = el("#categorySelect");
 const roleSelectEl = el("#roleSelect");
 const sortFieldEl = el("#sortField");
 const sortDirBtnEl = el("#sortDirBtn");
@@ -829,8 +832,6 @@ async function loadPlayerIndex(league){
   llmDataLoaded = false;
   playersWithLlmData = new Set();
   aiOnlyFilterEl.checked = saved ? saved.aiOnly : true;
-  selectedCategory = saved ? saved.category : null;
-  categorySelectEl.value = selectedCategory || "";
   selectedRole = saved ? saved.role : null;
   roleSelectEl.value = selectedRole || "";
   sortField = saved ? saved.sortField : "k_bb_pct";
@@ -862,7 +863,6 @@ async function loadPlayerIndex(league){
       });
     }
     populateTeamSelect(allPlayers);
-    populateCategorySelect(allPlayers);
     if(saved) teamSelectEl.value = saved.team || "";
     // デフォルトで「AIコメントがある選手のみ」がONのため、絞り込みが正しく効くよう
     // 一覧を描画する前にAIコメントの有無データを読み込んでおく
@@ -891,22 +891,7 @@ function populateTeamSelect(players){
     teams.map(t => `<option value="${escapeHtml(t)}">${escapeHtml(t)}</option>`).join("");
 }
 
-// カテゴリ絞り込み用セレクト：選手一覧に登場する全カテゴリを人数の多い順に表示する
-function populateCategorySelect(players){
-  const counts = {};
-  players.forEach(p => (p.categories || []).forEach(c => { counts[c] = (counts[c] || 0) + 1; }));
-  // 「ほぼ全員が該当する」カテゴリ（例：ストレートはほとんどの投手が投球割合20%以上で投げるため
-  // 「ストレートピッチャー」がほぼ全選手に付いてしまう）は、絞り込みとして機能しないので一覧から外す。
-  // 具体的なカテゴリ名を決め打ちで除外するのではなく、対象選手の6割を超えて該当するものを
-  // 機械的に除外することで、カテゴリの中身が変わっても追従できるようにしている。
-  const total = players.length || 1;
-  const COMMON_THRESHOLD = 0.6;
-  const cats = Object.keys(counts)
-    .filter(c => (counts[c] / total) <= COMMON_THRESHOLD)
-    .sort((a,b) => counts[b] - counts[a]);
-  categorySelectEl.innerHTML = '<option value="">全カテゴリ</option>' +
-    cats.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}（${counts[c]}）</option>`).join("");
-}
+
 
 const SORT_FIELD_LABELS = {
   name: "名前", era: "防御率", k_bb_pct: "K-BB%", k_pct: "K%", bb_pct: "BB%",
@@ -1192,9 +1177,8 @@ function applyFilters(){
     const matchesTeam = !team || p.team === team;
     const matchesAi = !aiOnly || playersWithLlmData.has(p.name);
     const matchesIp = isNaN(minIp) || (p.innings_num != null && p.innings_num >= minIp);
-    const matchesCategory = !selectedCategory || (p.categories || []).includes(selectedCategory);
     const matchesRole = !selectedRole || p.role === selectedRole;
-    return matchesQuery && matchesTeam && matchesAi && matchesIp && matchesCategory && matchesRole;
+    return matchesQuery && matchesTeam && matchesAi && matchesIp && matchesRole;
   });
   return sortPlayers(filtered);
 }
@@ -1216,11 +1200,6 @@ function sortPlayers(players){
 }
 
 searchInputEl.addEventListener("input", () => {
-  renderPlayerList(applyFilters());
-});
-
-categorySelectEl.addEventListener("change", () => {
-  selectedCategory = categorySelectEl.value || null;
   renderPlayerList(applyFilters());
 });
 
@@ -1532,6 +1511,21 @@ function renderCard(d){
     });
   }
 
+  // シーズン成績：シーズン別/試合別タブ切り替え
+  const gamelogTabToggle = mainContentEl.querySelector(".gamelog-tab-toggle");
+  if(gamelogTabToggle){
+    gamelogTabToggle.addEventListener("click", (e) => {
+      const btn = e.target.closest(".hand-btn");
+      if(!btn) return;
+      const tab = btn.dataset.tab;
+      gamelogTabToggle.querySelectorAll(".hand-btn").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      mainContentEl.querySelectorAll("[data-gamelog-tab]").forEach(panel => {
+        panel.style.display = panel.dataset.gamelogTab === tab ? "" : "none";
+      });
+    });
+  }
+
   // カウント別配球: 全体/対右/対左タブ切り替え（シーズン球種別成績と同じ仕組み）
   const countPatternToggle = mainContentEl.querySelector(".count-pattern-hand-toggle");
   const countPatternWrap = mainContentEl.querySelector("[data-count-pattern]");
@@ -1630,54 +1624,6 @@ function renderCard(d){
       }
     });
   });
-
-  setupGamelogSnap();
-}
-
-// 試合ログテーブルの横スクロールを列境界にスナップさせる。
-// 比較・日付・対戦は固定列（position:sticky）だが、4列目（結果）以降は普通にスクロールして
-// 固定列の下を通り過ぎていくため、指を離した位置がちょうど列の途中だと、結果や各指標の値が
-// 固定列との境目からわずかに見えてしまうことがある。スクロールが止まったら一番近い列の境界まで
-// スムーズに補正することで、常にどこかの列がきっちり境界に揃った状態で止まるようにする。
-function setupGamelogSnap(){
-  const scrollEl = mainContentEl.querySelector(".gamelog-scroll");
-  const table = scrollEl && scrollEl.querySelector(".gamelog-table");
-  if(!scrollEl || !table) return;
-  // カラム見出し行は年フォルダを閉じている間は非表示（display:none）になり、
-  // offsetWidthが0になってしまうため、DOM上のth幅ではなくcolgroupの指定値から直接計算する。
-  const colEls = table.querySelectorAll("colgroup col");
-  if(colEls.length < 5) return;
-  const boundaries = [0];
-  let acc = 0;
-  for(let i = 3; i < colEls.length; i++){
-    acc += parseInt(colEls[i].style.width, 10) || 0;
-    boundaries.push(acc);
-  }
-  const doSnap = () => {
-    const maxScroll = table.offsetWidth - scrollEl.clientWidth;
-    const sl = scrollEl.scrollLeft;
-    if(sl <= 0 || sl >= maxScroll - 1) return; // 端まで来ている場合はそのまま
-    let nearest = boundaries[0], best = Infinity;
-    for(const b of boundaries){
-      if(b > maxScroll) break;
-      const d = Math.abs(b - sl);
-      if(d < best){ best = d; nearest = b; }
-    }
-    if(Math.abs(nearest - sl) > 1){
-      scrollEl.scrollTo({ left: nearest, behavior: "smooth" });
-    }
-  };
-  // "scrollend"に対応するブラウザ（iOS16.4+のSafari含む）では、慣性スクロールも含めた
-  // 本当の停止タイミングを直接検知できるので最優先で使う。未対応環境向けに、通常のscrollイベント
-  // ＋短いデバウンスによるフォールバックも併用する（両方登録しても、境界に既に合っていれば何もしない）。
-  if("onscrollend" in window){
-    scrollEl.addEventListener("scrollend", doSnap);
-  }
-  let snapTimer = null;
-  scrollEl.addEventListener("scroll", () => {
-    clearTimeout(snapTimer);
-    snapTimer = setTimeout(doSnap, 80);
-  });
 }
 
 // ── 試合ログテーブル（シーズン行 + 直近試合の行、行クリックで詳細展開）──
@@ -1715,11 +1661,11 @@ function dateYear(dateStr){
 // ── 球種詳細テーブル（本家ダッシュボードと同じ列構成・パーセンタイル色付け）──
 // currentLeagueに応じて表示する指標を切り替える（MLB独自指標はNPBデータには存在しないため）
 const PMIX_METRICS_BASE = [
-  { key:"swstr_pct",  tierKey:"空振り率_ランク",         label:"空振り率",      unit:"%",   decimals:1, width:86 },
+  { key:"swstr_pct",  tierKey:"空振り率_ランク",         label:"空振り率",      unit:"%",   decimals:1, width:104 },
   { key:"chase_pct",  tierKey:"ゾーン外スイング率_ランク", label:"ボール球SW%",   unit:"%",   decimals:1, width:104 },
-  { key:"strike_pct", tierKey:"ストライク率_ランク",       label:"ストライク率",  unit:"%",   decimals:1, width:96 },
-  { key:"zone_pct",   tierKey:"ゾーン率_ランク",          label:"ゾーン率",      unit:"%",   decimals:1, width:88 },
-  { key:"gb_pct",     tierKey:"GB%_ランク",              label:"ゴロ率",        unit:"%",   decimals:1, width:84 },
+  { key:"strike_pct", tierKey:"ストライク率_ランク",       label:"ストライク率",  unit:"%",   decimals:1, width:104 },
+  { key:"zone_pct",   tierKey:"ゾーン率_ランク",          label:"ゾーン率",      unit:"%",   decimals:1, width:104 },
+  { key:"gb_pct",     tierKey:"GB%_ランク",              label:"ゴロ率",        unit:"%",   decimals:1, width:104 },
 ];
 const PMIX_METRICS_VEL = [
   { key:"avg_vel", tierKey:"平均球速_ランク", label:"平均球速", unit:"km/h", decimals:1, width:108 },
@@ -2491,31 +2437,48 @@ function buildGameLogTable(d){
     </td>
   `;
 
-  const seasonRow = `
-    <tr class="row-game" data-gidx="season">
-      <td>${chk("season")}</td>
-      <td>シーズン</td>
-      ${matchupCell(formatSeasonResult(d), "―")}
+  const colCount = 3 + cols.length; // 比較・日付（または年度）・対戦結果 + 指標列
+
+  const headerRowHtml = (labelCol) => `
+    <tr class="row-col-header">
+      <th>比較</th><th>${labelCol}</th><th>結果</th>
+      ${cols.map(c => `<th>${c.label}</th>`).join("")}
+    </tr>
+  `;
+
+  // ── シーズン別：現状はJSONにシーズン単位の集計が1つしか無いため1行だけになるが、
+  // 「今後複数シーズンぶんのデータを追加していく」想定に合わせて、配列をmapする形にしてある。
+  // 将来的にd.past_seasonsのような複数シーズン分のデータがJSONに追加されたら、
+  // このseasonEntries配列にその分を足すだけで表に反映される。
+  const latestYear = d.game_log.reduce((y, g) => {
+    const gy = dateYear(g.date);
+    return gy && (!y || gy > y) ? gy : y;
+  }, null);
+  const seasonEntries = [
+    { year: latestYear || (d.season_label || "シーズン"), data: d, gidx: "season" },
+  ];
+  const seasonRowHtml = (entry) => `
+    <tr class="row-game" data-gidx="${entry.gidx}">
+      <td>${chk(entry.gidx)}</td>
+      <td>${escapeHtml(String(entry.year))}${/^\d{4}$/.test(String(entry.year)) ? "年" : ""}</td>
+      ${matchupCell(formatSeasonResult(entry.data), "―")}
       ${cols.map(c => {
-        const v = d[c.key + "_season"];
+        const v = entry.data[c.key + "_season"];
         const cls = cellClass(v, c.good, c.th);
         return `<td class="${cls}">${v != null ? v + "%" : "-"}</td>`;
       }).join("")}
     </tr>
   `;
-
-  const colCount = 3 + cols.length; // 比較・日付・対戦結果 + 指標列
-
-  // カラム見出し行：以前は年フォルダの外側に固定表示していたが、年フォルダを開くまで
-  // 中身（試合行）が見えないのに見出しだけ先に見えているのは不自然、という指摘を受けて
-  // 各年フォルダの中身（folder-body）の先頭行として、フォルダを開いたときだけ表示するようにした。
-  const headerRowHtml = `
-    <tr class="row-col-header">
-      <th>比較</th><th>日付</th><th>結果</th>
-      ${cols.map(c => `<th>${c.label}</th>`).join("")}
-    </tr>
+  const seasonTabHtml = `
+    <table class="gamelog-table">
+      ${colgroupHtml(cols)}
+      <thead>${headerRowHtml("年度")}</thead>
+      <tbody>${seasonEntries.map(seasonRowHtml).join("")}</tbody>
+    </table>
   `;
 
+  // ── 試合別：年ごとにグループ化し、フォルダ行の下にその年の試合行だけを表示する。
+  // 来シーズン以降、新しい年のフォルダ（例: 2027年）が自動的に並ぶようになる想定。
   const gameRowHtml = (g, i) => `
     <tr class="row-game" data-gidx="${i}">
       <td>${chk(String(i))}</td>
@@ -2528,9 +2491,6 @@ function buildGameLogTable(d){
       }).join("")}
     </tr>
   `;
-
-  // 試合を年ごとにグループ化し、フォルダ行の下にその年の試合行だけを表示する。
-  // 来シーズン以降、新しい年のフォルダ（例: 2027年）が自動的に並ぶようになる想定。
   const yearGroups = []; // [{year, indices:[...]}]
   d.game_log.forEach((g, i) => {
     const y = dateYear(g.date) || "-";
@@ -2538,20 +2498,10 @@ function buildGameLogTable(d){
     if(!grp){ grp = { year: y, indices: [] }; yearGroups.push(grp); }
     grp.indices.push(i);
   });
-
-  // シーズン合計行は年フォルダの開閉状態に関わらず常に見える独立tbodyとして先頭に置く
-  // （以前は最新年フォルダの中に入っており、フォルダを開かないと見えなかった）。
-  // 個々の試合行は情報量が多く一覧性を下げるため、どの年フォルダもデフォルトは閉じておき、
-  // 見たい人だけ年フォルダをクリックして試合単位の内訳を開けるようにする。
-  const seasonHeadHtml = `
-    <tbody class="season-head-body">
-      ${headerRowHtml}
-      ${seasonRow}
-    </tbody>
-  `;
-
-  const folderRowsHtml = yearGroups.map((grp) => {
-    const isOpen = false; // 試合行は常にデフォルト非表示（シーズン行だけをデフォルト表示にするため）
+  // 年フォルダは最新年（先頭）だけ開いておく（試合別タブに切り替えて最初に見えるのが
+  // 空のフォルダ一覧だけ、という状態を避けるため）
+  const gameFolderRowsHtml = yearGroups.map((grp, gi) => {
+    const isOpen = gi === 0;
     const rows = grp.indices.map(i => gameRowHtml(d.game_log[i], i)).join("");
     return `
       <tbody class="folder-head-body">
@@ -2567,39 +2517,46 @@ function buildGameLogTable(d){
         </tr>
       </tbody>
       <tbody class="folder-body" data-year-body="${escapeHtml(grp.year)}" style="display:${isOpen ? "table-row-group" : "none"}">
-        ${headerRowHtml}${rows}
+        ${headerRowHtml("日付")}${rows}
       </tbody>
     `;
   }).join("");
-
-  // table-layout:fixed の列幅は本来thead側の指定で決まるが、カラム見出し行を
-  // 各年フォルダの中（開いたときだけ表示）に移したことで、閉じている間は
-  // 幅の基準になる行が無くなってしまう。そのためcolgroupで列幅を明示し、
-  // フォルダの開閉状態に関わらず常に同じ列幅になるようにしている。
-  // 対戦・結果を1列にまとめたことで固定列（比較・日付・対戦結果）の合計幅が
-  // 以前より狭くなり、スマホでも指標列が早く見えるようにしている。
-  const colgroupHtml = `
-    <colgroup>
-      <col style="width:36px"><col style="width:64px"><col style="width:180px">
-      ${cols.map(() => `<col style="width:88px">`).join("")}
-    </colgroup>
+  const gameTabHtml = `
+    <table class="gamelog-table">
+      ${colgroupHtml(cols)}
+      ${gameFolderRowsHtml}
+    </table>
   `;
 
   return `
     <div class="section section-gamelog">
-      ${sectionHeader({ bar:"var(--amber)", label:`${d.season_label || "シーズン"}成績`, labelColor:"var(--text-bright)" })}
+      ${sectionHeader({ bar:"var(--amber)", label:"シーズン成績", labelColor:"var(--text-bright)" })}
       <div class="section-body">
-
-        <div class="gamelog-scroll">
-          <table class="gamelog-table">
-            ${colgroupHtml}
-            ${seasonHeadHtml}
-            ${folderRowsHtml}
-          </table>
+        <div class="hand-toggle gamelog-tab-toggle">
+          <button class="hand-btn active" data-tab="season">シーズン別</button>
+          <button class="hand-btn" data-tab="game">試合別</button>
+        </div>
+        <div class="gamelog-scroll" data-gamelog-tab="season">
+          ${seasonTabHtml}
+        </div>
+        <div class="gamelog-scroll" data-gamelog-tab="game" style="display:none">
+          ${gameTabHtml}
         </div>
         <div id="comparePanel"></div>
       </div>
     </div>
+  `;
+}
+
+// table-layout:fixed の列幅は本来thead側の指定で決まるが、年フォルダを閉じている間は
+// 列見出し行自体が無くなる（display:none）ため、colgroupで列幅を明示して
+// フォルダの開閉状態に関わらず常に同じ列幅になるようにしている。
+function colgroupHtml(cols){
+  return `
+    <colgroup>
+      <col style="width:36px"><col style="width:64px"><col style="width:180px">
+      ${cols.map(() => `<col style="width:88px">`).join("")}
+    </colgroup>
   `;
 }
 
