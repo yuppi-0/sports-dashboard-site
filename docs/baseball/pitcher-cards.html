@@ -299,12 +299,17 @@
   .pmix-scroll-compact .rk{ font-size:8.5px; }
   /* カウント別配球：遷移列は「42% → 2-1」のような幅広テキストが入るため、他のpmix-table列と
      違って折り返しを許可し、最小幅も少し広めに確保する */
-  .count-pmix-table .count-total-row td{ font-weight:700; color:var(--text-dim); border-top:1px solid rgba(148,163,184,0.2); }
-  .count-rate-group-row td{ font-weight:700; font-size:10.5px; color:var(--text-bright); background:rgba(148,163,184,0.10); padding-top:7px; padding-bottom:7px; border-top:1px solid rgba(148,163,184,0.15); }
+  .count-pmix-table .count-total-row td{ font-weight:700; color:var(--text-bright); background:rgba(59,130,246,0.10); border-top:1px solid rgba(148,163,184,0.25); }
   .count-rate-label{ padding-left:16px !important; color:var(--text-dim); font-size:11px; }
   .count-subtitle{ font-size:11.5px; font-weight:700; color:var(--text-dim); margin-bottom:6px; letter-spacing:0.02em; }
+  .count-subtitle-hint{ font-weight:400; color:var(--text-dim); font-size:10px; margin-left:6px; opacity:0.75; }
   .count-cell-empty{ opacity:0.35; }
   .count-pattern-divider{ height:1px; background:rgba(148,163,184,0.15); margin:14px 0; }
+  .count-pmix-row{ cursor:pointer; }
+  .count-pmix-row:hover td{ background:rgba(148,163,184,0.08); }
+  .count-pmix-row.active td{ border-top:1px solid var(--blue-text); border-bottom:1px solid var(--blue-text); }
+  .count-pmix-row.active td:first-child{ box-shadow:inset 3px 0 0 var(--blue-text); }
+  .count-rate-current{ font-size:11.5px; font-weight:700; color:var(--text-bright); margin:2px 0 6px; display:flex; align-items:center; }
 
   /* 球種・投球数（先頭2列）を横スクロール時も固定表示 */
   .pmix-table th:nth-child(1), .pmix-table td:nth-child(1){ position:sticky; left:0; width:104px; z-index:2; overflow:hidden; text-overflow:ellipsis; }
@@ -1332,7 +1337,12 @@ function renderCard(d){
   // 2軍表示中は1軍選手一覧(allPlayers)を母集団にしたライブ順位を出すと数値と噛み合わなくなるため、
   // その場合はJSONに焼き込み済みのd.rankings（あれば）を使う
   const rk = (activePlayerId && !d._isFarm) ? computeLiveRankings(activePlayerId, minIp) : (d.rankings || {});
-  const rankText = (key) => rk[key] ? `<div class="rank"><b>${rk[key].rank}</b>位 / ${rk[key].total}人中</div>` : "";
+  const rankText = (key) => {
+    const r = rk[key];
+    if(!r) return "";
+    if(r.rank == null) return `<div class="rank">-</div>`;
+    return `<div class="rank"><b>${r.rank}</b>位 / ${r.total}人中</div>`;
+  };
   // 決め球：専用フィールドが無い場合は、球種の特徴タグ（全体/対右/対左のいずれか）に
   // 「決め球」と付いている球種から補う。
   // タグが複数球種に付いていれば、2つまでは並べて表示して構わない。それも無ければ「なし」と明記する。
@@ -1507,6 +1517,10 @@ function renderCard(d){
 
   // カウント別配球: 全体/対右/対左タブ切り替え（シーズン球種別成績と同じ仕組み）
   const countPatternToggle = mainContentEl.querySelector(".count-pattern-hand-toggle");
+  const countPatternWrap = mainContentEl.querySelector("[data-count-pattern]");
+  if(countPatternWrap && d.season_pitch_detail){
+    wireCountPatternBlock(countPatternWrap, d.season_pitch_detail.all); // 初期表示（全体タブ）ぶんの行クリックを有効化
+  }
   if(countPatternToggle){
     countPatternToggle.addEventListener("click", (e) => {
       const btn = e.target.closest(".hand-btn");
@@ -1517,6 +1531,7 @@ function renderCard(d){
       const wrap = mainContentEl.querySelector("[data-count-pattern]");
       if(wrap && d.season_pitch_detail){
         wrap.innerHTML = countPatternTableHtml(d.season_pitch_detail[hand]);
+        wireCountPatternBlock(wrap, d.season_pitch_detail[hand]);
       }
     });
   }
@@ -1831,11 +1846,76 @@ function pitchDetailTableHtml(pitches, trueTotal, metricsOverride, tagsByName, t
 const PITCH_COLORS = ["#34D399","#FB923C","#F87171","#EC4899","#A78BFA","#60A5FA","#FBBF24","#22D3EE"];
 function pitchColor(i){ return PITCH_COLORS[i % PITCH_COLORS.length]; }
 
-// ── カウント別配球（球種選択割合＋次カウントへの遷移傾向）──
+// ── カウント別配球（球種選択割合＋クリックで切り替えるストライク率/空振り率/見逃し率）──
 // export_llm_input.py 側でseason_pitch_detailの各球種行に "cbs"（カウント別集計。
 // {count: {c,sw,fo,lo,ba,ou,hi}}）が入っている前提。まだ無い（run.py未再実行の）
 // 古いJSONの場合は、その旨を表示するだけにして他の表示は壊さない。
 const COUNT_KEYS = ["0-0","0-1","0-2","1-0","1-1","1-2","2-0","2-1","2-2","3-0","3-1","3-2"];
+// 2つの表（球種別カウント割合／球種別ストライク・空振り・見逃し率）で列幅を完全に揃えるための共通定数
+const COUNT_TABLE_LABEL_W = 96, COUNT_TABLE_COL_W = 52;
+function countTableColgroupHtml(){
+  return `<colgroup><col style="width:${COUNT_TABLE_LABEL_W}px">${COUNT_KEYS.map(() => `<col style="width:${COUNT_TABLE_COL_W}px">`).join("")}</colgroup>`;
+}
+const COUNT_TABLE_WIDTH = COUNT_TABLE_LABEL_W + COUNT_TABLE_COL_W * COUNT_KEYS.length;
+// カラースケール：割合が高いほど濃く塗る。他選手比較ではなく、この表の中だけの単純な値ベースの濃淡。
+function countScaleBg(pct, rgb){
+  return pct == null ? "" : `rgba(${rgb},${(0.04 + Math.min(100,Math.max(0,pct))/100*0.32).toFixed(2)})`;
+}
+function countCellHtmlHelper(pct, rgb){
+  return `<td style="background:${countScaleBg(pct, rgb)}">${pct != null ? pct + "%" : `<span class="count-cell-empty">-</span>`}</td>`;
+}
+
+const COUNT_RATE_SPECS = [
+  { label: "ストライク率", calc: (agg, t) => t > 0 ? Math.round((t - agg.ba) / t * 100) : null },
+  { label: "空振り率",     calc: (agg, t) => t > 0 ? Math.round(agg.sw / t * 100) : null },
+  { label: "見逃し率",     calc: (agg, t) => t > 0 ? Math.round(agg.lo / t * 100) : null },
+];
+function countAggOf(cbsRows){
+  const out = {};
+  COUNT_KEYS.forEach(ck => {
+    out[ck] = cbsRows.reduce((acc, p) => {
+      const c = p.cbs[ck];
+      if(!c) return acc;
+      acc.sw += c.sw || 0; acc.lo += c.lo || 0; acc.fo += c.fo || 0;
+      acc.ba += c.ba || 0; acc.ou += c.ou || 0; acc.hi += c.hi || 0;
+      return acc;
+    }, {sw:0, lo:0, fo:0, ba:0, ou:0, hi:0});
+  });
+  return out;
+}
+
+// groupIdx: -1 なら「全体」（全球種合算）、0以上ならrows[groupIdx]のその球種だけの内訳。
+// 「投球数」行（合計行）をクリックした場合も-1（全体）として扱う。
+function countRateBlockHtml(rows, countTotals, groupIdx){
+  let agg, totals, titleHtml;
+  if(groupIdx == null || groupIdx < 0){
+    agg = countAggOf(rows);
+    totals = countTotals;
+    titleHtml = `全体`;
+  }else{
+    const p = rows[groupIdx];
+    agg = countAggOf([p]);
+    totals = {};
+    COUNT_KEYS.forEach(ck => { totals[ck] = (p.cbs[ck] && p.cbs[ck].c) || 0; });
+    titleHtml = `<span class="pmix-dot" style="background:${pitchColor(groupIdx)}"></span>${escapeHtml(p.name)}`;
+  }
+  const rowsHtml = COUNT_RATE_SPECS.map(spec => `
+    <tr>
+      <td class="count-rate-label">${spec.label}</td>
+      ${COUNT_KEYS.map(ck => countCellHtmlHelper(spec.calc(agg[ck], totals[ck]), "18,165,178")).join("")}
+    </tr>
+  `).join("");
+  return `
+    <div class="count-rate-current">${titleHtml}</div>
+    <div class="pmix-scroll">
+      <table class="pmix-table count-rate-table" style="width:${COUNT_TABLE_WIDTH}px">
+        ${countTableColgroupHtml()}
+        <thead><tr><th>指標</th>${COUNT_KEYS.map(ck => `<th>${ck}</th>`).join("")}</tr></thead>
+        <tbody>${rowsHtml}</tbody>
+      </table>
+    </div>
+  `;
+}
 
 function countPatternTableHtml(pitchRows, label){
   const rows = (pitchRows || []).filter(p => p.cbs && Object.keys(p.cbs).length);
@@ -1848,40 +1928,30 @@ function countPatternTableHtml(pitchRows, label){
   COUNT_KEYS.forEach(ck => {
     countTotals[ck] = rows.reduce((s,p) => s + ((p.cbs[ck] && p.cbs[ck].c) || 0), 0);
   });
-  // カラースケール：球種選択割合セルは青、ストライク系の率セルは緑がかった色で濃淡をつける
-  // （割合が高いほど濃く）。パーセンタイル順位のような他選手比較ではなく、この表の中だけの
-  // 単純な値ベースの濃淡なので、母集団データが無くても常に表示できる。
-  // 見やすさのため、以前より最大濃度を抑えめにしている（文字が読みにくくなるほど濃くしない）。
-  const scaleBg = (pct, rgb) => pct == null ? "" : `rgba(${rgb},${(0.04 + Math.min(100,Math.max(0,pct))/100*0.32).toFixed(2)})`;
 
-  // 2つの表（球種別カウント割合／球種別ストライク・空振り・見逃し率）で列幅を完全に揃えるため、
-  // どちらも同じcolgroupを使う。ラベル列は最長になりうる球種名（例:チェンジアップ）でも
-  // 見切れない幅を確保し、カウント列（0-0〜3-2）は12列とも同じ幅で揃える。
-  const LABEL_W = 96, COUNT_W = 52;
-  const colgroupHtml = `<colgroup><col style="width:${LABEL_W}px">${COUNT_KEYS.map(() => `<col style="width:${COUNT_W}px">`).join("")}</colgroup>`;
-  const tableWidth = LABEL_W + COUNT_W * COUNT_KEYS.length;
-
-  // 球種選択割合：そのカウントで実際に投げられた球のうち、その球種が占めた割合
+  // 球種選択割合：そのカウントで実際に投げられた球のうち、その球種が占めた割合。
+  // 行をクリックすると、下の「球種別ストライク率・空振り率・見逃し率」がその球種の内訳に切り替わる
+  // （投球数＝合計行をクリックすると「全体」に戻る）。クリック可能なことが分かるよう cursor:pointer にしている。
   const pitchTableHtml = `
-    <div class="count-subtitle">球種別カウント割合</div>
+    <div class="count-subtitle">球種別カウント割合<span class="count-subtitle-hint">（行をクリックで下の内訳を切り替え）</span></div>
     <div class="pmix-scroll">
-      <table class="pmix-table count-pmix-table" style="width:${tableWidth}px">
-        ${colgroupHtml}
+      <table class="pmix-table count-pmix-table" style="width:${COUNT_TABLE_WIDTH}px">
+        ${countTableColgroupHtml()}
         <thead><tr><th>球種</th>${COUNT_KEYS.map(ck => `<th>${ck}</th>`).join("")}</tr></thead>
         <tbody>
           ${rows.map((p,i) => `
-            <tr style="border-left:3px solid ${pitchColor(i)}">
-              <td><span class="pmix-pname">${escapeHtml(p.name)}</span></td>
+            <tr class="count-pmix-row" data-group-idx="${i}">
+              <td><span class="pmix-pname"><span class="pmix-dot" style="background:${pitchColor(i)}"></span>${escapeHtml(p.name)}</span></td>
               ${COUNT_KEYS.map(ck => {
                 const c = p.cbs[ck];
                 const cnt = c ? (c.c || 0) : 0;
                 const total = countTotals[ck];
                 const pct = total > 0 ? Math.round(cnt / total * 100) : null;
-                return `<td style="background:${scaleBg(pct, "59,130,246")}">${pct != null ? pct + "%" : "<span class=\"count-cell-empty\">-</span>"}</td>`;
+                return countCellHtmlHelper(pct, "59,130,246");
               }).join("")}
             </tr>
           `).join("")}
-          <tr class="count-total-row">
+          <tr class="count-total-row count-pmix-row" data-group-idx="-1">
             <td>投球数</td>
             ${COUNT_KEYS.map(ck => `<td>${countTotals[ck] || "-"}</td>`).join("")}
           </tr>
@@ -1890,64 +1960,34 @@ function countPatternTableHtml(pitchRows, label){
     </div>
   `;
 
-  // ストライク率・空振り率・見逃し率：まず全体（球種を問わず）の行を出し、続けて球種別の内訳も出す。
-  // 球種によって「ボールになりやすい球」「空振りを取りやすい球」の傾向が違うため、球種別の内訳が要望されていた。
-  const rateSpecs = [
-    { label: "ストライク率", calc: (agg, t) => t > 0 ? Math.round((t - agg.ba) / t * 100) : null },
-    { label: "空振り率",     calc: (agg, t) => t > 0 ? Math.round(agg.sw / t * 100) : null },
-    { label: "見逃し率",     calc: (agg, t) => t > 0 ? Math.round(agg.lo / t * 100) : null },
-  ];
-  const aggOf = (cbsRows) => {
-    const out = {};
-    COUNT_KEYS.forEach(ck => {
-      out[ck] = cbsRows.reduce((acc, p) => {
-        const c = p.cbs[ck];
-        if(!c) return acc;
-        acc.sw += c.sw || 0; acc.lo += c.lo || 0; acc.fo += c.fo || 0;
-        acc.ba += c.ba || 0; acc.ou += c.ou || 0; acc.hi += c.hi || 0;
-        return acc;
-      }, {sw:0, lo:0, fo:0, ba:0, ou:0, hi:0});
-    });
-    return out;
-  };
-  const rateRowsHtml = (aggByCount, totalsByCount, borderColor) => rateSpecs.map(spec => `
-    <tr${borderColor ? ` style="border-left:3px solid ${borderColor}"` : ""}>
-      <td class="count-rate-label">${spec.label}</td>
-      ${COUNT_KEYS.map(ck => {
-        const pct = spec.calc(aggByCount[ck], totalsByCount[ck]);
-        return `<td style="background:${scaleBg(pct, "18,165,178")}">${pct != null ? pct + "%" : "<span class=\"count-cell-empty\">-</span>"}</td>`;
-      }).join("")}
-    </tr>
-  `).join("");
-
-  const overallAgg = aggOf(rows);
-  const perPitchCounts = rows.map(p => {
-    const m = {};
-    COUNT_KEYS.forEach(ck => { m[ck] = (p.cbs[ck] && p.cbs[ck].c) || 0; });
-    return m;
-  });
-
-  const rateTableHtml = `
+  const rateSectionHtml = `
     <div class="count-subtitle" style="margin-top:16px">球種別 ストライク率・空振り率・見逃し率</div>
-    <div class="pmix-scroll">
-      <table class="pmix-table count-rate-table" style="width:${tableWidth}px">
-        ${colgroupHtml}
-        <thead><tr><th>指標</th>${COUNT_KEYS.map(ck => `<th>${ck}</th>`).join("")}</tr></thead>
-        <tbody>
-          <tr class="count-rate-group-row"><td colspan="${COUNT_KEYS.length + 1}">全体</td></tr>
-          ${rateRowsHtml(overallAgg, countTotals, null)}
-          ${rows.map((p,i) => `
-            <tr class="count-rate-group-row">
-              <td colspan="${COUNT_KEYS.length + 1}"><span class="pmix-dot" style="background:${pitchColor(i)}"></span>${escapeHtml(p.name)}</td>
-            </tr>
-            ${rateRowsHtml(aggOf([p]), perPitchCounts[i], pitchColor(i))}
-          `).join("")}
-        </tbody>
-      </table>
-    </div>
+    <div data-count-rate-block>${countRateBlockHtml(rows, countTotals, -1)}</div>
   `;
 
-  return `${label ? `<div class="compare-block-title">${escapeHtml(label)}</div>` : ""}${pitchTableHtml}${rateTableHtml}`;
+  return `${label ? `<div class="compare-block-title">${escapeHtml(label)}</div>` : ""}${pitchTableHtml}${rateSectionHtml}`;
+}
+
+// countPatternTableHtml()で作った1ブロック（全体/対右/対左いずれか1つぶん）内の、
+// 球種選択割合の行クリック→下のストライク率等の内訳切り替えを有効にする。
+// 選手選択時・1軍2軍切り替え時・カウント別配球のタブ切り替え時、いずれもHTMLを差し替えた直後に呼ぶ必要がある。
+function wireCountPatternBlock(blockEl, pitchRows){
+  if(!blockEl) return;
+  const rows = (pitchRows || []).filter(p => p.cbs && Object.keys(p.cbs).length);
+  if(!rows.length) return;
+  const countTotals = {};
+  COUNT_KEYS.forEach(ck => {
+    countTotals[ck] = rows.reduce((s,p) => s + ((p.cbs[ck] && p.cbs[ck].c) || 0), 0);
+  });
+  blockEl.querySelectorAll(".count-pmix-row").forEach(tr => {
+    tr.addEventListener("click", () => {
+      const idx = parseInt(tr.dataset.groupIdx, 10);
+      const rateWrap = blockEl.querySelector("[data-count-rate-block]");
+      if(rateWrap) rateWrap.innerHTML = countRateBlockHtml(rows, countTotals, idx);
+      blockEl.querySelectorAll(".count-pmix-row").forEach(r => r.classList.remove("active"));
+      tr.classList.add("active");
+    });
+  });
 }
 
 // 日本語（全角）と英数字（半角）が混ざった短い文言のセル幅を見積もる。
