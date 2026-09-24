@@ -140,6 +140,17 @@
   .split-table td:first-child, .disc-table td:first-child, .pt-table td:first-child, .pt-band-table td:first-child{ text-align:left; font-weight:700; color:var(--text-bright); }
   .split-table tbody tr:hover, .disc-table tbody tr:hover{ background:rgba(148,163,184,0.05); }
 
+  /* テーブルが画面幅を超える場合の横スクロールラッパー（split-table等、汎用） */
+  .table-scroll{ overflow-x:auto; -webkit-overflow-scrolling:touch; }
+  .split-table{ min-width:640px; }
+
+  /* 横スクロール時も先頭列（球種名・日付など）が見えるようにする固定列 */
+  .pt-table td:first-child, .pt-table th:first-child,
+  .gamelog-table td:first-child, .gamelog-table th:first-child{
+    position:sticky; left:0; background:var(--panel); z-index:1;
+  }
+  .pt-detail td{ position:static; }
+
   /* シーズンタブ（1996年のように複数シーズンある選手のみ表示） */
   .season-tabs{ display:flex; gap:4px; flex-wrap:wrap; margin:10px 0 4px; }
   .season-tab-btn{ border:none; background:var(--panel); color:var(--text-dim); font-size:11px; font-weight:700;
@@ -163,6 +174,19 @@
   .pt-band-table{ font-size:11px; }
   .pt-band-table td:first-child{ color:var(--text-dim); font-weight:400; }
   .pt-band-empty{ color:var(--text-dim); text-align:left !important; padding:6px 0; }
+
+  /* コース別成績グリッド */
+  .cz-controls{ display:flex; gap:8px; margin-bottom:10px; flex-wrap:wrap; }
+  .cz-controls select{ background:var(--panel-alt); color:var(--text-bright); border:1px solid rgba(148,163,184,0.2);
+    border-radius:6px; padding:5px 8px; font-size:11.5px; }
+  .cz-grid-wrap{ display:flex; justify-content:center; overflow-x:auto; -webkit-overflow-scrolling:touch; }
+  .cz-grid-table{ border-collapse:collapse; }
+  .cz-cell{ width:54px; height:44px; text-align:center; vertical-align:middle; padding:0;
+    border:1px solid rgba(255,255,255,0.08); }
+  .cz-cell.cz-in-zone{ border-color:rgba(255,255,255,0.4); }
+  .cz-val{ font-size:12px; font-weight:700; color:var(--text-bright); line-height:1.3; }
+  .cz-sub{ font-size:8.5px; color:var(--text-dim); margin-top:1px; }
+  .cz-note{ font-size:10.5px; color:var(--text-dim); margin-top:8px; }
 
   .defense-note{ font-size:11.5px; color:var(--text-dim); line-height:1.6; }
   .defense-note b{ color:var(--text-bright); }
@@ -762,7 +786,7 @@ function renderSplitTable(seasonObj){
     ["対右投手", seasonObj.splits?.vsR || {}],
     ["対左投手", seasonObj.splits?.vsL || {}],
   ];
-  return `<table class="split-table">
+  return `<div class="table-scroll"><table class="split-table">
     <thead><tr><th>対戦</th><th>打席</th><th>打率</th><th>出塁率</th><th>長打率</th><th>OPS</th><th>本塁打</th><th>K%</th><th>BB%</th></tr></thead>
     <tbody>
       ${rowsDef.map(([label, s]) => `<tr>
@@ -771,7 +795,7 @@ function renderSplitTable(seasonObj){
         <td>${fmt(s.k_pct, 1, "%")}</td><td>${fmt(s.bb_pct, 1, "%")}</td>
       </tr>`).join("")}
     </tbody>
-  </table>`;
+  </table></div>`;
 }
 
 // 球種別テーブル：行クリックでその球種の球速帯別内訳を展開する
@@ -862,6 +886,84 @@ function wirePitchTypeSection(scope){
   });
 }
 
+// ── コース別成績グリッド ──
+// 投手側のヒートマップ（頻度の可視化）とは違い、こちらはセルごとの打撃成績
+// （打率・空振り率等、指標をプルダウンで切り替え）を色の濃淡で表示する。
+const CZ_METRICS = [
+  ["avg", "打率"], ["whiff_pct", "空振り率"], ["chase_pct", "chase%"], ["contact_pct", "contact%"],
+];
+
+function courseZoneCellText(cell, metric){
+  if(!cell || cell[metric] == null) return { text: "-", sub: "" };
+  const text = metric === "avg" ? fmtAvg(cell[metric]) : fmt(cell[metric], 1, "%");
+  return { text, sub: `${cell.pa ?? 0}打席` };
+}
+
+function courseZoneColor(cell, metric, allCells){
+  if(!cell || cell[metric] == null) return "rgba(255,255,255,0.02)";
+  const vals = allCells.filter(c => c && c[metric] != null).map(c => c[metric]);
+  if(vals.length === 0) return "rgba(255,255,255,0.02)";
+  const lo = Math.min(...vals), hi = Math.max(...vals);
+  const t = hi > lo ? (cell[metric] - lo) / (hi - lo) : 0.5;
+  const alpha = (0.08 + t * 0.7).toFixed(2);
+  return `rgba(59,130,246,${alpha})`;
+}
+
+// zoneRowは値が大きいほど「高め」（run.py/run_mlb.pyのcy正規化: +1=高め）。
+// 表の上段に高め、下段に低めを描画するため、visRowは4→0の降順で走査する。
+function renderCourseGrid(list, metric){
+  const byKey = {};
+  (list || []).forEach(c => { byKey[`${c.zoneRow}_${c.zoneCol}`] = c; });
+  const allCells = Object.values(byKey);
+  let html = `<table class="cz-grid-table"><tbody>`;
+  for(let visRow = 4; visRow >= 0; visRow--){
+    html += "<tr>";
+    for(let col = 0; col <= 4; col++){
+      const cell = byKey[`${visRow}_${col}`];
+      const { text, sub } = courseZoneCellText(cell, metric);
+      const bg = courseZoneColor(cell, metric, allCells);
+      const inZoneCell = (col >= 1 && col <= 3 && visRow >= 1 && visRow <= 3);
+      html += `<td class="cz-cell${inZoneCell ? " cz-in-zone" : ""}" style="background:${bg}">
+        <div class="cz-val">${text}</div><div class="cz-sub">${sub}</div>
+      </td>`;
+    }
+    html += "</tr>";
+  }
+  html += "</tbody></table>";
+  return html;
+}
+
+function renderCourseZoneSection(seasonObj){
+  return `
+    <div class="cz-controls">
+      <select class="cz-hand-select">
+        <option value="all">全体</option>
+        <option value="vsR">対右投手</option>
+        <option value="vsL">対左投手</option>
+      </select>
+      <select class="cz-metric-select">
+        ${CZ_METRICS.map(([v, l]) => `<option value="${v}">${escapeHtml(l)}</option>`).join("")}
+      </select>
+    </div>
+    <div class="cz-grid-wrap" data-cz-grid></div>
+    <div class="cz-note">投手視点（中央3×3=ストライクゾーン、+側=外角、上段=高め）。打席数が少ないセルは参考値程度に見てください。</div>
+  `;
+}
+
+function wireCourseZoneSection(scope, seasonObj){
+  const byZone = seasonObj.byCourseZone || { all: [], vsR: [], vsL: [] };
+  const handSel = scope.querySelector(".cz-hand-select");
+  const metricSel = scope.querySelector(".cz-metric-select");
+  const gridWrap = scope.querySelector("[data-cz-grid]");
+  if(!handSel || !metricSel || !gridWrap) return;
+  function redraw(){
+    gridWrap.innerHTML = renderCourseGrid(byZone[handSel.value] || [], metricSel.value);
+  }
+  handSel.addEventListener("change", redraw);
+  metricSel.addEventListener("change", redraw);
+  redraw();
+}
+
 function renderSeasonSummaryTable(seasonsMap, years){
   const rows = years.map(y => {
     const s = (seasonsMap[y] || {}).overall || {};
@@ -871,10 +973,10 @@ function renderSeasonSummaryTable(seasonsMap, years){
       <td>${s.hr ?? "-"}</td><td>${s.rbi ?? "-"}</td><td>${s.sb ?? "-"}</td>
     </tr>`;
   }).join("");
-  return `<table class="split-table">
+  return `<div class="table-scroll"><table class="split-table">
     <thead><tr><th>年度</th><th>試合</th><th>打席</th><th>打率</th><th>出塁率</th><th>長打率</th><th>OPS</th><th>本塁打</th><th>打点</th><th>盗塁</th></tr></thead>
     <tbody>${rows}</tbody>
-  </table>`;
+  </table></div>`;
 }
 
 function renderGameLogSection(seasonsMap, years, seasonObj){
@@ -1007,6 +1109,11 @@ function renderPlayerCard(card, llm){
         ${renderPitchTypeSection(seasonObj)}
       </div>
 
+      <div class="section" data-cz-section>
+        <div class="section-title"><span class="bar"></span><span class="label">コース別成績</span></div>
+        ${renderCourseZoneSection(seasonObj)}
+      </div>
+
       <div class="section section-note">
         <div class="section-title"><span class="bar" style="background:var(--amber)"></span><span class="label">守備・走塁</span></div>
         <div class="defense-note">
@@ -1034,6 +1141,10 @@ function renderPlayerCard(card, llm){
   // 球種別成績：全体/対右/対左トグル＋行クリックでの球速帯展開
   const ptSection = mainContentEl.querySelector("[data-pt-section]");
   if(ptSection) wirePitchTypeSection(ptSection);
+
+  // コース別成績：対戦・指標のプルダウンでグリッドを再描画
+  const czSection = mainContentEl.querySelector("[data-cz-section]");
+  if(czSection) wireCourseZoneSection(czSection, seasonObj);
 
   // 試合ログ：シーズン成績/試合別タブ
   const gamelogSection = mainContentEl.querySelector("[data-gamelog-section]");
