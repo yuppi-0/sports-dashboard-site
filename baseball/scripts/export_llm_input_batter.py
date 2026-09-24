@@ -394,6 +394,40 @@ def compute_batter_rankings(season_rows: list[dict], rank_min_pa: float = RANK_M
     return result
 
 
+RANK_MIN_PA_PITCH_TYPE = 20  # 球種別ランキングの資格打席（シーズン全体のRANK_MIN_PAよりゆるい閾値。
+                              # 特定の1球種だけで100打席に達する打者はほぼいないため）
+
+# (byPitchType内のキー, 高いほど良いか)。打者にとって「良い」方向で統一する
+# （空振り率・chase%は低いほど良いので higher_is_better=False）。
+_PT_RANK_SPECS = [("avg", True), ("whiff_pct", False), ("chase_pct", False)]
+
+
+def compute_pitch_type_rankings(pt_lists_by_player: dict[str, list[dict]],
+                                 rank_min_pa: float = RANK_MIN_PA_PITCH_TYPE) -> dict:
+    """
+    byPitchTypeの1系統（all/vsR/vsLのいずれか）ぶんについて、球種ごとに
+    打率・空振り率・chase%の順位を計算する。
+    pt_lists_by_player: {選手名: build_by_pitch_type()の戻り値（1系統ぶん）}
+    戻り値: {選手名: {球種名: {"avg":{"rank","total"}, "whiff_pct":{...}, "chase_pct":{...}}}}
+    """
+    pools: dict[str, list[tuple[str, dict]]] = {}
+    for name, pt_list in pt_lists_by_player.items():
+        for pt in pt_list:
+            if (pt.get("pa") or 0) < rank_min_pa:
+                continue
+            pools.setdefault(pt.get("pitchType", ""), []).append((name, pt))
+
+    result: dict[str, dict] = {name: {} for name in pt_lists_by_player}
+    for pitch_type, entries in pools.items():
+        for metric, higher_is_better in _PT_RANK_SPECS:
+            valid = [(name, pt[metric]) for name, pt in entries if pt.get(metric) is not None]
+            valid.sort(key=lambda x: -x[1] if higher_is_better else x[1])
+            total = len(valid)
+            for rank, (name, _) in enumerate(valid, start=1):
+                result[name].setdefault(pitch_type, {})[metric] = {"rank": rank, "total": total}
+    return result
+
+
 def classify_batter_categories(card: dict) -> list:
     """通算成績から、選手一覧で絞り込みに使えるカテゴリタグを機械的に組み立てる"""
     cats = []
@@ -413,6 +447,82 @@ def _slugify_name(name: str) -> str:
     """選手名からファイル名用のIDを作る（英数字以外はアンダースコアに置換）"""
     s = re.sub(r"[^\w]+", "_", name.strip().lower())
     return s.strip("_") or "unknown"
+
+
+def load_mlb_defense_cache(path: str) -> dict:
+    """
+    run_mlb.py の --steps defense が出力する中間キャッシュxlsx（"OAA"/"SprintSpeed"/
+    "CatcherPoptime"シート）を読み、正規化した選手名をキーに守備・走塁指標を返す。
+    戻り値: {正規化した選手名: {"oaa":[...], "sprint_speed":float|None, "poptime":{...}|None}}
+
+    - OAAシートは選手が複数ポジションでプレーしていると複数行に分かれるため、リストで持つ
+      （合計値を1つに潰すと「どのポジションでの数値か」が失われるため）。
+    - poptimeは捕手のみ該当（それ以外の選手は該当行が無いのでNoneのまま）。
+    - 読み込みに失敗した場合は空dictを返す（呼び出し側は defense が従来通りnullになるだけで、
+      パイプライン全体は止めない）。
+    """
+    result: dict = {}
+    if not path or not os.path.isfile(path):
+        return result
+    try:
+        wb = pd.ExcelFile(path)
+    except Exception as e:
+        print(f"  [WARN] 守備・走塁キャッシュの読み込みに失敗しました（{path}）: {e}")
+        return result
+
+    def _entry(name):
+        key = _normalize_name(name).lower()
+        return result.setdefault(key, {
+            "oaa": [], "sprint_speed": None, "framing": None, "poptime": None,
+        })
+
+    if "OAA" in wb.sheet_names:
+        for _, r in wb.parse("OAA").iterrows():
+            name = r.get("name")
+            if not name or (isinstance(name, float) and pd.isna(name)):
+                continue
+            _entry(name)["oaa"].append({
+                "pos": r.get("pos"),
+                "outs_above_average": None if pd.isna(r.get("outs_above_average")) else int(r.get("outs_above_average")),
+                "fielding_runs_prevented": None if pd.isna(r.get("fielding_runs_prevented")) else int(r.get("fielding_runs_prevented")),
+                "actual_success_rate": None if pd.isna(r.get("actual_success_rate")) else float(r.get("actual_success_rate")),
+            })
+
+    if "SprintSpeed" in wb.sheet_names:
+        for _, r in wb.parse("SprintSpeed").iterrows():
+            name = r.get("name")
+            if not name or (isinstance(name, float) and pd.isna(name)):
+                continue
+            v = r.get("sprint_speed")
+            _entry(name)["sprint_speed"] = None if pd.isna(v) else float(v)
+
+    # run_mlb.py の fetch_catcher_framing() / fetch_catcher_poptime() は、Statcastの生の列名
+    # ではなく簡略化した列名（framing_runs/framing_pct、arm_strength/exchange_time/pop_2b/pop_3b等）
+    # で既にxlsxに書き出している。ここではその簡略化後の列名をそのまま読む。
+    if "CatcherFraming" in wb.sheet_names:
+        for _, r in wb.parse("CatcherFraming").iterrows():
+            name = r.get("name")
+            if not name or (isinstance(name, float) and pd.isna(name)):
+                continue
+            _entry(name)["framing"] = {
+                "pitches": None if pd.isna(r.get("pitches")) else int(r.get("pitches")),
+                "framing_runs": None if pd.isna(r.get("framing_runs")) else float(r.get("framing_runs")),
+                "framing_pct": None if pd.isna(r.get("framing_pct")) else float(r.get("framing_pct")),
+            }
+
+    if "CatcherPoptime" in wb.sheet_names:
+        for _, r in wb.parse("CatcherPoptime").iterrows():
+            name = r.get("name")
+            if not name or (isinstance(name, float) and pd.isna(name)):
+                continue
+            _entry(name)["poptime"] = {
+                "arm_strength": None if pd.isna(r.get("arm_strength")) else float(r.get("arm_strength")),
+                "exchange_time": None if pd.isna(r.get("exchange_time")) else float(r.get("exchange_time")),
+                "pop_2b": None if pd.isna(r.get("pop_2b")) else float(r.get("pop_2b")),
+                "pop_3b": None if pd.isna(r.get("pop_3b")) else float(r.get("pop_3b")),
+            }
+
+    return result
 
 
 def determine_season_year(all_data: dict) -> str:
@@ -445,12 +555,20 @@ def _to_stat_obj(s: dict) -> dict:
 
 def export_llm_input_batter_xlsx(games_json_dir: str, out_path: str, min_pa: float = 0.0,
                                   target_names: list[str] | None = None,
-                                  numeric_json_dir: str | None = None) -> str:
+                                  numeric_json_dir: str | None = None,
+                                  mlb_defense_xlsx: str | None = None) -> str:
     """
     numeric_json_dir を指定すると、xlsxに加えて選手ごとの数値データJSON
     （batter_cards_numeric/{選手ID}.json）と選手一覧 index.json も書き出す。
     これらはbatter-cards.html側がそのまま読み込む「数値だけ」のデータ。
+
+    mlb_defense_xlsx: run_mlb.py の --steps defense が出力する守備OAA・
+    スプリントスピードの中間キャッシュxlsx（"OAA"/"SprintSpeed"シート）。
+    指定すると、名前が一致する選手の numeric_json の defense.oaa / defense.sprint_speed
+    を埋める（MLBのみ。NPBでは通常この引数を渡さないのでNoneのまま＝従来通り）。
     """
+    defense_cache = load_mlb_defense_cache(mlb_defense_xlsx) if mlb_defense_xlsx else {}
+
     all_data = load_daily_games(games_json_dir)
     names = set(target_names) if target_names else build_all_batter_names(all_data)
     season_year = determine_season_year(all_data)
@@ -503,6 +621,7 @@ def export_llm_input_batter_xlsx(games_json_dir: str, out_path: str, min_pa: flo
                 sb_success_pct = (
                     round(sb_n / (sb_n + cs) * 100, 1) if cs is not None and (sb_n + cs) > 0 else None
                 )
+                defense_entry = defense_cache.get(_normalize_name(name).lower(), {})
                 numeric_cards[name] = {
                     "team": team, "pos": pos,
                     "overall": _to_stat_obj(season),
@@ -518,6 +637,12 @@ def export_llm_input_batter_xlsx(games_json_dir: str, out_path: str, min_pa: flo
                         # 正しく特定して集計する。NPBの打者エントリには"cs"が無いためNoneのまま）。
                         "cs": cs,
                         "sb_success_pct": sb_success_pct,
+                        # 以下はMLBのみ、run_mlb.py --steps defense のキャッシュ(mlb_defense_xlsx)が
+                        # 渡された場合にだけ埋まる。無ければ全てNone/空リストのまま。
+                        "oaa": defense_entry.get("oaa", []),
+                        "sprint_speed": defense_entry.get("sprint_speed"),
+                        "catcher_framing": defense_entry.get("framing"),
+                        "catcher_poptime": defense_entry.get("poptime"),
                     },
                     # rankingsはこの後、全選手分揃ってから付与する
                 }
@@ -531,6 +656,18 @@ def export_llm_input_batter_xlsx(games_json_dir: str, out_path: str, min_pa: flo
         for jp_key, out_key, _ in _RANK_SPECS:
             row[f"{jp_key}_順位"] = rk.get(out_key, {}).get("rank")
             row[f"{jp_key}_順位_母数"] = rk.get(out_key, {}).get("total")
+
+    # 球種別ランキング（all/vsR/vsLそれぞれ独立した母集団で計算し、対応するbyPitchType
+    # の各球種オブジェクトに rankings として付与する）
+    for population in ("all", "vsR", "vsL"):
+        pt_lists_by_player = {
+            name: (card["byPitchType"].get(population) or [])
+            for name, card in numeric_cards.items()
+        }
+        pt_rankings = compute_pitch_type_rankings(pt_lists_by_player)
+        for name, card in numeric_cards.items():
+            for pt in (card["byPitchType"].get(population) or []):
+                pt["rankings"] = pt_rankings.get(name, {}).get(pt.get("pitchType", ""), {})
 
     out_dir = os.path.dirname(out_path)
     if out_dir:
@@ -625,6 +762,8 @@ def parse_args():
     p.add_argument("--players", nargs="*", default=None, help="対象選手名を絞り込む場合はスペース区切りで指定（省略時は全打者）")
     p.add_argument("--numeric-json-dir", default=None,
                     help="指定すると、選手ごとの数値データJSON（batter_cards_numeric/配下）とindex.jsonも出力する")
+    p.add_argument("--mlb-defense-xlsx", default=None,
+                    help="run_mlb.pyの--steps defenseが出力する守備OAA・走塁スプリントスピードの中間キャッシュxlsxのパス（MLBのみ）")
     return p.parse_args()
 
 
@@ -636,5 +775,6 @@ if __name__ == "__main__":
         min_pa=args.min_pa,
         target_names=args.players,
         numeric_json_dir=args.numeric_json_dir,
+        mlb_defense_xlsx=args.mlb_defense_xlsx,
     )
     print(f"✅ 出力完了: {out}")

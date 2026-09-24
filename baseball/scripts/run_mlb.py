@@ -51,6 +51,7 @@
 # ==================================================
 import sys
 import os
+import io
 import json
 import math
 import logging
@@ -64,7 +65,11 @@ _SCRIPT_DIR = Path(__file__).resolve().parent.parent
 import numpy as np
 import pandas as pd
 import datetime
-from pybaseball import statcast, playerid_reverse_lookup
+import requests
+from pybaseball import (
+    statcast, playerid_reverse_lookup, statcast_outs_above_average,
+    statcast_sprint_speed, statcast_catcher_poptime,
+)
 import openpyxl
 
 # LLM入力用xlsx生成（選手詳細カード用のシーズン集計・球種別・コース分布・カウント別パターン）
@@ -2033,6 +2038,193 @@ def build_game_pitch_mix_lr(df: pd.DataFrame) -> pd.DataFrame:
 # Section 17. games datamart
 # ==================================================
 
+# ==================================================
+# Section X. 守備OAA・走塁スプリントスピード（シーズン単位のリーダーボード）
+# ==================================================
+# statcast_outs_above_average / statcast_sprint_speed は「そのシーズン全体」を
+# 1回で返すリーダーボードで、日別のgames/pitch取得とは性質が違う（毎日叩く意味が薄い）。
+# そのため独立したステップ（--steps defense）にし、games/pitch/highlights/datamartの
+# 自動連鎖（all）には含めない。取得結果は数値JSON(batter_cards_numeric/)を直接
+# 書き換えず、中間キャッシュのxlsxとして保存する（NPB側のpitchSplitsと同じ考え方で、
+# 最終的な組み立てはexport_llm_input_batter.py側に一本化する）。
+#
+# 捕手（pos=2）はこのOAAリーダーボードの対象外（pybaseball側でValueErrorになる）。
+# 捕手の守備指標はFraming/Pop Timeという別体系のため、fetch_catcher_framing()/
+# fetch_catcher_poptime()で別途取得する（下記参照）。
+# なお statcast_catcher_framing() はpybaseball 2.2.7時点でBaseball Savant側の
+# URL変更（/catcher_framing → /leaderboard/catcher-framing、csv=trueが引き継がれず
+# HTMLが返る）に未対応で壊れているため、fetch_catcher_framing()は新URLへ直接
+# requestsでアクセスする自前実装にしている。
+
+OAA_POSITIONS = {3: "1B", 4: "2B", 5: "3B", 6: "SS", 7: "LF", 8: "CF", 9: "RF"}
+
+
+def _parse_pct(v) -> float | None:
+    """"86%" のような文字列パーセントをfloatに変換する。数値ならそのまま。変換できなければNone。"""
+    if v is None:
+        return None
+    if isinstance(v, (int, float)):
+        return float(v) if not (isinstance(v, float) and math.isnan(v)) else None
+    s = str(v).strip().rstrip("%")
+    try:
+        return float(s)
+    except (ValueError, TypeError):
+        return None
+
+
+_SAVANT_HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+                  "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+}
+
+
+def fetch_catcher_framing(year: int) -> pd.DataFrame:
+    """
+    捕手フレーミング（シーズンのフレーミング総合評価＋ストライクゾーン外周8ゾーン別の内訳）。
+
+    [経緯] pybaseballの statcast_catcher_framing() は、Baseball Savant側のURL構造が
+    /catcher_framing → /leaderboard/catcher-framing に変更されたことで壊れている
+    （リダイレクトは通るがcsv=trueパラメータが引き継がれず、CSVの代わりにHTMLページが
+    返ってくる）。pybaseball側の更新を待たず、新URLに直接csv=trueを付けて取得する。
+
+    戻り値の列: name("Last, First"), player_id, pitches(判定対象球数),
+               framing_runs(総合フレーミング価値=rv_tot), framing_pct(=pct_tot)
+    """
+    url = (
+        "https://baseballsavant.mlb.com/leaderboard/catcher-framing"
+        f"?type=catcher&seasonStart={year}&seasonEnd={year}&team=&min=q"
+        "&sortColumn=rv_tot&sortDirection=desc&csv=true"
+    )
+    try:
+        res = requests.get(url, headers=_SAVANT_HEADERS, timeout=30)
+        text = res.content.decode("utf-8")
+        if not text.strip() or text.lstrip().startswith("<"):
+            print(f"  [WARN] 捕手フレーミング取得: CSVではなくHTMLが返ってきました（サイト仕様変更の可能性）。スキップします")
+            return pd.DataFrame(columns=["name", "player_id", "pitches", "framing_runs", "framing_pct"])
+        df = pd.read_csv(io.StringIO(text), engine="python", on_bad_lines="skip")
+    except Exception as e:
+        print(f"  [WARN] 捕手フレーミング取得失敗: {e}")
+        return pd.DataFrame(columns=["name", "player_id", "pitches", "framing_runs", "framing_pct"])
+
+    rows = []
+    for _, r in df.iterrows():
+        rows.append({
+            "name": r.get("name", ""),
+            "player_id": r.get("id"),
+            "pitches": r.get("pitches"),
+            "framing_runs": r.get("rv_tot"),
+            "framing_pct": r.get("pct_tot"),
+        })
+    return pd.DataFrame(rows, columns=["name", "player_id", "pitches", "framing_runs", "framing_pct"])
+
+
+def fetch_catcher_poptime(year: int) -> pd.DataFrame:
+    """捕手のPop Time・送球強度（二塁送球中心。statcast_catcher_poptimeは実データで動作確認済み）。
+    戻り値の列: name, player_id, arm_strength(maxeff_arm_2b_3b_sba),
+               exchange_time(exchange_2b_3b_sba), pop_2b(pop_2b_sba), pop_3b(pop_3b_sba)"""
+    try:
+        df = statcast_catcher_poptime(year)
+    except Exception as e:
+        print(f"  [WARN] 捕手Pop Time取得失敗: {e}")
+        return pd.DataFrame(columns=["name", "player_id", "arm_strength", "exchange_time", "pop_2b", "pop_3b"])
+    if df is None or df.empty:
+        return pd.DataFrame(columns=["name", "player_id", "arm_strength", "exchange_time", "pop_2b", "pop_3b"])
+
+    rows = []
+    for _, r in df.iterrows():
+        rows.append({
+            "name": r.get("entity_name", ""),
+            "player_id": r.get("entity_id"),
+            "arm_strength": r.get("maxeff_arm_2b_3b_sba"),
+            "exchange_time": r.get("exchange_2b_3b_sba"),
+            "pop_2b": r.get("pop_2b_sba"),
+            "pop_3b": r.get("pop_3b_sba"),
+        })
+    return pd.DataFrame(rows, columns=["name", "player_id", "arm_strength", "exchange_time", "pop_2b", "pop_3b"])
+
+
+def fetch_mlb_defense_season(year: int) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """
+    シーズンの守備OAA（内野・外野、ポジション別）とスプリントスピードを取得する。
+    戻り値: (oaa_df, sprint_df)。どちらも列 "name"（"Last, First"形式）・"player_id"(MLBAM ID)を含む。
+
+    oaa_df の列: name, player_id, team, pos, outs_above_average,
+                 fielding_runs_prevented, actual_success_rate
+    sprint_df の列: name, player_id, team, position, sprint_speed
+    """
+    oaa_rows = []
+    for pos_num, pos_label in OAA_POSITIONS.items():
+        try:
+            print(f"  OAA取得: {pos_label} (pos={pos_num})")
+            df = statcast_outs_above_average(year, pos_num)
+        except Exception as e:
+            print(f"  [WARN] OAA取得失敗 pos={pos_num}({pos_label}): {e}")
+            continue
+        if df is None or df.empty:
+            continue
+        for _, r in df.iterrows():
+            oaa_rows.append({
+                "name": r.get("last_name, first_name", ""),
+                "player_id": r.get("player_id"),
+                "team": r.get("display_team_name", ""),
+                "pos": pos_label,
+                "outs_above_average": r.get("outs_above_average"),
+                "fielding_runs_prevented": r.get("fielding_runs_prevented"),
+                "actual_success_rate": _parse_pct(r.get("actual_success_rate_formatted")),
+            })
+    oaa_df = pd.DataFrame(oaa_rows, columns=[
+        "name", "player_id", "team", "pos",
+        "outs_above_average", "fielding_runs_prevented", "actual_success_rate",
+    ])
+
+    sprint_rows = []
+    try:
+        print(f"  スプリントスピード取得: {year}年")
+        sdf = statcast_sprint_speed(year)
+        if sdf is not None and not sdf.empty:
+            for _, r in sdf.iterrows():
+                sprint_rows.append({
+                    "name": r.get("last_name, first_name", ""),
+                    "player_id": r.get("player_id"),
+                    "team": r.get("team", ""),
+                    "position": r.get("position", ""),
+                    "sprint_speed": r.get("sprint_speed"),
+                })
+    except Exception as e:
+        print(f"  [WARN] スプリントスピード取得失敗: {e}")
+    sprint_df = pd.DataFrame(sprint_rows, columns=["name", "player_id", "team", "position", "sprint_speed"])
+
+    return oaa_df, sprint_df
+
+
+def defense_cache_path(year, game_type: str) -> str:
+    """OAA/スプリントスピードの中間キャッシュxlsxのパス（年・試合種別ごとに1ファイル）"""
+    return os.path.join(BASE_DATA_DIR, f"{year}年", game_type, "defense", f"{year}_defense.xlsx")
+
+
+def run_defense_season(year, game_type: str) -> str:
+    """守備OAA・スプリントスピード・捕手フレーミング/Pop Timeを取得し、中間キャッシュxlsxとして保存する"""
+    oaa_df, sprint_df = fetch_mlb_defense_season(int(year))
+    print(f"  捕手フレーミング取得: {year}年")
+    framing_df = fetch_catcher_framing(int(year))
+    print(f"  捕手Pop Time取得: {year}年")
+    poptime_df = fetch_catcher_poptime(int(year))
+
+    out_path = defense_cache_path(year, game_type)
+    os.makedirs(os.path.dirname(out_path), exist_ok=True)
+    with pd.ExcelWriter(out_path, engine="openpyxl") as writer:
+        (oaa_df if not oaa_df.empty else pd.DataFrame(columns=oaa_df.columns)).to_excel(writer, sheet_name="OAA", index=False)
+        (sprint_df if not sprint_df.empty else pd.DataFrame(columns=sprint_df.columns)).to_excel(writer, sheet_name="SprintSpeed", index=False)
+        (framing_df if not framing_df.empty else pd.DataFrame(columns=framing_df.columns)).to_excel(writer, sheet_name="CatcherFraming", index=False)
+        (poptime_df if not poptime_df.empty else pd.DataFrame(columns=poptime_df.columns)).to_excel(writer, sheet_name="CatcherPoptime", index=False)
+    print(
+        f"  ✓ 守備・走塁キャッシュ: {out_path} "
+        f"(OAA {len(oaa_df)}行 / SprintSpeed {len(sprint_df)}行 / "
+        f"CatcherFraming {len(framing_df)}行 / CatcherPoptime {len(poptime_df)}行)"
+    )
+    return out_path
+
+
 def run_games_datamart(
     df: pd.DataFrame,
     date: str,
@@ -2909,8 +3101,12 @@ def main():
             "             export_llm_input.pyだけ直した時などに使う）\n"
             "  batter_llm_input  打者版LLM入力xlsx・数値JSON(batter_cards_numeric)だけ再生成\n"
             "             （llm_inputと同様、Statcastは再取得せず既存データから作り直す）\n"
+            "  defense    守備OAA・走塁スプリントスピードを取得（シーズン単位のリーダーボード。\n"
+            "             日別のStatcastとは別物なので--dateの日数ぶん繰り返さず1回だけ実行する。\n"
+            "             毎日叩く意味が薄いデータなのでallには含まれない。明示的に指定した時だけ実行）\n"
             "  例) --steps games highlights\n"
-            "  例) --steps llm_input"
+            "  例) --steps llm_input\n"
+            "  例) --steps defense"
         ),
     )
     parser.add_argument(
@@ -2971,6 +3167,11 @@ def main():
     if args.skip_batter_llm_input and "batter_llm_input" not in raw_steps:
         run_batter_llm_input = False
 
+    # defense（守備OAA・走塁スプリントスピード）はシーズン単位のリーダーボード取得のため、
+    # games/highlights/datamart/all の自動連鎖には含めない。明示的に --steps defense
+    # と指定した時だけ実行する（毎日叩く意味が薄いデータのため）。
+    run_defense = "defense" in raw_steps
+
     label = date_list[0] if len(date_list)==1 else f"{date_list[0]} 〜 {date_list[-1]}"
     # ステップ名を日本語に
     STEP_NAMES = {
@@ -2979,6 +3180,7 @@ def main():
         "datamart":   "datamart再生成 → JSON",
         "llm_input":  "LLM入力xlsx・数値JSON再生成のみ",
         "batter_llm_input": "打者版LLM入力xlsx・数値JSON再生成のみ",
+        "defense":    "守備OAA・走塁スプリントスピード取得（シーズン単位）",
         "all":        "全ステップ",
     }
     steps_label = " → ".join(STEP_NAMES.get(s, s) for s in raw_steps)
@@ -2990,6 +3192,18 @@ def main():
     print("=" * 55)
 
     results = {}
+
+    # ── defense（守備OAA・走塁スプリントスピード）: シーズン単位のため日付ループの外で1回だけ ──
+    if run_defense:
+        year = date_list[0][:4]
+        print(f"\n--- {STEP_NAMES['defense']} ({year}年) ---")
+        try:
+            defense_path = run_defense_season(year, args.game_type)
+            results["defense"] = defense_path
+        except Exception as e:
+            import traceback
+            print(f"  [WARN] 守備・走塁データ取得失敗: {e}")
+            traceback.print_exc()
 
     # ── 日付ループ ──
     for date in date_list:
@@ -3083,10 +3297,16 @@ def main():
             # 数値JSON（batter_cards_numeric）は batter-cards.html が直接fetchするので、
             # 非公開のBASE_DATA_DIRではなく公開側のBASE_PUBLIC_DIRに出力する（pitcher_cards_numericと同じ置き方）
             batter_numeric_json_dir = os.path.join(BASE_PUBLIC_DIR, f"{year}年", args.game_type, "batter_cards_numeric")
+            # --steps defense で作った守備OAA・スプリントスピードのキャッシュがあれば読み込ませる
+            # （無ければNoneのまま渡す。export_llm_input_batter.py側は無い場合は従来通りdefenseがnullになるだけ）
+            defense_xlsx = defense_cache_path(year, args.game_type)
+            if not os.path.exists(defense_xlsx):
+                defense_xlsx = None
             export_llm_input_batter_xlsx(
                 games_json_dir=GAMES_JSON_DIR,
                 out_path=path_batter_llm_input,
                 numeric_json_dir=batter_numeric_json_dir,
+                mlb_defense_xlsx=defense_xlsx,
             )
             print(f"  完了: {path_batter_llm_input}")
             print(f"  数値JSON: {batter_numeric_json_dir}")
