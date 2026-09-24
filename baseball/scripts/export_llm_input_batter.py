@@ -102,6 +102,22 @@ def velo_band_label(pitch_code: str, velo) -> str | None:
     return None
 
 
+# コースゾーンの5x5(25分割)グリッド境界（run.py・run_mlb.py共有）。
+# 投手側の座標ヒートマップ（pitcher-cards.htmlのhmBuildGridHtml/edges25）と同じ境界。
+# ZONE=1.0がストライクゾーンの端、OUTER=1.67がそこからさらに外側の「際どいボール球」の端。
+# NPB（run.py）はコース(Left)/コース(Top)から、MLB（run_mlb.py）はplate_x/plate_zから、
+# それぞれこの共通の[-1,1]正規化空間に変換したcx/cyをこのグリッドで判定する。
+COURSE_ZONE_EDGES = [-1.67, -1.0, -1.0 / 3, 1.0 / 3, 1.0, 1.67]
+
+
+def hm_get_cell(v: float, edges: list = COURSE_ZONE_EDGES) -> int:
+    """pitcher-cards.htmlのhmGetCell()と同じ二分探索無しの線形版（Python移植）"""
+    for i in range(len(edges) - 1):
+        if edges[i] <= v < edges[i + 1]:
+            return i
+    return 0 if v < edges[0] else len(edges) - 2
+
+
 # ==================================================
 # Section 1. 打者名収集・appearances構築
 # ==================================================
@@ -332,6 +348,157 @@ def build_pitch_type_breakdown(appearances: list[dict]) -> dict:
 
 
 # ==================================================
+# Section 2c. コースゾーン別集計（5x5=25分割、対左右投手の3系統: all/vsR/vsL）
+# ==================================================
+# 元データは run.py（NPB）・run_mlb.py（MLB）が日別JSONの各打者エントリに付与する
+# "courseSplits"（試合×コースゾーン(行・列)×対戦投手利き腕、で事前集計済みのリスト）。
+# ゾーンの行・列は投手側の座標ヒートマップ（pitcher-cards.htmlのhmBuildGridHtml/hmGetCell）
+# と同じ5x5グリッド・同じ正規化式を使っており、x軸は打者自身の利き手で反転済み
+# （+側=常に外角）。NPBは コース(Left)/コース(Top)、MLBはStatcastのplate_x/plate_zから、
+# それぞれ同じ[-1,1]正規化空間に変換してからグリッド判定しているため、リーグ間でも
+# ゾーンの意味は揃っている。
+
+def build_by_course_zone(appearances: list[dict], hand_filter: str | None = None) -> list[dict]:
+    """
+    appearancesからbyCourseZone（all/vsR/vsLのうち1系統ぶん）を組み立てる。
+    _agg_pitch_group()をそのまま流用する（courseSplitsのエントリはpitchSplitsと
+    同じキー構成 n/pa/ab/h_/sw/ws/z/oz/zsw/ozsw を持つため）。
+    """
+    entries: list[dict] = []
+    for ap in appearances:
+        p = ap.get("player")
+        if not isinstance(p, dict):
+            continue
+        for e in (p.get("courseSplits") or []):
+            if hand_filter and e.get("h") != hand_filter:
+                continue
+            entries.append(e)
+
+    by_cell: dict[tuple, list[dict]] = {}
+    for e in entries:
+        key = (e.get("row"), e.get("col"))
+        by_cell.setdefault(key, []).append(e)
+
+    result = []
+    for (row, col), cell_entries in by_cell.items():
+        if row is None or col is None:
+            continue
+        stats = _agg_pitch_group(cell_entries)
+        stats["zoneRow"] = row
+        stats["zoneCol"] = col
+        result.append(stats)
+
+    result.sort(key=lambda r: (r["zoneRow"], r["zoneCol"]))
+    return result
+
+
+def build_course_zone_breakdown(appearances: list[dict]) -> dict:
+    """byCourseZoneの3系統（all/vsR/vsL）をまとめて返す"""
+    return {
+        "all": build_by_course_zone(appearances),
+        "vsR": build_by_course_zone(appearances, hand_filter="R"),
+        "vsL": build_by_course_zone(appearances, hand_filter="L"),
+    }
+
+
+# ==================================================
+# Section 2d. カウント別集計（対左右投手の3系統: all/vsR/vsL）
+# ==================================================
+# 元データは run.py（NPB）・run_mlb.py（MLB）が日別JSONの各打者エントリに付与する
+# "countSplits"（試合×カウント("{balls}-{strikes}")×対戦投手利き腕、で事前集計済みの
+# リスト）。その球を最終球として受けた打席の結果を、そのカウントに紐付けている
+# （打席途中の同じカウントでの見送り・ファウル等はスイング/空振り集計にのみ反映される）。
+
+def build_by_count(appearances: list[dict], hand_filter: str | None = None) -> list[dict]:
+    """appearancesからbyCount（all/vsR/vsLのうち1系統ぶん）を組み立てる"""
+    entries: list[dict] = []
+    for ap in appearances:
+        p = ap.get("player")
+        if not isinstance(p, dict):
+            continue
+        for e in (p.get("countSplits") or []):
+            if hand_filter and e.get("h") != hand_filter:
+                continue
+            entries.append(e)
+
+    by_count: dict[str, list[dict]] = {}
+    for e in entries:
+        by_count.setdefault(e.get("count", ""), []).append(e)
+
+    result = []
+    for count_key, count_entries in by_count.items():
+        stats = _agg_pitch_group(count_entries)
+        stats["count"] = count_key
+        result.append(stats)
+
+    # カウントを見やすい順（0-0, 0-1, ..., 3-2）に並べる
+    def _count_sort_key(r):
+        try:
+            b, s = r["count"].split("-")
+            return (int(b), int(s))
+        except (ValueError, AttributeError):
+            return (99, 99)
+    result.sort(key=_count_sort_key)
+    return result
+
+
+def build_count_breakdown(appearances: list[dict]) -> dict:
+    """byCountの3系統（all/vsR/vsL）をまとめて返す"""
+    return {
+        "all": build_by_count(appearances),
+        "vsR": build_by_count(appearances, hand_filter="R"),
+        "vsL": build_by_count(appearances, hand_filter="L"),
+    }
+
+
+# ==================================================
+# Section 2e. ランナー状況別集計（対左右投手の3系統: all/vsR/vsL）
+# ==================================================
+# 元データは run_mlb.py が日別JSONの各打者エントリに付与する"situationSplits"
+# （試合×ランナー状況（走者なし/1塁/2塁/3塁/1・2塁/1・3塁/2・3塁/満塁）×対戦投手利き腕、
+# で事前集計済みのリスト）。get_on_base_situation()による8状態の判定をそのまま使う。
+# NPB側（run.py）は現状、生データにランナー状況の情報が含まれていないため未対応
+# （situationSplitsを出力しない＝NPBではbySituationは空になる）。
+
+def build_by_situation(appearances: list[dict], hand_filter: str | None = None) -> list[dict]:
+    """appearancesからbySituation（all/vsR/vsLのうち1系統ぶん）を組み立てる"""
+    entries: list[dict] = []
+    for ap in appearances:
+        p = ap.get("player")
+        if not isinstance(p, dict):
+            continue
+        for e in (p.get("situationSplits") or []):
+            if hand_filter and e.get("h") != hand_filter:
+                continue
+            entries.append(e)
+
+    by_situation: dict[str, list[dict]] = {}
+    for e in entries:
+        by_situation.setdefault(e.get("situation", ""), []).append(e)
+
+    result = []
+    for situation_key, situation_entries in by_situation.items():
+        stats = _agg_pitch_group(situation_entries)
+        stats["situation"] = situation_key
+        result.append(stats)
+
+    # 表示順を「走者なし→1塁→2塁→3塁→1・2塁→1・3塁→2・3塁→満塁」に揃える
+    _SITUATION_ORDER = ["走者なし", "走者1塁", "走者2塁", "走者3塁",
+                         "走者1・2塁", "走者1・3塁", "走者2・3塁", "満塁"]
+    result.sort(key=lambda r: _SITUATION_ORDER.index(r["situation"]) if r["situation"] in _SITUATION_ORDER else 99)
+    return result
+
+
+def build_situation_breakdown(appearances: list[dict]) -> dict:
+    """bySituationの3系統（all/vsR/vsL）をまとめて返す"""
+    return {
+        "all": build_by_situation(appearances),
+        "vsR": build_by_situation(appearances, hand_filter="R"),
+        "vsL": build_by_situation(appearances, hand_filter="L"),
+    }
+
+
+# ==================================================
 # Section 3. 試合ログ
 # ==================================================
 
@@ -425,6 +592,34 @@ def compute_pitch_type_rankings(pt_lists_by_player: dict[str, list[dict]],
             total = len(valid)
             for rank, (name, _) in enumerate(valid, start=1):
                 result[name].setdefault(pitch_type, {})[metric] = {"rank": rank, "total": total}
+    return result
+
+
+def compute_defense_rankings(oaa_by_player: dict[str, list[dict]]) -> dict:
+    """
+    守備OAA（outs_above_average）を、同じポジションでプレーした選手同士だけで
+    比較して順位を付ける（ポジションによって守備機会・難易度が全く違うため、
+    全選手一律で比較するのは意味がない。ポジションごとに独立した母集団で順位付けする）。
+
+    oaa_by_player: {選手名: card["defense"]["oaa"]のリスト（各要素は{"pos":..,"outs_above_average":..,...}）}
+    戻り値: {選手名: {ポジション名: {"rank": n, "total": m}}}
+    """
+    pools: dict[str, list[tuple[str, float]]] = {}
+    for name, oaa_list in oaa_by_player.items():
+        for entry in (oaa_list or []):
+            pos = entry.get("pos")
+            val = entry.get("outs_above_average")
+            if pos is None or val is None:
+                continue
+            pools.setdefault(pos, []).append((name, val))
+
+    result: dict[str, dict] = {name: {} for name in oaa_by_player}
+    for pos, entries in pools.items():
+        # outs_above_averageは高いほど良い（他球種別ランキングと同じ「高いほど良い」に統一）
+        valid = sorted(entries, key=lambda x: -x[1])
+        total = len(valid)
+        for rank, (name, _) in enumerate(valid, start=1):
+            result[name][pos] = {"rank": rank, "total": total}
     return result
 
 
@@ -627,6 +822,9 @@ def export_llm_input_batter_xlsx(games_json_dir: str, out_path: str, min_pa: flo
                     "overall": _to_stat_obj(season),
                     "splits": {"vsR": _to_stat_obj(vs_r), "vsL": _to_stat_obj(vs_l)},
                     "byPitchType": build_pitch_type_breakdown(appearances),
+                    "byCourseZone": build_course_zone_breakdown(appearances),
+                    "byCount": build_count_breakdown(appearances),
+                    "bySituation": build_situation_breakdown(appearances),
                     "game_log": game_log_dicts,
                     "defense": {
                         # 守備率・レンジファクターは、現状のrun.py/run_mlb.pyに守備成績の
@@ -668,6 +866,13 @@ def export_llm_input_batter_xlsx(games_json_dir: str, out_path: str, min_pa: flo
         for name, card in numeric_cards.items():
             for pt in (card["byPitchType"].get(population) or []):
                 pt["rankings"] = pt_rankings.get(name, {}).get(pt.get("pitchType", ""), {})
+
+    # 守備OAAのポジション別ランキング（KPI表示用。同じポジションの選手同士だけで比較する）
+    oaa_by_player = {name: card["defense"].get("oaa", []) for name, card in numeric_cards.items()}
+    defense_rankings = compute_defense_rankings(oaa_by_player)
+    for name, card in numeric_cards.items():
+        for entry in card["defense"].get("oaa", []):
+            entry["rank"] = defense_rankings.get(name, {}).get(entry.get("pos"), {})
 
     out_dir = os.path.dirname(out_path)
     if out_dir:

@@ -74,7 +74,10 @@ import openpyxl
 
 # LLM入力用xlsx生成（選手詳細カード用のシーズン集計・球種別・コース分布・カウント別パターン）
 from export_llm_input import export_llm_input_xlsx
-from export_llm_input_batter import export_llm_input_batter_xlsx, PITCH_VELO_BANDS, velo_band_label
+from export_llm_input_batter import (
+    export_llm_input_batter_xlsx, PITCH_VELO_BANDS, velo_band_label,
+    COURSE_ZONE_EDGES, hm_get_cell,
+)
 from openpyxl.styles import PatternFill, Font, Alignment
 from openpyxl.utils import get_column_letter
 
@@ -2265,6 +2268,9 @@ def run_games_datamart(
             "試合別投球配球":        build_game_pitch_mix(df),
             "試合別投球配球_左右別": build_game_pitch_mix_lr(df),
             "試合別打者被球種別成績": build_batter_pitch_splits_mlb(df),
+            "試合別打者被コース別成績": build_batter_course_splits_mlb(df),
+            "試合別打者被カウント別成績": build_batter_count_splits_mlb(df),
+            "試合別打者被状況別成績": build_batter_situation_splits_mlb(df),
             "活躍選手":              hl_df,
         }
     except Exception as e:
@@ -2445,6 +2451,227 @@ def build_batter_pitch_splits_mlb(df: pd.DataFrame) -> pd.DataFrame:
         rows.append({
             "試合ID": str(gid), "選手名": bname, "球種": get_pitch_type_jp(pitch_code),
             "球速帯": band, "対戦投手利き腕": hand,
+            "球数": int(len(g)), "打席": int(len(last)), "打数": ab_n, "安打": h_n,
+            "SW数": int(swing.sum()), "空振り数": int(g["_is_swstr"].sum()),
+            "ゾーン内投球数": int(g["_in_zone"].sum()), "ゾーン外投球数": int(g["_out_zone"].sum()),
+            "ゾーン内SW数": int((swing & g["_in_zone"]).sum()),
+            "ゾーン外SW数": int((swing & g["_out_zone"]).sum()),
+        })
+    return pd.DataFrame(rows, columns=cols) if rows else pd.DataFrame(columns=cols)
+
+
+def build_batter_course_splits_mlb(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    打者×試合×コースゾーン(5x5=25分割)×対戦投手利き腕の集計（NPB版 run.py の
+    build_batter_course_splits と同じ列構成の縦持ちDataFrame）。
+
+    座標正規化はStatcastのplate_x/plate_z を使い、投手側の座標ヒートマップ
+    （_build_mlb_locs_and_cbs）と全く同じ式にしている:
+      cx = plate_x / MLB_PLATE_HALF_W  （+側=外角）
+      cy = (plate_z - sz_center) / sz_half  （+側=高め）
+      flip_x: p_throws（投手の利き腕） XOR stand（打者の打席側）が真 → 反転
+    sz_top/sz_bot（打者ごとのストライクゾーン上下限）が欠損している行は、
+    投手側と同じ平均値（MLB_SZ_TOP_AVG/MLB_SZ_BOT_AVG）で代用する。
+    グリッドの分割（COURSE_ZONE_EDGES、5x5=25分割）はNPB側と共有（export_llm_input_batter.py）。
+    """
+    MLB_PLATE_HALF_W = (17 / 12) / 2
+    MLB_SZ_TOP_AVG = 3.5
+    MLB_SZ_BOT_AVG = 1.5
+
+    cols = ["試合ID", "選手名", "ゾーン行", "ゾーン列", "対戦投手利き腕",
+            "球数", "打席", "打数", "安打",
+            "SW数", "空振り数", "ゾーン内投球数", "ゾーン外投球数",
+            "ゾーン内SW数", "ゾーン外SW数"]
+    if df is None or df.empty or "batter_name" not in df.columns or "plate_x" not in df.columns:
+        return pd.DataFrame(columns=cols)
+
+    d = df.copy()
+    d["_px"] = pd.to_numeric(d["plate_x"], errors="coerce")
+    d["_pz"] = pd.to_numeric(d.get("plate_z"), errors="coerce")
+    d = d.dropna(subset=["_px", "_pz"])
+    if d.empty:
+        return pd.DataFrame(columns=cols)
+
+    sz_top = pd.to_numeric(d.get("sz_top"), errors="coerce").fillna(MLB_SZ_TOP_AVG)
+    sz_bot = pd.to_numeric(d.get("sz_bot"), errors="coerce").fillna(MLB_SZ_BOT_AVG)
+    sz_center = (sz_top + sz_bot) / 2
+    sz_half = ((sz_top - sz_bot) / 2).clip(lower=0.01)
+
+    cx = d["_px"] / MLB_PLATE_HALF_W
+    cy = (d["_pz"] - sz_center) / sz_half
+
+    stand = d["stand"].fillna("") if "stand" in d.columns else pd.Series([""] * len(d), index=d.index)
+    p_throws = d["p_throws"].fillna("") if "p_throws" in d.columns else pd.Series([""] * len(d), index=d.index)
+    flip_x = (p_throws == "L") ^ (stand == "L")
+    cx = cx.where(~flip_x, -cx)
+
+    d["_zone_col"] = [hm_get_cell(v, COURSE_ZONE_EDGES) for v in cx]
+    d["_zone_row"] = [hm_get_cell(v, COURSE_ZONE_EDGES) for v in cy]
+    d["_hand"] = stand.apply(lambda s: "L" if s == "L" else "R")
+
+    desc = d["description"].fillna("") if "description" in d.columns else pd.Series([""] * len(d), index=d.index)
+    event = d["events"].fillna("") if "events" in d.columns else pd.Series([""] * len(d), index=d.index)
+    is_swstr = desc.isin(["swinging_strike", "swinging_strike_blocked", "foul_tip"])
+    is_foul = desc.isin(["foul", "foul_bunt"]) & ~is_swstr
+    is_inplay = desc.str.startswith("hit_into_play")
+    d["_is_swing"] = is_swstr | is_foul | is_inplay
+    d["_is_swstr"] = is_swstr
+
+    if "zone" in d.columns:
+        has_zone = d["zone"].notna()
+        in_zone = pd.Series(False, index=d.index)
+        in_zone.loc[has_zone] = d.loc[has_zone, "zone"].apply(is_in_zone)
+    else:
+        has_zone = pd.Series(False, index=d.index)
+        in_zone = pd.Series(False, index=d.index)
+    d["_in_zone"] = in_zone
+    d["_out_zone"] = has_zone & ~in_zone
+
+    d["_is_final"] = event.astype(str).str.strip().ne("")
+    d["_event"] = event
+
+    rows = []
+    group_cols = ["game_pk", "batter_name", "_zone_row", "_zone_col", "_hand"]
+    for keys, g in d.groupby(group_cols, dropna=False):
+        gid, bname, zrow, zcol, hand = keys
+        if not str(bname).strip():
+            continue
+        last = g[g["_is_final"]]
+        ev = last["_event"]
+        ab_n = int(ev.isin(MLB_AB_EVENTS).sum())
+        h_n = int(ev.isin(["single", "double", "triple", "home_run"]).sum())
+        swing = g["_is_swing"]
+        rows.append({
+            "試合ID": str(gid), "選手名": bname, "ゾーン行": int(zrow), "ゾーン列": int(zcol),
+            "対戦投手利き腕": hand,
+            "球数": int(len(g)), "打席": int(len(last)), "打数": ab_n, "安打": h_n,
+            "SW数": int(swing.sum()), "空振り数": int(g["_is_swstr"].sum()),
+            "ゾーン内投球数": int(g["_in_zone"].sum()), "ゾーン外投球数": int(g["_out_zone"].sum()),
+            "ゾーン内SW数": int((swing & g["_in_zone"]).sum()),
+            "ゾーン外SW数": int((swing & g["_out_zone"]).sum()),
+        })
+    return pd.DataFrame(rows, columns=cols) if rows else pd.DataFrame(columns=cols)
+
+
+def build_batter_count_splits_mlb(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    打者×試合×カウント("{balls}-{strikes}")×対戦投手利き腕の集計（NPB版 run.py の
+    build_batter_count_splits と同じ列構成の縦持ちDataFrame）。
+    投手側の_build_mlb_locs_and_cbsと同じカウントキー形式（3ボール・2ストライクで頭打ち）を使う。
+    """
+    cols = ["試合ID", "選手名", "カウント", "対戦投手利き腕",
+            "球数", "打席", "打数", "安打",
+            "SW数", "空振り数", "ゾーン内投球数", "ゾーン外投球数",
+            "ゾーン内SW数", "ゾーン外SW数"]
+    if df is None or df.empty or "batter_name" not in df.columns or "balls" not in df.columns or "strikes" not in df.columns:
+        return pd.DataFrame(columns=cols)
+
+    d = df.copy()
+    d["_balls"] = pd.to_numeric(d["balls"], errors="coerce")
+    d["_strikes"] = pd.to_numeric(d["strikes"], errors="coerce")
+    d = d.dropna(subset=["_balls", "_strikes"])
+    if d.empty:
+        return pd.DataFrame(columns=cols)
+
+    d["_count"] = [f"{min(int(b), 3)}-{min(int(s), 2)}" for b, s in zip(d["_balls"], d["_strikes"])]
+    stand = d["stand"].fillna("") if "stand" in d.columns else pd.Series([""] * len(d), index=d.index)
+    d["_hand"] = stand.apply(lambda s: "L" if s == "L" else "R")
+
+    desc = d["description"].fillna("") if "description" in d.columns else pd.Series([""] * len(d), index=d.index)
+    event = d["events"].fillna("") if "events" in d.columns else pd.Series([""] * len(d), index=d.index)
+    is_swstr = desc.isin(["swinging_strike", "swinging_strike_blocked", "foul_tip"])
+    is_foul = desc.isin(["foul", "foul_bunt"]) & ~is_swstr
+    is_inplay = desc.str.startswith("hit_into_play")
+    d["_is_swing"] = is_swstr | is_foul | is_inplay
+    d["_is_swstr"] = is_swstr
+
+    if "zone" in d.columns:
+        has_zone = d["zone"].notna()
+        in_zone = pd.Series(False, index=d.index)
+        in_zone.loc[has_zone] = d.loc[has_zone, "zone"].apply(is_in_zone)
+    else:
+        has_zone = pd.Series(False, index=d.index)
+        in_zone = pd.Series(False, index=d.index)
+    d["_in_zone"] = in_zone
+    d["_out_zone"] = has_zone & ~in_zone
+
+    d["_is_final"] = event.astype(str).str.strip().ne("")
+    d["_event"] = event
+
+    rows = []
+    group_cols = ["game_pk", "batter_name", "_count", "_hand"]
+    for keys, g in d.groupby(group_cols, dropna=False):
+        gid, bname, count_key, hand = keys
+        if not str(bname).strip():
+            continue
+        last = g[g["_is_final"]]
+        ev = last["_event"]
+        ab_n = int(ev.isin(MLB_AB_EVENTS).sum())
+        h_n = int(ev.isin(["single", "double", "triple", "home_run"]).sum())
+        swing = g["_is_swing"]
+        rows.append({
+            "試合ID": str(gid), "選手名": bname, "カウント": count_key, "対戦投手利き腕": hand,
+            "球数": int(len(g)), "打席": int(len(last)), "打数": ab_n, "安打": h_n,
+            "SW数": int(swing.sum()), "空振り数": int(g["_is_swstr"].sum()),
+            "ゾーン内投球数": int(g["_in_zone"].sum()), "ゾーン外投球数": int(g["_out_zone"].sum()),
+            "ゾーン内SW数": int((swing & g["_in_zone"]).sum()),
+            "ゾーン外SW数": int((swing & g["_out_zone"]).sum()),
+        })
+    return pd.DataFrame(rows, columns=cols) if rows else pd.DataFrame(columns=cols)
+
+
+def build_batter_situation_splits_mlb(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    打者×試合×ランナー状況×対戦投手利き腕の集計。ランナー状況は既存の
+    get_on_base_situation()（on_1b/on_2b/on_3bから8状態を判定）をそのまま使う。
+    """
+    cols = ["試合ID", "選手名", "状況", "対戦投手利き腕",
+            "球数", "打席", "打数", "安打",
+            "SW数", "空振り数", "ゾーン内投球数", "ゾーン外投球数",
+            "ゾーン内SW数", "ゾーン外SW数"]
+    need_cols = {"batter_name", "on_1b", "on_2b", "on_3b"}
+    if df is None or df.empty or not need_cols.issubset(df.columns):
+        return pd.DataFrame(columns=cols)
+
+    d = df.copy()
+    d["_situation"] = [get_on_base_situation(r["on_1b"], r["on_2b"], r["on_3b"]) for _, r in d.iterrows()]
+    stand = d["stand"].fillna("") if "stand" in d.columns else pd.Series([""] * len(d), index=d.index)
+    d["_hand"] = stand.apply(lambda s: "L" if s == "L" else "R")
+
+    desc = d["description"].fillna("") if "description" in d.columns else pd.Series([""] * len(d), index=d.index)
+    event = d["events"].fillna("") if "events" in d.columns else pd.Series([""] * len(d), index=d.index)
+    is_swstr = desc.isin(["swinging_strike", "swinging_strike_blocked", "foul_tip"])
+    is_foul = desc.isin(["foul", "foul_bunt"]) & ~is_swstr
+    is_inplay = desc.str.startswith("hit_into_play")
+    d["_is_swing"] = is_swstr | is_foul | is_inplay
+    d["_is_swstr"] = is_swstr
+
+    if "zone" in d.columns:
+        has_zone = d["zone"].notna()
+        in_zone = pd.Series(False, index=d.index)
+        in_zone.loc[has_zone] = d.loc[has_zone, "zone"].apply(is_in_zone)
+    else:
+        has_zone = pd.Series(False, index=d.index)
+        in_zone = pd.Series(False, index=d.index)
+    d["_in_zone"] = in_zone
+    d["_out_zone"] = has_zone & ~in_zone
+
+    d["_is_final"] = event.astype(str).str.strip().ne("")
+    d["_event"] = event
+
+    rows = []
+    group_cols = ["game_pk", "batter_name", "_situation", "_hand"]
+    for keys, g in d.groupby(group_cols, dropna=False):
+        gid, bname, situation, hand = keys
+        if not str(bname).strip():
+            continue
+        last = g[g["_is_final"]]
+        ev = last["_event"]
+        ab_n = int(ev.isin(MLB_AB_EVENTS).sum())
+        h_n = int(ev.isin(["single", "double", "triple", "home_run"]).sum())
+        swing = g["_is_swing"]
+        rows.append({
+            "試合ID": str(gid), "選手名": bname, "状況": situation, "対戦投手利き腕": hand,
             "球数": int(len(g)), "打席": int(len(last)), "打数": ab_n, "安打": h_n,
             "SW数": int(swing.sum()), "空振り数": int(g["_is_swstr"].sum()),
             "ゾーン内投球数": int(g["_in_zone"].sum()), "ゾーン外投球数": int(g["_out_zone"].sum()),
@@ -2726,6 +2953,64 @@ def _build_game_json(dm_path: str, date: str,
             "ozsw": _iv(r.get("ゾーン外SW数")),
         })
 
+    # 試合別打者被コース別成績 → 打者カードのcourseSplits（コースゾーン×対戦投手利き腕）
+    bat_course_splits_idx: dict = {}
+    for r in _rows("試合別打者被コース別成績"):
+        k = (str(r.get("試合ID", "")), r.get("選手名", ""))
+        bat_course_splits_idx.setdefault(k, []).append({
+            "row":  _iv(r.get("ゾーン行")),
+            "col":  _iv(r.get("ゾーン列")),
+            "h":    r.get("対戦投手利き腕", ""),
+            "n":    _iv(r.get("球数")),
+            "pa":   _iv(r.get("打席")),
+            "ab":   _iv(r.get("打数")),
+            "h_":   _iv(r.get("安打")),
+            "sw":   _iv(r.get("SW数")),
+            "ws":   _iv(r.get("空振り数")),
+            "z":    _iv(r.get("ゾーン内投球数")),
+            "oz":   _iv(r.get("ゾーン外投球数")),
+            "zsw":  _iv(r.get("ゾーン内SW数")),
+            "ozsw": _iv(r.get("ゾーン外SW数")),
+        })
+
+    # 試合別打者被カウント別成績 → 打者カードのcountSplits（カウント×対戦投手利き腕）
+    bat_count_splits_idx: dict = {}
+    for r in _rows("試合別打者被カウント別成績"):
+        k = (str(r.get("試合ID", "")), r.get("選手名", ""))
+        bat_count_splits_idx.setdefault(k, []).append({
+            "count": r.get("カウント", ""),
+            "h":     r.get("対戦投手利き腕", ""),
+            "n":     _iv(r.get("球数")),
+            "pa":    _iv(r.get("打席")),
+            "ab":    _iv(r.get("打数")),
+            "h_":    _iv(r.get("安打")),
+            "sw":    _iv(r.get("SW数")),
+            "ws":    _iv(r.get("空振り数")),
+            "z":     _iv(r.get("ゾーン内投球数")),
+            "oz":    _iv(r.get("ゾーン外投球数")),
+            "zsw":   _iv(r.get("ゾーン内SW数")),
+            "ozsw":  _iv(r.get("ゾーン外SW数")),
+        })
+
+    # 試合別打者被状況別成績 → 打者カードのsituationSplits（ランナー状況×対戦投手利き腕）
+    bat_situation_splits_idx: dict = {}
+    for r in _rows("試合別打者被状況別成績"):
+        k = (str(r.get("試合ID", "")), r.get("選手名", ""))
+        bat_situation_splits_idx.setdefault(k, []).append({
+            "situation": r.get("状況", ""),
+            "h":     r.get("対戦投手利き腕", ""),
+            "n":     _iv(r.get("球数")),
+            "pa":    _iv(r.get("打席")),
+            "ab":    _iv(r.get("打数")),
+            "h_":    _iv(r.get("安打")),
+            "sw":    _iv(r.get("SW数")),
+            "ws":    _iv(r.get("空振り数")),
+            "z":     _iv(r.get("ゾーン内投球数")),
+            "oz":    _iv(r.get("ゾーン外投球数")),
+            "zsw":   _iv(r.get("ゾーン内SW数")),
+            "ozsw":  _iv(r.get("ゾーン外SW数")),
+        })
+
     def _mix_obj(r, game_id: str = "", pitcher_name: str = "", bat_hand: str = "ALL"):
         pt  = _nv(r.get("球種コード"), "")
         gb_n = _iv(r.get("GB")) or 0
@@ -2882,6 +3167,9 @@ def _build_game_json(dm_path: str, date: str,
             "attackAngle": _fv(r.get("平均アタックアングル(°)")),
             # 打者版バッターカード用：球種×球速帯×対戦投手利き腕の内訳（試合単位で事前集計済み）
             "pitchSplits": bat_pitch_splits_idx.get((str(r.get("試合ID", "")), r.get("選手名", "")), []),
+            "courseSplits": bat_course_splits_idx.get((str(r.get("試合ID", "")), r.get("選手名", "")), []),
+            "countSplits": bat_count_splits_idx.get((str(r.get("試合ID", "")), r.get("選手名", "")), []),
+            "situationSplits": bat_situation_splits_idx.get((str(r.get("試合ID", "")), r.get("選手名", "")), []),
         }
 
     def _parse_inn(s):
