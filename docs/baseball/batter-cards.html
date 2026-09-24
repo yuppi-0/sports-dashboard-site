@@ -102,6 +102,16 @@
   .stat-box.t-bot85 .value, .stat-box.t-bot85 .rank{ color:#FFA6BD; }
   .stat-box.t-top15 .value, .stat-box.t-bot85 .value{ font-weight:800; }
 
+  /* テーブルセル内の数値に付ける順位カラー（pt-table等）。stat-boxと同じ配色を共有 */
+  .rk{ display:inline-block; }
+  .rk.t-top15{ color:#5EEAD4; font-weight:700; }
+  .rk.t-top30{ color:#7FD8CD; }
+  .rk.t-top40{ color:#A9DAD5; }
+  .rk.t-mid{ color:var(--text-dim); }
+  .rk.t-bot60{ color:#E9B8C4; }
+  .rk.t-bot70{ color:#F59AB1; }
+  .rk.t-bot85{ color:#FFA6BD; font-weight:700; }
+
   .section{ border-radius:10px; padding:12px 14px; margin-bottom:10px; text-align:left; background:var(--panel); }
   .section-strength{ background:var(--panel-alt); border:1px solid rgba(16,185,129,0.25); }
   .section-weakness{ background:#221417; border:1px solid rgba(248,113,113,0.25); }
@@ -239,6 +249,10 @@
         <button type="button" id="sidebarToggleBtn">選手を変更</button>
       </div>
       <div class="filter-panel">
+        <div class="hand-toggle farm-level-toggle" id="farmLevelToggle">
+          <button type="button" class="hand-btn active" data-farm-level="ichi">1軍</button>
+          <button type="button" class="hand-btn" data-farm-level="ni">2軍</button>
+        </div>
         <input id="searchInput" type="text" class="search-input" placeholder="選手名で検索">
         <div class="filter-panel-label">並び替え</div>
         <div class="filter-panel-row">
@@ -312,6 +326,8 @@ const LEAGUE_PATHS = {
 };
 
 let currentLeague = "npb";
+let currentFarmLevel = "ichi";  // 一覧に表示するリーグレベル("ichi"=1軍/"ni"=2軍)。選手詳細内の
+                                  // farm-toggleとは別物（あちらは選択中の1選手を切り替えるだけ）
 let allPlayers = [];
 const leagueStateCache = {};
 function snapshotLeagueState(){
@@ -319,6 +335,7 @@ function snapshotLeagueState(){
     search: searchInputEl.value, team: teamSelectEl.value, category: categorySelectEl.value,
     pos: posSelectEl.value, sortField, sortDir, aiOnly: aiOnlyFilterEl.checked,
     minPa: minPaFilterEl.value, activePlayerId, activePlayerName: activeCardData ? activeCardData.name : null,
+    farmLevel: currentFarmLevel,
   };
 }
 let activePlayerId = null;
@@ -503,39 +520,71 @@ async function loadPlayerIndex(league){
   sortDirBtnEl.textContent = sortDir === "asc" ? "昇順 ↑" : "降順 ↓";
   searchInputEl.value = saved ? saved.search : "";
   if(saved) minPaFilterEl.value = saved.minPa || "";
+  currentFarmLevel = saved ? (saved.farmLevel || "ichi") : "ichi";
+  updateFarmLevelToggleUI();
   sidebarEl.classList.remove("collapsed");
   bodyLayoutEl.classList.remove("has-selection");
   updateSidebarSummary("選手を選択してください", "");
-  try{
-    const res = await fetch(bust(`${LEAGUE_PATHS[league].numeric}/index.json`), { cache: "no-store" });
-    if(!res.ok) throw new Error(`index.json の取得に失敗しました (${res.status})`);
-    const data = await res.json();
-    allPlayers = data.players || [];
-    const farmIdx = await getFarmIndex(league);
-    if(farmIdx && farmIdx.players){
-      const existingNames = new Set(allPlayers.map(p => p.name));
-      farmIdx.players.forEach(fp => {
-        if(existingNames.has(fp.name)) return;
-        allPlayers.push({ ...fp, id: `farm:${fp.id}`, is2GunOnly: true });
-      });
-    }
+  await loadPlayerListForCurrentFarmLevel();
+  if(saved){ teamSelectEl.value = saved.team || ""; categorySelectEl.value = saved.category || ""; posSelectEl.value = saved.pos || ""; }
+  if(aiOnlyFilterEl.checked && !llmDataLoaded){
+    aiOnlyFilterEl.disabled = true;
+    await loadAllLlmPlayerNames();
+    aiOnlyFilterEl.disabled = false;
+  }
+  renderPlayerList();
+  if(saved && saved.activePlayerId){
+    selectPlayer(saved.activePlayerId, saved.activePlayerName);
+  }
+}
+
+function updateFarmLevelToggleUI(){
+  document.querySelectorAll("#farmLevelToggle .hand-btn").forEach(b => {
+    b.classList.toggle("active", b.dataset.farmLevel === currentFarmLevel);
+  });
+}
+
+// currentLeague・currentFarmLevelに応じたindex.jsonを取得してallPlayersに入れる
+// （1軍/2軍リストを完全に差し替える。選手詳細内のfarm-toggleとは別軸）
+async function loadPlayerListForCurrentFarmLevel(){
+  const basePath = currentFarmLevel === "ni"
+    ? LEAGUE_PATHS[currentLeague].farmNumeric
+    : LEAGUE_PATHS[currentLeague].numeric;
+  if(!basePath){
+    allPlayers = [];
     populateTeamSelect(allPlayers);
     populateCategorySelect(allPlayers);
     populatePosSelect(allPlayers);
-    if(saved){ teamSelectEl.value = saved.team || ""; categorySelectEl.value = saved.category || ""; posSelectEl.value = saved.pos || ""; }
-    if(aiOnlyFilterEl.checked && !llmDataLoaded){
-      aiOnlyFilterEl.disabled = true;
-      await loadAllLlmPlayerNames();
-      aiOnlyFilterEl.disabled = false;
-    }
-    renderPlayerList();
-    if(saved && saved.activePlayerId){
-      selectPlayer(saved.activePlayerId, saved.activePlayerName);
-    }
+    playerListEl.innerHTML = '<div class="empty-list">このリーグは2軍データに対応していません。</div>';
+    return;
+  }
+  try{
+    const res = await fetch(bust(`${basePath}/index.json`), { cache: "no-store" });
+    if(!res.ok) throw new Error(`index.json の取得に失敗しました (${res.status})`);
+    const data = await res.json();
+    allPlayers = data.players || [];
+    populateTeamSelect(allPlayers);
+    populateCategorySelect(allPlayers);
+    populatePosSelect(allPlayers);
   }catch(e){
+    allPlayers = [];
     playerListEl.innerHTML = `<div class="empty-list">選手一覧の読み込みに失敗しました。<br>${escapeHtml(e.message)}</div>`;
   }
 }
+
+document.getElementById("farmLevelToggle").addEventListener("click", async (e) => {
+  const btn = e.target.closest(".hand-btn");
+  if(!btn || btn.dataset.farmLevel === currentFarmLevel) return;
+  currentFarmLevel = btn.dataset.farmLevel;
+  updateFarmLevelToggleUI();
+  activePlayerId = null;
+  mainContentEl.classList.add("placeholder");
+  mainContentEl.innerHTML = '<div class="placeholder">左の一覧から選手を選んでください</div>';
+  bodyLayoutEl.classList.remove("has-selection");
+  playerListEl.innerHTML = '<div class="empty-list">読み込み中…</div>';
+  await loadPlayerListForCurrentFarmLevel();
+  renderPlayerList();
+});
 
 function filteredSortedPlayers(){
   let list = allPlayers.slice();
@@ -621,32 +670,37 @@ async function selectPlayer(id, name){
   renderPlayerList();
   mainContentEl.innerHTML = '<div class="placeholder">読み込み中…</div>';
   try{
-    let card;
-    if(String(id).startsWith("farm:")){
-      // 1軍側に出場が無く2軍index.jsonからのみ一覧に加わった選手。1軍データが無いので
-      // farmNumeric側を直接読み、切り替えボタンは出さない（pitcher-cards.htmlの
-      // _2gunOnlyと同じ扱い）。
-      const farmId = id.slice(5);
-      const res = await fetch(bust(`${LEAGUE_PATHS[currentLeague].farmNumeric}/${farmId}.json`), { cache: "no-store" });
-      if(!res.ok) throw new Error(`選手データの取得に失敗しました (${res.status})`);
-      card = await res.json();
-      card._isFarm = true;
-      card._2gunOnly = true;
-    }else{
-      const res = await fetch(bust(`${LEAGUE_PATHS[currentLeague].numeric}/${id}.json`), { cache: "no-store" });
-      if(!res.ok) throw new Error(`選手データの取得に失敗しました (${res.status})`);
-      card = await res.json();
-      // 1軍カードを表示中の裏で2軍データも探しておく（見つかった場合だけ、
-      // カードに「1軍/2軍」切り替えボタンを出す。renderPlayerCardは毎回mainContent
-      // 全体を作り直す設計なので、両データに互いへの参照(_farmData)を持たせておく）
-      const farmCard = await fetchFarmData(currentLeague, card.name);
-      if(farmCard){
-        card._farmData = farmCard;
-        card._isFarm = false;
-        farmCard._farmData = card;
-        farmCard._isFarm = true;
+    // 一覧は currentFarmLevel（1軍/2軍）ごとに完全に差し替わっているので、
+    // idは常にその時点のレベルのindex.jsonから来たもの。そのレベルの数値JSONを読む。
+    const isFarmList = currentFarmLevel === "ni";
+    const basePath = isFarmList ? LEAGUE_PATHS[currentLeague].farmNumeric : LEAGUE_PATHS[currentLeague].numeric;
+    const res = await fetch(bust(`${basePath}/${id}.json`), { cache: "no-store" });
+    if(!res.ok) throw new Error(`選手データの取得に失敗しました (${res.status})`);
+    const card = await res.json();
+    card._isFarm = isFarmList;
+
+    // 選手詳細内の「1軍/2軍」切り替えボタン用に、もう一方のレベルのデータも裏で探しておく
+    // （見つかった場合だけボタンを出す。見つからなければその選手はそのレベルにしか居ない）
+    const otherBasePath = isFarmList ? LEAGUE_PATHS[currentLeague].numeric : LEAGUE_PATHS[currentLeague].farmNumeric;
+    if(otherBasePath){
+      const otherCard = isFarmList
+        ? await (async () => { // 2軍表示中 → 1軍側にも居るか名前で探す
+            const idxRes = await fetch(bust(`${otherBasePath}/index.json`), { cache: "no-store" }).catch(() => null);
+            if(!idxRes || !idxRes.ok) return null;
+            const idx = await idxRes.json();
+            const hit = (idx.players || []).find(p => p.name === card.name);
+            if(!hit) return null;
+            const r = await fetch(bust(`${otherBasePath}/${hit.id}.json`), { cache: "no-store" }).catch(() => null);
+            return (r && r.ok) ? await r.json() : null;
+          })()
+        : await fetchFarmData(currentLeague, card.name);
+      if(otherCard){
+        card._farmData = otherCard;
+        otherCard._farmData = card;
+        otherCard._isFarm = !isFarmList;
       }
     }
+
     const llm = await findLlmDataForPlayer(card.name);
     activeCardData = card;
     currentSeasonYear = null;  // 選手が変わったら最新シーズンをデフォルト表示にリセット
@@ -721,11 +775,20 @@ function renderSplitTable(seasonObj){
 }
 
 // 球種別テーブル：行クリックでその球種の球速帯別内訳を展開する
+// ランキング付きの値を <span class="rk t-XX"> で包んで返す（テーブルセル用）
+function rankedCell(text, rk){
+  const tier = tierFromRank(rk);
+  const tierClass = tier ? ` t-${tier}` : "";
+  const title = rankText(rk);
+  return `<span class="rk${tierClass}"${title ? ` title="${escapeHtml(title)}"` : ""}>${text}</span>`;
+}
+
 function renderPitchTypeTable(list){
   if(!list || list.length === 0){
     return `<div class="defense-note">この条件に該当する球種データがありません。</div>`;
   }
   const rowsHtml = list.map((pt, i) => {
+    const rk = pt.rankings || {};
     const bands = pt.byVelocityBand || [];
     const bandRows = bands.map(b => `<tr>
         <td>${escapeHtml(b.band ?? "-")}</td><td>${b.count ?? "-"}</td><td>${b.pa ?? "-"}</td>
@@ -735,8 +798,11 @@ function renderPitchTypeTable(list){
     return `
       <tr class="pt-row" data-pt-idx="${i}">
         <td class="pt-name">${escapeHtml(pt.pitchType || "-")}</td>
-        <td>${pt.count ?? "-"}</td><td>${pt.pa ?? "-"}</td><td>${fmtAvg(pt.avg)}</td>
-        <td>${fmt(pt.whiff_pct, 1, "%")}</td><td>${fmt(pt.chase_pct, 1, "%")}</td><td>${fmt(pt.contact_pct, 1, "%")}</td>
+        <td>${pt.count ?? "-"}</td><td>${pt.pa ?? "-"}</td>
+        <td>${rankedCell(fmtAvg(pt.avg), rk.avg)}</td>
+        <td>${rankedCell(fmt(pt.whiff_pct, 1, "%"), rk.whiff_pct)}</td>
+        <td>${rankedCell(fmt(pt.chase_pct, 1, "%"), rk.chase_pct)}</td>
+        <td>${fmt(pt.contact_pct, 1, "%")}</td>
       </tr>
       <tr class="pt-detail" data-pt-detail="${i}" style="display:none">
         <td colspan="7">
