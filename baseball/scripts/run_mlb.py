@@ -69,7 +69,7 @@ import openpyxl
 
 # LLM入力用xlsx生成（選手詳細カード用のシーズン集計・球種別・コース分布・カウント別パターン）
 from export_llm_input import export_llm_input_xlsx
-from export_llm_input_batter import export_llm_input_batter_xlsx
+from export_llm_input_batter import export_llm_input_batter_xlsx, PITCH_VELO_BANDS, velo_band_label
 from openpyxl.styles import PatternFill, Font, Alignment
 from openpyxl.utils import get_column_letter
 
@@ -905,34 +905,50 @@ def _add_batter_names(df: pd.DataFrame) -> pd.DataFrame:
     Statcastの player_name は投手名のため、
     batter ID → 打者名 のマップを playerid_reverse_lookup で取得し
     batter_name カラムとして追加する。
-    取得失敗時は batter ID の文字列をフォールバックとして使用。
+    取得失敗時は batter ID の文字列をフォールバックとして使用する。
+
+    statsapi速報ソースの行は、play-by-playのbatter.fullNameから既に正しい
+    batter_name が入っている（_fetch_statsapi内で設定済み）。以前はこの関数が
+    batter_nameを無条件に上書きしていたため、reverse_lookupがまだ登録していない
+    新人選手（デビュー直後などChadwick Bureauの登録が追いついていないケース）が
+    軒並み選手ID（例: "657675"）という表示になってしまっていた。
+    既に値が入っている行はそのまま使い、空/未設定の行だけlookupで埋める。
     """
     if "batter" not in df.columns:
-        df["batter_name"] = ""
+        if "batter_name" not in df.columns:
+            df["batter_name"] = ""
         return df
 
-    batter_ids = df["batter"].dropna().unique().tolist()
+    existing = df["batter_name"] if "batter_name" in df.columns else pd.Series([""] * len(df), index=df.index)
+    existing = existing.fillna("").astype(str)
+    needs_lookup_mask = existing.str.strip() == ""
+
+    batter_ids = df.loc[needs_lookup_mask, "batter"].dropna().unique().tolist()
     batter_ids = [int(x) for x in batter_ids if str(x).isdigit() or isinstance(x, (int, float))]
 
     name_map = {}
-    try:
-        print(f"  打者名解決: {len(batter_ids)}名")
-        lookup = playerid_reverse_lookup(batter_ids, key_type="mlbam")
-        for _, row in lookup.iterrows():
-            mlbam_id = row.get("key_mlbam")
-            first = str(row.get("name_first", "")).strip()
-            last  = str(row.get("name_last",  "")).strip()
-            if mlbam_id and (first or last):
-                # "Last, First" 形式（Statcastの表示に合わせる）
-                name_map[int(mlbam_id)] = f"{last}, {first}" if first else last
+    if batter_ids:
+        try:
+            print(f"  打者名解決: {len(batter_ids)}名")
+            lookup = playerid_reverse_lookup(batter_ids, key_type="mlbam")
+            for _, row in lookup.iterrows():
+                mlbam_id = row.get("key_mlbam")
+                first = str(row.get("name_first", "")).strip()
+                last  = str(row.get("name_last",  "")).strip()
+                if mlbam_id and (first or last):
+                    # "Last, First" 形式（Statcastの表示に合わせる）
+                    name_map[int(mlbam_id)] = f"{last}, {first}" if first else last
+        except Exception as e:
+            print(f"  [WARN] 打者名取得失敗: {e}")
 
-    except Exception as e:
-        print(f"  [WARN] 打者名取得失敗: {e}")
+    def _resolve(bid, cur):
+        if cur.strip():
+            return cur
+        if pd.isna(bid):
+            return ""
+        return name_map.get(int(bid), str(int(bid)))
 
-    df["batter_name"] = df["batter"].apply(
-        lambda x: name_map.get(int(x), str(int(x)) if pd.notna(x) else "")
-        if pd.notna(x) else ""
-    )
+    df["batter_name"] = [_resolve(bid, cur) for bid, cur in zip(df["batter"], existing)]
     return df
 
 # %%
@@ -1056,6 +1072,15 @@ def calc_bat_swing_stats(g: pd.DataFrame) -> dict:
 # Section 9. 投球変化量・リリース指標（投手・球種専用）
 # ==================================================
 
+def _hb_arm_cm(g: pd.DataFrame) -> pd.Series:
+    """pfx_x（捕手視点、cm）を投手の腕側が＋になるよう変換する（右投手は符号反転、左投手はそのまま）"""
+    hb = pd.to_numeric(g["pfx_x_cm"], errors="coerce")
+    if "p_throws" not in g.columns:
+        return hb
+    sign = np.where(g["p_throws"].astype(str).str.upper() == "L", 1.0, -1.0)
+    return hb * sign
+
+
 def calc_pitch_movement_stats(g: pd.DataFrame) -> dict:
     # VAA（Vertical Approach Angle）: ホームプレート到達時の垂直進入角度（度）
     # マイナスが急角度。vz0/vy0/az/ayから計算
@@ -1091,11 +1116,16 @@ def calc_pitch_movement_stats(g: pd.DataFrame) -> dict:
         # 変化量 cm
         "横変化量(pfx_x cm)": _mean(g["pfx_x_cm"]) if "pfx_x_cm" in g.columns else np.nan,
         "縦変化量(pfx_z cm)": _mean(g["pfx_z_cm"]) if "pfx_z_cm" in g.columns else np.nan,
-        # Induced Break (inches → cm)
-        "IVB(cm)":    _round(g["api_break_z_with_gravity"].dropna().mean() * 2.54, 1)
-                        if "api_break_z_with_gravity" in g.columns else np.nan,
-        "HB arm(cm)": _round(g["api_break_x_arm"].dropna().mean() * 2.54, 1)
-                        if "api_break_x_arm" in g.columns else np.nan,
+        # 縦変化量(IVB)・横変化量(HB, 腕側＋)（cm）
+        # 以前は api_break_z_with_gravity / api_break_x_arm を「インチ」とみなして×2.54していたが、
+        # pybaseball(Statcast)のこの2列は「フィート」単位で、しかもz側は重力込みの落差（落ちるほど＋）
+        # でありIVB（重力を除いた変化量）ではなかった。そのため値が本来の1/12程度に小さく、
+        # カーブが「ホップ量最大」のように見える（符号も逆）状態になっていた。
+        # IVBはStatcast標準の定義どおり pfx_z（重力除去済み・フィート）→cm、
+        # HBは pfx_x（捕手視点）を投手の利き腕で符号反転して「腕側＝＋」に揃える。
+        # pfx_x/pfx_z は statcast・statsapi どちらの取得経路でもフィート単位で入っている。
+        "IVB(cm)":    _mean(g["pfx_z_cm"]) if "pfx_z_cm" in g.columns else np.nan,
+        "HB arm(cm)": _mean(_hb_arm_cm(g)) if "pfx_x_cm" in g.columns else np.nan,
         # リリースポイント
         "リリース高さ(ft)":   _mean(g["release_pos_z"])   if "release_pos_z"   in g.columns else np.nan,
         "リリース横位置(ft)": _mean(g["release_pos_x"])   if "release_pos_x"   in g.columns else np.nan,
@@ -1161,7 +1191,9 @@ def calc_batter_pa_stats(g: pd.DataFrame) -> dict:
     return {
         "打席別結果": ab_result_str,
         "OPS": ops, "出塁率": obp, "長打率": slg, "打率": ba,
-        "打点": int(rbi), "盗塁": 0,
+        "打点": int(rbi), "盗塁": 0,  # 暫定値。build_game_batter_stats()側で正しい値に上書きされる
+                                        # （盗塁は打者ではなく走者が行うため、この関数(1打者ぶんのgのみ受け取る)
+                                        # では試合全体の走者情報が無く正しく計算できない）
         "打席": pa, "打数": ab,
         "安打": int(hits), "本塁打": int(hr), "長打": int(xbh), "単打": int(singles),
         "四球": int(bb), "死球": int(hbp), "三振": int(so),
@@ -1775,7 +1807,55 @@ def _role(g, df, gid):
         role = "抑え"
     return role
 
+def _compute_game_stolen_bases(df: pd.DataFrame) -> dict:
+    """
+    試合全体のdfから、盗塁企図イベントを実際に走った走者（on_1b/on_2b/on_3b）に
+    正しく帰属させる。
+
+    [発見されたバグ] calc_batter_pa_stats()は "盗塁": 0 を常に返していた
+    （実際には計算されていなかった）。StatcastのeventsはSteal企図が起きた
+    その1球の「打者」基準で記録されるため、走者と打者が別人のケース
+    （盗塁は打者ではなく塁上の走者が行う）で単純に打者へ紐付けると誤った
+    選手に付いてしまう。on_1b（二盗なら一塁走者）等から実際の走者IDを
+    特定し、そのIDに対して集計する。
+
+    戻り値: {(game_pk_str, runner_id): {"sb": n, "cs": n}}
+    """
+    result: dict = {}
+    if df is None or df.empty or "events" not in df.columns:
+        return result
+
+    SB_RUNNER_COL = {"stolen_base_2b": "on_1b", "stolen_base_3b": "on_2b", "stolen_base_home": "on_3b"}
+    CS_RUNNER_COL = {
+        "caught_stealing_2b": "on_1b", "caught_stealing_3b": "on_2b", "caught_stealing_home": "on_3b",
+        "pickoff_caught_stealing_2b": "on_1b", "pickoff_caught_stealing_3b": "on_2b",
+        "pickoff_caught_stealing_home": "on_3b",
+    }
+    target_events = list(SB_RUNNER_COL.keys()) + list(CS_RUNNER_COL.keys())
+    steal_rows = df[df["events"].isin(target_events)]
+    for _, row in steal_rows.iterrows():
+        ev = str(row.get("events", ""))
+        runner_col = SB_RUNNER_COL.get(ev) or CS_RUNNER_COL.get(ev)
+        if runner_col is None or runner_col not in row.index:
+            continue
+        runner_id = row.get(runner_col)
+        if pd.isna(runner_id):
+            continue
+        try:
+            runner_id = int(runner_id)
+        except (ValueError, TypeError):
+            continue
+        gid = str(row.get("game_pk", ""))
+        entry = result.setdefault((gid, runner_id), {"sb": 0, "cs": 0})
+        if ev in SB_RUNNER_COL:
+            entry["sb"] += 1
+        else:
+            entry["cs"] += 1
+    return result
+
+
 def build_game_batter_stats(df: pd.DataFrame) -> pd.DataFrame:
+    steal_idx = _compute_game_stolen_bases(df)
     rows = []
     for (gid, bid), g in df.groupby(["game_pk","batter"]):
         row0 = g.iloc[0]
@@ -1783,6 +1863,12 @@ def build_game_batter_stats(df: pd.DataFrame) -> pd.DataFrame:
         name = str(row0.get("batter_name") or row0.get("player_name", str(bid)))
         team = row0.get("home_team","") if ha=="home" else row0.get("away_team","")
         stats= calc_batter_pa_stats(g)
+        try:
+            steal = steal_idx.get((str(gid), int(bid)), {"sb": 0, "cs": 0})
+        except (ValueError, TypeError):
+            steal = {"sb": 0, "cs": 0}
+        stats["盗塁"] = steal["sb"]
+        stats["盗塁死"] = steal["cs"]
         rows.append({"試合ID":str(gid),"試合日":str(row0["game_date"])[:10],
                      "選手名":name,"チーム":team,"ホーム/アウェイ":ha,
                      "打順":0,"守備位置":"",**stats})
@@ -1986,6 +2072,7 @@ def run_games_datamart(
             "試合別投手成績_左右別": build_game_pitcher_lr(df),
             "試合別投球配球":        build_game_pitch_mix(df),
             "試合別投球配球_左右別": build_game_pitch_mix_lr(df),
+            "試合別打者被球種別成績": build_batter_pitch_splits_mlb(df),
             "活躍選手":              hl_df,
         }
     except Exception as e:
@@ -2101,6 +2188,78 @@ MLB_AB_EVENTS = {
     "grounded_into_double_play", "double_play", "triple_play",
     "strikeout", "strikeout_double_play",
 }
+
+
+def build_batter_pitch_splits_mlb(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Statcast/statsapi統合後のDataFrameから、打者×試合×球種×球速帯×対戦投手利き腕の
+    集計を作る（NPB版 run.py の build_batter_pitch_splits と同じ列構成の縦持ちDataFrame）。
+
+    Statcastは「events列が非nullの行＝その打席の最終球」という規約になっているため、
+    NPB側（打席内球数で最終球を判定）と違い、この判定に追加の前処理は不要。
+    球速はrelease_speed(mph)をmph2kmh()でkm/hに換算してから、NPBと同じ固定ビン
+    （PITCH_VELO_BANDS、export_llm_input_batter.py由来）で判定する。
+    球種コードはStatcastのpitch_type（FF/SI/CT/SL/CU/FK/FS等）がPITCH_VELO_BANDSの
+    キーとほぼ一致するため、NPB側のto_pitch_key()のような変換は不要（球種ラベルは
+    get_pitch_type_jp()で和訳し、投手側の球種別成績と表記を揃える）。
+    """
+    cols = ["試合ID", "選手名", "球種", "球速帯", "対戦投手利き腕",
+            "球数", "打席", "打数", "安打",
+            "SW数", "空振り数", "ゾーン内投球数", "ゾーン外投球数",
+            "ゾーン内SW数", "ゾーン外SW数"]
+    if df is None or df.empty or "batter_name" not in df.columns or "pitch_type" not in df.columns:
+        return pd.DataFrame(columns=cols)
+
+    d = df.copy()
+    d["_velo_kmh"]   = d["release_speed"].apply(lambda v: mph2kmh(v) if pd.notna(v) else None) \
+                        if "release_speed" in d.columns else None
+    d["_pitch_code"] = d["pitch_type"].apply(lambda pt: str(pt) if pd.notna(pt) and str(pt) else None)
+    d["_band"]       = [velo_band_label(pc, v) for pc, v in zip(d["_pitch_code"], d.get("_velo_kmh"))]
+    d["_hand"]       = d["p_throws"].fillna("").apply(lambda h: "L" if str(h).upper() == "L" else "R") \
+                        if "p_throws" in d.columns else "R"
+
+    desc  = d["description"].fillna("") if "description" in d.columns else pd.Series([""] * len(d), index=d.index)
+    event = d["events"].fillna("")      if "events"      in d.columns else pd.Series([""] * len(d), index=d.index)
+    is_swstr  = desc.isin(["swinging_strike", "swinging_strike_blocked", "foul_tip"])
+    is_foul   = desc.isin(["foul", "foul_bunt"]) & ~is_swstr
+    is_inplay = desc.str.startswith("hit_into_play")
+    d["_is_swing"] = is_swstr | is_foul | is_inplay
+    d["_is_swstr"] = is_swstr
+
+    if "zone" in d.columns:
+        has_zone = d["zone"].notna()
+        in_zone  = pd.Series(False, index=d.index)
+        in_zone.loc[has_zone] = d.loc[has_zone, "zone"].apply(is_in_zone)
+    else:
+        has_zone = pd.Series(False, index=d.index)
+        in_zone  = pd.Series(False, index=d.index)
+    d["_in_zone"]  = in_zone
+    d["_out_zone"] = has_zone & ~in_zone
+
+    d["_is_final"] = event.astype(str).str.strip().ne("")
+    d["_event"]    = event
+
+    rows = []
+    group_cols = ["game_pk", "batter_name", "_pitch_code", "_band", "_hand"]
+    for keys, g in d.groupby(group_cols, dropna=False):
+        gid, bname, pitch_code, band, hand = keys
+        if band is None or not str(bname).strip():
+            continue  # 球速データが無い投球・打者名不明の行は除外
+        last = g[g["_is_final"]]
+        ev = last["_event"]
+        ab_n = int(ev.isin(MLB_AB_EVENTS).sum())
+        h_n  = int(ev.isin(["single", "double", "triple", "home_run"]).sum())
+        swing = g["_is_swing"]
+        rows.append({
+            "試合ID": str(gid), "選手名": bname, "球種": get_pitch_type_jp(pitch_code),
+            "球速帯": band, "対戦投手利き腕": hand,
+            "球数": int(len(g)), "打席": int(len(last)), "打数": ab_n, "安打": h_n,
+            "SW数": int(swing.sum()), "空振り数": int(g["_is_swstr"].sum()),
+            "ゾーン内投球数": int(g["_in_zone"].sum()), "ゾーン外投球数": int(g["_out_zone"].sum()),
+            "ゾーン内SW数": int((swing & g["_in_zone"]).sum()),
+            "ゾーン外SW数": int((swing & g["_out_zone"]).sum()),
+        })
+    return pd.DataFrame(rows, columns=cols) if rows else pd.DataFrame(columns=cols)
 
 
 def _build_mlb_locs_and_cbs(df: pd.DataFrame) -> tuple[dict, dict]:
@@ -2354,6 +2513,27 @@ def _build_game_json(dm_path: str, date: str,
         side = str(r.get("ホーム/アウェイ", "home"))
         bat_idx[gid][side].append(r)
 
+    # 試合別打者被球種別成績 → 打者カードのpitchSplits（球種×球速帯×対戦投手利き腕）
+    # NPB版(run.py)のbat_pitch_splits_idxと完全に同じキー形式・フィールド構成
+    bat_pitch_splits_idx: dict = {}
+    for r in _rows("試合別打者被球種別成績"):
+        k = (str(r.get("試合ID", "")), r.get("選手名", ""))
+        bat_pitch_splits_idx.setdefault(k, []).append({
+            "t":    r.get("球種", ""),
+            "band": r.get("球速帯", ""),
+            "h":    r.get("対戦投手利き腕", ""),
+            "n":    _iv(r.get("球数")),
+            "pa":   _iv(r.get("打席")),
+            "ab":   _iv(r.get("打数")),
+            "h_":   _iv(r.get("安打")),
+            "sw":   _iv(r.get("SW数")),
+            "ws":   _iv(r.get("空振り数")),
+            "z":    _iv(r.get("ゾーン内投球数")),
+            "oz":   _iv(r.get("ゾーン外投球数")),
+            "zsw":  _iv(r.get("ゾーン内SW数")),
+            "ozsw": _iv(r.get("ゾーン外SW数")),
+        })
+
     def _mix_obj(r, game_id: str = "", pitcher_name: str = "", bat_hand: str = "ALL"):
         pt  = _nv(r.get("球種コード"), "")
         gb_n = _iv(r.get("GB")) or 0
@@ -2498,6 +2678,7 @@ def _build_game_json(dm_path: str, date: str,
             "ab":     _iv(r.get("打数")),
             "rbi":    _iv(r.get("打点")),
             "sb":     _iv(r.get("盗塁")),
+            "cs":     _iv(r.get("盗塁死")),
             # MLB独自
             "avgEV":       _fv(r.get("平均打球速度EV(km/h)")),
             "maxEV":       _fv(r.get("最高打球速度EV(km/h)")),
@@ -2507,6 +2688,8 @@ def _build_game_json(dm_path: str, date: str,
             "xwoba":       _fv(r.get("xwOBA"), d=3),
             "batSpd":      _fv(r.get("平均バットスピード(km/h)")),
             "attackAngle": _fv(r.get("平均アタックアングル(°)")),
+            # 打者版バッターカード用：球種×球速帯×対戦投手利き腕の内訳（試合単位で事前集計済み）
+            "pitchSplits": bat_pitch_splits_idx.get((str(r.get("試合ID", "")), r.get("選手名", "")), []),
         }
 
     def _parse_inn(s):
