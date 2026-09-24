@@ -68,38 +68,87 @@ from export_llm_input import load_daily_games
 # ==================================================
 # Section 0. 球速帯の固定ビン定義（run.py・run_mlb.py共有）
 # ==================================================
-# 球種コード別の球速帯固定ビン（km/h、下限含む・上限含まない。Noneは無制限）。
-# 球種によって球速レンジの傾向は概ね決まっているため、球種横断の固定ビンではなく
-# 球種コードごとに用意する。境界は初期値であり、実データを見ながら調整可能な定数。
-# ストレート(FF)は150km/h・155km/hの区切りを両方含める。
-# NPB(run.py)・MLB(run_mlb.py)どちらの打者版球種集計もここから同じ定義を import して使う
-# （選手間・リーグ間比較のため、境界は揃えておく必要がある）。
+# 球種コード別の球速帯を「遅い/中間/速い」の3分割で判定する（旧版は球種ごとに
+# 4分割の実数レンジ(例:150-154)だったが、見づらいため3分割の相対ラベルに統一）。
+# ロジック: 各球種コードにつき2つの閾値(lo, hi)を持ち、
+#   velo < lo        → 遅い
+#   lo <= velo < hi  → 中間
+#   velo >= hi       → 速い
+# 閾値は球種ごとの典型的な球速分布を踏まえた固定値（球種によって球速レンジの傾向は
+# 概ね決まっているため、球種横断の固定ビンではなく球種コードごとに用意する。実データを
+# 見ながら調整可能な定数）。NPB(run.py)・MLB(run_mlb.py)どちらの打者版球種集計も
+# ここから同じ定義を import して使う（選手間・リーグ間比較のため、境界は揃えておく必要がある）。
 PITCH_VELO_BANDS = {
-    "FF": [(None, 145), (145, 150), (150, 155), (155, None)],
-    "SI": [(None, 140), (140, 145), (145, 150), (150, None)],
-    "CT": [(None, 135), (135, 140), (140, 145), (145, None)],
-    "SH": [(None, 135), (135, 140), (140, 145), (145, None)],
-    "SL": [(None, 125), (125, 130), (130, 135), (135, None)],
-    "CU": [(None, 110), (110, 115), (115, 120), (120, None)],
-    "FK": [(None, 115), (115, 120), (120, 125), (125, None)],
-    "FS": [(None, 120), (120, 125), (125, 130), (130, None)],
+    "FF": (145, 155),   # ストレート/フォーシーム
+    "SI": (140, 150),   # シンカー
+    "CT": (135, 145),   # カットボール
+    "SH": (135, 145),   # シュート
+    "SL": (125, 135),   # スライダー
+    "CU": (110, 120),   # カーブ
+    "FK": (115, 125),   # フォーク
+    "FS": (120, 130),   # スプリット
 }
-PITCH_VELO_BANDS_DEFAULT = [(None, 120), (120, 130), (130, 140), (140, None)]
+PITCH_VELO_BANDS_DEFAULT = (120, 140)
+
+# 球速帯の表示ラベル（この順で「遅い→中間→速い」。batter-cards.html側のソート順にも使う）
+VELO_BAND_LABELS = ("遅い", "中間", "速い")
 
 
 def velo_band_label(pitch_code: str, velo) -> str | None:
-    """球種コードと球速(km/h)から球速帯ラベルを返す。球速が無ければNone。"""
+    """球種コードと球速(km/h)から3分割の球速帯ラベル（遅い/中間/速い）を返す。
+    球速が無ければNone。"""
     if velo is None or (isinstance(velo, float) and pd.isna(velo)):
         return None
-    bins = PITCH_VELO_BANDS.get(pitch_code, PITCH_VELO_BANDS_DEFAULT)
-    for lo, hi in bins:
-        if (lo is None or velo >= lo) and (hi is None or velo < hi):
-            if lo is None:
-                return f"~{hi - 1}"
-            if hi is None:
-                return f"{lo}+"
-            return f"{lo}-{hi - 1}"
-    return None
+    lo, hi = PITCH_VELO_BANDS.get(pitch_code, PITCH_VELO_BANDS_DEFAULT)
+    if velo < lo:
+        return VELO_BAND_LABELS[0]
+    if velo < hi:
+        return VELO_BAND_LABELS[1]
+    return VELO_BAND_LABELS[2]
+
+
+# ==================================================
+# Section 0b. 球種カテゴリ階層（球種詳細 → 球種中カテゴリ → 球種大カテゴリ）
+# ==================================================
+# 球種詳細（pitchSplitsの"t"にそのまま入っている表記ゆれ込みの球種名）から、
+# 中カテゴリ（ストレート系/スライダー系/カーブ系/フォーク系/シンカー系/シュート系）、
+# さらに大カテゴリ（ストレート系/曲がる系/落ちる系）を引けるようにするマッピング。
+# 大カテゴリの分類方針: ストレート系＝速球そのもの／曲がる系＝横方向の変化が主体
+# （スライダー・シュート・シンカー）／落ちる系＝縦方向の変化が主体（フォーク・カーブ）。
+PITCH_MID_CATEGORY = {
+    "ストレート": "ストレート系", "フォーシーム": "ストレート系",
+    "ツーシーム": "ストレート系", "ワンシーム": "ストレート系",
+    "スライダー": "スライダー系", "カットボール": "スライダー系",
+    "スイーパー": "スライダー系", "縦スライダー": "スライダー系", "スラーブ": "スライダー系",
+    "カーブ": "カーブ系", "ナックルカーブ": "カーブ系", "スローボール": "カーブ系",
+    "フォーク": "フォーク系", "チェンジアップ": "フォーク系", "スプリット": "フォーク系",
+    "シンカー": "シンカー系",
+    "シュート": "シュート系",
+}
+PITCH_MAJOR_CATEGORY = {
+    "ストレート系": "ストレート系",
+    "スライダー系": "曲がる系", "シュート系": "曲がる系", "シンカー系": "曲がる系",
+    "カーブ系": "落ちる系", "フォーク系": "落ちる系",
+}
+
+
+def pitch_category(pitch_type: str) -> tuple[str, str]:
+    """球種詳細名から (球種中カテゴリ, 球種大カテゴリ) を返す。未知の球種は「その他」扱い。"""
+    mid = PITCH_MID_CATEGORY.get(pitch_type, "その他")
+    major = PITCH_MAJOR_CATEGORY.get(mid, "その他")
+    return mid, major
+
+
+# ==================================================
+# Section 0c. 守備位置の表記統一
+# ==================================================
+# run.py/run_mlb.pyが吐く守備位置は "(三)" のようにカッコ付きの場合がある
+# （元データの表記ゆれをそのまま引き継いでいる）。batter-cards.html側の表示・
+# フィルタでは "三" のようにカッコ無しで統一して使うため、ここで一箇所に集約して剥がす。
+def _clean_pos(pos) -> str | None:
+    if not pos:
+        return pos
+    return re.sub(r"[（）()]", "", str(pos)).strip() or None
 
 
 # コースゾーンの5x5(25分割)グリッド境界（run.py・run_mlb.py共有）。
@@ -320,6 +369,7 @@ def build_by_pitch_type(appearances: list[dict], hand_filter: str | None = None)
     for pitch_type, type_entries in by_type.items():
         stats = _agg_pitch_group(type_entries)
         stats["pitchType"] = pitch_type
+        stats["pitchCategoryMid"], stats["pitchCategoryMajor"] = pitch_category(pitch_type)
 
         by_band: dict[str, list[dict]] = {}
         for e in type_entries:
@@ -510,7 +560,7 @@ def build_game_log_rows_batter(appearances: list[dict]) -> list[dict]:
         ab = p.get("ab") or 0
         rows.append({
             "date": ap["date"], "opponent": opp, "opp_hand": ap.get("opp_pitcher_hand"),
-            "order": p.get("order"), "pos": p.get("pos"),
+            "order": p.get("order"), "pos": _clean_pos(p.get("pos")),
             "pa": p.get("pa"), "ab": p.get("ab"), "h": p.get("h"), "hr": p.get("hr"),
             "bb": p.get("bb"), "k": p.get("k"), "rbi": p.get("rbi"), "sb": p.get("sb"),
             "avg_game": round((p.get("h") or 0) / ab, 3) if ab > 0 else None,
@@ -787,9 +837,10 @@ def export_llm_input_batter_xlsx(games_json_dir: str, out_path: str, min_pa: flo
             if (season.get("打席") or 0) < min_pa:
                 continue
 
-            pos = determine_primary_position(appearances)
-            if pos in PITCHER_POS_MARKERS:
+            pos_raw = determine_primary_position(appearances)
+            if pos_raw in PITCHER_POS_MARKERS:
                 continue
+            pos = _clean_pos(pos_raw)  # 表示・フィルタ用にカッコを剥がした値（"(三)"→"三"）
 
             vs_r = calc_season_batter_stats(appearances, hand_filter="R")
             vs_l = calc_season_batter_stats(appearances, hand_filter="L")
