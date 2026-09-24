@@ -188,6 +188,16 @@
   .cz-sub{ font-size:8.5px; color:var(--text-dim); margin-top:1px; }
   .cz-note{ font-size:10.5px; color:var(--text-dim); margin-top:8px; }
 
+  /* シーズン成績ピボット表（年度×対左右×球種×球速帯） */
+  .pv-filters{ display:flex; flex-direction:column; gap:8px; margin-bottom:10px; }
+  .pv-filter-group{ display:flex; flex-wrap:wrap; align-items:center; gap:4px 10px; }
+  .pv-filter-label{ font-size:10px; font-weight:700; color:var(--text-dim); width:100%; margin-bottom:1px; }
+  .pv-check{ display:inline-flex; align-items:center; gap:4px; font-size:11px; color:var(--text-bright);
+    background:var(--panel-alt); border-radius:6px; padding:3px 8px 3px 6px; cursor:pointer; }
+  .pv-check input{ accent-color:var(--blue); width:13px; height:13px; }
+  .pv-empty{ font-size:11px; color:var(--text-dim); }
+  .pv-result-table{ min-width:900px; }
+
   .defense-note{ font-size:11.5px; color:var(--text-dim); line-height:1.6; }
   .defense-note b{ color:var(--text-bright); }
 
@@ -312,7 +322,7 @@
         <div class="filter-panel-row">
           <label class="filter-row">
             打席
-            <input id="minPaFilter" type="number" min="0" step="1" placeholder="0">
+            <input id="minPaFilter" type="number" min="0" step="1" placeholder="0" value="30">
             以上
           </label>
           <label class="filter-row">
@@ -964,6 +974,52 @@ function wireCourseZoneSection(scope, seasonObj){
   redraw();
 }
 
+// ── ランナー状況別成績 ──
+// 現状MLBのみ対応（NPBの生データにランナー状況の情報が無いため、bySituationは常に空配列）。
+function renderSituationTable(list){
+  if(!list || list.length === 0){
+    return `<div class="defense-note">この条件に該当するデータがありません（ランナー状況別は現在MLBのみ対応です。NPBの元データにランナー状況の情報が含まれていません）。</div>`;
+  }
+  const rows = list.map(s => `<tr>
+    <td>${escapeHtml(s.situation ?? "-")}</td>
+    <td>${s.count ?? "-"}</td><td>${s.pa ?? "-"}</td><td>${fmtAvg(s.avg)}</td>
+    <td>${fmt(s.whiff_pct, 1, "%")}</td><td>${fmt(s.chase_pct, 1, "%")}</td><td>${fmt(s.contact_pct, 1, "%")}</td>
+  </tr>`).join("");
+  return `<div class="table-scroll"><table class="split-table">
+    <thead><tr><th>状況</th><th>球数</th><th>打席</th><th>打率</th><th>空振り率</th><th>chase%</th><th>contact%</th></tr></thead>
+    <tbody>${rows}</tbody>
+  </table></div>`;
+}
+
+function renderSituationSection(seasonObj){
+  const byS = seasonObj.bySituation || { all: [], vsR: [], vsL: [] };
+  return `
+    <div class="hand-toggle st-hand-toggle">
+      <button type="button" class="hand-btn active" data-hand="all">全体</button>
+      <button type="button" class="hand-btn" data-hand="vsR">対右投手</button>
+      <button type="button" class="hand-btn" data-hand="vsL">対左投手</button>
+    </div>
+    <div data-st-panel="all">${renderSituationTable(byS.all)}</div>
+    <div data-st-panel="vsR" style="display:none">${renderSituationTable(byS.vsR)}</div>
+    <div data-st-panel="vsL" style="display:none">${renderSituationTable(byS.vsL)}</div>
+  `;
+}
+
+function wireSituationSection(scope){
+  const toggle = scope.querySelector(".st-hand-toggle");
+  if(!toggle) return;
+  toggle.addEventListener("click", (e) => {
+    const btn = e.target.closest(".hand-btn");
+    if(!btn) return;
+    toggle.querySelectorAll(".hand-btn").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    const hand = btn.dataset.hand;
+    scope.querySelectorAll("[data-st-panel]").forEach(p => {
+      p.style.display = p.dataset.stPanel === hand ? "" : "none";
+    });
+  });
+}
+
 function renderSeasonSummaryTable(seasonsMap, years){
   const rows = years.map(y => {
     const s = (seasonsMap[y] || {}).overall || {};
@@ -1010,6 +1066,128 @@ function renderSeasonTabs(years, current){
   return `<div class="season-tabs">
     ${years.map(y => `<button type="button" class="season-tab-btn ${y === current ? "active" : ""}" data-year="${escapeHtml(y)}">${escapeHtml(y)}</button>`).join("")}
   </div>`;
+}
+
+// ── シーズン成績ピボット表（年度×対左右×球種×球速帯） ──
+// デフォルトは年度ごとの1行（overall指標）。対左右/球種/球速帯のチェックボックスを
+// 追加するたびに、その軸でドリルダウンした行に差し替わる（チェック無し=その軸は展開しない）。
+// コース別・カウント別・ランナー状況別はここでは対象外（別セクションで確認する設計のため）。
+function handLabelOf(key){
+  if(key === "vsR") return "対右投手";
+  if(key === "vsL") return "対左投手";
+  return "全体";
+}
+
+function buildPivotRows(seasonsMap, allYears, selYears, selHands, selPts, selBands){
+  const rows = [];
+  const years = selYears.length ? selYears : allYears;
+  years.forEach(year => {
+    const season = seasonsMap[year];
+    if(!season) return;
+    const hands = selHands.length ? selHands : ["overall"];
+    hands.forEach(handKey => {
+      const stat = handKey === "overall" ? (season.overall || {}) : (season.splits?.[handKey] || {});
+      if(!selPts.length){
+        rows.push({
+          year, hand: handLabelOf(handKey), pitchType: "-", band: "-",
+          pa: stat.pa, avg: stat.avg, obp: stat.obp, slg: stat.slg, ops: stat.ops,
+          hr: stat.hr, k_pct: stat.k_pct, bb_pct: stat.bb_pct,
+          whiff_pct: stat.whiff_pct, chase_pct: stat.chase_pct, contact_pct: stat.contact_pct,
+        });
+        return;
+      }
+      const ptPopulation = handKey === "overall" ? "all" : handKey;
+      const ptList = season.byPitchType?.[ptPopulation] || [];
+      selPts.forEach(ptName => {
+        const ptObj = ptList.find(p => p.pitchType === ptName);
+        if(!ptObj) return;
+        if(!selBands.length){
+          rows.push({
+            year, hand: handLabelOf(handKey), pitchType: ptName, band: "-",
+            pa: ptObj.pa, avg: ptObj.avg, obp: null, slg: null, ops: null, hr: null, k_pct: null, bb_pct: null,
+            whiff_pct: ptObj.whiff_pct, chase_pct: ptObj.chase_pct, contact_pct: ptObj.contact_pct,
+          });
+          return;
+        }
+        selBands.forEach(bandName => {
+          const bandObj = (ptObj.byVelocityBand || []).find(b => b.band === bandName);
+          if(!bandObj) return;
+          rows.push({
+            year, hand: handLabelOf(handKey), pitchType: ptName, band: bandName,
+            pa: bandObj.pa, avg: bandObj.avg, obp: null, slg: null, ops: null, hr: null, k_pct: null, bb_pct: null,
+            whiff_pct: bandObj.whiff_pct, chase_pct: bandObj.chase_pct, contact_pct: bandObj.contact_pct,
+          });
+        });
+      });
+    });
+  });
+  return rows;
+}
+
+function renderPivotTable(rows){
+  if(rows.length === 0) return `<div class="defense-note">条件に一致するデータがありません。</div>`;
+  const trs = rows.map(r => `<tr>
+    <td>${escapeHtml(r.year)}</td><td>${escapeHtml(r.hand)}</td><td>${escapeHtml(r.pitchType)}</td><td>${escapeHtml(r.band)}</td>
+    <td>${r.pa ?? "-"}</td><td>${fmtAvg(r.avg)}</td><td>${fmtAvg(r.obp)}</td><td>${fmtAvg(r.slg)}</td><td>${fmt(r.ops, 3)}</td>
+    <td>${r.hr ?? "-"}</td><td>${fmt(r.k_pct, 1, "%")}</td><td>${fmt(r.bb_pct, 1, "%")}</td>
+    <td>${fmt(r.whiff_pct, 1, "%")}</td><td>${fmt(r.chase_pct, 1, "%")}</td><td>${fmt(r.contact_pct, 1, "%")}</td>
+  </tr>`).join("");
+  return `<div class="table-scroll"><table class="split-table pv-result-table">
+    <thead><tr><th>年度</th><th>対戦</th><th>球種</th><th>球速帯</th><th>打席</th><th>打率</th><th>出塁率</th><th>長打率</th><th>OPS</th>
+    <th>本塁打</th><th>K%</th><th>BB%</th><th>空振り率</th><th>chase%</th><th>contact%</th></tr></thead>
+    <tbody>${trs}</tbody>
+  </table></div>`;
+}
+
+function renderPivotSection(seasonsMap, years){
+  const allPitchTypes = new Set();
+  const allBands = new Set();
+  years.forEach(y => {
+    const season = seasonsMap[y];
+    (season?.byPitchType?.all || []).forEach(pt => {
+      allPitchTypes.add(pt.pitchType);
+      (pt.byVelocityBand || []).forEach(b => allBands.add(b.band));
+    });
+  });
+  const pitchTypeList = [...allPitchTypes];
+  const bandList = [...allBands];
+
+  return `
+    <div class="pv-filters">
+      <div class="pv-filter-group">
+        <div class="pv-filter-label">年度（チェック無し＝全年度）</div>
+        ${years.map(y => `<label class="pv-check"><input type="checkbox" class="pv-year-check" value="${escapeHtml(y)}" checked> ${escapeHtml(y)}</label>`).join("")}
+      </div>
+      <div class="pv-filter-group">
+        <div class="pv-filter-label">対左右（チェック無し＝全体のみ）</div>
+        <label class="pv-check"><input type="checkbox" class="pv-hand-check" value="vsR"> 対右投手</label>
+        <label class="pv-check"><input type="checkbox" class="pv-hand-check" value="vsL"> 対左投手</label>
+      </div>
+      <div class="pv-filter-group">
+        <div class="pv-filter-label">球種（チェック無し＝球種別に分けない）</div>
+        ${pitchTypeList.map(pt => `<label class="pv-check"><input type="checkbox" class="pv-pt-check" value="${escapeHtml(pt)}"> ${escapeHtml(pt)}</label>`).join("") || '<span class="pv-empty">データなし</span>'}
+      </div>
+      <div class="pv-filter-group">
+        <div class="pv-filter-label">球速帯（球種を1つ以上チェックした時のみ有効）</div>
+        ${bandList.map(b => `<label class="pv-check"><input type="checkbox" class="pv-band-check" value="${escapeHtml(b)}"> ${escapeHtml(b)}</label>`).join("") || '<span class="pv-empty">データなし</span>'}
+      </div>
+    </div>
+    <div data-pv-table></div>
+  `;
+}
+
+function wirePivotSection(scope, seasonsMap, years){
+  const table = scope.querySelector("[data-pv-table]");
+  if(!table) return;
+  function redraw(){
+    const selYears = [...scope.querySelectorAll(".pv-year-check:checked")].map(c => c.value);
+    const hands = [...scope.querySelectorAll(".pv-hand-check:checked")].map(c => c.value);
+    const pts = [...scope.querySelectorAll(".pv-pt-check:checked")].map(c => c.value);
+    const bands = [...scope.querySelectorAll(".pv-band-check:checked")].map(c => c.value);
+    table.innerHTML = renderPivotTable(buildPivotRows(seasonsMap, years, selYears, hands, pts, bands));
+  }
+  scope.querySelectorAll("input[type=checkbox]").forEach(cb => cb.addEventListener("change", redraw));
+  redraw();
 }
 
 function renderGameLogTable(gameLog){
@@ -1099,6 +1277,11 @@ function renderPlayerCard(card, llm){
 
       ${llmHtml}
 
+      <div class="section" data-pv-section>
+        <div class="section-title"><span class="bar"></span><span class="label">シーズン成績</span><span class="sub">チェックした軸でドリルダウンできます</span></div>
+        ${renderPivotSection(seasonsMap, years)}
+      </div>
+
       <div class="section">
         <div class="section-title"><span class="bar"></span><span class="label">対左右投手成績</span><span class="sub">試合単位の集計から近似（対戦投手ごとの厳密な打席紐付けではありません）</span></div>
         ${renderSplitTable(seasonObj)}
@@ -1112,6 +1295,11 @@ function renderPlayerCard(card, llm){
       <div class="section" data-cz-section>
         <div class="section-title"><span class="bar"></span><span class="label">コース別成績</span></div>
         ${renderCourseZoneSection(seasonObj)}
+      </div>
+
+      <div class="section" data-st-section>
+        <div class="section-title"><span class="bar"></span><span class="label">ランナー状況別成績</span></div>
+        ${renderSituationSection(seasonObj)}
       </div>
 
       <div class="section section-note">
@@ -1138,6 +1326,10 @@ function renderPlayerCard(card, llm){
     });
   });
 
+  // シーズン成績：年度×対左右×球種×球速帯のチェックボックスでドリルダウン
+  const pvSection = mainContentEl.querySelector("[data-pv-section]");
+  if(pvSection) wirePivotSection(pvSection, seasonsMap, years);
+
   // 球種別成績：全体/対右/対左トグル＋行クリックでの球速帯展開
   const ptSection = mainContentEl.querySelector("[data-pt-section]");
   if(ptSection) wirePitchTypeSection(ptSection);
@@ -1145,6 +1337,10 @@ function renderPlayerCard(card, llm){
   // コース別成績：対戦・指標のプルダウンでグリッドを再描画
   const czSection = mainContentEl.querySelector("[data-cz-section]");
   if(czSection) wireCourseZoneSection(czSection, seasonObj);
+
+  // ランナー状況別成績：全体/対右/対左トグル
+  const stSection = mainContentEl.querySelector("[data-st-section]");
+  if(stSection) wireSituationSection(stSection);
 
   // 試合ログ：シーズン成績/試合別タブ
   const gamelogSection = mainContentEl.querySelector("[data-gamelog-section]");
