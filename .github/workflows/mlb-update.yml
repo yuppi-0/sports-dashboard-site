@@ -11,7 +11,7 @@ on:
         required: false
         default: ''
       steps:
-        description: '実行ステップ（games/highlights/datamart/llm_input/batter_llm_input/all。スペース区切りで複数可。）'
+        description: '実行ステップ（games/highlights/datamart/llm_input/batter_llm_input/defense/all。スペース区切りで複数可。defenseは守備OAA・スプリントスピード・捕手フレーミング/PopTimeを取得するシーズン単位のステップで、allには含まれない）'
         required: false
         default: 'all'
       source:
