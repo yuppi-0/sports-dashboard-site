@@ -10,15 +10,20 @@ export_llm_input_batter.py
 を出力する。
 
 投手版との違い・制約:
-  - 日別JSON側の打者エントリ（run.py の build_batter()）は「1試合1行」の集計値
-    しか持っておらず、投手版のような球種別・投球コース別の内訳は無い。
-    そのため球種別・コース別の分析は今回のスコープに含めていない。
-  - 対右投手/対左投手のスプリットは、打席ごとの対戦投手までは紐付いていないため、
-    「その試合の相手チーム先発投手の投球腕」をその試合全体の対戦相手の腕として
-    近似的に分類している（登板交代で左右が変わった分は反映できない）。
-  - 出塁率/長打率/OPSは、単打・二塁打・三塁打の内訳が日別JSON側に無く総塁打数を
-    正確に積み上げられないため、試合ごとに計算済みの値を打席数で加重平均した近似値。
-    安打・本塁打・四死球・三振・打点・盗塁・打率・K%・BB%は実数の積み上げなので正確。
+  - 対右投手/対左投手のスプリットは、球種別集計（pitchSplits経由）がある試合では
+    球単位の実際の対戦投手の利き腕で判定される。pitchSplitsが無い古いデータ
+    （移行前に生成された日別JSON）では、従来通り「その試合の相手チーム先発投手の
+    投球腕」による近似にフォールバックする。
+  - 球種別・球速帯別の内訳（byPitchType）は、run.py（NPB）・run_mlb.py（MLB）が
+    日別JSONの各打者エントリに付与する"pitchSplits"（試合×球種×球速帯×対戦投手
+    利き腕、で事前集計済み）を元に、シーズン全体で合算して組み立てる。球速帯は
+    球種コードごとの固定ビン（export_llm_input_batter.pyのPITCH_VELO_BANDS。
+    詳細はbatter_card_schema.md参照）。この内訳のOBP/SLG/OPSは、単打・長打の
+    内訳が無く計算できないため含めていない（打率・選球眼系のみ）。
+  - 出塁率/長打率/OPS（シーズン全体・対左右投手）は、単打・二塁打・三塁打の内訳が
+    日別JSON側に無く総塁打数を正確に積み上げられないため、試合ごとに計算済みの値を
+    打席数で加重平均した近似値。安打・本塁打・四死球・三振・打点・盗塁・打率・K%・BB%
+    は実数の積み上げなので正確。
   - 守備・走塁の高度指標（守備率・レンジファクター・盗塁死・盗塁成功率など）は、
     現時点のrun.pyに守備成績ページのスクレイピングが実装されていないため取得できない。
     numeric_json側にはキーだけ用意してNoneを入れてある。追加するには、run.py側に
@@ -26,12 +31,13 @@ export_llm_input_batter.py
     ステップを追加する必要がある（別途対応）。
   - run.py（NPB）・run_mlb.py（MLB）どちらの games/json からも同じ関数で処理できるよう
     共通の入力形式（games/json/{date}.json、pitchers.hand・batters.pa等）に依存する
-    作りにしている。ただしMLB側のbatterエントリには、NPB側にある
+    作りにしている。ただしMLB側のbatterエントリには、NPB側にある試合単位の
     chase(O-Swing%)/whiff(whiff%)/contact(Z-Swing%) の3項目が無い（Statcastベースの
-    Hard-Hit%/Barrel%/xwOBA等に置き換わっている）ため、MLBで実行すると season の
-    "O-Swing%"/"Z-Swing%"/"whiff%" は必ずNoneになる（エラーにはならず、そのまま欠損として
-    出力される）。MLBの選球眼相当の指標を出したい場合は、run_mlb.py側のbuild_batter()に
-    Statcast由来のchase/whiff/contact相当の値を追加する必要がある。
+    Hard-Hit%/Barrel%/xwOBA等に置き換わっている）ため、season（試合単位の値を加重平均
+    する既存ロジック）の"O-Swing%"/"Z-Swing%"/"whiff%"はMLBでは必ずNoneになる。
+    一方、pitchSplits経由のbyPitchType（球種別・球速帯別の内訳）側は、run_mlb.pyの
+    build_batter_pitch_splits_mlb()がStatcastの description/zone から直接計算するため、
+    MLBでも欠損しない（chase_pct/contact_pct/whiff_pctが球種ごとに取れる）。
   - MLB側の"bb"は「四球」のみ（死球を含まない）。NPB側の"bb"は「四死球」（四球+死球）。
     このスクリプトはどちらも同じ"bb"キーとして合算するため、リーグ間で出塁率近似の
     厳密な計算根拠が微妙に異なる点に注意（どちらも近似値であることに変わりはない）。
@@ -47,6 +53,7 @@ export_llm_input_batter.py
 from __future__ import annotations
 
 import argparse
+import datetime
 import json
 import os
 import re
@@ -56,6 +63,43 @@ import pandas as pd
 
 # 日別JSONの読み込みロジックは投手版と完全に共通のため使い回す
 from export_llm_input import load_daily_games
+
+
+# ==================================================
+# Section 0. 球速帯の固定ビン定義（run.py・run_mlb.py共有）
+# ==================================================
+# 球種コード別の球速帯固定ビン（km/h、下限含む・上限含まない。Noneは無制限）。
+# 球種によって球速レンジの傾向は概ね決まっているため、球種横断の固定ビンではなく
+# 球種コードごとに用意する。境界は初期値であり、実データを見ながら調整可能な定数。
+# ストレート(FF)は150km/h・155km/hの区切りを両方含める。
+# NPB(run.py)・MLB(run_mlb.py)どちらの打者版球種集計もここから同じ定義を import して使う
+# （選手間・リーグ間比較のため、境界は揃えておく必要がある）。
+PITCH_VELO_BANDS = {
+    "FF": [(None, 145), (145, 150), (150, 155), (155, None)],
+    "SI": [(None, 140), (140, 145), (145, 150), (150, None)],
+    "CT": [(None, 135), (135, 140), (140, 145), (145, None)],
+    "SH": [(None, 135), (135, 140), (140, 145), (145, None)],
+    "SL": [(None, 125), (125, 130), (130, 135), (135, None)],
+    "CU": [(None, 110), (110, 115), (115, 120), (120, None)],
+    "FK": [(None, 115), (115, 120), (120, 125), (125, None)],
+    "FS": [(None, 120), (120, 125), (125, 130), (130, None)],
+}
+PITCH_VELO_BANDS_DEFAULT = [(None, 120), (120, 130), (130, 140), (140, None)]
+
+
+def velo_band_label(pitch_code: str, velo) -> str | None:
+    """球種コードと球速(km/h)から球速帯ラベルを返す。球速が無ければNone。"""
+    if velo is None or (isinstance(velo, float) and pd.isna(velo)):
+        return None
+    bins = PITCH_VELO_BANDS.get(pitch_code, PITCH_VELO_BANDS_DEFAULT)
+    for lo, hi in bins:
+        if (lo is None or velo >= lo) and (hi is None or velo < hi):
+            if lo is None:
+                return f"~{hi - 1}"
+            if hi is None:
+                return f"{lo}+"
+            return f"{lo}-{hi - 1}"
+    return None
 
 
 # ==================================================
@@ -158,7 +202,7 @@ def calc_season_batter_stats(appearances: list[dict], hand_filter: str | None = 
     if not rows:
         return {
             "試合数": 0, "打席": 0, "打数": 0, "安打": 0, "本塁打": 0, "四死球": 0,
-            "三振": 0, "打点": 0, "盗塁": 0, "打率": None, "出塁率": None, "長打率": None,
+            "三振": 0, "打点": 0, "盗塁": 0, "盗塁死": None, "打率": None, "出塁率": None, "長打率": None,
             "OPS": None, "K%": None, "BB%": None,
             "O-Swing%": None, "Z-Swing%": None, "whiff%": None,
         }
@@ -168,6 +212,11 @@ def calc_season_batter_stats(appearances: list[dict], hand_filter: str | None = 
 
     pa, ab, h, hr = s("pa"), s("ab"), s("h"), s("hr")
     bb, k, rbi, sb = s("bb"), s("k"), s("rbi"), s("sb")
+    # 盗塁死(cs)はMLBのみ取得できる（run_mlb.pyが走者を正しく特定して算出）。
+    # NPBの打者エントリには"cs"キー自体が無いため、その場合はNoneのままにしておく
+    # （0と区別する。0は「盗塁死が無かった」、Noneは「そもそもデータが無い」）。
+    has_cs = any("cs" in (ap["player"] or {}) for ap in rows)
+    cs = s("cs") if has_cs else None
 
     avg = round(h / ab, 3) if ab > 0 else None
     kpct = round(k / pa * 100, 1) if pa > 0 else None
@@ -184,7 +233,7 @@ def calc_season_batter_stats(appearances: list[dict], hand_filter: str | None = 
 
     return {
         "試合数": len(rows), "打席": pa, "打数": ab, "安打": h, "本塁打": hr,
-        "四死球": bb, "三振": k, "打点": rbi, "盗塁": sb,
+        "四死球": bb, "三振": k, "打点": rbi, "盗塁": sb, "盗塁死": cs,
         "打率": avg, "出塁率": obp, "長打率": slg, "OPS": ops,
         "K%": kpct, "BB%": bbpct,
         "O-Swing%": chase, "Z-Swing%": contact, "whiff%": whiff,
@@ -198,6 +247,88 @@ def determine_primary_position(appearances: list[dict]) -> str | None:
     if not positions:
         return None
     return Counter(positions).most_common(1)[0][0]
+
+
+# ==================================================
+# Section 2b. 球種別・球速帯別集計（対左右投手の3系統: all/vsR/vsL）
+# ==================================================
+# 元データは run.py（NPB）/ run_mlb.py（MLB）が日別JSONの各打者エントリに付与する
+# "pitchSplits"（試合×球種×球速帯×対戦投手利き腕、で事前集計済みのリスト）。
+# どちらのリーグも同じキー構成（t/band/h/n/pa/ab/h_/sw/ws/z/oz/zsw/ozsw）で出力するため、
+# ここのロジックはリーグに依存しない。
+
+def _agg_pitch_group(entries: list[dict]) -> dict:
+    """pitchSplitsエントリのリストから、打率・選球眼指標を集計した1オブジェクトを作る。
+    obp/slg/opsはpitchSplits側に単打/長打/四球の内訳が無いため計算できない
+    （打率のみ正確に出せる。選球眼系はゾーン内外のスイング数から計算する）。"""
+    n = sum(e.get("n", 0) or 0 for e in entries)
+    pa = sum(e.get("pa", 0) or 0 for e in entries)
+    ab = sum(e.get("ab", 0) or 0 for e in entries)
+    h = sum(e.get("h_", 0) or 0 for e in entries)
+    sw = sum(e.get("sw", 0) or 0 for e in entries)
+    ws = sum(e.get("ws", 0) or 0 for e in entries)
+    z = sum(e.get("z", 0) or 0 for e in entries)
+    oz = sum(e.get("oz", 0) or 0 for e in entries)
+    zsw = sum(e.get("zsw", 0) or 0 for e in entries)
+    ozsw = sum(e.get("ozsw", 0) or 0 for e in entries)
+    return {
+        "count": n, "pa": pa, "ab": ab, "h": h,
+        "avg": round(h / ab, 3) if ab > 0 else None,
+        "whiff_pct": round(ws / sw * 100, 1) if sw > 0 else None,
+        "chase_pct": round(ozsw / oz * 100, 1) if oz > 0 else None,     # O-Swing%
+        "contact_pct": round(zsw / z * 100, 1) if z > 0 else None,       # Z-Swing%
+    }
+
+
+def build_by_pitch_type(appearances: list[dict], hand_filter: str | None = None) -> list[dict]:
+    """
+    appearancesからbyPitchType（all/vsR/vsLのうち1系統ぶん）を組み立てる。
+    各球種の中に、さらにbyVelocityBand（球速帯別の内訳）をネストして持たせる
+    （batter_card_schema.md参照）。
+    """
+    entries: list[dict] = []
+    for ap in appearances:
+        p = ap.get("player")
+        if not isinstance(p, dict):
+            continue
+        for e in (p.get("pitchSplits") or []):
+            if hand_filter and e.get("h") != hand_filter:
+                continue
+            entries.append(e)
+
+    by_type: dict[str, list[dict]] = {}
+    for e in entries:
+        by_type.setdefault(e.get("t", ""), []).append(e)
+
+    result = []
+    for pitch_type, type_entries in by_type.items():
+        stats = _agg_pitch_group(type_entries)
+        stats["pitchType"] = pitch_type
+
+        by_band: dict[str, list[dict]] = {}
+        for e in type_entries:
+            by_band.setdefault(e.get("band", ""), []).append(e)
+        band_list = []
+        for band, band_entries in by_band.items():
+            band_stats = _agg_pitch_group(band_entries)
+            band_stats["band"] = band
+            band_list.append(band_stats)
+        band_list.sort(key=lambda b: -(b["count"] or 0))
+        stats["byVelocityBand"] = band_list
+
+        result.append(stats)
+
+    result.sort(key=lambda r: -(r["count"] or 0))
+    return result
+
+
+def build_pitch_type_breakdown(appearances: list[dict]) -> dict:
+    """byPitchTypeの3系統（all/vsR/vsL）をまとめて返す"""
+    return {
+        "all": build_by_pitch_type(appearances),
+        "vsR": build_by_pitch_type(appearances, hand_filter="R"),
+        "vsL": build_by_pitch_type(appearances, hand_filter="L"),
+    }
 
 
 # ==================================================
@@ -227,6 +358,17 @@ def build_game_log_rows_batter(appearances: list[dict]) -> list[dict]:
 # ==================================================
 
 RANK_MIN_PA = 100  # 順位算出の資格打席（この打席数未満の選手は順位母集団から除外）
+
+# 主定位置がこれに該当する選手は「投手」とみなし、打者一覧から除外する（NPBのみ該当。
+# MLBは build_batter() が守備位置を常に空文字にしているため、この判定に引っかからない
+# ＝現状MLB側では投手除外は機能しない。UDH制のため実害は小さいはずだが、位置データが
+# 追加されたタイミングで見直すこと）。
+PITCHER_POS_MARKERS = {"投", "(投)"}
+
+# 打者名が数字だけ（例: "657675"）の行は、MLB側の選手名解決（playerid_reverse_lookup）
+# が失敗し選手IDそのものにフォールバックしたケース。run_mlb.py側で修正済みだが、
+# 今後も同様のフォールバックが起き得るため、ダッシュボードには出さないよう保険で除外する。
+_NUMERIC_NAME_PAT = re.compile(r"^\d+$")
 
 # (シーズン集計側の列名, numeric json側のキー名, 高いほど良いか)
 _RANK_SPECS = [
@@ -273,6 +415,30 @@ def _slugify_name(name: str) -> str:
     return s.strip("_") or "unknown"
 
 
+def determine_season_year(all_data: dict) -> str:
+    """games/json内の全日付のうち最も多い年を、このシーズンの年とみなす
+    （通常は単一年のデータしか渡らないが、年またぎのデータが混じっていても
+    多数派の年を採用することで壊れないようにしておく）"""
+    dates = [d for d in all_data.keys() if d != "highlights" and not str(d).startswith("_")]
+    years = [str(d)[:4] for d in dates if len(str(d)) >= 4 and str(d)[:4].isdigit()]
+    if not years:
+        return str(datetime.date.today().year)
+    return Counter(years).most_common(1)[0][0]
+
+
+def _to_stat_obj(s: dict) -> dict:
+    """calc_season_batter_stats()の日本語キー辞書を、numeric_json用の英語キー
+    「成績オブジェクト」（batter_card_schema.md参照）に変換する"""
+    return {
+        "games": s.get("試合数"), "pa": s.get("打席"), "ab": s.get("打数"),
+        "h": s.get("安打"), "hr": s.get("本塁打"), "bb": s.get("四死球"),
+        "k": s.get("三振"), "rbi": s.get("打点"), "sb": s.get("盗塁"), "cs": s.get("盗塁死"),
+        "avg": s.get("打率"), "obp": s.get("出塁率"), "slg": s.get("長打率"), "ops": s.get("OPS"),
+        "k_pct": s.get("K%"), "bb_pct": s.get("BB%"),
+        "chase_pct": s.get("O-Swing%"), "contact_pct": s.get("Z-Swing%"), "whiff_pct": s.get("whiff%"),
+    }
+
+
 # ==================================================
 # Section 5. メイン: xlsx / numeric json 出力
 # ==================================================
@@ -287,12 +453,17 @@ def export_llm_input_batter_xlsx(games_json_dir: str, out_path: str, min_pa: flo
     """
     all_data = load_daily_games(games_json_dir)
     names = set(target_names) if target_names else build_all_batter_names(all_data)
+    season_year = determine_season_year(all_data)
 
     season_rows, split_rows, gamelog_rows = [], [], []
     numeric_cards: dict[str, dict] = {}
 
     for name in sorted(names):
         try:
+            if _NUMERIC_NAME_PAT.match(name.strip()):
+                print(f"  [SKIP] {name}: 選手名が数字のみ（名前解決失敗の疑い）のため除外")
+                continue
+
             appearances = build_appearances_batter(all_data, name)
             if not appearances:
                 continue
@@ -303,10 +474,13 @@ def export_llm_input_batter_xlsx(games_json_dir: str, out_path: str, min_pa: flo
             if (season.get("打席") or 0) < min_pa:
                 continue
 
+            pos = determine_primary_position(appearances)
+            if pos in PITCHER_POS_MARKERS:
+                continue
+
             vs_r = calc_season_batter_stats(appearances, hand_filter="R")
             vs_l = calc_season_batter_stats(appearances, hand_filter="L")
 
-            pos = determine_primary_position(appearances)
             season["主定位置"] = pos
 
             # 直近の出場からチーム名を推定（home/awayどちら側だったかで判定）
@@ -324,28 +498,28 @@ def export_llm_input_batter_xlsx(games_json_dir: str, out_path: str, min_pa: flo
                 gamelog_rows.append({"選手名": name, **g})
 
             if numeric_json_dir:
+                cs = season.get("盗塁死")  # NoneならNPB等cs未対応、0以上ならMLBで実際に集計された値
+                sb_n = season.get("盗塁") or 0
+                sb_success_pct = (
+                    round(sb_n / (sb_n + cs) * 100, 1) if cs is not None and (sb_n + cs) > 0 else None
+                )
                 numeric_cards[name] = {
-                    "name": name, "team": team, "pos": pos,
-                    "games": season["試合数"], "pa": season["打席"], "ab": season["打数"],
-                    "h": season["安打"], "hr": season["本塁打"], "bb": season["四死球"],
-                    "k": season["三振"], "rbi": season["打点"], "sb": season["盗塁"],
-                    "avg": season["打率"], "obp": season["出塁率"], "slg": season["長打率"],
-                    "ops": season["OPS"],
-                    "k_pct_season": season["K%"], "bb_pct_season": season["BB%"],
-                    "chase_pct_season": season["O-Swing%"],
-                    "contact_pct_season": season["Z-Swing%"],
-                    "whiff_pct_season": season["whiff%"],
-                    "splits": {"vsR": vs_r, "vsL": vs_l},
+                    "team": team, "pos": pos,
+                    "overall": _to_stat_obj(season),
+                    "splits": {"vsR": _to_stat_obj(vs_r), "vsL": _to_stat_obj(vs_l)},
+                    "byPitchType": build_pitch_type_breakdown(appearances),
                     "game_log": game_log_dicts,
-                    # 守備・走塁の高度指標: 現状のrun.pyには守備成績スクレイピングが
-                    # 実装されていないため取得不可。将来対応するまではNoneのまま出力する。
                     "defense": {
-                        "fielding_pct": None,  # 守備率（要: 守備成績ページの新規スクレイピング）
-                        "range_factor": None,  # レンジファクター（同上）
-                        "cs": None,             # 盗塁死（同上）
-                        "sb_success_pct": None,  # 盗塁成功率（盗塁死が無いため算出不可）
+                        # 守備率・レンジファクターは、現状のrun.py/run_mlb.pyに守備成績の
+                        # スクレイピング/取得が実装されていないため取得不可（将来対応まではNone）。
+                        "fielding_pct": None,
+                        "range_factor": None,
+                        # 盗塁死・盗塁成功率はMLBのみ算出可能（run_mlb.pyが試合全体から走者を
+                        # 正しく特定して集計する。NPBの打者エントリには"cs"が無いためNoneのまま）。
+                        "cs": cs,
+                        "sb_success_pct": sb_success_pct,
                     },
-                    # rankings/categoriesはこの後、全選手分揃ってから付与する
+                    # rankingsはこの後、全選手分揃ってから付与する
                 }
         except Exception as e:
             print(f"  [SKIP] {name}: 集計中にエラーのためスキップ({type(e).__name__}: {e})")
@@ -369,24 +543,72 @@ def export_llm_input_batter_xlsx(games_json_dir: str, out_path: str, min_pa: flo
     if numeric_json_dir:
         os.makedirs(numeric_json_dir, exist_ok=True)
         index_players = []
-        for name, card in numeric_cards.items():
-            card["rankings"] = rankings.get(name, {})
-            card["categories"] = classify_batter_categories(card)
+        for name, season_obj in numeric_cards.items():
+            season_obj["rankings"] = rankings.get(name, {})
             player_id = _slugify_name(name)
-            with open(os.path.join(numeric_json_dir, f"{player_id}.json"), "w", encoding="utf-8") as f:
-                json.dump(card, f, ensure_ascii=False)
+            path = os.path.join(numeric_json_dir, f"{player_id}.json")
+
+            # 既存ファイルがあれば読み込み、seasons辞書の該当年だけ更新する
+            # （他の年のデータ・MLBの過去シーズン分などを上書きしないため）
+            existing: dict = {}
+            if os.path.exists(path):
+                try:
+                    with open(path, "r", encoding="utf-8") as f:
+                        existing = json.load(f)
+                except Exception as e:
+                    print(f"  [WARN] {player_id}.json の既存データ読み込みに失敗（新規として扱います）: {e}")
+                    existing = {}
+
+            seasons = existing.get("seasons") if isinstance(existing.get("seasons"), dict) else {}
+            seasons[season_year] = season_obj
+            years_sorted = sorted(seasons.keys(), reverse=True)
+            latest_year = years_sorted[0]
+            latest = seasons[latest_year]
+            latest_overall = latest.get("overall", {})
+
+            categories = classify_batter_categories({
+                "hr": latest_overall.get("hr"), "sb": latest_overall.get("sb"),
+                "bb_pct_season": latest_overall.get("bb_pct"),
+                "k_pct_season": latest_overall.get("k_pct"),
+            })
+
+            full_card = {
+                "name": name,
+                "team": latest.get("team"), "pos": latest.get("pos"),
+                "years": years_sorted, "latestYear": latest_year,
+                # ── 後方互換ミラー：最新シーズンのoverallと同一内容 ──
+                "games": latest_overall.get("games"), "pa": latest_overall.get("pa"),
+                "ab": latest_overall.get("ab"), "h": latest_overall.get("h"),
+                "hr": latest_overall.get("hr"), "bb": latest_overall.get("bb"),
+                "k": latest_overall.get("k"), "rbi": latest_overall.get("rbi"),
+                "sb": latest_overall.get("sb"),
+                "avg": latest_overall.get("avg"), "obp": latest_overall.get("obp"),
+                "slg": latest_overall.get("slg"), "ops": latest_overall.get("ops"),
+                "k_pct_season": latest_overall.get("k_pct"),
+                "bb_pct_season": latest_overall.get("bb_pct"),
+                "chase_pct_season": latest_overall.get("chase_pct"),
+                "contact_pct_season": latest_overall.get("contact_pct"),
+                "whiff_pct_season": latest_overall.get("whiff_pct"),
+                "rankings": latest.get("rankings", {}),
+                "game_log": latest.get("game_log", []),
+                "categories": categories,
+                "seasons": seasons,
+            }
+            with open(path, "w", encoding="utf-8") as f:
+                json.dump(full_card, f, ensure_ascii=False)
+
             index_players.append({
-                "id": player_id, "name": name, "team": card.get("team"), "pos": card.get("pos"),
-                "categories": card["categories"],
-                "games": card.get("games"), "pa": card.get("pa"),
-                "avg": card.get("avg"), "obp": card.get("obp"), "slg": card.get("slg"),
-                "ops": card.get("ops"),
-                "hr": card.get("hr"), "rbi": card.get("rbi"), "sb": card.get("sb"),
-                "k_pct": card.get("k_pct_season"), "bb_pct": card.get("bb_pct_season"),
+                "id": player_id, "name": name, "team": full_card.get("team"), "pos": full_card.get("pos"),
+                "categories": categories,
+                "games": full_card.get("games"), "pa": full_card.get("pa"),
+                "avg": full_card.get("avg"), "obp": full_card.get("obp"), "slg": full_card.get("slg"),
+                "ops": full_card.get("ops"),
+                "hr": full_card.get("hr"), "rbi": full_card.get("rbi"), "sb": full_card.get("sb"),
+                "k_pct": full_card.get("k_pct_season"), "bb_pct": full_card.get("bb_pct_season"),
             })
         with open(os.path.join(numeric_json_dir, "index.json"), "w", encoding="utf-8") as f:
             json.dump({"players": index_players}, f, ensure_ascii=False, indent=2)
-        print(f"  数値JSON: {len(index_players)}選手分を {numeric_json_dir} に出力")
+        print(f"  数値JSON: {len(index_players)}選手分を {numeric_json_dir} に出力（対象シーズン: {season_year}）")
 
     return out_path
 

@@ -61,7 +61,7 @@ except ImportError:
 # LLM入力用xlsx生成（選手詳細カード用のシーズン集計・球種別・コース分布・カウント別パターン）
 from export_llm_input import export_llm_input_xlsx
 # 打者版（シーズン集計・対左右投手別・試合ログ。球種別・コース別は打者側データに無いため対象外）
-from export_llm_input_batter import export_llm_input_batter_xlsx
+from export_llm_input_batter import export_llm_input_batter_xlsx, PITCH_VELO_BANDS, velo_band_label
 
 # %%
 # ==================================================
@@ -1034,6 +1034,62 @@ def ab_result_flags(category: str, result: str) -> tuple[int, int, int]:
     return 1, int(is_hit), int(is_xbh)
 
 
+# ==================================================
+# 打者版バッターカード用：球種×球速帯×対戦投手利き腕の集計
+# ==================================================
+# 球速帯の固定ビン定義（PITCH_VELO_BANDS/velo_band_label）は run.py・run_mlb.py
+# どちらの打者版球種集計からも同じ境界を使うため、export_llm_input_batter.py側に
+# 一本化してある（このファイル冒頭のimportでも読み込み済み）。
+
+def build_batter_pitch_splits(df_pitch: "pd.DataFrame", pit_hand_map: dict) -> "pd.DataFrame":
+    """
+    打者×試合×球種×球速帯×対戦投手の利き腕、で事前集計した縦持ちDataFrameを返す
+    （バッターカードの球種別・球速帯別・対左右投手の元データ）。
+    df_pitchは「打者名」「投手名」「球種」「球速_num」「打席内球数」「打席番号」
+    「打席完了結果」「判定カテゴリ」「is_swing」「is_swstr」「in_zone」「out_zone」列を持つこと。
+    """
+    if df_pitch is None or df_pitch.empty:
+        return pd.DataFrame(columns=[
+            "試合ID", "選手名", "球種", "球速帯", "対戦投手利き腕",
+            "球数", "打席", "打数", "安打",
+            "SW数", "空振り数", "ゾーン内投球数", "ゾーン外投球数",
+            "ゾーン内SW数", "ゾーン外SW数",
+        ])
+
+    df = df_pitch.copy()
+    df["_pa_last"] = df["打席内球数"] == df.groupby("打席番号")["打席内球数"].transform("max")
+    df["_pitch_code"] = df["球種"].apply(to_pitch_key)
+    df["_hand"] = df["投手名"].map(lambda n: "L" if pit_hand_map.get(n, "") == "左投" else "R")
+    df["_band"] = [velo_band_label(pc, v) for pc, v in zip(df["_pitch_code"], df.get("球速_num"))]
+
+    rows = []
+    group_cols = ["試合ID", "打者名", "球種", "_band", "_hand"]
+    for keys, g in df.groupby(group_cols, dropna=False):
+        gid, bname, pitch_label, band, hand = keys
+        if band is None or pd.isna(bname) or not str(bname).strip():
+            continue  # 球速データが無い投球・打者名不明の行は除外
+        last = g[g["_pa_last"]]
+        ab_n = h_n = 0
+        for _, r in last.iterrows():
+            res = str(r.get("打席完了結果", "") or "")
+            cat = str(r.get("判定カテゴリ", "") or "")
+            a, h, _xh = ab_result_flags(cat, res)
+            ab_n += a
+            h_n  += h
+        in_z  = g["in_zone"]  if "in_zone"  in g.columns else pd.Series([False]*len(g), index=g.index)
+        out_z = g["out_zone"] if "out_zone" in g.columns else pd.Series([False]*len(g), index=g.index)
+        swing = g["is_swing"]
+        rows.append({
+            "試合ID": str(gid), "選手名": bname, "球種": str(pitch_label),
+            "球速帯": band, "対戦投手利き腕": hand,
+            "球数": int(len(g)), "打席": int(len(last)), "打数": ab_n, "安打": h_n,
+            "SW数": int(swing.sum()), "空振り数": int(g["is_swstr"].sum()),
+            "ゾーン内投球数": int(in_z.sum()), "ゾーン外投球数": int(out_z.sum()),
+            "ゾーン内SW数": int((swing & in_z).sum()), "ゾーン外SW数": int((swing & out_z).sum()),
+        })
+    return pd.DataFrame(rows)
+
+
 def swing_counts(sw_g) -> dict:
     """投球DataFrameからスイング実数を返す"""
     if sw_g is None or (hasattr(sw_g, "empty") and sw_g.empty) or "is_swing" not in sw_g.columns:
@@ -1726,6 +1782,10 @@ def run_datamart(
             "空振り数":   swstr,
         }
 
+    # 打者版バッターカード用：打者×球種×球速帯×対戦投手利き腕の集計（新規スクレイピング不要、
+    # 既存のdf_pitch（打者名・球速_num・投手名付き）から集計するだけ）
+    fact_bat_pitch_splits = build_batter_pitch_splits(df_pitch, pit_hand_map_pm)
+
     # 打席完了結果から打者視点の打球アウト分類
     def _bat_batted(res: pd.Series) -> dict:
         """打者視点の打球アウト集計（安打・HR・犠飛はアウトでないので除外）"""
@@ -2212,6 +2272,7 @@ def run_datamart(
         _dm_reorder(fact_game_pitcher_lr, DM_COL_PIT_LR).to_excel(writer, sheet_name="試合別投手成績_左右別", index=False)
         _dm_reorder(fact_pitch_mix,       DM_COL_MIX).to_excel(writer, sheet_name="試合別投球配球",        index=False)
         _dm_reorder(fact_pitch_mix_lr,    DM_COL_MIX_LR).to_excel(writer, sheet_name="試合別投球配球_左右別", index=False)
+        fact_bat_pitch_splits.to_excel(writer,  sheet_name="試合別打者被球種別成績",  index=False)
         df_highlights.to_excel(writer,         sheet_name="活躍選手",              index=False)
 
     print(f"\n完了: '{output_path}'")
@@ -2222,6 +2283,7 @@ def run_datamart(
         ("試合別投手成績_左右別", fact_game_pitcher_lr),
         ("試合別投球配球",        fact_pitch_mix),
         ("試合別投球配球_左右別", fact_pitch_mix_lr),
+        ("試合別打者被球種別成績", fact_bat_pitch_splits),
         ("活躍選手",              df_highlights),
     ]:
         print(f"  {name:18s}: {len(df):>5} rows")
@@ -2407,6 +2469,25 @@ def _build_dashboard_data(datamart_path: str, pitch_locs: dict | None = None, cb
         tai = r.get("対打者", "")
         mix_lr_idx[(r["試合ID"], r["選手名"], tai)].append(r)
 
+    # 試合別打者被球種別成績 → 打者カードのpitchSplits（球種×球速帯×対戦投手利き腕）
+    bat_pitch_splits_idx = defaultdict(list)
+    for r in sheets.get("試合別打者被球種別成績", []):
+        bat_pitch_splits_idx[(str(r.get("試合ID", "")), r.get("選手名", ""))].append({
+            "t":    r.get("球種", ""),
+            "band": r.get("球速帯", ""),
+            "h":    r.get("対戦投手利き腕", ""),
+            "n":    _iv(r.get("球数")),
+            "pa":   _iv(r.get("打席")),
+            "ab":   _iv(r.get("打数")),
+            "h_":   _iv(r.get("安打")),
+            "sw":   _iv(r.get("SW数")),
+            "ws":   _iv(r.get("空振り数")),
+            "z":    _iv(r.get("ゾーン内投球数")),
+            "oz":   _iv(r.get("ゾーン外投球数")),
+            "zsw":  _iv(r.get("ゾーン内SW数")),
+            "ozsw": _iv(r.get("ゾーン外SW数")),
+        })
+
     # 試合別投手成績_左右別 → pitStatVsR / pitStatVsL
     pit_lr_idx = {}
     for r in sheets.get("試合別投手成績_左右別", []):
@@ -2546,12 +2627,17 @@ def _build_dashboard_data(datamart_path: str, pitch_locs: dict | None = None, cb
             "slg":     _fv(bat_row.get("長打率")),
             "h":       _iv(bat_row.get("安打")),
             "hr":      _iv(bat_row.get("本塁打")),
-            "bb":      _iv(bat_row.get("四死球")),
+            # datamartの列は「四球」「死球」に分かれている（「四死球」という列は存在しない）。
+            # 以前は存在しない列名を参照していたため常に0になっていた。
+            "bb":      _iv(bat_row.get("四球")) + _iv(bat_row.get("死球")),
             "k":       _iv(bat_row.get("三振")),
-            "pa":      _iv(bat_row.get("打席数")),
+            # 列名は「打席」（「打席数」ではない）。以前は存在しない列名を参照していたため常に0になっていた。
+            "pa":      _iv(bat_row.get("打席")),
             "ab":      _iv(bat_row.get("打数")),
             "rbi":     _iv(bat_row.get("打点")),
             "sb":      _iv(bat_row.get("盗塁")),
+            # 打者版バッターカード用：球種×球速帯×対戦投手利き腕の内訳（試合単位で事前集計済み）
+            "pitchSplits": bat_pitch_splits_idx.get((str(bat_row.get("試合ID", "")), bat_row.get("選手名", "")), []),
         }
 
     DATA = {}
