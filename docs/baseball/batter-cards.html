@@ -162,6 +162,9 @@
   .split-table td:first-child, .disc-table td:first-child, .pt-table td:first-child, .pt-band-table td:first-child{ text-align:left; font-weight:700; color:var(--text-bright); }
   .kst-group-cell{ vertical-align:middle; background:var(--panel-alt); border-right:1px solid rgba(148,163,184,0.15);
     font-size:11px; color:var(--text-dim); }
+  /* カウント別成績のようにグループ列(rowspan)があると、グループの先頭行だけtd数が1つ多くなり
+     :first-child頼みのスタイル（太字・左寄せ）がずれてしまうため、キー列には明示クラスで固定する */
+  .kst-key-cell{ text-align:left; font-weight:700; color:var(--text-bright); }
   .split-table tbody tr:hover, .disc-table tbody tr:hover{ background:rgba(148,163,184,0.05); }
 
   /* テーブルが画面幅を超える場合の横スクロールラッパー（split-table等、汎用） */
@@ -521,11 +524,10 @@ function tierFromRank(rk){
   return "bot85";
 }
 
-// テーブルセルの背景カラースケール（pitcher-cards.htmlのTIER_COLORと同じ配色）。
-// 文字色（.rk.t-XX）と揃えた背景色を敷くことで、順位を一目で読めるようにする。
+// テーブルセルの背景カラースケール（pitcher-cards.htmlのTIER_COLORと完全に同じ配色を使う）。
 const TIER_COLOR = {
-  top15: "rgba(94,234,212,0.28)", top30: "rgba(94,234,212,0.17)", top40: "rgba(94,234,212,0.08)",
-  mid: "", bot60: "rgba(255,166,189,0.08)", bot70: "rgba(255,166,189,0.15)", bot85: "rgba(255,166,189,0.28)",
+  top15: "rgba(18,165,178,0.40)", top30: "rgba(18,165,178,0.25)", top40: "rgba(18,165,178,0.12)",
+  mid: "", bot60: "rgba(238,122,151,0.10)", bot70: "rgba(238,122,151,0.18)", bot85: "rgba(238,122,151,0.38)",
 };
 function tierBg(tier){ return (tier && TIER_COLOR[tier]) || ""; }
 
@@ -1143,7 +1145,7 @@ const KEYED_STAT_METRICS_FULL = [
   ["k_pct", false, "K%", "pct"], ["bb_pct", true, "BB%", "pct"],
   ["whiff_pct", false, "空振り率", "pct"], ["chase_pct", false, "chase%", "pct"], ["contact_pct", true, "contact%", "pct"],
 ];
-const KEYED_HUES = ["59,130,246", "16,185,129"];  // 青(--blue) / 緑(--green)。列ごとに交互に使う
+const KEYED_HUES = ["59,130,246"];  // 青(--blue)のみ。全指標を同じ色系統の濃淡で統一する
 function fmtKeyedVal(v, kind){
   if(kind === "avg") return fmtAvg(v);
   if(kind === "ops") return fmt(v, 3);
@@ -1182,7 +1184,7 @@ function renderKeyedStatTable(list, keyLabel, keyField, metrics, emptyNote, grou
       const bg = magnitudeBg(s[m], columnsAll[m], KEYED_HUES[i % KEYED_HUES.length]);
       return `<td${bg ? ` style="background:${bg}"` : ""}>${text}</td>`;
     }).join("");
-    return `<tr>${groupCell}<td>${escapeHtml(s[keyField] ?? "-")}</td><td>${s.pa ?? "-"}</td>${cells}</tr>`;
+    return `<tr>${groupCell}<td class="kst-key-cell">${escapeHtml(s[keyField] ?? "-")}</td><td>${s.pa ?? "-"}</td>${cells}</tr>`;
   }).join("");
   const groupHeadTh = groupSpec ? `<th>${escapeHtml(groupSpec.header)}</th>` : "";
   return `<div class="table-scroll"><table class="split-table">
@@ -1388,7 +1390,7 @@ function pvCollectPitchValues(seasonsMap, years){
 
 function pvAxisValues(dim, years, pitchVals){
   if(dim === "year") return years;
-  if(dim === "hand") return ["all", "vsR", "vsL"];
+  if(dim === "hand") return ["vsR", "vsL"];  // 軸として使う場合は「全体」は出さない（フィルタとしては引き続き選べる）
   if(dim === "major") return pitchVals.majors;
   if(dim === "mid") return pitchVals.mids;
   if(dim === "detail") return pitchVals.details;
@@ -1470,8 +1472,14 @@ function buildPivotCell(seasonsMap, pf){
   }
 
   if(bandPinned){
-    // 球種を1つに絞らずに球速帯だけ指定した場合：mid/majorフィルタに一致する球種群のうち
-    // 該当球速帯のエントリを合算する（複数球種にまたがる集約になるため順位は付けない）。
+    if(!midPinned && !majorPinned){
+      // 球種を一切絞り込んでいない場合：球種を問わず球速帯だけで集約したバックエンド側の
+      // byVelocityBandOnly（順位計算済み）をそのまま使う。
+      const stat = season.byVelocityBandOnly?.[hand]?.[pf.band];
+      return stat ? { ...pvStatFields(stat), _rk: stat.rankings || null } : { ...PV_EMPTY_ROW };
+    }
+    // mid/majorで球種を絞り込みつつ球速帯も指定した場合：該当する複数球種の球速帯エントリを
+    // クライアント側で合算する（この組み合わせの順位母集団は無いので順位は付けない）。
     const list = pvFilterPitchList(season.byPitchType?.[hand] || [], pf);
     const bandEntries = list.flatMap(pt => (pt.byVelocityBand || []).filter(b => b.band === pf.band));
     const agg = aggregatePitchEntries(bandEntries);
@@ -1513,6 +1521,10 @@ function buildPivotRows3(seasonsMap, years, activeAxes, filters){
   });
 }
 
+// ピボット表の各行を表示するのに必要な最低打席数。これ未満は数値がノイズになりやすいため、
+// 打席数そのもの以外は"-"にする（順位付けの資格打席PIVOT_RANK_MIN_PAと同じ値に揃えてある）。
+const PV_MIN_PA_DISPLAY = 15;
+
 function renderPivotTable(rows, activeAxes){
   if(rows.length === 0) return `<div class="defense-note">条件に一致するデータがありません。</div>`;
   const cols = PV_FULL_COLUMNS;
@@ -1520,14 +1532,16 @@ function renderPivotTable(rows, activeAxes){
 
   const trs = rows.map(r => {
     const labelCells = activeAxes.map((_, i) => `<td>${escapeHtml(r[`_label${i + 1}`] ?? "-")}</td>`);
+    const belowMinPa = r.pa != null && r.pa < PV_MIN_PA_DISPLAY;
     const statCells = cols.map(([key]) => {
+      if(key === "pa") return `<td>${r.pa ?? "-"}</td>`;  // 打席は順位・カラースケール対象外、閾値未満でも実数を出す
+      if(belowMinPa) return `<td>-</td>`;
       const v = r[key];
       let text;
       if(key === "avg" || key === "obp" || key === "slg") text = fmtAvg(v);
       else if(key === "ops") text = fmt(v, 3);
       else if(key === "k_pct" || key === "bb_pct" || key === "whiff_pct" || key === "chase_pct" || key === "contact_pct") text = fmt(v, 1, "%");
       else text = v ?? "-";
-      if(key === "pa") return `<td>${text}</td>`;  // 打席は順位・カラースケール対象外
       const rk = r._rk ? r._rk[key] : null;
       return rankedTd(text, rk);
     });
