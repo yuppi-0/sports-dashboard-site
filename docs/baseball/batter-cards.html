@@ -205,15 +205,12 @@
   .rank-pool-toggle{ display:flex; align-items:center; gap:6px; margin:8px 0 2px; flex-wrap:wrap; }
   .rank-pool-toggle-label{ font-size:9.5px; font-weight:700; color:var(--text-dim); letter-spacing:0.02em; }
 
-  /* 全体/対右/対左、シーズン成績/試合別、などの切り替えトグル（共通スタイル） */
+  /* 全体/対右/対左、シーズン成績/試合別、などの切り替えトグル（共通スタイル。
+     球種別テーブル(pt-hand-toggle)・試合ログタブ(gamelog-tab-toggle)で使用） */
   .hand-toggle{ display:flex; gap:4px; margin-bottom:10px; }
   .hand-toggle .hand-btn{ border:none; background:var(--panel-alt); color:var(--text-dim); font-size:10.5px; font-weight:700;
     padding:5px 12px; border-radius:6px; cursor:pointer; }
   .hand-toggle .hand-btn.active{ background:var(--blue); color:#fff; }
-
-  /* ランナー状況別成績・カウント別成績：トグル＋年度ボタンを横並びに */
-  .st-controls{ display:flex; align-items:center; gap:10px; margin-bottom:10px; flex-wrap:wrap; }
-  .st-controls .hand-toggle{ margin-bottom:0; }
 
   /* 球種別テーブル：行クリックで球速帯の内訳を展開する */
   .pt-scroll{ overflow-x:auto; -webkit-overflow-scrolling:touch; }
@@ -227,17 +224,19 @@
   .pt-band-table td:first-child{ color:var(--text-dim); font-weight:400; }
   .pt-band-empty{ color:var(--text-dim); text-align:left !important; padding:6px 0; }
 
-  /* 汎用ピル型ボタングループ（pitcher-cards.htmlのhm-filter-btnと同じ見た目。
-     プルダウンの代わりに使う：コース別成績の指標/年度、カウント別・ランナー状況別成績の年度） */
+  /* 汎用ピル型ボタングループ（pitcher-cards.htmlのhm-controls/hm-filter-btnと同じ見た目・
+     同じ構造：ラベルの下にボタン行、を1つの「絞り込み次元」ごとに縦に並べる）。
+     プルダウンをやめてこの形に統一する：シーズン成績の軸・絞り込み、コース別成績の
+     指標・年度、カウント別・ランナー状況別成績の年度、など。 */
+  .fctrl-block{ display:flex; flex-direction:column; gap:10px; margin-bottom:10px; }
+  .fctrl-row{ display:flex; flex-direction:column; align-items:flex-start; gap:6px; }
+  .fctrl-label{ font-size:10px; color:var(--text-dim); font-weight:700; }
   .pill-group{ display:flex; gap:4px; flex-wrap:wrap; }
   .pill-btn{ border:1px solid rgba(255,255,255,0.1); background:transparent; color:var(--text-dim);
     font-size:10.5px; font-weight:600; padding:4px 10px; border-radius:6px; cursor:pointer; white-space:nowrap; }
   .pill-btn.active{ border-color:rgba(59,130,246,0.7); background:rgba(59,130,246,0.18); color:var(--blue-text); }
-  .pill-group-label{ font-size:9.5px; font-weight:700; color:var(--text-dim); letter-spacing:0.02em;
-    margin-right:2px; align-self:center; }
 
   /* コース別成績グリッド（対右投手・対左投手を並べて表示） */
-  .cz-controls{ display:flex; gap:10px; margin-bottom:10px; flex-wrap:wrap; align-items:center; }
   .cz-split-toggle{ display:flex; gap:3px; background:var(--panel-alt); border-radius:6px; padding:2px; }
   .cz-split-toggle button{ border:none; background:transparent; color:var(--text-dim); font-size:10.5px; font-weight:700;
     padding:4px 10px; border-radius:5px; cursor:pointer; }
@@ -263,13 +262,7 @@
     .cz-val{ font-size:10.5px; }
   }
 
-  /* シーズン成績ピボット表（軸1・軸2をプルダウンで選び、カラム別フィルタで絞り込む） */
-  .pv-controls{ display:flex; flex-direction:column; gap:8px; margin-bottom:10px; }
-  .pv-control-row{ display:flex; flex-wrap:wrap; gap:6px 10px; align-items:flex-end; }
-  .pv-field{ display:flex; flex-direction:column; gap:2px; }
-  .pv-field-label{ font-size:9.5px; font-weight:700; color:var(--text-dim); letter-spacing:0.02em; }
-  .pv-field select{ background:var(--panel-alt); color:var(--text-bright); border:1px solid rgba(148,163,184,0.2);
-    border-radius:6px; padding:5px 8px; font-size:11.5px; min-width:120px; }
+  /* シーズン成績ピボット表（軸1〜3・絞り込みはfctrl-block/pill-btnで表示、結果テーブルのみ） */
   .pv-empty{ font-size:11px; color:var(--text-dim); }
   .pv-result-table{ min-width:760px; }
   /* 指標列が増えた分、横スクロールしても軸の値（どの行が何を指しているか）が見えるよう、
@@ -278,7 +271,6 @@
     position:sticky; background:var(--panel); z-index:1; min-width:92px;
   }
   .pv-result-table thead th.pv-axis-col{ z-index:2; }
-  .pv-field-legend{ font-size:9.5px; font-weight:700; color:var(--text-dim); letter-spacing:0.02em; margin:2px 0 -2px; }
 
   .defense-note{ font-size:11.5px; color:var(--text-dim); line-height:1.6; }
   .defense-note b{ color:var(--text-bright); }
@@ -1034,16 +1026,19 @@ function wirePitchTypeSection(scope){
 
 // ── コース別成績グリッド ──
 // 投手側のヒートマップ（頻度の可視化）とは違い、こちらはセルごとの打撃成績
-// （打率・空振り率等、指標をプルダウンで切り替え）を色の濃淡で表示する。
-// run.py/run_mlb.pyのcourseSplitsに二塁打/三塁打/本塁打/四球/死球を追加したことで、
-// 本塁打・長打率・OPSもコースゾーン単位で算出できるようになった（打点・K%・BB%は
-// courseSplits側に無い/意味が薄いため対象外のまま）。
+// （打率・空振り率等、指標をボタンで切り替え）を色の濃淡で表示する。
+// 指標一覧：打率/本塁打/OPS/出塁率/長打率/スイング率/コンタクト率/空振り率（/すべて）/
+// 空振り率（/スイング）/GB%。スイング率・コンタクト率・空振り率（/すべて）・GB%は、
+// courseSplitsにゾーン内空振り数・打球種別（GB/LD/FB）が追加されたことで算出できる
+// ようになった指標（_agg_pitch_group側で計算済み）。
 const CZ_METRICS = [
-  ["avg", "打率"], ["hr", "本塁打"], ["slg", "長打率"], ["ops", "OPS"],
-  ["whiff_pct", "空振り率"], ["chase_pct", "chase%"], ["contact_pct", "contact%"],
+  ["avg", "打率"], ["hr", "本塁打"], ["ops", "OPS"], ["obp", "出塁率"], ["slg", "長打率"],
+  ["swing_pct", "スイング率"], ["swing_contact_pct", "コンタクト率"],
+  ["whiff_pct_all", "空振り率（/すべて）"], ["whiff_pct", "空振り率（/スイング）"],
+  ["gb_pct", "GB%"],
 ];
-const CZ_METRIC_FMT = { avg: "avg", hr: "int", slg: "avg", ops: "ops",
-  whiff_pct: "pct", chase_pct: "pct", contact_pct: "pct" };
+const CZ_METRIC_FMT = { avg: "avg", hr: "int", obp: "avg", slg: "avg", ops: "ops",
+  swing_pct: "pct", swing_contact_pct: "pct", whiff_pct_all: "pct", whiff_pct: "pct", gb_pct: "pct" };
 
 function courseZoneCellText(cell, metric){
   if(!cell || cell[metric] == null) return { text: "-", sub: cell ? `${cell.pa ?? 0}打席` : "" };
@@ -1110,16 +1105,25 @@ function renderCourseGrid(list, metric, splitMode, isLeft){
 
 function renderCourseZoneSection(seasonsMap, years, currentYear){
   return `
-    <div class="cz-controls">
-      <div class="cz-split-toggle">
-        <button type="button" class="active" data-split="9">9分割</button>
-        <button type="button" data-split="25">25分割（ボールゾーン含む）</button>
+    <div class="fctrl-block">
+      <div class="fctrl-row">
+        <span class="fctrl-label">指標</span>
+        <div class="pill-group cz-metric-group">
+          ${CZ_METRICS.map(([v, l], i) => `<button type="button" class="pill-btn${i === 0 ? " active" : ""}" data-metric="${v}">${escapeHtml(l)}</button>`).join("")}
+        </div>
       </div>
-      <div class="pill-group cz-metric-group">
-        ${CZ_METRICS.map(([v, l], i) => `<button type="button" class="pill-btn${i === 0 ? " active" : ""}" data-metric="${v}">${escapeHtml(l)}</button>`).join("")}
+      <div class="fctrl-row">
+        <span class="fctrl-label">分割</span>
+        <div class="pill-group cz-split-group">
+          <button type="button" class="pill-btn active" data-split="9">9分割</button>
+          <button type="button" class="pill-btn" data-split="25">25分割（ボールゾーン含む）</button>
+        </div>
       </div>
-      <div class="pill-group cz-year-group">
-        ${years.map(y => `<button type="button" class="pill-btn${y === currentYear ? " active" : ""}" data-year="${escapeHtml(y)}">${escapeHtml(y)}年</button>`).join("")}
+      <div class="fctrl-row">
+        <span class="fctrl-label">年度</span>
+        <div class="pill-group cz-year-group">
+          ${years.map(y => `<button type="button" class="pill-btn${y === currentYear ? " active" : ""}" data-year="${escapeHtml(y)}">${escapeHtml(y)}年</button>`).join("")}
+        </div>
       </div>
     </div>
     <div data-cz-body></div>
@@ -1147,19 +1151,19 @@ function renderCourseZoneBody(byZone){
 }
 
 function wireCourseZoneSection(scope, seasonsMap, isLeft){
-  const splitToggle = scope.querySelector(".cz-split-toggle");
+  const splitGroup = scope.querySelector(".cz-split-group");
   const metricGroup = scope.querySelector(".cz-metric-group");
   const yearGroup = scope.querySelector(".cz-year-group");
   const body = scope.querySelector("[data-cz-body]");
   if(!metricGroup || !yearGroup || !body) return;
-  let splitMode = "9";
   function currentMetric(){ return (metricGroup.querySelector(".pill-btn.active") || {}).dataset?.metric || CZ_METRICS[0][0]; }
   function currentYear(){ return (yearGroup.querySelector(".pill-btn.active") || {}).dataset?.year; }
+  function currentSplit(){ return (splitGroup?.querySelector(".pill-btn.active") || {}).dataset?.split || "9"; }
   function redrawGrids(){
     const byZone = (seasonsMap[currentYear()] || {}).byCourseZone || { all: [], vsR: [], vsL: [] };
     scope.querySelectorAll("[data-cz-grid]").forEach(wrap => {
       const hand = wrap.dataset.czGrid; // "vsR" | "vsL"
-      wrap.innerHTML = renderCourseGrid(byZone[hand] || [], currentMetric(), splitMode, isLeft);
+      wrap.innerHTML = renderCourseGrid(byZone[hand] || [], currentMetric(), currentSplit(), isLeft);
     });
   }
   function redrawBody(){
@@ -1176,16 +1180,7 @@ function wireCourseZoneSection(scope, seasonsMap, isLeft){
       onChange();
     });
   }
-  if(splitToggle){
-    splitToggle.addEventListener("click", (e) => {
-      const btn = e.target.closest("button");
-      if(!btn) return;
-      splitToggle.querySelectorAll("button").forEach(b => b.classList.remove("active"));
-      btn.classList.add("active");
-      splitMode = btn.dataset.split;
-      redrawGrids();
-    });
-  }
+  if(splitGroup) wirePillGroup(splitGroup, redrawGrids);
   wirePillGroup(metricGroup, redrawGrids);
   wirePillGroup(yearGroup, redrawBody);
   redrawBody();
@@ -1274,14 +1269,20 @@ function renderKeyedStatTable(list, keyLabel, keyField, metrics, emptyNote, grou
 // 対応する情報が無いため常に"-"になる）。
 function renderSituationSection(seasonsMap, years, currentYear){
   return `
-    <div class="st-controls">
-      <div class="hand-toggle st-hand-toggle">
-        <button type="button" class="hand-btn active" data-hand="all">全体</button>
-        <button type="button" class="hand-btn" data-hand="vsR">対右投手</button>
-        <button type="button" class="hand-btn" data-hand="vsL">対左投手</button>
+    <div class="fctrl-block">
+      <div class="fctrl-row">
+        <span class="fctrl-label">対戦</span>
+        <div class="pill-group st-hand-group">
+          <button type="button" class="pill-btn active" data-hand="all">全体</button>
+          <button type="button" class="pill-btn" data-hand="vsR">対右投手</button>
+          <button type="button" class="pill-btn" data-hand="vsL">対左投手</button>
+        </div>
       </div>
-      <div class="pill-group st-year-group">
-        ${years.map(y => `<button type="button" class="pill-btn${y === currentYear ? " active" : ""}" data-year="${escapeHtml(y)}">${escapeHtml(y)}年</button>`).join("")}
+      <div class="fctrl-row">
+        <span class="fctrl-label">年度</span>
+        <div class="pill-group st-year-group">
+          ${years.map(y => `<button type="button" class="pill-btn${y === currentYear ? " active" : ""}" data-year="${escapeHtml(y)}">${escapeHtml(y)}年</button>`).join("")}
+        </div>
       </div>
     </div>
     <div data-st-table></div>
@@ -1289,32 +1290,26 @@ function renderSituationSection(seasonsMap, years, currentYear){
 }
 
 function wireSituationSection(scope, seasonsMap){
-  const toggle = scope.querySelector(".st-hand-toggle");
+  const handGroup = scope.querySelector(".st-hand-group");
   const yearGroup = scope.querySelector(".st-year-group");
   const table = scope.querySelector("[data-st-table]");
-  if(!toggle || !yearGroup || !table) return;
-  let hand = "all";
+  if(!handGroup || !yearGroup || !table) return;
+  function currentHand(){ return (handGroup.querySelector(".pill-btn.active") || {}).dataset?.hand || "all"; }
   function currentYear(){ return (yearGroup.querySelector(".pill-btn.active") || {}).dataset?.year; }
   function redraw(){
     const season = seasonsMap[currentYear()] || {};
     const byS = season.bySituation || { all: [], vsR: [], vsL: [] };
-    table.innerHTML = renderKeyedStatTable(byS[hand] || [], "状況", "situation", KEYED_STAT_METRICS_FULL,
+    table.innerHTML = renderKeyedStatTable(byS[currentHand()] || [], "状況", "situation", KEYED_STAT_METRICS_FULL,
       "この条件に該当するデータがありません（ランナー状況別は現在MLBのみ対応です。NPBの元データにランナー状況の情報が含まれていません）。");
   }
-  toggle.addEventListener("click", (e) => {
-    const btn = e.target.closest(".hand-btn");
-    if(!btn) return;
-    toggle.querySelectorAll(".hand-btn").forEach(b => b.classList.remove("active"));
-    btn.classList.add("active");
-    hand = btn.dataset.hand;
-    redraw();
-  });
-  yearGroup.addEventListener("click", (e) => {
-    const btn = e.target.closest(".pill-btn");
-    if(!btn) return;
-    yearGroup.querySelectorAll(".pill-btn").forEach(b => b.classList.remove("active"));
-    btn.classList.add("active");
-    redraw();
+  [handGroup, yearGroup].forEach(group => {
+    group.addEventListener("click", (e) => {
+      const btn = e.target.closest(".pill-btn");
+      if(!btn) return;
+      group.querySelectorAll(".pill-btn").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      redraw();
+    });
   });
   redraw();
 }
@@ -1322,14 +1317,20 @@ function wireSituationSection(scope, seasonsMap){
 // ── カウント別成績 ──
 function renderCountSection(years, currentYear){
   return `
-    <div class="st-controls">
-      <div class="hand-toggle ct-hand-toggle">
-        <button type="button" class="hand-btn active" data-hand="all">全体</button>
-        <button type="button" class="hand-btn" data-hand="vsR">対右投手</button>
-        <button type="button" class="hand-btn" data-hand="vsL">対左投手</button>
+    <div class="fctrl-block">
+      <div class="fctrl-row">
+        <span class="fctrl-label">対戦</span>
+        <div class="pill-group ct-hand-group">
+          <button type="button" class="pill-btn active" data-hand="all">全体</button>
+          <button type="button" class="pill-btn" data-hand="vsR">対右投手</button>
+          <button type="button" class="pill-btn" data-hand="vsL">対左投手</button>
+        </div>
       </div>
-      <div class="pill-group ct-year-group">
-        ${years.map(y => `<button type="button" class="pill-btn${y === currentYear ? " active" : ""}" data-year="${escapeHtml(y)}">${escapeHtml(y)}年</button>`).join("")}
+      <div class="fctrl-row">
+        <span class="fctrl-label">年度</span>
+        <div class="pill-group ct-year-group">
+          ${years.map(y => `<button type="button" class="pill-btn${y === currentYear ? " active" : ""}" data-year="${escapeHtml(y)}">${escapeHtml(y)}年</button>`).join("")}
+        </div>
       </div>
     </div>
     <div data-ct-table></div>
@@ -1343,32 +1344,28 @@ function countStrikeGroupLabel(s){
 }
 
 function wireCountSection(scope, seasonsMap){
-  const toggle = scope.querySelector(".ct-hand-toggle");
+  const handGroup = scope.querySelector(".ct-hand-group");
   const yearGroup = scope.querySelector(".ct-year-group");
   const table = scope.querySelector("[data-ct-table]");
-  if(!toggle || !yearGroup || !table) return;
-  let hand = "all";
+  if(!handGroup || !yearGroup || !table) return;
+  function currentHand(){ return (handGroup.querySelector(".pill-btn.active") || {}).dataset?.hand || "all"; }
   function currentYear(){ return (yearGroup.querySelector(".pill-btn.active") || {}).dataset?.year; }
   function redraw(){
     const season = seasonsMap[currentYear()] || {};
     const byC = season.byCount || { all: [], vsR: [], vsL: [] };
-    table.innerHTML = renderKeyedStatTable(byC[hand] || [], "カウント", "countKey", KEYED_STAT_METRICS_FULL, null,
+    // 要望どおり「カウント区分」（グループ列）＋「カウント」（キー列）で固定表示。
+    // 軸切り替え等は無く、常にこの2列構成のまま。
+    table.innerHTML = renderKeyedStatTable(byC[currentHand()] || [], "カウント", "countKey", KEYED_STAT_METRICS_FULL, null,
       { label: countStrikeGroupLabel, header: "カウント区分" });
   }
-  toggle.addEventListener("click", (e) => {
-    const btn = e.target.closest(".hand-btn");
-    if(!btn) return;
-    toggle.querySelectorAll(".hand-btn").forEach(b => b.classList.remove("active"));
-    btn.classList.add("active");
-    hand = btn.dataset.hand;
-    redraw();
-  });
-  yearGroup.addEventListener("click", (e) => {
-    const btn = e.target.closest(".pill-btn");
-    if(!btn) return;
-    yearGroup.querySelectorAll(".pill-btn").forEach(b => b.classList.remove("active"));
-    btn.classList.add("active");
-    redraw();
+  [handGroup, yearGroup].forEach(group => {
+    group.addEventListener("click", (e) => {
+      const btn = e.target.closest(".pill-btn");
+      if(!btn) return;
+      group.querySelectorAll(".pill-btn").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      redraw();
+    });
   });
   redraw();
 }
@@ -1658,49 +1655,50 @@ function renderPivotTable(rows, activeAxes){
   </table></div>`;
 }
 
+function pvDimButtons(groupClass, includeNone, activeValue){
+  const noneBtn = includeNone ? `<button type="button" class="pill-btn${activeValue === "none" ? " active" : ""}" data-value="none">なし</button>` : "";
+  const dimBtns = Object.entries(PV_DIMS).map(([k, d]) => `<button type="button" class="pill-btn${activeValue === k ? " active" : ""}" data-value="${k}">${escapeHtml(d.label)}</button>`).join("");
+  return `<div class="pill-group ${groupClass}">${noneBtn}${dimBtns}</div>`;
+}
+function pvValueButtons(groupClass, options, activeValue){
+  return `<div class="pill-group ${groupClass}">${options.map(([v, l]) => `<button type="button" class="pill-btn${activeValue === v ? " active" : ""}" data-value="${escapeHtml(v)}">${escapeHtml(l)}</button>`).join("")}</div>`;
+}
+
 function renderPivotSection(seasonsMap, years){
   const pitchVals = pvCollectPitchValues(seasonsMap, years);
-  const dimOption = (val, label) => `<option value="${val}">${escapeHtml(label)}</option>`;
-  const axisOptions = Object.entries(PV_DIMS).map(([k, d]) => dimOption(k, d.label)).join("");
-
   return `
-    <div class="pv-controls">
-      <div class="pv-control-row">
-        <div class="pv-field" data-pv-filter-wrap="year">
-          <span class="pv-field-label">年度</span>
-          <select class="pv-filter-year">${years.map(y => dimOption(y, y)).join("")}</select>
-        </div>
-        <div class="pv-field">
-          <span class="pv-field-label">軸1</span>
-          <select class="pv-axis1-select">${axisOptions}</select>
-        </div>
-        <div class="pv-field">
-          <span class="pv-field-label">軸2</span>
-          <select class="pv-axis2-select"><option value="none">なし</option>${axisOptions}</select>
-        </div>
-        <div class="pv-field">
-          <span class="pv-field-label">軸3</span>
-          <select class="pv-axis3-select"><option value="none">なし</option>${axisOptions}</select>
-        </div>
+    <div class="fctrl-block">
+      <div class="fctrl-row" data-pv-filter-wrap="year">
+        <span class="fctrl-label">年度</span>
+        ${pvValueButtons("pv-filter-year", years.map(y => [y, y]), years[0])}
       </div>
-      <div class="pv-control-row">
-        <span class="pv-field-legend">絞り込み</span>
-        <div class="pv-field" data-pv-filter-wrap="hand">
-          <span class="pv-field-label">対左右</span>
-          <select class="pv-filter-hand">${dimOption("all", "全体")}${dimOption("vsR", "対右投手")}${dimOption("vsL", "対左投手")}</select>
-        </div>
-        <div class="pv-field" data-pv-filter-wrap="mid">
-          <span class="pv-field-label">球種カテゴリ</span>
-          <select class="pv-filter-mid">${dimOption("all", "すべて")}${pitchVals.mids.map(v => dimOption(v, v)).join("")}</select>
-        </div>
-        <div class="pv-field" data-pv-filter-wrap="detail">
-          <span class="pv-field-label">球種詳細</span>
-          <select class="pv-filter-detail">${dimOption("all", "すべて")}${pitchVals.details.map(v => dimOption(v, v)).join("")}</select>
-        </div>
-        <div class="pv-field" data-pv-filter-wrap="band">
-          <span class="pv-field-label">球速帯</span>
-          <select class="pv-filter-band">${dimOption("all", "すべて")}${PV_BAND_VALUES.map(v => dimOption(v, v)).join("")}</select>
-        </div>
+      <div class="fctrl-row">
+        <span class="fctrl-label">軸1</span>
+        ${pvDimButtons("pv-axis1-group", false, "year")}
+      </div>
+      <div class="fctrl-row">
+        <span class="fctrl-label">軸2</span>
+        ${pvDimButtons("pv-axis2-group", true, "none")}
+      </div>
+      <div class="fctrl-row">
+        <span class="fctrl-label">軸3</span>
+        ${pvDimButtons("pv-axis3-group", true, "none")}
+      </div>
+      <div class="fctrl-row" data-pv-filter-wrap="hand">
+        <span class="fctrl-label">対左右</span>
+        ${pvValueButtons("pv-filter-hand", [["all", "全体"], ["vsR", "対右投手"], ["vsL", "対左投手"]], "all")}
+      </div>
+      <div class="fctrl-row" data-pv-filter-wrap="mid">
+        <span class="fctrl-label">球種カテゴリ</span>
+        ${pvValueButtons("pv-filter-mid", [["all", "すべて"], ...pitchVals.mids.map(v => [v, v])], "all")}
+      </div>
+      <div class="fctrl-row" data-pv-filter-wrap="detail">
+        <span class="fctrl-label">球種詳細</span>
+        ${pvValueButtons("pv-filter-detail", [["all", "すべて"], ...pitchVals.details.map(v => [v, v])], "all")}
+      </div>
+      <div class="fctrl-row" data-pv-filter-wrap="band">
+        <span class="fctrl-label">球速帯</span>
+        ${pvValueButtons("pv-filter-band", [["all", "すべて"], ...PV_BAND_VALUES.map(v => [v, v])], "all")}
       </div>
     </div>
     <div data-pv-table></div>
@@ -1709,19 +1707,21 @@ function renderPivotSection(seasonsMap, years){
 
 function wirePivotSection(scope, seasonsMap, years, rankPool){
   const table = scope.querySelector("[data-pv-table]");
-  const axis1Sel = scope.querySelector(".pv-axis1-select");
-  const axis2Sel = scope.querySelector(".pv-axis2-select");
-  const axis3Sel = scope.querySelector(".pv-axis3-select");
+  const axis1Group = scope.querySelector(".pv-axis1-group");
+  const axis2Group = scope.querySelector(".pv-axis2-group");
+  const axis3Group = scope.querySelector(".pv-axis3-group");
   const filterYear = scope.querySelector(".pv-filter-year");
   const filterHand = scope.querySelector(".pv-filter-hand");
   const filterMid = scope.querySelector(".pv-filter-mid");
   const filterDetail = scope.querySelector(".pv-filter-detail");
   const filterBand = scope.querySelector(".pv-filter-band");
-  if(!table || !axis1Sel || !axis2Sel || !axis3Sel) return;
-  axis1Sel.value = "year";
-  axis2Sel.value = "none";
-  axis3Sel.value = "none";
+  if(!table || !axis1Group || !axis2Group || !axis3Group) return;
 
+  function activeVal(group){ return (group?.querySelector(".pill-btn.active") || {}).dataset?.value; }
+  function setActive(group, value){
+    if(!group) return;
+    group.querySelectorAll(".pill-btn").forEach(b => b.classList.toggle("active", b.dataset.value === value));
+  }
   function updateFilterVisibility(usedDims){
     scope.querySelectorAll("[data-pv-filter-wrap]").forEach(wrap => {
       wrap.style.display = usedDims.has(wrap.dataset.pvFilterWrap) ? "none" : "";
@@ -1729,19 +1729,30 @@ function wirePivotSection(scope, seasonsMap, years, rankPool){
   }
   function redraw(){
     // 軸2・軸3は、それより前の軸ですでに選ばれている次元と重複していたら「なし」に落とす
-    const axis1 = axis1Sel.value;
-    let axis2 = (axis2Sel.value !== "none" && axis2Sel.value !== axis1) ? axis2Sel.value : "none";
-    let axis3 = (axis3Sel.value !== "none" && axis3Sel.value !== axis1 && axis3Sel.value !== axis2) ? axis3Sel.value : "none";
+    // （見た目のボタン状態もあわせてリセットし、実際に効いている軸と表示を一致させる）
+    const axis1 = activeVal(axis1Group) || "year";
+    const axis2Raw = activeVal(axis2Group);
+    const axis2 = (axis2Raw && axis2Raw !== "none" && axis2Raw !== axis1) ? axis2Raw : "none";
+    if(axis2 === "none" && axis2Raw !== "none") setActive(axis2Group, "none");
+    const axis3Raw = activeVal(axis3Group);
+    const axis3 = (axis3Raw && axis3Raw !== "none" && axis3Raw !== axis1 && axis3Raw !== axis2) ? axis3Raw : "none";
+    if(axis3 === "none" && axis3Raw !== "none") setActive(axis3Group, "none");
     const activeAxes = [axis1, axis2, axis3].filter(a => a !== "none");
     updateFilterVisibility(new Set(activeAxes));
     const filters = {
-      year: filterYear.value, hand: filterHand.value,
-      mid: filterMid.value, detail: filterDetail.value, band: filterBand.value,
+      year: activeVal(filterYear), hand: activeVal(filterHand) || "all",
+      mid: activeVal(filterMid) || "all", detail: activeVal(filterDetail) || "all", band: activeVal(filterBand) || "all",
     };
     table.innerHTML = renderPivotTable(buildPivotRows3(seasonsMap, years, activeAxes, filters, rankPool), activeAxes);
   }
-  [axis1Sel, axis2Sel, axis3Sel, filterYear, filterHand, filterMid, filterDetail, filterBand].forEach(elm => {
-    elm.addEventListener("change", redraw);
+  [axis1Group, axis2Group, axis3Group, filterYear, filterHand, filterMid, filterDetail, filterBand].forEach(group => {
+    if(!group) return;
+    group.addEventListener("click", (e) => {
+      const btn = e.target.closest(".pill-btn");
+      if(!btn) return;
+      setActive(group, btn.dataset.value);
+      redraw();
+    });
   });
   redraw();
 }
