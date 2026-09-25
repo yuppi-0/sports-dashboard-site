@@ -619,6 +619,163 @@ def build_game_log_rows_batter(appearances: list[dict]) -> list[dict]:
 
 
 # ==================================================
+# Section 4b. シーズン成績ピボット用の拡張ランキング
+# ==================================================
+# 「シーズン成績」ピボット表（batter-cards.html）は、年度×対左右×球種大/中/詳細×球速帯を
+# 自由に組み合わせて内訳を表示できるため、組み合わせごとに別々の母集団で順位を出す必要がある。
+# ここでは4種類の母集団を用意する:
+#   1) 対左右のみ（球種の絞り込みなし）→ splitRankings（overall/vsR/vsL）
+#   2) 球種詳細単位            → byPitchTypeの各エントリの"rankings"（対左右population別）
+#   3) 球種中/大カテゴリ単位    → byPitchCategoryMid/Majorの各エントリの"rankings"
+#   4) 球種詳細×球速帯単位     → byVelocityBandの各エントリの"rankings"
+# どの母集団も資格打席は統一してPIVOT_RANK_MIN_PA(=15)を使う（シーズン全体のKPIグリッド用
+# ランキング＝RANK_MIN_PA(=100)とは別物。細かい内訳ほど閾値を緩める必要があるため）。
+PIVOT_RANK_MIN_PA = 15
+
+# (英語キー, 高いほど良いか)。打者にとって「良い」方向で統一する
+# （K%・空振り率・chase%は低いほど良いので higher_is_better=False）。
+_RANK_SPECS_EN = [
+    ("avg", True), ("obp", True), ("slg", True), ("ops", True), ("hr", True), ("rbi", True),
+    ("k_pct", False), ("bb_pct", True),
+    ("whiff_pct", False), ("chase_pct", False), ("contact_pct", True),
+]
+
+
+def _compute_group_rankings(pools: dict[str, list[tuple[str, dict]]],
+                             rank_min_pa: float = PIVOT_RANK_MIN_PA) -> dict[str, dict]:
+    """任意のグループ分け（球種名・カテゴリ名・"球種|球速帯"キーなど）について、
+    グループごとに独立した母集団で_RANK_SPECS_ENの各指標を順位付けする共通ロジック。
+    pools: {グループキー: [(選手名, 統計オブジェクト(英語キー)), ...]}
+    戻り値: {グループキー: {選手名: {metric: {"rank","total"}}}}
+    """
+    result: dict[str, dict] = {}
+    for group_key, entries in pools.items():
+        qualified = [(name, stat) for name, stat in entries if (stat.get("pa") or 0) >= rank_min_pa]
+        group_result: dict[str, dict] = {}
+        for metric, higher_is_better in _RANK_SPECS_EN:
+            valid = [(name, stat[metric]) for name, stat in qualified if stat.get(metric) is not None]
+            valid.sort(key=lambda x: -x[1] if higher_is_better else x[1])
+            total = len(valid)
+            for rank, (name, _) in enumerate(valid, start=1):
+                group_result.setdefault(name, {})[metric] = {"rank": rank, "total": total}
+        result[group_key] = group_result
+    return result
+
+
+def compute_split_rankings(stat_by_player: dict[str, dict], rank_min_pa: float = PIVOT_RANK_MIN_PA) -> dict:
+    """対左右のみ（球種の絞り込み無し）の1系統ぶん（overall/vsR/vsLのいずれか）について、
+    全打者を1つの母集団として順位付けする。
+    stat_by_player: {選手名: 統計オブジェクト(英語キー、season.overallやsplits[hand]と同じ形)}
+    戻り値: {選手名: {metric: {"rank","total"}}}
+    """
+    pools = {"_": list(stat_by_player.items())}
+    return _compute_group_rankings(pools, rank_min_pa).get("_", {})
+
+
+def compute_pitch_type_rankings(pt_lists_by_player: dict[str, list[dict]],
+                                 rank_min_pa: float = PIVOT_RANK_MIN_PA) -> dict:
+    """
+    byPitchTypeの1系統（all/vsR/vsLのいずれか）ぶんについて、球種詳細ごとに
+    打率・出塁率・長打率・OPS・本塁打・打点・K%・BB%・空振り率・chase%・contact%の順位を計算する。
+    pt_lists_by_player: {選手名: build_by_pitch_type()の戻り値（1系統ぶん）}
+    戻り値: {選手名: {球種名: {metric: {"rank","total"}}}}
+    """
+    pools: dict[str, list[tuple[str, dict]]] = {}
+    for name, pt_list in pt_lists_by_player.items():
+        for pt in pt_list:
+            pools.setdefault(pt.get("pitchType", ""), []).append((name, pt))
+    by_group = _compute_group_rankings(pools, rank_min_pa)
+    result: dict[str, dict] = {name: {} for name in pt_lists_by_player}
+    for pitch_type, by_name in by_group.items():
+        for name, rk in by_name.items():
+            result[name][pitch_type] = rk
+    return result
+
+
+def compute_pitch_band_rankings(pt_lists_by_player: dict[str, list[dict]],
+                                 rank_min_pa: float = PIVOT_RANK_MIN_PA) -> dict:
+    """
+    球種詳細×球速帯（例:「ストレート」×「速い」）単位で順位を計算する。球速帯の閾値は
+    球種コードごとに異なる（velo_band_label参照）ため、球種をまたいで同じ「速い」を
+    比較するのではなく、必ず同じ球種内で比較する。
+    pt_lists_by_player: {選手名: build_by_pitch_type()の戻り値（1系統ぶん）}
+    戻り値: {選手名: {球種名: {球速帯: {metric: {"rank","total"}}}}}
+    """
+    pools: dict[tuple[str, str], list[tuple[str, dict]]] = {}
+    for name, pt_list in pt_lists_by_player.items():
+        for pt in pt_list:
+            pitch_type = pt.get("pitchType", "")
+            for band in (pt.get("byVelocityBand") or []):
+                key = (pitch_type, band.get("band", ""))
+                pools.setdefault(key, []).append((name, band))
+    by_group = _compute_group_rankings(pools, rank_min_pa)
+    result: dict[str, dict] = {name: {} for name in pt_lists_by_player}
+    for (pitch_type, band_label), by_name in by_group.items():
+        for name, rk in by_name.items():
+            result[name].setdefault(pitch_type, {})[band_label] = rk
+    return result
+
+
+def compute_category_rankings(cat_map_by_player: dict[str, dict[str, dict]],
+                               rank_min_pa: float = PIVOT_RANK_MIN_PA) -> dict:
+    """
+    球種中カテゴリ or 球種大カテゴリ単位で順位を計算する（compute_pitch_type_rankingsの
+    カテゴリ版）。
+    cat_map_by_player: {選手名: {カテゴリ名: 集約統計オブジェクト}}（build_by_pitch_categoryの戻り値）
+    戻り値: {選手名: {カテゴリ名: {metric: {"rank","total"}}}}
+    """
+    pools: dict[str, list[tuple[str, dict]]] = {}
+    for name, cat_map in cat_map_by_player.items():
+        for cat_name, stat in cat_map.items():
+            pools.setdefault(cat_name, []).append((name, stat))
+    by_group = _compute_group_rankings(pools, rank_min_pa)
+    result: dict[str, dict] = {name: {} for name in cat_map_by_player}
+    for cat_name, by_name in by_group.items():
+        for name, rk in by_name.items():
+            result[name][cat_name] = rk
+    return result
+
+
+def _aggregate_pt_group_py(entries: list[dict]) -> dict:
+    """既に集約済みのbyPitchType detail単位のエントリのリストを、さらに1つの統計オブジェクトに
+    集約する（球種中/大カテゴリでのグルーピング用）。batter-cards.html側のJS版
+    aggregatePitchEntries()と同じ考え方（打率・本塁打は安打/打数/本塁打の積み上げから正確に、
+    長打率・出塁率・OPS・K%・BB%・空振り率・chase%・contact%は打席数で加重平均した近似値）。"""
+    if not entries:
+        return {}
+    pa = sum(e.get("pa") or 0 for e in entries)
+    ab = sum(e.get("ab") or 0 for e in entries)
+    h = sum(e.get("h") or 0 for e in entries)
+    hr = sum(e.get("hr") or 0 for e in entries)
+    has_rbi = any(e.get("rbi") is not None for e in entries)
+    rbi = sum(e.get("rbi") or 0 for e in entries) if has_rbi else None
+
+    def _wavg(key, digits):
+        num = sum((e.get(key) or 0) * (e.get("pa") or 0) for e in entries if e.get(key) is not None)
+        den = sum((e.get("pa") or 0) for e in entries if e.get(key) is not None)
+        return round(num / den, digits) if den > 0 else None
+
+    return {
+        "pa": pa, "ab": ab, "h": h, "hr": hr, "rbi": rbi,
+        "avg": round(h / ab, 3) if ab > 0 else None,
+        "slg": _wavg("slg", 3), "obp": _wavg("obp", 3), "ops": _wavg("ops", 3),
+        "k_pct": _wavg("k_pct", 1), "bb_pct": _wavg("bb_pct", 1),
+        "whiff_pct": _wavg("whiff_pct", 1), "chase_pct": _wavg("chase_pct", 1), "contact_pct": _wavg("contact_pct", 1),
+    }
+
+
+def build_by_pitch_category(pt_list: list[dict], category_key: str) -> dict[str, dict]:
+    """byPitchType（1系統ぶん、detail単位のリスト）から、指定したカテゴリキー
+    （"pitchCategoryMid" or "pitchCategoryMajor"）でグルーピングした集約統計を返す。
+    戻り値: {カテゴリ名: 集約統計オブジェクト}"""
+    groups: dict[str, list[dict]] = {}
+    for pt in pt_list:
+        key = pt.get(category_key) or "その他"
+        groups.setdefault(key, []).append(pt)
+    return {name: _aggregate_pt_group_py(entries) for name, entries in groups.items()}
+
+
+# ==================================================
 # Section 4. 順位算出・カテゴリタグ
 # ==================================================
 
@@ -643,7 +800,8 @@ _RANK_SPECS = [
 
 
 def compute_batter_rankings(season_rows: list[dict], rank_min_pa: float = RANK_MIN_PA) -> dict:
-    """打率・出塁率・長打率・OPS・本塁打・盗塁・K%・BB%の順位を算出する。
+    """打率・出塁率・長打率・OPS・本塁打・盗塁・K%・BB%の順位を算出する（KPIグリッド用。
+    資格打席100のまま据え置き。ピボット表側は別途PIVOT_RANK_MIN_PA=15で計算する）。
     投手版と異なり役割による母集団分けは行わず、資格打席（rank_min_pa）以上の全打者を
     1つの母集団として順位付けする。
     戻り値: {選手名: {"avg":{"rank":n,"total":m}, ...}}
@@ -656,40 +814,6 @@ def compute_batter_rankings(season_rows: list[dict], rank_min_pa: float = RANK_M
         total = len(valid)
         for rank, (name, _) in enumerate(valid, start=1):
             result[name][out_key] = {"rank": rank, "total": total}
-    return result
-
-
-RANK_MIN_PA_PITCH_TYPE = 20  # 球種別ランキングの資格打席（シーズン全体のRANK_MIN_PAよりゆるい閾値。
-                              # 特定の1球種だけで100打席に達する打者はほぼいないため）
-
-# (byPitchType内のキー, 高いほど良いか)。打者にとって「良い」方向で統一する
-# （空振り率・chase%は低いほど良いので higher_is_better=False）。
-_PT_RANK_SPECS = [("avg", True), ("whiff_pct", False), ("chase_pct", False)]
-
-
-def compute_pitch_type_rankings(pt_lists_by_player: dict[str, list[dict]],
-                                 rank_min_pa: float = RANK_MIN_PA_PITCH_TYPE) -> dict:
-    """
-    byPitchTypeの1系統（all/vsR/vsLのいずれか）ぶんについて、球種ごとに
-    打率・空振り率・chase%の順位を計算する。
-    pt_lists_by_player: {選手名: build_by_pitch_type()の戻り値（1系統ぶん）}
-    戻り値: {選手名: {球種名: {"avg":{"rank","total"}, "whiff_pct":{...}, "chase_pct":{...}}}}
-    """
-    pools: dict[str, list[tuple[str, dict]]] = {}
-    for name, pt_list in pt_lists_by_player.items():
-        for pt in pt_list:
-            if (pt.get("pa") or 0) < rank_min_pa:
-                continue
-            pools.setdefault(pt.get("pitchType", ""), []).append((name, pt))
-
-    result: dict[str, dict] = {name: {} for name in pt_lists_by_player}
-    for pitch_type, entries in pools.items():
-        for metric, higher_is_better in _PT_RANK_SPECS:
-            valid = [(name, pt[metric]) for name, pt in entries if pt.get(metric) is not None]
-            valid.sort(key=lambda x: -x[1] if higher_is_better else x[1])
-            total = len(valid)
-            for rank, (name, _) in enumerate(valid, start=1):
-                result[name].setdefault(pitch_type, {})[metric] = {"rank": rank, "total": total}
     return result
 
 
@@ -916,11 +1040,20 @@ def export_llm_input_batter_xlsx(games_json_dir: str, out_path: str, min_pa: flo
                     round(sb_n / (sb_n + cs) * 100, 1) if cs is not None and (sb_n + cs) > 0 else None
                 )
                 defense_entry = defense_cache.get(_normalize_name(name).lower(), {})
+                pt_breakdown = build_pitch_type_breakdown(appearances)
                 numeric_cards[name] = {
                     "team": team, "pos": pos,
                     "overall": _to_stat_obj(season),
                     "splits": {"vsR": _to_stat_obj(vs_r), "vsL": _to_stat_obj(vs_l)},
-                    "byPitchType": build_pitch_type_breakdown(appearances),
+                    "byPitchType": pt_breakdown,
+                    "byPitchCategoryMid": {
+                        pop: build_by_pitch_category(pt_breakdown.get(pop) or [], "pitchCategoryMid")
+                        for pop in ("all", "vsR", "vsL")
+                    },
+                    "byPitchCategoryMajor": {
+                        pop: build_by_pitch_category(pt_breakdown.get(pop) or [], "pitchCategoryMajor")
+                        for pop in ("all", "vsR", "vsL")
+                    },
                     "byCourseZone": build_course_zone_breakdown(appearances),
                     "byCount": build_count_breakdown(appearances),
                     "bySituation": build_situation_breakdown(appearances),
@@ -954,8 +1087,20 @@ def export_llm_input_batter_xlsx(games_json_dir: str, out_path: str, min_pa: flo
             row[f"{jp_key}_順位"] = rk.get(out_key, {}).get("rank")
             row[f"{jp_key}_順位_母数"] = rk.get(out_key, {}).get("total")
 
-    # 球種別ランキング（all/vsR/vsLそれぞれ独立した母集団で計算し、対応するbyPitchType
-    # の各球種オブジェクトに rankings として付与する）
+    # ── シーズン成績ピボット用の拡張ランキング（PIVOT_RANK_MIN_PA=15を資格打席として使う） ──
+    # 1) 対左右のみ（球種の絞り込み無し）: overall/vsR/vsLそれぞれ独立した母集団で計算し、
+    #    season["splitRankings"]に付与する。
+    for population, stat_key in (("all", "overall"), ("vsR", "vsR"), ("vsL", "vsL")):
+        stat_by_player = {
+            name: (card["overall"] if stat_key == "overall" else card["splits"][stat_key])
+            for name, card in numeric_cards.items()
+        }
+        split_rk = compute_split_rankings(stat_by_player)
+        for name, card in numeric_cards.items():
+            card.setdefault("splitRankings", {})[population] = split_rk.get(name, {})
+
+    # 2) 球種詳細ランキング（all/vsR/vsLそれぞれ独立した母集団で計算し、対応するbyPitchType
+    #    の各球種オブジェクトに rankings として付与する）
     for population in ("all", "vsR", "vsL"):
         pt_lists_by_player = {
             name: (card["byPitchType"].get(population) or [])
@@ -965,6 +1110,27 @@ def export_llm_input_batter_xlsx(games_json_dir: str, out_path: str, min_pa: flo
         for name, card in numeric_cards.items():
             for pt in (card["byPitchType"].get(population) or []):
                 pt["rankings"] = pt_rankings.get(name, {}).get(pt.get("pitchType", ""), {})
+
+        # 3) 球種詳細×球速帯ランキング（例:「ストレート」×「速い」）。byVelocityBandの
+        #    各エントリにrankingsを付与する（球種ごとに独立した母集団で比較するため、
+        #    球種をまたいだ「速い」同士の比較にはならない）。
+        band_rankings = compute_pitch_band_rankings(pt_lists_by_player)
+        for name, card in numeric_cards.items():
+            for pt in (card["byPitchType"].get(population) or []):
+                pitch_type = pt.get("pitchType", "")
+                for band in (pt.get("byVelocityBand") or []):
+                    band["rankings"] = band_rankings.get(name, {}).get(pitch_type, {}).get(band.get("band", ""), {})
+
+        # 4) 球種中/大カテゴリランキング（byPitchCategoryMid/Majorの各エントリにrankingsを付与）
+        for cat_field, cat_key in (("byPitchCategoryMid", "pitchCategoryMid"), ("byPitchCategoryMajor", "pitchCategoryMajor")):
+            cat_map_by_player = {
+                name: (card[cat_field].get(population) or {})
+                for name, card in numeric_cards.items()
+            }
+            cat_rankings = compute_category_rankings(cat_map_by_player)
+            for name, card in numeric_cards.items():
+                for cat_name, stat in (card[cat_field].get(population) or {}).items():
+                    stat["rankings"] = cat_rankings.get(name, {}).get(cat_name, {})
 
     # 守備OAAのポジション別ランキング（KPI表示用。同じポジションの選手同士だけで比較する）
     oaa_by_player = {name: card["defense"].get("oaa", []) for name, card in numeric_cards.items()}
