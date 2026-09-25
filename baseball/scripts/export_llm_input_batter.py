@@ -57,7 +57,7 @@ import datetime
 import json
 import os
 import re
-from collections import Counter
+from collections import Counter, defaultdict
 
 import pandas as pd
 
@@ -368,6 +368,12 @@ def _agg_pitch_group(entries: list[dict]) -> dict:
     oz = sum(e.get("oz", 0) or 0 for e in entries)
     zsw = sum(e.get("zsw", 0) or 0 for e in entries)
     ozsw = sum(e.get("ozsw", 0) or 0 for e in entries)
+    # Z-Contact%・GB%の実数（無ければ0扱い＝古いキャッシュ済みデータでも壊れない）
+    zws = sum(e.get("zws", 0) or 0 for e in entries)  # ゾーン内空振り数
+    gb = sum(e.get("gb", 0) or 0 for e in entries)
+    ld = sum(e.get("ld", 0) or 0 for e in entries)
+    fb = sum(e.get("fb", 0) or 0 for e in entries)
+    bip_known = gb + ld + fb  # 判断不可打球（軌道不明の外野安打等）を除く分母
 
     singles = max(h - doubles - triples - hr, 0)
     total_bases = singles + doubles * 2 + triples * 3 + hr * 4
@@ -384,7 +390,19 @@ def _agg_pitch_group(entries: list[dict]) -> dict:
         "bb_pct": round(bb / pa * 100, 1) if pa > 0 else None,
         "whiff_pct": round(ws / sw * 100, 1) if sw > 0 else None,
         "chase_pct": round(ozsw / oz * 100, 1) if oz > 0 else None,     # O-Swing%
-        "contact_pct": round(zsw / z * 100, 1) if z > 0 else None,       # Z-Swing%
+        # "contact_pct"は歴史的経緯で残っている名前だが、実体はZ-Swing%（ゾーン内スイング率）
+        # であり「コンタクト率」ではない。"z_swing_pct"が正しい名前の新フィールド（値は同じ）。
+        # 既存の他コードがcontact_pctキーを参照している可能性があるため、両方出力しておく。
+        "contact_pct": round(zsw / z * 100, 1) if z > 0 else None,       # Z-Swing%（旧名）
+        "z_swing_pct": round(zsw / z * 100, 1) if z > 0 else None,       # Z-Swing%（正式名）
+        # Z-Contact%＝ゾーン内スイングのうちコンタクトできた割合（空振り以外）＝
+        # 1 - ゾーン内空振り数/ゾーン内SW数。run.py/run_mlb.pyのpitchSplits側に
+        # "zws"（ゾーン内空振り数）が追加されたことで算出可能になった。
+        "z_contact_pct": round((zsw - zws) / zsw * 100, 1) if zsw > 0 else None,
+        # GB%＝ゴロ打球数/判定可能な打球数（GB+LD+FB）。run.pyのcalc_batted_stats・
+        # run_mlb.pyのbb_type分類と同じ定義（投手側GB%と揃えてある）。NPBは「打席完了結果」
+        # テキストから、MLBはStatcastのbb_typeから、それぞれpitchSplits側で実数を積んでいる。
+        "gb_pct": round(gb / bip_known * 100, 1) if bip_known > 0 else None,
     }
 
 
@@ -635,10 +653,13 @@ PIVOT_RANK_MIN_PA = 15
 
 # (英語キー, 高いほど良いか)。打者にとって「良い」方向で統一する
 # （K%・空振り率・chase%は低いほど良いので higher_is_better=False）。
+# z_contact_pct/gb_pctは現状値が無い（常にNone）ため、_compute_group_rankings側で
+# 自動的にvalid=[]（=順位0/0）になり、実害無くスキップされる。値の算出が可能になり
+# 次第、ここに追加しなくてもそのまま順位付けされる。
 _RANK_SPECS_EN = [
     ("avg", True), ("obp", True), ("slg", True), ("ops", True), ("hr", True), ("rbi", True),
     ("k_pct", False), ("bb_pct", True),
-    ("whiff_pct", False), ("chase_pct", False), ("contact_pct", True),
+    ("whiff_pct", False), ("chase_pct", False), ("contact_pct", True), ("z_swing_pct", True),
 ]
 
 
@@ -751,6 +772,7 @@ def _aggregate_pt_group_py(entries: list[dict]) -> dict:
     if not entries:
         return {}
     pa = sum(e.get("pa") or 0 for e in entries)
+    count = sum(e.get("count") or 0 for e in entries)  # 球数（打席の右に表示する用）
     ab = sum(e.get("ab") or 0 for e in entries)
     h = sum(e.get("h") or 0 for e in entries)
     hr = sum(e.get("hr") or 0 for e in entries)
@@ -763,11 +785,13 @@ def _aggregate_pt_group_py(entries: list[dict]) -> dict:
         return round(num / den, digits) if den > 0 else None
 
     return {
-        "pa": pa, "ab": ab, "h": h, "hr": hr, "rbi": rbi,
+        "pa": pa, "count": count, "ab": ab, "h": h, "hr": hr, "rbi": rbi,
         "avg": round(h / ab, 3) if ab > 0 else None,
         "slg": _wavg("slg", 3), "obp": _wavg("obp", 3), "ops": _wavg("ops", 3),
         "k_pct": _wavg("k_pct", 1), "bb_pct": _wavg("bb_pct", 1),
-        "whiff_pct": _wavg("whiff_pct", 1), "chase_pct": _wavg("chase_pct", 1), "contact_pct": _wavg("contact_pct", 1),
+        "whiff_pct": _wavg("whiff_pct", 1), "chase_pct": _wavg("chase_pct", 1),
+        "contact_pct": _wavg("contact_pct", 1), "z_swing_pct": _wavg("z_swing_pct", 1),
+        "z_contact_pct": _wavg("z_contact_pct", 1), "gb_pct": _wavg("gb_pct", 1),
     }
 
 
@@ -811,6 +835,8 @@ def _fill_swing_rates_fallback(stat_obj: dict, pt_list: list[dict]) -> dict:
             stat_obj["chase_pct"] = agg.get("chase_pct")
         if stat_obj.get("contact_pct") is None:
             stat_obj["contact_pct"] = agg.get("contact_pct")
+        if stat_obj.get("z_swing_pct") is None:
+            stat_obj["z_swing_pct"] = agg.get("z_swing_pct") if agg.get("z_swing_pct") is not None else stat_obj.get("contact_pct")
     return stat_obj
 
 
@@ -981,6 +1007,34 @@ def load_mlb_defense_cache(path: str) -> dict:
     return result
 
 
+# 規定打席（＝チーム消化試合数×3.1、NPB/MLB共通の慣例式）の判定に使う係数。
+QUALIFYING_PA_PER_GAME = 3.1
+
+
+def compute_team_game_counts(all_data: dict) -> dict[str, int]:
+    """games/json全体（＝この関数を呼ぶ時点で読み込み済みのシーズン全試合データ、
+    all_data）から、チームごとの消化試合数を数える。run.py/run_mlb.py側の
+    データパイプラインに手を入れなくても、build_appearances_batterと同じall_data
+    （対象選手に絞る前の、そのシーズンの全試合データ）に各試合のhome/awayチーム名が
+    すでに含まれているため、ここで数えるだけで規定打席の判定に使える。
+    ダブルヘッダー等で同日に複数試合があってもgame単位で数えるため正しく扱える。
+    戻り値: {チーム名: 消化試合数}
+    """
+    counts: dict[str, int] = defaultdict(int)
+    dates = [d for d in all_data.keys() if d != "highlights" and not str(d).startswith("_")]
+    for date in dates:
+        for g in all_data.get(date, []):
+            if not isinstance(g, dict):
+                continue
+            home = g.get("home")
+            away = g.get("away")
+            if home:
+                counts[home] += 1
+            if away:
+                counts[away] += 1
+    return dict(counts)
+
+
 def determine_season_year(all_data: dict) -> str:
     """games/json内の全日付のうち最も多い年を、このシーズンの年とみなす
     （通常は単一年のデータしか渡らないが、年またぎのデータが混じっていても
@@ -1001,7 +1055,11 @@ def _to_stat_obj(s: dict) -> dict:
         "k": s.get("三振"), "rbi": s.get("打点"), "sb": s.get("盗塁"), "cs": s.get("盗塁死"),
         "avg": s.get("打率"), "obp": s.get("出塁率"), "slg": s.get("長打率"), "ops": s.get("OPS"),
         "k_pct": s.get("K%"), "bb_pct": s.get("BB%"),
-        "chase_pct": s.get("O-Swing%"), "contact_pct": s.get("Z-Swing%"), "whiff_pct": s.get("whiff%"),
+        "chase_pct": s.get("O-Swing%"), "contact_pct": s.get("Z-Swing%"), "z_swing_pct": s.get("Z-Swing%"),
+        "whiff_pct": s.get("whiff%"),
+        # Z-Contact%・GB%は現状のcalc_season_batter_stats（試合単位の集計）にも元データが無く
+        # 算出不可（_agg_pitch_group側のコメント参照）。追加時はここにも配線すること。
+        "z_contact_pct": None, "gb_pct": None,
     }
 
 
@@ -1028,6 +1086,7 @@ def export_llm_input_batter_xlsx(games_json_dir: str, out_path: str, min_pa: flo
     all_data = load_daily_games(games_json_dir)
     names = set(target_names) if target_names else build_all_batter_names(all_data)
     season_year = determine_season_year(all_data)
+    team_game_counts = compute_team_game_counts(all_data)  # 規定打席判定用
 
     season_rows, split_rows, gamelog_rows = [], [], []
     numeric_cards: dict[str, dict] = {}
@@ -1064,6 +1123,19 @@ def export_llm_input_batter_xlsx(games_json_dir: str, out_path: str, min_pa: flo
             team = last_game.get(last_ap.get("side")) if isinstance(last_game, dict) else None
             season["所属チーム"] = team
 
+            # 規定打席判定：チーム消化試合数×3.1（QUALIFYING_PA_PER_GAME）以上の打席に
+            # 到達していれば「規定打席到達」とみなす。teamが不明（推定失敗）の場合は
+            # 判定不能としてqualifiedPA=Falseのまま（＝「全選手」パターンにのみ含まれる）。
+            team_games = team_game_counts.get(team) if team else None
+            qualifying_pa_threshold = (
+                round(team_games * QUALIFYING_PA_PER_GAME, 1) if team_games else None
+            )
+            is_qualified = (
+                qualifying_pa_threshold is not None
+                and (season.get("打席") or 0) >= qualifying_pa_threshold
+            )
+            season["規定打席到達"] = is_qualified
+
             season_rows.append(season)
             split_rows.append({"選手名": name, "対戦": "対右投手", **vs_r})
             split_rows.append({"選手名": name, "対戦": "対左投手", **vs_l})
@@ -1080,8 +1152,19 @@ def export_llm_input_batter_xlsx(games_json_dir: str, out_path: str, min_pa: flo
                 )
                 defense_entry = defense_cache.get(_normalize_name(name).lower(), {})
                 pt_breakdown = build_pitch_type_breakdown(appearances)
+                # コース別成績グリッドの立ち位置表示用：run.py/run_mlb.pyがbuild_batter()の
+                # 出力に付与した"bats"（"R"/"L"/None）を、出場試合の中で最も多く現れた値で代表させる
+                # （シーズン中に表記ゆれ等で稀に食い違っても多数決なら実害が少ないため）。
+                _bats_votes = [
+                    ap["player"].get("bats") for ap in appearances
+                    if isinstance(ap.get("player"), dict) and ap["player"].get("bats")
+                ]
+                bats = Counter(_bats_votes).most_common(1)[0][0] if _bats_votes else None
                 numeric_cards[name] = {
-                    "team": team, "pos": pos,
+                    "team": team, "pos": pos, "bats": bats,
+                    "qualifiedPA": is_qualified,
+                    "qualifiedPAThreshold": qualifying_pa_threshold,
+                    "teamGames": team_games,
                     "overall": _fill_swing_rates_fallback(_to_stat_obj(season), pt_breakdown.get("all") or []),
                     "splits": {
                         "vsR": _fill_swing_rates_fallback(_to_stat_obj(vs_r), pt_breakdown.get("vsR") or []),
@@ -1126,24 +1209,38 @@ def export_llm_input_batter_xlsx(games_json_dir: str, out_path: str, min_pa: flo
             print(f"  [SKIP] {name}: 集計中にエラーのためスキップ({type(e).__name__}: {e})")
             continue
 
-    rankings = compute_batter_rankings(season_rows)
+    # ── KPIグリッド用ランキング：「30打席以上の全選手」と「規定打席到達」の2母集団を
+    #    それぞれ計算し、フロント側でトグル切り替えできるようにする。
+    #    規定打席未到達の選手はqualified側の母集団に含まれない（=規定打席側では
+    #    順位そのものが付かず「-」表示になる。要望どおり、その場合はall30側だけ見ればよい）。
+    rankings_all30 = compute_batter_rankings(season_rows, rank_min_pa=30)
+    qualified_names_set = {row["選手名"] for row in season_rows if row.get("規定打席到達")}
+    season_rows_qualified = [row for row in season_rows if row["選手名"] in qualified_names_set]
+    rankings_qualified = compute_batter_rankings(season_rows_qualified, rank_min_pa=0)
     for row in season_rows:
-        rk = rankings.get(row["選手名"], {})
+        rk = rankings_all30.get(row["選手名"], {})
         for jp_key, out_key, _ in _RANK_SPECS:
             row[f"{jp_key}_順位"] = rk.get(out_key, {}).get("rank")
             row[f"{jp_key}_順位_母数"] = rk.get(out_key, {}).get("total")
 
-    # ── シーズン成績ピボット用の拡張ランキング（PIVOT_RANK_MIN_PA=15を資格打席として使う） ──
+    # ── シーズン成績ピボット用の拡張ランキング ──
     # 1) 対左右のみ（球種の絞り込み無し）: overall/vsR/vsLそれぞれ独立した母集団で計算し、
-    #    season["splitRankings"]に付与する。
+    #    season["splitRankings"]["all30"|"qualified"]に付与する（KPIグリッドと同じ2母集団）。
+    #    球種を絞り込んだ細かい内訳（byPitchType等）は従来どおりPIVOT_RANK_MIN_PA=15の
+    #    単一母集団のまま（サンプルが小さいため資格打席は緩めで据え置き、トグル対象外）。
     for population, stat_key in (("all", "overall"), ("vsR", "vsR"), ("vsL", "vsL")):
         stat_by_player = {
             name: (card["overall"] if stat_key == "overall" else card["splits"][stat_key])
             for name, card in numeric_cards.items()
         }
-        split_rk = compute_split_rankings(stat_by_player)
+        split_rk_all30 = compute_split_rankings(stat_by_player, rank_min_pa=30)
+        stat_by_player_qualified = {
+            name: s for name, s in stat_by_player.items() if numeric_cards[name].get("qualifiedPA")
+        }
+        split_rk_qualified = compute_split_rankings(stat_by_player_qualified, rank_min_pa=0)
         for name, card in numeric_cards.items():
-            card.setdefault("splitRankings", {})[population] = split_rk.get(name, {})
+            card.setdefault("splitRankings", {}).setdefault("all30", {})[population] = split_rk_all30.get(name, {})
+            card.setdefault("splitRankings", {}).setdefault("qualified", {})[population] = split_rk_qualified.get(name, {})
 
     # 2) 球種詳細ランキング（all/vsR/vsLそれぞれ独立した母集団で計算し、対応するbyPitchType
     #    の各球種オブジェクトに rankings として付与する）
@@ -1201,7 +1298,10 @@ def export_llm_input_batter_xlsx(games_json_dir: str, out_path: str, min_pa: flo
         os.makedirs(numeric_json_dir, exist_ok=True)
         index_players = []
         for name, season_obj in numeric_cards.items():
-            season_obj["rankings"] = rankings.get(name, {})
+            season_obj["rankings"] = {
+                "all30": rankings_all30.get(name, {}),
+                "qualified": rankings_qualified.get(name, {}),
+            }
             player_id = _slugify_name(name)
             path = os.path.join(numeric_json_dir, f"{player_id}.json")
 

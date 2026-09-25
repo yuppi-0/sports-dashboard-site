@@ -1091,7 +1091,7 @@ def build_batter_pitch_splits(df_pitch: "pd.DataFrame", pit_hand_map: dict) -> "
             "試合ID", "選手名", "球種", "球速帯", "対戦投手利き腕",
             "球数", "打席", "打数", "安打", "二塁打", "三塁打", "本塁打", "四球", "死球", "三振",
             "SW数", "空振り数", "ゾーン内投球数", "ゾーン外投球数",
-            "ゾーン内SW数", "ゾーン外SW数",
+            "ゾーン内SW数", "ゾーン外SW数", "ゾーン内空振り数", "GB", "LD", "FB", "判断不可打球",
         ])
 
     df = df_pitch.copy()
@@ -1113,17 +1113,29 @@ def build_batter_pitch_splits(df_pitch: "pd.DataFrame", pit_hand_map: dict) -> "
             cat = str(r.get("判定カテゴリ", "") or "")
             a, h, d2, d3, hr, bb, hbp, k = ab_result_detail(cat, res)
             ab_n += a; h_n += h; d2_n += d2; d3_n += d3; hr_n += hr; bb_n += bb; hbp_n += hbp; k_n += k
+        # 打球種別（GB/LD/FB）：pitcher側のGB%と全く同じ分類関数（calc_batted_stats、
+        # 「打席完了結果」テキストのゴロ/ライナー/フライ判定・内野安打=GB扱い等）を、この
+        # 球種グループの最終球（=last）に適用するだけで打者側にも同じ定義で計算できる。
+        bd = calc_batted_stats(last["打席完了結果"]) if len(last) else {"GB": 0, "LD": 0, "FB": 0, "判断不可打球": 0}
         in_z  = g["in_zone"]  if "in_zone"  in g.columns else pd.Series([False]*len(g), index=g.index)
         out_z = g["out_zone"] if "out_zone" in g.columns else pd.Series([False]*len(g), index=g.index)
         swing = g["is_swing"]
+        swstr = g["is_swstr"]
         rows.append({
             "試合ID": str(gid), "選手名": bname, "球種": str(pitch_label),
             "球速帯": band, "対戦投手利き腕": hand,
             "球数": int(len(g)), "打席": int(len(last)), "打数": ab_n, "安打": h_n,
             "二塁打": d2_n, "三塁打": d3_n, "本塁打": hr_n, "四球": bb_n, "死球": hbp_n, "三振": k_n,
-            "SW数": int(swing.sum()), "空振り数": int(g["is_swstr"].sum()),
+            "SW数": int(swing.sum()), "空振り数": int(swstr.sum()),
             "ゾーン内投球数": int(in_z.sum()), "ゾーン外投球数": int(out_z.sum()),
             "ゾーン内SW数": int((swing & in_z).sum()), "ゾーン外SW数": int((swing & out_z).sum()),
+            # Z-Contact%用：ゾーン内スイングのうち空振りだった数（ゾーン内SW数との差分で
+            # ゾーン内コンタクト数が求まる）
+            "ゾーン内空振り数": int((swing & in_z & swstr).sum()),
+            # GB%用：打球種別の実数（%はexport_llm_input_batter.py側で合算後に算出する。
+            # 単純平均ではなく実数を積み上げてから割ることで、細かい内訳に集約しても
+            # 正しい割合になる）
+            "GB": bd["GB"], "LD": bd["LD"], "FB": bd["FB"], "判断不可打球": bd["判断不可打球"],
         })
     return pd.DataFrame(rows)
 
@@ -1952,12 +1964,18 @@ def run_datamart(
         z_sw    = int((g["is_swing"] & g["in_zone"]).sum())
         o_sw    = int((g["is_swing"] & g["out_zone"]).sum())
         contact = swing - swstr
+        # 打者カードのコース別成績グリッドの立ち位置表示（build_batter()の"bats"）用。
+        # df_pitchの"打左右"列（"左打"/"右打"、_parse_batter_info由来）はその試合中は
+        # 基本一定なので、最頻値（欠損等で稀に割れても多数決で拾える）を代表値として採用する。
+        _bh_counts = g["打左右"].value_counts() if "打左右" in g.columns else None
+        bat_hand = str(_bh_counts.idxmax()) if _bh_counts is not None and len(_bh_counts) else ""
         bat_swing[(str(gid), bname)] = {
             # 出力用%
             "Z-Swing%": round(z_sw   / in_z  * 100, 1) if in_z  > 0 else 0.0,
             "O-Swing%": round(o_sw   / out_z * 100, 1) if out_z > 0 else 0.0,
             "Contact%": round(contact / swing * 100, 1) if swing > 0 else 0.0,
             "whiff%":   round(swstr  / swing * 100, 1) if swing > 0 else 0.0,
+            "打左右":   bat_hand,
             # シーズン集計用の実数（出力シートには含めない）
             "ゾーン内SW数":    z_sw,    "ゾーン内投球数":  in_z,
             "ゾーン外SW数":    o_sw,    "ゾーン外投球数": out_z,
@@ -2073,6 +2091,10 @@ def run_datamart(
             "ホーム/アウェイ": get_side(gid, team, home_team_map),
             "打順":            batting_order_map.get((gid, team, name), ""),
             "守備位置":        b.get("位置", ""),
+            # 打者カードのコース別成績グリッドの立ち位置表示（build_batter()の"bats"）用。
+            # df_batters（打撃成績の箱スコア行）には打席側の情報が無いため、df_pitchから
+            # 集計したbat_swing側（下記）に持たせた値を使う。
+            "打左右":          sw.get("打左右", ""),
             "打席別結果":      ",".join([
                 str(b[c]).strip() for c in INN_COLS
                 if c in b.index and pd.notna(b[c]) and str(b[c]).strip() not in ("", "nan")
@@ -2435,7 +2457,7 @@ def run_datamart(
          '球種名','球種コード','対打者','投球数','投球割合%','平均球速','最高球速'] + _DM_BIP + _DM_ZONE
     )
     DM_COL_BAT = (
-        ['試合ID','試合日','選手名','チーム','ホーム/アウェイ','打順','守備位置','打席別結果',
+        ['試合ID','試合日','選手名','チーム','ホーム/アウェイ','打順','守備位置','打左右','打席別結果',
          'OPS','出塁率','長打率','打率','打点','盗塁','打席','打数','安打','本塁打','長打','単打',
          '四球','死球','三振','フライアウト(犠牲フライ含む)','ライナーアウト','ゴロアウト',
          'その他(犠打、失策、野選)','本塁打割合','長打割合','単打割合',
@@ -2683,6 +2705,13 @@ def _build_dashboard_data(datamart_path: str, pitch_locs: dict | None = None, cb
             "oz":   _iv(r.get("ゾーン外投球数")),
             "zsw":  _iv(r.get("ゾーン内SW数")),
             "ozsw": _iv(r.get("ゾーン外SW数")),
+            # Z-Contact%用（ゾーン内スイングのうち空振りだった数）・GB%用（打球種別の実数）。
+            # 古いキャッシュ済みシート（この列を持たない）を読んでも_iv(None)=0扱いになり、
+            # 集計結果はNone（表示は「-」）に自然にフォールバックする。
+            "zws":  _iv(r.get("ゾーン内空振り数")),
+            "gb":   _iv(r.get("GB")),
+            "ld":   _iv(r.get("LD")),
+            "fb":   _iv(r.get("FB")),
         })
 
     # 試合別打者被コース別成績 → 打者カードのcourseSplits（コースゾーン×対戦投手利き腕）
@@ -2856,10 +2885,16 @@ def _build_dashboard_data(datamart_path: str, pitch_locs: dict | None = None, cb
         }
 
     def build_batter(bat_row):
+        # 打者カードのコース別成績グリッドで、打者の立ち位置（シルエット）を左右反転表示する
+        # ために使う。"打左右"列は元々flip_x計算（1170行目付近）に使っているのと同じ列で、
+        # 「右打」「左打」以外（スイッチヒッター表記など）はNoneのままにしておく。
+        _bh = bat_row.get("打左右", "")
+        bats = "L" if _bh == "左打" else ("R" if _bh == "右打" else None)
         return {
             "order":   _iv(bat_row.get("打順")),
             "name":    _nv(bat_row.get("選手名"), ""),
             "pos":     _nv(bat_row.get("守備位置"), ""),
+            "bats":    bats,
             "abs":     _parse_abs(bat_row.get("打席別結果")),
             "chase":   _fv(bat_row.get("O-Swing%")),    # ボール球スイング率
             "whiff":   _fv(bat_row.get("whiff%")),        # 空振り率（whiff）

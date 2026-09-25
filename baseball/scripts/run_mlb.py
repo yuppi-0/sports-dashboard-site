@@ -1877,9 +1877,14 @@ def build_game_batter_stats(df: pd.DataFrame) -> pd.DataFrame:
             steal = {"sb": 0, "cs": 0}
         stats["盗塁"] = steal["sb"]
         stats["盗塁死"] = steal["cs"]
+        # 打者カードのコース別成績グリッドの立ち位置表示（_build_batterの"bats"）用。
+        # Statcastの"stand"列（L/R/S）は試合を通じて同じ打者なら基本一定なので先頭行から拾う
+        # （スイッチヒッターが両打席に立った試合ではg内で値が割れることがあるが、その場合も
+        # 先頭打席側を代表値として採用する程度の粒度で十分）。
+        _stand = row0.get("stand")
         rows.append({"試合ID":str(gid),"試合日":str(row0["game_date"])[:10],
                      "選手名":name,"チーム":team,"ホーム/アウェイ":ha,
-                     "打順":0,"守備位置":"",**stats})
+                     "打順":0,"守備位置":"","stand":_stand,**stats})
     return pd.DataFrame(rows)
 
 def build_game_pitcher_stats(df: pd.DataFrame) -> pd.DataFrame:
@@ -2404,7 +2409,7 @@ def build_batter_pitch_splits_mlb(df: pd.DataFrame) -> pd.DataFrame:
     cols = ["試合ID", "選手名", "球種", "球速帯", "対戦投手利き腕",
             "球数", "打席", "打数", "安打", "二塁打", "三塁打", "本塁打", "四球", "死球", "三振", "打点",
             "SW数", "空振り数", "ゾーン内投球数", "ゾーン外投球数",
-            "ゾーン内SW数", "ゾーン外SW数"]
+            "ゾーン内SW数", "ゾーン外SW数", "ゾーン内空振り数", "GB", "LD", "FB"]
     if df is None or df.empty or "batter_name" not in df.columns or "pitch_type" not in df.columns:
         return pd.DataFrame(columns=cols)
 
@@ -2460,6 +2465,13 @@ def build_batter_pitch_splits_mlb(df: pd.DataFrame) -> pd.DataFrame:
         else:
             rbi_n = 0
         swing = g["_is_swing"]
+        # 打球種別（GB/LD/FB）：Statcastのbb_type（ground_ball/line_drive/fly_ball/popup）を
+        # そのまま使う。popupを除外してGB/LD/FBの3分類にするのは、このファイル内の投手側
+        # GB%集計（calc_pitcher_stats等のgb/ld/fb算出）と定義を揃えるため。
+        bb_type_last = last["bb_type"] if "bb_type" in last.columns else pd.Series(dtype=object)
+        gb_n2 = int(bb_type_last.eq("ground_ball").sum())
+        ld_n2 = int(bb_type_last.eq("line_drive").sum())
+        fb_n2 = int(bb_type_last.eq("fly_ball").sum())
         rows.append({
             "試合ID": str(gid), "選手名": bname, "球種": get_pitch_type_jp(pitch_code),
             "球速帯": band, "対戦投手利き腕": hand,
@@ -2469,6 +2481,9 @@ def build_batter_pitch_splits_mlb(df: pd.DataFrame) -> pd.DataFrame:
             "ゾーン内投球数": int(g["_in_zone"].sum()), "ゾーン外投球数": int(g["_out_zone"].sum()),
             "ゾーン内SW数": int((swing & g["_in_zone"]).sum()),
             "ゾーン外SW数": int((swing & g["_out_zone"]).sum()),
+            # Z-Contact%用（ゾーン内スイングのうち空振りだった数）
+            "ゾーン内空振り数": int((swing & g["_in_zone"] & g["_is_swstr"]).sum()),
+            "GB": gb_n2, "LD": ld_n2, "FB": fb_n2,
         })
     return pd.DataFrame(rows, columns=cols) if rows else pd.DataFrame(columns=cols)
 
@@ -3019,6 +3034,13 @@ def _build_game_json(dm_path: str, date: str,
             "oz":   _iv(r.get("ゾーン外投球数")),
             "zsw":  _iv(r.get("ゾーン内SW数")),
             "ozsw": _iv(r.get("ゾーン外SW数")),
+            # Z-Contact%用（ゾーン内スイングのうち空振りだった数）・GB%用（打球種別の実数）。
+            # run.py（NPB）側と同じキー名。古いキャッシュ済みシートを読んでも_iv(None)=0扱いに
+            # なり、集計結果はNone（表示は「-」）に自然にフォールバックする。
+            "zws":  _iv(r.get("ゾーン内空振り数")),
+            "gb":   _iv(r.get("GB")),
+            "ld":   _iv(r.get("LD")),
+            "fb":   _iv(r.get("FB")),
         })
 
     # 試合別打者被コース別成績 → 打者カードのcourseSplits（コースゾーン×対戦投手利き腕）
@@ -3228,10 +3250,16 @@ def _build_game_json(dm_path: str, date: str,
     def _build_batter(r):
         abs_str = _nv(r.get("打席別結果"), "")
         abs_list = [a.strip() for a in abs_str.split(",") if a.strip()] if abs_str else []
+        # 打者カードのコース別成績グリッドの立ち位置表示用。"stand"列はbuild_game_batter_stats()
+        # がStatcastの"stand"（L/R/S）から付与する（"試合別打者成績"シート）。値が無い/S（不明・
+        # 両打席混在）の場合はNoneのまま（＝コース別成績グリッドは従来どおり右打者扱いで表示）。
+        _stand = r.get("stand")
+        bats = "L" if _stand == "L" else ("R" if _stand == "R" else None)
         return {
             "order":  _iv(r.get("打順")),
             "name":   _nv(r.get("選手名"), ""),
             "pos":    _nv(r.get("守備位置"), ""),
+            "bats":   bats,
             "abs":    abs_list,
             "ops":    _fv(r.get("OPS"), d=3),
             "obp":    _fv(r.get("出塁率"), d=3),
