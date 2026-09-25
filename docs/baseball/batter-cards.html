@@ -1157,9 +1157,16 @@ const CZ_METRICS = [
   ["swing_pct", "スイング率"], ["swing_contact_pct", "コンタクト率"],
   ["whiff_pct_all", "空振り率（/すべて）"], ["whiff_pct", "空振り率（/スイング）"],
   ["gb_pct", "GB%"], ["hr_pct", "HR%"],
-  // MLB独自（NPBは常に値なし＝「-」表示）
+  // MLB独自（NPBでは値を算出できないため、currentLeague==="npb"の時はczMetricsFor()で除外する）
   ["hard_hit_pct", "Hard-Hit%"], ["xwoba", "xwOBA"], ["pull_pct", "Pull%"],
 ];
+// MLB独自の打球質指標（NPBには元データが無く常に値が出せないため、NPB表示時は
+// これらの指標そのものをボタン・列から取り除く。単に値が「-」になるだけだと選手を
+// 切り替えるたびに無意味な列が残り続けて見づらいため）。
+const MLB_ONLY_METRIC_KEYS = new Set(["hard_hit_pct", "avg_ev", "sweet_spot_pct", "xwoba", "pull_pct"]);
+function czMetricsFor(){
+  return currentLeague === "npb" ? CZ_METRICS.filter(([k]) => !MLB_ONLY_METRIC_KEYS.has(k)) : CZ_METRICS;
+}
 const CZ_METRIC_FMT = { avg: "avg", hr: "int", obp: "avg", slg: "avg", ops: "ops",
   swing_pct: "pct", swing_contact_pct: "pct", whiff_pct_all: "pct", whiff_pct: "pct", gb_pct: "pct",
   hr_pct: "pct", hard_hit_pct: "pct", xwoba: "avg", pull_pct: "pct" };
@@ -1250,7 +1257,7 @@ function renderCourseZoneSection(seasonsMap, years, currentYear){
       <div class="fctrl-row">
         <span class="fctrl-label">指標</span>
         <div class="pill-group cz-metric-group">
-          ${CZ_METRICS.map(([v, l], i) => `<button type="button" class="pill-btn${i === 0 ? " active" : ""}" data-metric="${v}">${escapeHtml(l)}</button>`).join("")}
+          ${czMetricsFor().map(([v, l], i) => `<button type="button" class="pill-btn${i === 0 ? " active" : ""}" data-metric="${v}">${escapeHtml(l)}</button>`).join("")}
         </div>
       </div>
       <div class="fctrl-row">
@@ -1373,7 +1380,7 @@ function wireCourseZoneSection(scope, seasonsMap, isLeft){
   const bandSel = scope.querySelector(".cz-band-select");
   const body = scope.querySelector("[data-cz-body]");
   if(!metricGroup || !yearSel || !body) return;
-  function currentMetric(){ return (metricGroup.querySelector(".pill-btn.active") || {}).dataset?.metric || CZ_METRICS[0][0]; }
+  function currentMetric(){ return (metricGroup.querySelector(".pill-btn.active") || {}).dataset?.metric || czMetricsFor()[0][0]; }
   function currentSplit(){ return (splitGroup?.querySelector(".pill-btn.active") || {}).dataset?.split || "9"; }
   function pitchFiltersActive(){
     const m = multiSelectValuesForFilter(midSel), d = multiSelectValuesForFilter(detailSel), b = multiSelectValuesForFilter(bandSel);
@@ -1447,6 +1454,9 @@ const KEYED_STAT_METRICS_FULL = [
   ["sweet_spot_pct", true, "Sweet Spot%", "pct"], ["xwoba", true, "xwOBA", "avg"],
   ["pull_pct", true, "Pull%", "pct"],
 ];
+function keyedStatMetricsFor(){
+  return currentLeague === "npb" ? KEYED_STAT_METRICS_FULL.filter(([k]) => !MLB_ONLY_METRIC_KEYS.has(k)) : KEYED_STAT_METRICS_FULL;
+}
 // contact_pct（実体はZ-Swing%として計算済み）等、旧フィールド名で来るデータを新フィールド名に
 // 正規化する。z_contact_pct/gb_pctは元データに無ければnullのまま（表示は自動的に「-」）。
 function normStat(s){
@@ -1546,7 +1556,7 @@ function wireSituationSection(scope, seasonsMap){
   function redraw(){
     const season = seasonsMap[yearSel.value] || {};
     const byS = season.bySituation || { all: [], vsR: [], vsL: [] };
-    table.innerHTML = renderKeyedStatTable(byS[handSel.value] || [], "状況", "situation", KEYED_STAT_METRICS_FULL,
+    table.innerHTML = renderKeyedStatTable(byS[handSel.value] || [], "状況", "situation", keyedStatMetricsFor(),
       "この条件に該当するデータがありません（ランナー状況別は現在MLBのみ対応です。NPBの元データにランナー状況の情報が含まれていません）。");
   }
   [handSel, yearSel].forEach(sel => sel.addEventListener("change", redraw));
@@ -1595,7 +1605,7 @@ function wireCountSection(scope, seasonsMap){
     const byC = season.byCount || { all: [], vsR: [], vsL: [] };
     // 要望どおり「カウント区分」（グループ列）＋「カウント」（キー列）で固定表示。
     // 軸切り替え等は無く、常にこの2列構成のまま。
-    table.innerHTML = renderKeyedStatTable(byC[handSel.value] || [], "カウント", "countKey", KEYED_STAT_METRICS_FULL, null,
+    table.innerHTML = renderKeyedStatTable(byC[handSel.value] || [], "カウント", "countKey", keyedStatMetricsFor(), null,
       { label: countStrikeGroupLabel, header: "カウント区分" });
   }
   [handSel, yearSel].forEach(sel => sel.addEventListener("change", redraw));
@@ -1704,6 +1714,9 @@ const PV_FULL_COLUMNS = [
   ["hard_hit_pct", "Hard-Hit%"], ["avg_ev", "平均EV(km/h)"], ["sweet_spot_pct", "Sweet Spot%"],
   ["xwoba", "xwOBA"], ["pull_pct", "Pull%"],
 ];
+function pvFullColumnsFor(){
+  return currentLeague === "npb" ? PV_FULL_COLUMNS.filter(([k]) => !MLB_ONLY_METRIC_KEYS.has(k)) : PV_FULL_COLUMNS;
+}
 
 function pvHandLabel(h){ return h === "vsR" ? "対右投手" : h === "vsL" ? "対左投手" : "全体"; }
 function pvLabelFor(dim, v){ return dim === "hand" ? pvHandLabel(v) : v; }
@@ -1768,8 +1781,11 @@ function aggregatePitchEntries(rawEntries){
     avg: ab > 0 ? Math.round((h / ab) * 1000) / 1000 : null,
     slg: wavg("slg", 3), obp: wavg("obp", 3), ops: wavg("ops", 3),
     k_pct: wavg("k_pct", 1), bb_pct: wavg("bb_pct", 1),
+    hr_pct: pa > 0 ? Math.round((hr / pa) * 1000) / 10 : null,
     z_swing_pct: wavg("z_swing_pct", 1), z_contact_pct: wavg("z_contact_pct", 1),
     whiff_pct: wavg("whiff_pct", 1), chase_pct: wavg("chase_pct", 1), gb_pct: wavg("gb_pct", 1),
+    // Hard-Hit%・平均EV・Sweet Spot%・xwOBA・Pull%はbyPitchType側の生データにまだ元データが
+    // 無い（build_by_pitch_type未対応）ため、ここでは計算できず常にnull＝「-」表示になる。
   };
 }
 
@@ -1778,13 +1794,19 @@ function pvStatFields(s){
   return {
     pa: n.pa ?? null, count: n.count ?? null, avg: n.avg ?? null, hr: n.hr ?? null, rbi: n.rbi ?? null,
     obp: n.obp ?? null, slg: n.slg ?? null, ops: n.ops ?? null,
-    k_pct: n.k_pct ?? null, bb_pct: n.bb_pct ?? null,
+    k_pct: n.k_pct ?? null, bb_pct: n.bb_pct ?? null, hr_pct: n.hr_pct ?? null,
     z_swing_pct: n.z_swing_pct ?? null, z_contact_pct: n.z_contact_pct ?? null,
     whiff_pct: n.whiff_pct ?? null, chase_pct: n.chase_pct ?? null, gb_pct: n.gb_pct ?? null,
+    // MLB独自の打球質指標。この一覧に無いキーはbuildPivotCell側の行オブジェクトに一切
+    // 存在しなくなり、順位（_rk、サーバー側のrankings由来で別経路）だけ表示されて値が
+    // 常に「-」になるバグの原因だったため、新指標を追加した際は必ずここにも追加すること。
+    hard_hit_pct: n.hard_hit_pct ?? null, avg_ev: n.avg_ev ?? null,
+    sweet_spot_pct: n.sweet_spot_pct ?? null, xwoba: n.xwoba ?? null, pull_pct: n.pull_pct ?? null,
   };
 }
 const PV_EMPTY_ROW = { pa: null, count: null, avg: null, hr: null, rbi: null, obp: null, slg: null, ops: null,
-  k_pct: null, bb_pct: null, z_swing_pct: null, z_contact_pct: null, whiff_pct: null, chase_pct: null, gb_pct: null, _rk: null };
+  k_pct: null, bb_pct: null, hr_pct: null, z_swing_pct: null, z_contact_pct: null, whiff_pct: null, chase_pct: null,
+  gb_pct: null, hard_hit_pct: null, avg_ev: null, sweet_spot_pct: null, xwoba: null, pull_pct: null, _rk: null };
 
 // 1つのピボットセル（軸の値の組み合わせ1通り）ぶんのデータを、最も具体的なランキング母集団を
 // 優先して取ってくる。単一値に特定できるケース（軸として使われている、またはフィルターで
@@ -1885,9 +1907,10 @@ function renderPivotTable(rows, activeAxes){
   if(rows.length === 0) return `<div class="defense-note">条件に一致するデータがありません。</div>`;
   // 球種カテゴリ/球種詳細/球速帯を軸に使っている場合だけ、打席の右に「球数」列を追加する。
   const showCount = activeAxes.some(a => PV_PITCH_COUNT_DIMS.has(a));
+  const fullCols = pvFullColumnsFor();
   const cols = showCount
-    ? [PV_FULL_COLUMNS[0], ["count", "球数"], ...PV_FULL_COLUMNS.slice(1)]
-    : PV_FULL_COLUMNS;
+    ? [fullCols[0], ["count", "球数"], ...fullCols.slice(1)]
+    : fullCols;
   const headCols = activeAxes.map(dim => PV_DIMS[dim]?.label || "-");
   // 固定列（軸ラベル）の幅はCSSのmin-width（.pv-axis-col）と揃える必要がある
   // （position:stickyのleftオフセットはJS側で計算するしかないため）。モバイルでは
