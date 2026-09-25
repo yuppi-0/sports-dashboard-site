@@ -776,6 +776,38 @@ def build_by_pitch_category(pt_list: list[dict], category_key: str) -> dict[str,
     return {name: _aggregate_pt_group_py(entries) for name, entries in groups.items()}
 
 
+def build_by_velocity_band_only(pt_list: list[dict]) -> dict[str, dict]:
+    """byPitchType（1系統ぶん、detail単位のリスト）から、球種を問わず球速帯
+    （速い/中間/遅い）だけでグルーピングした集約統計を返す（batter-cards.htmlの
+    ピボット表で「軸=球速帯」のみ・球種を絞り込まずに使う場合の順位母集団）。
+    戻り値: {球速帯: 集約統計オブジェクト}"""
+    groups: dict[str, list[dict]] = {}
+    for pt in pt_list:
+        for band in (pt.get("byVelocityBand") or []):
+            key = band.get("band")
+            if key:
+                groups.setdefault(key, []).append(band)
+    return {name: _aggregate_pt_group_py(entries) for name, entries in groups.items()}
+
+
+def _fill_swing_rates_fallback(stat_obj: dict, pt_list: list[dict]) -> dict:
+    """出塁率・長打率とは別で、シーズン成績（calc_season_batter_stats、試合単位のO-Swing%/
+    Z-Swing%/whiff%を打席数で加重平均したもの）のchase_pct/contact_pct/whiff_pctが
+    None（＝MLBは試合単位の値を持たないため常にNoneになる。docstring参照）の場合、代わりに
+    その打者の球種別内訳（byPitchType。Statcastのゾーン内外スイング数から球種ごとに
+    算出済み）を全球種ぶん合算して代用する。NPBは通常こちらのフォールバックが無くても
+    値が入っている（試合単位のO-Swing%/Z-Swing%/whiff%がある）ため実害は無い。"""
+    if stat_obj.get("whiff_pct") is None or stat_obj.get("chase_pct") is None or stat_obj.get("contact_pct") is None:
+        agg = _aggregate_pt_group_py(pt_list)
+        if stat_obj.get("whiff_pct") is None:
+            stat_obj["whiff_pct"] = agg.get("whiff_pct")
+        if stat_obj.get("chase_pct") is None:
+            stat_obj["chase_pct"] = agg.get("chase_pct")
+        if stat_obj.get("contact_pct") is None:
+            stat_obj["contact_pct"] = agg.get("contact_pct")
+    return stat_obj
+
+
 # ==================================================
 # Section 4. 順位算出・カテゴリタグ
 # ==================================================
@@ -1044,8 +1076,11 @@ def export_llm_input_batter_xlsx(games_json_dir: str, out_path: str, min_pa: flo
                 pt_breakdown = build_pitch_type_breakdown(appearances)
                 numeric_cards[name] = {
                     "team": team, "pos": pos,
-                    "overall": _to_stat_obj(season),
-                    "splits": {"vsR": _to_stat_obj(vs_r), "vsL": _to_stat_obj(vs_l)},
+                    "overall": _fill_swing_rates_fallback(_to_stat_obj(season), pt_breakdown.get("all") or []),
+                    "splits": {
+                        "vsR": _fill_swing_rates_fallback(_to_stat_obj(vs_r), pt_breakdown.get("vsR") or []),
+                        "vsL": _fill_swing_rates_fallback(_to_stat_obj(vs_l), pt_breakdown.get("vsL") or []),
+                    },
                     "byPitchType": pt_breakdown,
                     "byPitchCategoryMid": {
                         pop: build_by_pitch_category(pt_breakdown.get(pop) or [], "pitchCategoryMid")
@@ -1053,6 +1088,10 @@ def export_llm_input_batter_xlsx(games_json_dir: str, out_path: str, min_pa: flo
                     },
                     "byPitchCategoryMajor": {
                         pop: build_by_pitch_category(pt_breakdown.get(pop) or [], "pitchCategoryMajor")
+                        for pop in ("all", "vsR", "vsL")
+                    },
+                    "byVelocityBandOnly": {
+                        pop: build_by_velocity_band_only(pt_breakdown.get(pop) or [])
                         for pop in ("all", "vsR", "vsL")
                     },
                     "byCourseZone": build_course_zone_breakdown(appearances),
@@ -1122,8 +1161,12 @@ def export_llm_input_batter_xlsx(games_json_dir: str, out_path: str, min_pa: flo
                 for band in (pt.get("byVelocityBand") or []):
                     band["rankings"] = band_rankings.get(name, {}).get(pitch_type, {}).get(band.get("band", ""), {})
 
-        # 4) 球種中/大カテゴリランキング（byPitchCategoryMid/Majorの各エントリにrankingsを付与）
-        for cat_field, cat_key in (("byPitchCategoryMid", "pitchCategoryMid"), ("byPitchCategoryMajor", "pitchCategoryMajor")):
+        # 4) 球種中/大カテゴリ・球速帯単独ランキング（各カテゴリのエントリにrankingsを付与）
+        for cat_field, cat_key in (
+            ("byPitchCategoryMid", "pitchCategoryMid"),
+            ("byPitchCategoryMajor", "pitchCategoryMajor"),
+            ("byVelocityBandOnly", None),  # 球速帯単独は集約時点でグルーピング済みなのでcat_keyは不要
+        ):
             cat_map_by_player = {
                 name: (card[cat_field].get(population) or {})
                 for name, card in numeric_cards.items()
