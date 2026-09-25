@@ -233,6 +233,9 @@
   .fctrl-group-title{ font-size:11px; font-weight:700; color:var(--text-bright); letter-spacing:0.02em;
     margin-top:4px; }
   .fctrl-group-title:first-child{ margin-top:0; }
+  /* 軸1/軸2/軸3、対左右/球種カテゴリ/球種詳細/球速帯 のように、同じ見出し（軸・フィルター）に
+     属する項目は縦に積まず横に並べる（画面幅が足りなければ折り返す）。 */
+  .fctrl-group{ display:flex; flex-wrap:wrap; gap:14px; }
   .fctrl-row{ display:flex; flex-direction:column; align-items:flex-start; gap:6px; }
   .fctrl-label{ font-size:10px; color:var(--text-dim); font-weight:700; }
   .fctrl-select{ background:var(--panel-alt); color:var(--text-bright); border:1px solid rgba(148,163,184,0.2);
@@ -1136,25 +1139,29 @@ function renderCourseGrid(list, metric, splitMode, isLeft){
 function renderCourseZoneSection(seasonsMap, years, currentYear){
   return `
     <div class="fctrl-block">
-      <div class="fctrl-row">
-        <span class="fctrl-label">指標</span>
-        <div class="pill-group cz-metric-group">
-          ${CZ_METRICS.map(([v, l], i) => `<button type="button" class="pill-btn${i === 0 ? " active" : ""}" data-metric="${v}">${escapeHtml(l)}</button>`).join("")}
+      <div class="fctrl-group">
+        <div class="fctrl-row">
+          <span class="fctrl-label">指標</span>
+          <div class="pill-group cz-metric-group">
+            ${CZ_METRICS.map(([v, l], i) => `<button type="button" class="pill-btn${i === 0 ? " active" : ""}" data-metric="${v}">${escapeHtml(l)}</button>`).join("")}
+          </div>
         </div>
-      </div>
-      <div class="fctrl-row">
-        <span class="fctrl-label">分割</span>
-        <div class="pill-group cz-split-group">
-          <button type="button" class="pill-btn active" data-split="9">9分割</button>
-          <button type="button" class="pill-btn" data-split="25">25分割（ボールゾーン含む）</button>
+        <div class="fctrl-row">
+          <span class="fctrl-label">分割</span>
+          <div class="pill-group cz-split-group">
+            <button type="button" class="pill-btn active" data-split="9">9分割</button>
+            <button type="button" class="pill-btn" data-split="25">25分割（ボールゾーン含む）</button>
+          </div>
         </div>
       </div>
       <div class="fctrl-group-title">フィルター</div>
-      <div class="fctrl-row">
-        <span class="fctrl-label">年度</span>
-        <select class="fctrl-select cz-year-select">
-          ${years.map(y => `<option value="${escapeHtml(y)}"${y === currentYear ? " selected" : ""}>${escapeHtml(y)}年</option>`).join("")}
-        </select>
+      <div class="fctrl-group">
+        <div class="fctrl-row">
+          <span class="fctrl-label">年度</span>
+          <select class="fctrl-select cz-year-select">
+            ${years.map(y => `<option value="${escapeHtml(y)}"${y === currentYear ? " selected" : ""}>${escapeHtml(y)}年</option>`).join("")}
+          </select>
+        </div>
       </div>
     </div>
     <div data-cz-body></div>
@@ -1300,18 +1307,21 @@ function renderKeyedStatTable(list, keyLabel, keyField, metrics, emptyNote, grou
 function renderSituationSection(seasonsMap, years, currentYear){
   return `
     <div class="fctrl-block">
-      <div class="fctrl-row">
-        <span class="fctrl-label">対戦</span>
-        <div class="pill-group st-hand-group">
-          <button type="button" class="pill-btn active" data-hand="all">全体</button>
-          <button type="button" class="pill-btn" data-hand="vsR">対右投手</button>
-          <button type="button" class="pill-btn" data-hand="vsL">対左投手</button>
+      <div class="fctrl-group-title">フィルター</div>
+      <div class="fctrl-group">
+        <div class="fctrl-row">
+          <span class="fctrl-label">対左右</span>
+          <select class="fctrl-select st-hand-select">
+            <option value="all">全体</option>
+            <option value="vsR">対右投手</option>
+            <option value="vsL">対左投手</option>
+          </select>
         </div>
-      </div>
-      <div class="fctrl-row">
-        <span class="fctrl-label">年度</span>
-        <div class="pill-group st-year-group">
-          ${years.map(y => `<button type="button" class="pill-btn${y === currentYear ? " active" : ""}" data-year="${escapeHtml(y)}">${escapeHtml(y)}年</button>`).join("")}
+        <div class="fctrl-row">
+          <span class="fctrl-label">年度</span>
+          <select class="fctrl-select st-year-select">
+            ${years.map(y => `<option value="${escapeHtml(y)}"${y === currentYear ? " selected" : ""}>${escapeHtml(y)}年</option>`).join("")}
+          </select>
         </div>
       </div>
     </div>
@@ -1320,27 +1330,17 @@ function renderSituationSection(seasonsMap, years, currentYear){
 }
 
 function wireSituationSection(scope, seasonsMap){
-  const handGroup = scope.querySelector(".st-hand-group");
-  const yearGroup = scope.querySelector(".st-year-group");
+  const handSel = scope.querySelector(".st-hand-select");
+  const yearSel = scope.querySelector(".st-year-select");
   const table = scope.querySelector("[data-st-table]");
-  if(!handGroup || !yearGroup || !table) return;
-  function currentHand(){ return (handGroup.querySelector(".pill-btn.active") || {}).dataset?.hand || "all"; }
-  function currentYear(){ return (yearGroup.querySelector(".pill-btn.active") || {}).dataset?.year; }
+  if(!handSel || !yearSel || !table) return;
   function redraw(){
-    const season = seasonsMap[currentYear()] || {};
+    const season = seasonsMap[yearSel.value] || {};
     const byS = season.bySituation || { all: [], vsR: [], vsL: [] };
-    table.innerHTML = renderKeyedStatTable(byS[currentHand()] || [], "状況", "situation", KEYED_STAT_METRICS_FULL,
+    table.innerHTML = renderKeyedStatTable(byS[handSel.value] || [], "状況", "situation", KEYED_STAT_METRICS_FULL,
       "この条件に該当するデータがありません（ランナー状況別は現在MLBのみ対応です。NPBの元データにランナー状況の情報が含まれていません）。");
   }
-  [handGroup, yearGroup].forEach(group => {
-    group.addEventListener("click", (e) => {
-      const btn = e.target.closest(".pill-btn");
-      if(!btn) return;
-      group.querySelectorAll(".pill-btn").forEach(b => b.classList.remove("active"));
-      btn.classList.add("active");
-      redraw();
-    });
-  });
+  [handSel, yearSel].forEach(sel => sel.addEventListener("change", redraw));
   redraw();
 }
 
@@ -1349,19 +1349,21 @@ function renderCountSection(years, currentYear){
   return `
     <div class="fctrl-block">
       <div class="fctrl-group-title">フィルター</div>
-      <div class="fctrl-row">
-        <span class="fctrl-label">対左右</span>
-        <select class="fctrl-select ct-hand-select">
-          <option value="all">全体</option>
-          <option value="vsR">対右投手</option>
-          <option value="vsL">対左投手</option>
-        </select>
-      </div>
-      <div class="fctrl-row">
-        <span class="fctrl-label">年度</span>
-        <select class="fctrl-select ct-year-select">
-          ${years.map(y => `<option value="${escapeHtml(y)}"${y === currentYear ? " selected" : ""}>${escapeHtml(y)}年</option>`).join("")}
-        </select>
+      <div class="fctrl-group">
+        <div class="fctrl-row">
+          <span class="fctrl-label">対左右</span>
+          <select class="fctrl-select ct-hand-select">
+            <option value="all">全体</option>
+            <option value="vsR">対右投手</option>
+            <option value="vsL">対左投手</option>
+          </select>
+        </div>
+        <div class="fctrl-row">
+          <span class="fctrl-label">年度</span>
+          <select class="fctrl-select ct-year-select">
+            ${years.map(y => `<option value="${escapeHtml(y)}"${y === currentYear ? " selected" : ""}>${escapeHtml(y)}年</option>`).join("")}
+          </select>
+        </div>
       </div>
     </div>
     <div data-ct-table></div>
@@ -1689,38 +1691,42 @@ function renderPivotSection(seasonsMap, years){
   return `
     <div class="fctrl-block">
       <div class="fctrl-group-title">軸</div>
-      <div class="fctrl-row">
-        <span class="fctrl-label">軸1</span>
-        <select class="fctrl-select pv-axis1-select">${dimOptions(false)}</select>
-      </div>
-      <div class="fctrl-row">
-        <span class="fctrl-label">軸2</span>
-        <select class="fctrl-select pv-axis2-select">${dimOptions(true)}</select>
-      </div>
-      <div class="fctrl-row">
-        <span class="fctrl-label">軸3</span>
-        <select class="fctrl-select pv-axis3-select">${dimOptions(true)}</select>
+      <div class="fctrl-group">
+        <div class="fctrl-row">
+          <span class="fctrl-label">軸1</span>
+          <select class="fctrl-select pv-axis1-select">${dimOptions(false)}</select>
+        </div>
+        <div class="fctrl-row">
+          <span class="fctrl-label">軸2</span>
+          <select class="fctrl-select pv-axis2-select">${dimOptions(true)}</select>
+        </div>
+        <div class="fctrl-row">
+          <span class="fctrl-label">軸3</span>
+          <select class="fctrl-select pv-axis3-select">${dimOptions(true)}</select>
+        </div>
       </div>
       <div class="fctrl-group-title">フィルター</div>
-      <div class="fctrl-row" data-pv-filter-wrap="year">
-        <span class="fctrl-label">年度</span>
-        <select class="fctrl-select pv-filter-year">${pvSelectOptions(years.map(y => [y, y]), years[0])}</select>
-      </div>
-      <div class="fctrl-row" data-pv-filter-wrap="hand">
-        <span class="fctrl-label">対左右</span>
-        <select class="fctrl-select pv-filter-hand">${pvSelectOptions([["all", "全体"], ["vsR", "対右投手"], ["vsL", "対左投手"]], "all")}</select>
-      </div>
-      <div class="fctrl-row" data-pv-filter-wrap="mid">
-        <span class="fctrl-label">球種カテゴリ</span>
-        <select class="fctrl-select pv-filter-mid">${pvSelectOptions([["all", "すべて"], ...pitchVals.mids.map(v => [v, v])], "all")}</select>
-      </div>
-      <div class="fctrl-row" data-pv-filter-wrap="detail">
-        <span class="fctrl-label">球種詳細</span>
-        <select class="fctrl-select pv-filter-detail">${pvSelectOptions([["all", "すべて"], ...pitchVals.details.map(v => [v, v])], "all")}</select>
-      </div>
-      <div class="fctrl-row" data-pv-filter-wrap="band">
-        <span class="fctrl-label">球速帯</span>
-        <select class="fctrl-select pv-filter-band">${pvSelectOptions([["all", "すべて"], ...PV_BAND_VALUES.map(v => [v, v])], "all")}</select>
+      <div class="fctrl-group">
+        <div class="fctrl-row" data-pv-filter-wrap="year">
+          <span class="fctrl-label">年度</span>
+          <select class="fctrl-select pv-filter-year">${pvSelectOptions(years.map(y => [y, y]), years[0])}</select>
+        </div>
+        <div class="fctrl-row" data-pv-filter-wrap="hand">
+          <span class="fctrl-label">対左右</span>
+          <select class="fctrl-select pv-filter-hand">${pvSelectOptions([["all", "全体"], ["vsR", "対右投手"], ["vsL", "対左投手"]], "all")}</select>
+        </div>
+        <div class="fctrl-row" data-pv-filter-wrap="mid">
+          <span class="fctrl-label">球種カテゴリ</span>
+          <select class="fctrl-select pv-filter-mid">${pvSelectOptions([["all", "すべて"], ...pitchVals.mids.map(v => [v, v])], "all")}</select>
+        </div>
+        <div class="fctrl-row" data-pv-filter-wrap="detail">
+          <span class="fctrl-label">球種詳細</span>
+          <select class="fctrl-select pv-filter-detail">${pvSelectOptions([["all", "すべて"], ...pitchVals.details.map(v => [v, v])], "all")}</select>
+        </div>
+        <div class="fctrl-row" data-pv-filter-wrap="band">
+          <span class="fctrl-label">球速帯</span>
+          <select class="fctrl-select pv-filter-band">${pvSelectOptions([["all", "すべて"], ...PV_BAND_VALUES.map(v => [v, v])], "all")}</select>
+        </div>
       </div>
     </div>
     <div data-pv-table></div>
