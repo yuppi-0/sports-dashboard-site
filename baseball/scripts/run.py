@@ -1162,7 +1162,7 @@ def build_batter_course_splits(df_pitch: "pd.DataFrame", pit_hand_map: dict) -> 
     cols = ["試合ID", "選手名", "ゾーン行", "ゾーン列", "対戦投手利き腕",
             "球数", "打席", "打数", "安打", "二塁打", "三塁打", "本塁打", "四球", "死球", "三振",
             "SW数", "空振り数", "ゾーン内投球数", "ゾーン外投球数",
-            "ゾーン内SW数", "ゾーン外SW数"]
+            "ゾーン内SW数", "ゾーン外SW数", "ゾーン内空振り数", "GB", "LD", "FB"]
     if df_pitch is None or df_pitch.empty:
         return pd.DataFrame(columns=cols)
     need_cols = {"コース(Left)", "コース(Top)", "打者名", "投手名", "打左右"}
@@ -1209,14 +1209,18 @@ def build_batter_course_splits(df_pitch: "pd.DataFrame", pit_hand_map: dict) -> 
         in_z  = g["in_zone"]  if "in_zone"  in g.columns else pd.Series([False] * len(g), index=g.index)
         out_z = g["out_zone"] if "out_zone" in g.columns else pd.Series([False] * len(g), index=g.index)
         swing = g["is_swing"]
+        swstr = g["is_swstr"]
+        bd = calc_batted_stats(last["打席完了結果"]) if len(last) else {"GB": 0, "LD": 0, "FB": 0}
         rows.append({
             "試合ID": str(gid), "選手名": bname, "ゾーン行": int(zrow), "ゾーン列": int(zcol),
             "対戦投手利き腕": hand,
             "球数": int(len(g)), "打席": int(len(last)), "打数": ab_n, "安打": h_n,
             "二塁打": d2_n, "三塁打": d3_n, "本塁打": hr_n, "四球": bb_n, "死球": hbp_n, "三振": k_n,
-            "SW数": int(swing.sum()), "空振り数": int(g["is_swstr"].sum()),
+            "SW数": int(swing.sum()), "空振り数": int(swstr.sum()),
             "ゾーン内投球数": int(in_z.sum()), "ゾーン外投球数": int(out_z.sum()),
             "ゾーン内SW数": int((swing & in_z).sum()), "ゾーン外SW数": int((swing & out_z).sum()),
+            "ゾーン内空振り数": int((swing & in_z & swstr).sum()),
+            "GB": bd["GB"], "LD": bd["LD"], "FB": bd["FB"],
         })
     return pd.DataFrame(rows, columns=cols)
 
@@ -1240,7 +1244,7 @@ def build_batter_count_splits(df_pitch: "pd.DataFrame", pit_hand_map: dict) -> "
     cols = ["試合ID", "選手名", "カウント", "対戦投手利き腕",
             "球数", "打席", "打数", "安打", "二塁打", "三塁打", "本塁打", "四球", "死球", "三振",
             "SW数", "空振り数", "ゾーン内投球数", "ゾーン外投球数",
-            "ゾーン内SW数", "ゾーン外SW数"]
+            "ゾーン内SW数", "ゾーン外SW数", "ゾーン内空振り数", "GB", "LD", "FB"]
     if df_pitch is None or df_pitch.empty:
         return pd.DataFrame(columns=cols)
     need_cols = {"pitch_balls", "pitch_strikes", "打者名", "投手名"}
@@ -1274,13 +1278,17 @@ def build_batter_count_splits(df_pitch: "pd.DataFrame", pit_hand_map: dict) -> "
         in_z  = g["in_zone"]  if "in_zone"  in g.columns else pd.Series([False] * len(g), index=g.index)
         out_z = g["out_zone"] if "out_zone" in g.columns else pd.Series([False] * len(g), index=g.index)
         swing = g["is_swing"]
+        swstr = g["is_swstr"]
+        bd = calc_batted_stats(last["打席完了結果"]) if len(last) else {"GB": 0, "LD": 0, "FB": 0}
         rows.append({
             "試合ID": str(gid), "選手名": bname, "カウント": count_key, "対戦投手利き腕": hand,
             "球数": int(len(g)), "打席": int(len(last)), "打数": ab_n, "安打": h_n,
             "二塁打": d2_n, "三塁打": d3_n, "本塁打": hr_n, "四球": bb_n, "死球": hbp_n, "三振": k_n,
-            "SW数": int(swing.sum()), "空振り数": int(g["is_swstr"].sum()),
+            "SW数": int(swing.sum()), "空振り数": int(swstr.sum()),
             "ゾーン内投球数": int(in_z.sum()), "ゾーン外投球数": int(out_z.sum()),
             "ゾーン内SW数": int((swing & in_z).sum()), "ゾーン外SW数": int((swing & out_z).sum()),
+            "ゾーン内空振り数": int((swing & in_z & swstr).sum()),
+            "GB": bd["GB"], "LD": bd["LD"], "FB": bd["FB"],
         })
     return pd.DataFrame(rows, columns=cols)
 
@@ -2737,6 +2745,10 @@ def _build_dashboard_data(datamart_path: str, pitch_locs: dict | None = None, cb
             "oz":   _iv(r.get("ゾーン外投球数")),
             "zsw":  _iv(r.get("ゾーン内SW数")),
             "ozsw": _iv(r.get("ゾーン外SW数")),
+            "zws":  _iv(r.get("ゾーン内空振り数")),
+            "gb":   _iv(r.get("GB")),
+            "ld":   _iv(r.get("LD")),
+            "fb":   _iv(r.get("FB")),
         })
 
     # 試合別打者被カウント別成績 → 打者カードのcountSplits（カウント×対戦投手利き腕）
@@ -2761,6 +2773,10 @@ def _build_dashboard_data(datamart_path: str, pitch_locs: dict | None = None, cb
             "oz":    _iv(r.get("ゾーン外投球数")),
             "zsw":   _iv(r.get("ゾーン内SW数")),
             "ozsw":  _iv(r.get("ゾーン外SW数")),
+            "zws":   _iv(r.get("ゾーン内空振り数")),
+            "gb":    _iv(r.get("GB")),
+            "ld":    _iv(r.get("LD")),
+            "fb":    _iv(r.get("FB")),
         })
 
     # 試合別投手成績_左右別 → pitStatVsR / pitStatVsL

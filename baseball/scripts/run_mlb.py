@@ -2509,7 +2509,7 @@ def build_batter_course_splits_mlb(df: pd.DataFrame) -> pd.DataFrame:
     cols = ["試合ID", "選手名", "ゾーン行", "ゾーン列", "対戦投手利き腕",
             "球数", "打席", "打数", "安打", "二塁打", "三塁打", "本塁打", "四球", "死球", "三振", "打点",
             "SW数", "空振り数", "ゾーン内投球数", "ゾーン外投球数",
-            "ゾーン内SW数", "ゾーン外SW数"]
+            "ゾーン内SW数", "ゾーン外SW数", "ゾーン内空振り数", "GB", "LD", "FB"]
     if df is None or df.empty or "batter_name" not in df.columns or "plate_x" not in df.columns:
         return pd.DataFrame(columns=cols)
 
@@ -2586,6 +2586,10 @@ def build_batter_course_splits_mlb(df: pd.DataFrame) -> pd.DataFrame:
         else:
             rbi_n = 0
         swing = g["_is_swing"]
+        bb_type_last = last["bb_type"] if "bb_type" in last.columns else pd.Series(dtype=object)
+        gb_n2 = int(bb_type_last.eq("ground_ball").sum())
+        ld_n2 = int(bb_type_last.eq("line_drive").sum())
+        fb_n2 = int(bb_type_last.eq("fly_ball").sum())
         rows.append({
             "試合ID": str(gid), "選手名": bname, "ゾーン行": int(zrow), "ゾーン列": int(zcol),
             "対戦投手利き腕": hand,
@@ -2595,6 +2599,8 @@ def build_batter_course_splits_mlb(df: pd.DataFrame) -> pd.DataFrame:
             "ゾーン内投球数": int(g["_in_zone"].sum()), "ゾーン外投球数": int(g["_out_zone"].sum()),
             "ゾーン内SW数": int((swing & g["_in_zone"]).sum()),
             "ゾーン外SW数": int((swing & g["_out_zone"]).sum()),
+            "ゾーン内空振り数": int((swing & g["_in_zone"] & g["_is_swstr"]).sum()),
+            "GB": gb_n2, "LD": ld_n2, "FB": fb_n2,
         })
     return pd.DataFrame(rows, columns=cols) if rows else pd.DataFrame(columns=cols)
 
@@ -2608,7 +2614,7 @@ def build_batter_count_splits_mlb(df: pd.DataFrame) -> pd.DataFrame:
     cols = ["試合ID", "選手名", "カウント", "対戦投手利き腕",
             "球数", "打席", "打数", "安打", "二塁打", "三塁打", "本塁打", "四球", "死球", "三振", "打点",
             "SW数", "空振り数", "ゾーン内投球数", "ゾーン外投球数",
-            "ゾーン内SW数", "ゾーン外SW数"]
+            "ゾーン内SW数", "ゾーン外SW数", "ゾーン内空振り数", "GB", "LD", "FB"]
     if df is None or df.empty or "batter_name" not in df.columns or "balls" not in df.columns or "strikes" not in df.columns:
         return pd.DataFrame(columns=cols)
 
@@ -2670,6 +2676,10 @@ def build_batter_count_splits_mlb(df: pd.DataFrame) -> pd.DataFrame:
         else:
             rbi_n = 0
         swing = g["_is_swing"]
+        bb_type_last = last["bb_type"] if "bb_type" in last.columns else pd.Series(dtype=object)
+        gb_n2 = int(bb_type_last.eq("ground_ball").sum())
+        ld_n2 = int(bb_type_last.eq("line_drive").sum())
+        fb_n2 = int(bb_type_last.eq("fly_ball").sum())
         rows.append({
             "試合ID": str(gid), "選手名": bname, "カウント": count_key, "対戦投手利き腕": hand,
             "球数": int(len(g)), "打席": int(len(last)), "打数": ab_n, "安打": h_n,
@@ -2678,6 +2688,8 @@ def build_batter_count_splits_mlb(df: pd.DataFrame) -> pd.DataFrame:
             "ゾーン内投球数": int(g["_in_zone"].sum()), "ゾーン外投球数": int(g["_out_zone"].sum()),
             "ゾーン内SW数": int((swing & g["_in_zone"]).sum()),
             "ゾーン外SW数": int((swing & g["_out_zone"]).sum()),
+            "ゾーン内空振り数": int((swing & g["_in_zone"] & g["_is_swstr"]).sum()),
+            "GB": gb_n2, "LD": ld_n2, "FB": fb_n2,
         })
     return pd.DataFrame(rows, columns=cols) if rows else pd.DataFrame(columns=cols)
 
@@ -2690,7 +2702,7 @@ def build_batter_situation_splits_mlb(df: pd.DataFrame) -> pd.DataFrame:
     cols = ["試合ID", "選手名", "状況", "対戦投手利き腕",
             "球数", "打席", "打数", "安打", "二塁打", "三塁打", "本塁打", "四球", "死球", "三振", "打点",
             "SW数", "空振り数", "ゾーン内投球数", "ゾーン外投球数",
-            "ゾーン内SW数", "ゾーン外SW数"]
+            "ゾーン内SW数", "ゾーン外SW数", "ゾーン内空振り数", "GB", "LD", "FB"]
     need_cols = {"batter_name", "on_1b", "on_2b", "on_3b"}
     if df is None or df.empty or not need_cols.issubset(df.columns):
         return pd.DataFrame(columns=cols)
@@ -2745,6 +2757,10 @@ def build_batter_situation_splits_mlb(df: pd.DataFrame) -> pd.DataFrame:
         else:
             rbi_n = 0
         swing = g["_is_swing"]
+        bb_type_last = last["bb_type"] if "bb_type" in last.columns else pd.Series(dtype=object)
+        gb_n2 = int(bb_type_last.eq("ground_ball").sum())
+        ld_n2 = int(bb_type_last.eq("line_drive").sum())
+        fb_n2 = int(bb_type_last.eq("fly_ball").sum())
         rows.append({
             "試合ID": str(gid), "選手名": bname, "状況": situation, "対戦投手利き腕": hand,
             "球数": int(len(g)), "打席": int(len(last)), "打数": ab_n, "安打": h_n,
@@ -2753,6 +2769,8 @@ def build_batter_situation_splits_mlb(df: pd.DataFrame) -> pd.DataFrame:
             "ゾーン内投球数": int(g["_in_zone"].sum()), "ゾーン外投球数": int(g["_out_zone"].sum()),
             "ゾーン内SW数": int((swing & g["_in_zone"]).sum()),
             "ゾーン外SW数": int((swing & g["_out_zone"]).sum()),
+            "ゾーン内空振り数": int((swing & g["_in_zone"] & g["_is_swstr"]).sum()),
+            "GB": gb_n2, "LD": ld_n2, "FB": fb_n2,
         })
     return pd.DataFrame(rows, columns=cols) if rows else pd.DataFrame(columns=cols)
 
@@ -3068,6 +3086,10 @@ def _build_game_json(dm_path: str, date: str,
             "oz":   _iv(r.get("ゾーン外投球数")),
             "zsw":  _iv(r.get("ゾーン内SW数")),
             "ozsw": _iv(r.get("ゾーン外SW数")),
+            "zws":  _iv(r.get("ゾーン内空振り数")),
+            "gb":   _iv(r.get("GB")),
+            "ld":   _iv(r.get("LD")),
+            "fb":   _iv(r.get("FB")),
         })
 
     # 試合別打者被カウント別成績 → 打者カードのcountSplits（カウント×対戦投手利き腕）
@@ -3094,6 +3116,10 @@ def _build_game_json(dm_path: str, date: str,
             "oz":    _iv(r.get("ゾーン外投球数")),
             "zsw":   _iv(r.get("ゾーン内SW数")),
             "ozsw":  _iv(r.get("ゾーン外SW数")),
+            "zws":   _iv(r.get("ゾーン内空振り数")),
+            "gb":    _iv(r.get("GB")),
+            "ld":    _iv(r.get("LD")),
+            "fb":    _iv(r.get("FB")),
         })
 
     # 試合別打者被状況別成績 → 打者カードのsituationSplits（ランナー状況×対戦投手利き腕）
@@ -3120,6 +3146,10 @@ def _build_game_json(dm_path: str, date: str,
             "oz":    _iv(r.get("ゾーン外投球数")),
             "zsw":   _iv(r.get("ゾーン内SW数")),
             "ozsw":  _iv(r.get("ゾーン外SW数")),
+            "zws":   _iv(r.get("ゾーン内空振り数")),
+            "gb":    _iv(r.get("GB")),
+            "ld":    _iv(r.get("LD")),
+            "fb":    _iv(r.get("FB")),
         })
 
     def _mix_obj(r, game_id: str = "", pitcher_name: str = "", bat_hand: str = "ALL"):

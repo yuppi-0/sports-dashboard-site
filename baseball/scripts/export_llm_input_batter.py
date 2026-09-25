@@ -403,6 +403,12 @@ def _agg_pitch_group(entries: list[dict]) -> dict:
         # run_mlb.pyのbb_type分類と同じ定義（投手側GB%と揃えてある）。NPBは「打席完了結果」
         # テキストから、MLBはStatcastのbb_typeから、それぞれpitchSplits側で実数を積んでいる。
         "gb_pct": round(gb / bip_known * 100, 1) if bip_known > 0 else None,
+        # 以下3つはコース別成績グリッドの指標選択用（球種等の他テーブルでは今のところ未使用）。
+        # ゾーン内外を問わず全投球ベースで見る「スイング率」「空振り率（/すべて）」と、
+        # ゾーン内外を問わず全スイングベースで見る「コンタクト率」（=1-空振り率(/スイング)）。
+        "swing_pct": round(sw / n * 100, 1) if n > 0 else None,           # スイング率＝SW数/球数
+        "whiff_pct_all": round(ws / n * 100, 1) if n > 0 else None,       # 空振り率（/すべて）＝空振り数/球数
+        "swing_contact_pct": round((sw - ws) / sw * 100, 1) if sw > 0 else None,  # コンタクト率＝(SW数-空振り数)/SW数
     }
 
 
@@ -660,6 +666,10 @@ _RANK_SPECS_EN = [
     ("avg", True), ("obp", True), ("slg", True), ("ops", True), ("hr", True), ("rbi", True),
     ("k_pct", False), ("bb_pct", True),
     ("whiff_pct", False), ("chase_pct", False), ("contact_pct", True), ("z_swing_pct", True),
+    ("z_contact_pct", True),
+    # gb_pct（ゴロ率）はK%やwhiff_pct等と違って「低い/高いのどちらが良いか」が打者にとって
+    # 一意に決まらない（打球傾向であって技術の優劣とは限らない）ため、意図的に順位付け対象から
+    # 除外している。値自体は表示されるが、色・順位は付かない。
 ]
 
 
