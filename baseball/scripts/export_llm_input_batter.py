@@ -529,11 +529,12 @@ def build_by_count(appearances: list[dict], hand_filter: str | None = None) -> l
         stats["countKey"] = count_key
         result.append(stats)
 
-    # カウントを見やすい順（0-0, 0-1, ..., 3-2）に並べる
+    # ストライク数でまとめ、その中でボール数昇順に並べる（0-0,1-0,2-0,3-0 → 0-1,1-1,2-1,3-1 →
+    # 0-2,1-2,2-2,3-2）。batter-cards.html側でストライク数ごとのグループヘッダーを出すのに使う。
     def _count_sort_key(r):
         try:
             b, s = r["countKey"].split("-")
-            return (int(b), int(s))
+            return (int(s), int(b))
         except (ValueError, AttributeError):
             return (99, 99)
     result.sort(key=_count_sort_key)
