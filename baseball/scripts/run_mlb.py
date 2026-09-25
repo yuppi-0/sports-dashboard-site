@@ -1862,8 +1862,43 @@ def _compute_game_stolen_bases(df: pd.DataFrame) -> dict:
     return result
 
 
+FIELDER_COL_TO_POS = {
+    "fielder_2": "捕", "fielder_3": "一", "fielder_4": "二", "fielder_5": "三",
+    "fielder_6": "遊", "fielder_7": "左", "fielder_8": "中", "fielder_9": "右",
+}
+
+
+def compute_batter_positions_mlb(df: "pd.DataFrame") -> dict:
+    """(試合ID, 選手ID) → その試合で最も多く守っていたポジション（捕/一/二/三/遊/左/中/右）。
+    Statcastのfielder_2〜fielder_9列（その投球時点で各守備位置についている選手のID）を、
+    試合内の全投球（このバッターが打席に立っていない投球も含む）にわたって集計し、
+    最頻のポジションをその試合の守備位置とみなす。打者名解決(_add_batter_names)と同じ
+    "batter" IDをキーにしているので、build_game_batter_stats側でそのまま引ける。
+    """
+    result: dict = {}
+    fielder_cols = [c for c in FIELDER_COL_TO_POS if c in df.columns]
+    if not fielder_cols or "game_pk" not in df.columns:
+        return result
+    for gid, g in df.groupby("game_pk"):
+        counts: dict = {}
+        for col in fielder_cols:
+            pos_label = FIELDER_COL_TO_POS[col]
+            for v in g[col].dropna():
+                try:
+                    pid = int(v)
+                except (ValueError, TypeError):
+                    continue
+                counts.setdefault(pid, {})
+                counts[pid][pos_label] = counts[pid].get(pos_label, 0) + 1
+        for pid, posd in counts.items():
+            best_pos = max(posd.items(), key=lambda kv: kv[1])[0]
+            result[(str(gid), pid)] = best_pos
+    return result
+
+
 def build_game_batter_stats(df: pd.DataFrame) -> pd.DataFrame:
     steal_idx = _compute_game_stolen_bases(df)
+    pos_idx = compute_batter_positions_mlb(df)
     rows = []
     for (gid, bid), g in df.groupby(["game_pk","batter"]):
         row0 = g.iloc[0]
@@ -1882,9 +1917,13 @@ def build_game_batter_stats(df: pd.DataFrame) -> pd.DataFrame:
         # （スイッチヒッターが両打席に立った試合ではg内で値が割れることがあるが、その場合も
         # 先頭打席側を代表値として採用する程度の粒度で十分）。
         _stand = row0.get("stand")
+        try:
+            pos_val = pos_idx.get((str(gid), int(bid)), "")
+        except (ValueError, TypeError):
+            pos_val = ""
         rows.append({"試合ID":str(gid),"試合日":str(row0["game_date"])[:10],
                      "選手名":name,"チーム":team,"ホーム/アウェイ":ha,
-                     "打順":0,"守備位置":"","stand":_stand,**stats})
+                     "打順":0,"守備位置":pos_val,"stand":_stand,**stats})
     return pd.DataFrame(rows)
 
 def build_game_pitcher_stats(df: pd.DataFrame) -> pd.DataFrame:

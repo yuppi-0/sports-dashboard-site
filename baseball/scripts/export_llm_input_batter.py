@@ -667,9 +667,10 @@ _RANK_SPECS_EN = [
     ("k_pct", False), ("bb_pct", True),
     ("whiff_pct", False), ("chase_pct", False), ("contact_pct", True), ("z_swing_pct", True),
     ("z_contact_pct", True),
-    # gb_pct（ゴロ率）はK%やwhiff_pct等と違って「低い/高いのどちらが良いか」が打者にとって
-    # 一意に決まらない（打球傾向であって技術の優劣とは限らない）ため、意図的に順位付け対象から
-    # 除外している。値自体は表示されるが、色・順位は付かない。
+    # gb_pct（ゴロ率）は本来「低い/高いのどちらが良いか」が一意に決まる指標ではないが、
+    # 表示上は順位を出してほしいとの要望のため、低いほど良い（＝ゴロが少ない＝長打力がある
+    # 打球傾向）という一般的な整理を採用している。この向きに異論があれば変更可能。
+    ("gb_pct", False),
 ]
 
 
@@ -836,7 +837,10 @@ def _fill_swing_rates_fallback(stat_obj: dict, pt_list: list[dict]) -> dict:
     None（＝MLBは試合単位の値を持たないため常にNoneになる。docstring参照）の場合、代わりに
     その打者の球種別内訳（byPitchType。Statcastのゾーン内外スイング数から球種ごとに
     算出済み）を全球種ぶん合算して代用する。NPBは通常こちらのフォールバックが無くても
-    値が入っている（試合単位のO-Swing%/Z-Swing%/whiff%がある）ため実害は無い。"""
+    値が入っている（試合単位のO-Swing%/Z-Swing%/whiff%がある）ため実害は無い。
+    z_contact_pct・gb_pctはcalc_season_batter_stats側に元々対応する計算が無い
+    （試合単位の集計には"ゾーン内空振り数"や打球種別の内訳が無い）ため、NPB/MLBを問わず
+    常にbyPitchType合算値で埋める。"""
     if stat_obj.get("whiff_pct") is None or stat_obj.get("chase_pct") is None or stat_obj.get("contact_pct") is None:
         agg = _aggregate_pt_group_py(pt_list)
         if stat_obj.get("whiff_pct") is None:
@@ -847,6 +851,12 @@ def _fill_swing_rates_fallback(stat_obj: dict, pt_list: list[dict]) -> dict:
             stat_obj["contact_pct"] = agg.get("contact_pct")
         if stat_obj.get("z_swing_pct") is None:
             stat_obj["z_swing_pct"] = agg.get("z_swing_pct") if agg.get("z_swing_pct") is not None else stat_obj.get("contact_pct")
+    if stat_obj.get("z_contact_pct") is None or stat_obj.get("gb_pct") is None:
+        agg2 = _aggregate_pt_group_py(pt_list)
+        if stat_obj.get("z_contact_pct") is None:
+            stat_obj["z_contact_pct"] = agg2.get("z_contact_pct")
+        if stat_obj.get("gb_pct") is None:
+            stat_obj["gb_pct"] = agg2.get("gb_pct")
     return stat_obj
 
 
