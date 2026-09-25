@@ -133,6 +133,13 @@
   .rk-val.t-bot70{ color:#F59AB1; }
   .rk-val.t-bot85{ color:#FFA6BD; font-weight:800; }
   .rk-sub{ font-size:9px; color:var(--text-dim); margin-top:1px; white-space:nowrap; }
+  .rk-sub.t-top15{ color:#5EEAD4; }
+  .rk-sub.t-top30{ color:#7FD8CD; }
+  .rk-sub.t-top40{ color:#A9DAD5; }
+  .rk-sub.t-mid{ color:var(--text-dim); }
+  .rk-sub.t-bot60{ color:#E9B8C4; }
+  .rk-sub.t-bot70{ color:#F59AB1; }
+  .rk-sub.t-bot85{ color:#FFA6BD; }
 
   .section{ border-radius:10px; padding:12px 14px; margin-bottom:10px; text-align:left; background:var(--panel); }
   .section-strength{ background:var(--panel-alt); border:1px solid rgba(16,185,129,0.25); }
@@ -164,7 +171,7 @@
     font-size:11px; color:var(--text-dim); }
   /* カウント別成績のようにグループ列(rowspan)があると、グループの先頭行だけtd数が1つ多くなり
      :first-child頼みのスタイル（太字・左寄せ）がずれてしまうため、キー列には明示クラスで固定する */
-  .kst-key-cell{ text-align:left; font-weight:700; color:var(--text-bright); }
+  .split-table td.kst-key-cell{ text-align:left; font-weight:700; color:var(--text-bright); }
   .split-table tbody tr:hover, .disc-table tbody tr:hover{ background:rgba(148,163,184,0.05); }
 
   /* テーブルが画面幅を超える場合の横スクロールラッパー（split-table等、汎用） */
@@ -502,7 +509,7 @@ function fmtAvg(v){
 }
 function rankText(rk){
   if(!rk || !rk.total) return "";
-  if(!rk.rank) return "対象外";
+  if(rk.rank == null) return "-";
   return `${rk.rank}位 / ${rk.total}人中`;
 }
 
@@ -903,7 +910,7 @@ function rankedTd(text, rk, tierOverride){
   const rt = rk ? rankText(rk) : "";
   let inner;
   if(rt){
-    inner = `<div class="rk-val${tierClass}">${text}</div><div class="rk-sub">${escapeHtml(rt)}</div>`;
+    inner = `<div class="rk-val${tierClass}">${text}</div><div class="rk-sub${tierClass}">${escapeHtml(rt)}</div>`;
   }else if(tierOverride !== undefined){
     inner = `<span class="rk${tierClass}">${text}</span>`;
   }else{
@@ -1521,10 +1528,6 @@ function buildPivotRows3(seasonsMap, years, activeAxes, filters){
   });
 }
 
-// ピボット表の各行を表示するのに必要な最低打席数。これ未満は数値がノイズになりやすいため、
-// 打席数そのもの以外は"-"にする（順位付けの資格打席PIVOT_RANK_MIN_PAと同じ値に揃えてある）。
-const PV_MIN_PA_DISPLAY = 15;
-
 function renderPivotTable(rows, activeAxes){
   if(rows.length === 0) return `<div class="defense-note">条件に一致するデータがありません。</div>`;
   const cols = PV_FULL_COLUMNS;
@@ -1532,16 +1535,16 @@ function renderPivotTable(rows, activeAxes){
 
   const trs = rows.map(r => {
     const labelCells = activeAxes.map((_, i) => `<td>${escapeHtml(r[`_label${i + 1}`] ?? "-")}</td>`);
-    const belowMinPa = r.pa != null && r.pa < PV_MIN_PA_DISPLAY;
     const statCells = cols.map(([key]) => {
-      if(key === "pa") return `<td>${r.pa ?? "-"}</td>`;  // 打席は順位・カラースケール対象外、閾値未満でも実数を出す
-      if(belowMinPa) return `<td>-</td>`;
+      if(key === "pa") return `<td>${r.pa ?? "-"}</td>`;  // 打席は順位・カラースケール対象外
       const v = r[key];
       let text;
       if(key === "avg" || key === "obp" || key === "slg") text = fmtAvg(v);
       else if(key === "ops") text = fmt(v, 3);
       else if(key === "k_pct" || key === "bb_pct" || key === "whiff_pct" || key === "chase_pct" || key === "contact_pct") text = fmt(v, 1, "%");
       else text = v ?? "-";
+      // 値自体は常にそのまま表示し、資格打席未満で順位が付いていない場合は
+      // rankedTd側が順位部分だけを「-」にする（pitcher-cards.htmlと同じ仕様）。
       const rk = r._rk ? r._rk[key] : null;
       return rankedTd(text, rk);
     });
@@ -1551,6 +1554,7 @@ function renderPivotTable(rows, activeAxes){
   return `<div class="table-scroll"><table class="split-table pv-result-table">
     <thead><tr>${headCols.map(h => `<th>${escapeHtml(h)}</th>`).join("")}${cols.map(([, l]) => `<th>${escapeHtml(l)}</th>`).join("")}</tr></thead>
     <tbody>${trs}</tbody>
+
   </table></div>`;
 }
 
