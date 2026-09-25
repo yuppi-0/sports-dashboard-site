@@ -123,6 +123,17 @@
   .rk.t-bot70{ color:#F59AB1; }
   .rk.t-bot85{ color:#FFA6BD; font-weight:700; }
 
+  /* rankedTd用：値の下に「n位/m人中」を常時表示する（pitcher-cards.htmlの球種別テーブルと同じ見せ方） */
+  .rk-val{ font-weight:700; }
+  .rk-val.t-top15{ color:#5EEAD4; font-weight:800; }
+  .rk-val.t-top30{ color:#7FD8CD; }
+  .rk-val.t-top40{ color:#A9DAD5; }
+  .rk-val.t-mid{ color:var(--text); }
+  .rk-val.t-bot60{ color:#E9B8C4; }
+  .rk-val.t-bot70{ color:#F59AB1; }
+  .rk-val.t-bot85{ color:#FFA6BD; font-weight:800; }
+  .rk-sub{ font-size:9px; color:var(--text-dim); margin-top:1px; white-space:nowrap; }
+
   .section{ border-radius:10px; padding:12px 14px; margin-bottom:10px; text-align:left; background:var(--panel); }
   .section-strength{ background:var(--panel-alt); border:1px solid rgba(16,185,129,0.25); }
   .section-weakness{ background:#221417; border:1px solid rgba(248,113,113,0.25); }
@@ -149,8 +160,8 @@
   .split-table th:first-child, .disc-table th:first-child, .pt-table th:first-child, .pt-band-table th:first-child{ text-align:left; }
   .split-table td, .disc-table td, .pt-table td, .pt-band-table td{ text-align:right; padding:7px 8px; border-bottom:1px solid rgba(148,163,184,0.08); white-space:nowrap; }
   .split-table td:first-child, .disc-table td:first-child, .pt-table td:first-child, .pt-band-table td:first-child{ text-align:left; font-weight:700; color:var(--text-bright); }
-  .kst-group-row td{ text-align:left !important; font-weight:700; font-size:10.5px; color:var(--text-dim);
-    background:var(--panel-alt); padding:5px 8px; letter-spacing:0.02em; }
+  .kst-group-cell{ vertical-align:middle; background:var(--panel-alt); border-right:1px solid rgba(148,163,184,0.15);
+    font-size:11px; color:var(--text-dim); }
   .split-table tbody tr:hover, .disc-table tbody tr:hover{ background:rgba(148,163,184,0.05); }
 
   /* テーブルが画面幅を超える場合の横スクロールラッパー（split-table等、汎用） */
@@ -880,16 +891,22 @@ function rankedCell(text, rk){
   return `<span class="rk${tierClass}"${title ? ` title="${escapeHtml(title)}"` : ""}>${text}</span>`;
 }
 
-// rankedCellの<td>版：背景色（TIER_COLOR）も一緒に敷く。順位データが無い場合は
-// tierをそのまま渡すことで（rank情報が無い簡易カラースケール用）背景だけ付けられる。
+// rankedCellの<td>版：背景色（TIER_COLOR）も一緒に敷く。順位（n位/m人中）はホバー時だけ
+// でなく、pitcher-cards.htmlの球種別テーブルと同じように値の下に常時表示する。
+// tierOverrideを渡すと（rank情報が無い簡易カラースケール用）背景だけ付けられる。
 function rankedTd(text, rk, tierOverride){
   const tier = tierOverride !== undefined ? tierOverride : tierFromRank(rk);
   const bg = tierBg(tier);
   const tierClass = tier ? ` t-${tier}` : "";
-  const title = rk ? rankText(rk) : "";
-  const inner = (rk || tierOverride !== undefined)
-    ? `<span class="rk${tierClass}"${title ? ` title="${escapeHtml(title)}"` : ""}>${text}</span>`
-    : text;
+  const rt = rk ? rankText(rk) : "";
+  let inner;
+  if(rt){
+    inner = `<div class="rk-val${tierClass}">${text}</div><div class="rk-sub">${escapeHtml(rt)}</div>`;
+  }else if(tierOverride !== undefined){
+    inner = `<span class="rk${tierClass}">${text}</span>`;
+  }else{
+    inner = text;
+  }
   return `<td${bg ? ` style="background:${bg}"` : ""}>${inner}</td>`;
 }
 
@@ -1143,21 +1160,21 @@ function magnitudeBg(value, allValues, hueRgb){
   const alpha = (0.06 + t * 0.34).toFixed(2);
   return `rgba(${hueRgb},${alpha})`;
 }
-function renderKeyedStatTable(list, keyLabel, keyField, metrics, emptyNote, groupFn){
+function renderKeyedStatTable(list, keyLabel, keyField, metrics, emptyNote, groupSpec){
   if(!list || list.length === 0){
     return `<div class="defense-note">${escapeHtml(emptyNote || "この条件に該当するデータがありません。")}</div>`;
   }
   const columnsAll = {};
   metrics.forEach(([m]) => { columnsAll[m] = list.map(s => s[m]); });
-  const colspan = 2 + metrics.length;
-  let lastGroup = null;
-  const rows = list.map(s => {
-    let groupHeader = "";
-    if(groupFn){
-      const g = groupFn(s);
-      if(g !== lastGroup){
-        groupHeader = `<tr class="kst-group-row"><td colspan="${colspan}">${escapeHtml(g)}</td></tr>`;
-        lastGroup = g;
+  const groupLabels = groupSpec ? list.map(s => groupSpec.label(s)) : null;
+  const rows = list.map((s, idx) => {
+    let groupCell = "";
+    if(groupSpec){
+      const isFirstOfGroup = idx === 0 || groupLabels[idx] !== groupLabels[idx - 1];
+      if(isFirstOfGroup){
+        let span = 1;
+        while(idx + span < list.length && groupLabels[idx + span] === groupLabels[idx]) span++;
+        groupCell = `<td class="kst-group-cell" rowspan="${span}">${escapeHtml(groupLabels[idx])}</td>`;
       }
     }
     const cells = metrics.map(([m, , , kind], i) => {
@@ -1165,10 +1182,11 @@ function renderKeyedStatTable(list, keyLabel, keyField, metrics, emptyNote, grou
       const bg = magnitudeBg(s[m], columnsAll[m], KEYED_HUES[i % KEYED_HUES.length]);
       return `<td${bg ? ` style="background:${bg}"` : ""}>${text}</td>`;
     }).join("");
-    return `${groupHeader}<tr><td>${escapeHtml(s[keyField] ?? "-")}</td><td>${s.pa ?? "-"}</td>${cells}</tr>`;
+    return `<tr>${groupCell}<td>${escapeHtml(s[keyField] ?? "-")}</td><td>${s.pa ?? "-"}</td>${cells}</tr>`;
   }).join("");
+  const groupHeadTh = groupSpec ? `<th>${escapeHtml(groupSpec.header)}</th>` : "";
   return `<div class="table-scroll"><table class="split-table">
-    <thead><tr><th>${escapeHtml(keyLabel)}</th><th>打席</th>${metrics.map(([, , l]) => `<th>${escapeHtml(l)}</th>`).join("")}</tr></thead>
+    <thead><tr>${groupHeadTh}<th>${escapeHtml(keyLabel)}</th><th>打席</th>${metrics.map(([, , l]) => `<th>${escapeHtml(l)}</th>`).join("")}</tr></thead>
     <tbody>${rows}</tbody>
   </table></div>`;
 }
@@ -1245,7 +1263,8 @@ function wireCountSection(scope, seasonsMap){
   function redraw(){
     const season = seasonsMap[yearSel.value] || {};
     const byC = season.byCount || { all: [], vsR: [], vsL: [] };
-    table.innerHTML = renderKeyedStatTable(byC[hand] || [], "カウント", "countKey", KEYED_STAT_METRICS_FULL, null, countStrikeGroupLabel);
+    table.innerHTML = renderKeyedStatTable(byC[hand] || [], "カウント", "countKey", KEYED_STAT_METRICS_FULL, null,
+      { label: countStrikeGroupLabel, header: "カウント区分" });
   }
   toggle.addEventListener("click", (e) => {
     const btn = e.target.closest(".hand-btn");
