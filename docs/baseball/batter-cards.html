@@ -72,7 +72,8 @@
   .player-item:hover{ background:var(--panel); }
   .player-item.active{ background:var(--panel-alt); }
   .player-item .name{ font-size:13px; font-weight:700; color:var(--text-bright); }
-  .player-item .meta{ font-size:11px; color:var(--text-dim); display:flex; gap:8px; flex-wrap:wrap; }
+  .player-item .meta{ font-size:11px; color:var(--text-dim); display:flex; gap:8px; flex-wrap:wrap;
+    align-items:baseline; font-variant-numeric:tabular-nums; }
   .player-item .meta .metric{ color:var(--text-dim); }
   .player-item .meta .metric b{ color:var(--text); font-weight:700; }
   .empty-list{ padding:20px 14px; font-size:12px; color:var(--text-dim); }
@@ -229,8 +230,13 @@
      プルダウンをやめてこの形に統一する：シーズン成績の軸・絞り込み、コース別成績の
      指標・年度、カウント別・ランナー状況別成績の年度、など。 */
   .fctrl-block{ display:flex; flex-direction:column; gap:10px; margin-bottom:10px; }
+  .fctrl-group-title{ font-size:11px; font-weight:700; color:var(--text-bright); letter-spacing:0.02em;
+    margin-top:4px; }
+  .fctrl-group-title:first-child{ margin-top:0; }
   .fctrl-row{ display:flex; flex-direction:column; align-items:flex-start; gap:6px; }
   .fctrl-label{ font-size:10px; color:var(--text-dim); font-weight:700; }
+  .fctrl-select{ background:var(--panel-alt); color:var(--text-bright); border:1px solid rgba(148,163,184,0.2);
+    border-radius:6px; padding:5px 8px; font-size:11.5px; min-width:120px; }
   .pill-group{ display:flex; gap:4px; flex-wrap:wrap; }
   .pill-btn{ border:1px solid rgba(255,255,255,0.1); background:transparent; color:var(--text-dim);
     font-size:10.5px; font-weight:600; padding:4px 10px; border-radius:6px; cursor:pointer; white-space:nowrap; }
@@ -629,9 +635,24 @@ function populateTeamSelect(players){
   const teams = [...new Set(players.map(p => p.team).filter(Boolean))].sort();
   teamSelectEl.innerHTML = '<option value="">全チーム</option>' + teams.map(t => `<option value="${escapeHtml(t)}">${escapeHtml(t)}</option>`).join("");
 }
+// ポジションの正規の並び順（フィルタのプルダウンをこの順で表示する）。
+// 「打」「打指」「指」「走」「走一」等は守備位置ではない（代打/DH/代走）ため、
+// フィルタの選択肢からは除外する。
+const POSITION_ORDER = ["捕", "一", "二", "三", "遊", "左", "中", "右"];
+
 function populatePosSelect(players){
-  // 値そのものにカッコが残っていても（古いキャッシュ済みJSON対策）表示・比較はカッコ無しで統一する
-  const poss = [...new Set(players.map(p => stripParens(p.pos)).filter(Boolean))].sort();
+  // 値そのものにカッコが残っていても（古いキャッシュ済みJSON対策）表示・比較はカッコ無しで統一する。
+  // 「中右」「左右」のような複数ポジション表記からも、含まれる守備位置の文字を1つずつ拾う
+  // （「左」で絞り込んだ時に「左右」の選手も出てくるようにするため。フィルタ適用側は
+  // 部分一致で判定する＝下のフィルタ処理を参照）。
+  const found = new Set();
+  players.forEach(p => {
+    const raw = stripParens(p.pos) || "";
+    for(const ch of raw){
+      if(POSITION_ORDER.includes(ch)) found.add(ch);
+    }
+  });
+  const poss = POSITION_ORDER.filter(p => found.has(p));
   posSelectEl.innerHTML = '<option value="">全ポジション</option>' + poss.map(p => `<option value="${escapeHtml(p)}">${escapeHtml(p)}</option>`).join("");
 }
 
@@ -652,6 +673,10 @@ async function loadPlayerIndex(league){
   searchInputEl.value = saved ? saved.search : "";
   if(saved) minPaFilterEl.value = saved.minPa || "";
   currentFarmLevel = saved ? (saved.farmLevel || "ichi") : "ichi";
+  // MLBは2軍(マイナー)データに対応していないため、1軍/2軍切り替え自体を表示しない
+  const hasFarm = !!LEAGUE_PATHS[league].farmNumeric;
+  document.getElementById("farmLevelToggle").style.display = hasFarm ? "" : "none";
+  if(!hasFarm) currentFarmLevel = "ichi";
   updateFarmLevelToggleUI();
   sidebarEl.classList.remove("collapsed");
   bodyLayoutEl.classList.remove("has-selection");
@@ -720,7 +745,8 @@ function filteredSortedPlayers(){
   const q = searchInputEl.value.trim().toLowerCase();
   if(q) list = list.filter(p => (p.name || "").toLowerCase().includes(q));
   if(teamSelectEl.value) list = list.filter(p => p.team === teamSelectEl.value);
-  if(posSelectEl.value) list = list.filter(p => stripParens(p.pos) === posSelectEl.value);
+  // 「左」で絞り込んだ時に「左右」のような複数ポジション表記の選手も対象に含める（部分一致）
+  if(posSelectEl.value) list = list.filter(p => stripParens(p.pos).includes(posSelectEl.value));
   const minPa = Number(minPaFilterEl.value || 0);
   if(minPa > 0) list = list.filter(p => (p.pa || 0) >= minPa);
   if(aiOnlyFilterEl.checked) list = list.filter(p => playersWithLlmData.has(p.name));
@@ -1078,12 +1104,16 @@ const CZ_BATTER_SVG = `<svg class="cz-batter-svg" viewBox="0 0 30 60" width="24"
 </svg>`;
 
 // isLeft: この選手が左打者かどうか（card.bats === "L"）。投手視点で見て打者が立つ側を
-// 反転させる（CSS側のcz-flipクラスでシルエット・行の並びを鏡像にする）。
+// 反転させる（CSS側のcz-flipクラスでイラストの表示位置・シルエット自体を鏡像にする）。
+// あわせて列の描画順も反転させる：イラストはCSSのrow-reverseでテーブルの右側に回り込む
+// だけで、テーブル内部のセル順はDOM順のまま変わらないため、列順もJS側で反転しないと
+// 「内角側（col=0）がイラストの近くに来る」という対応関係が崩れてしまう。
 function renderCourseGrid(list, metric, splitMode, isLeft){
   const byKey = {};
   (list || []).forEach(c => { byKey[`${c.zoneRow}_${c.zoneCol}`] = c; });
   const rowRange = splitMode === "9" ? [3, 2, 1] : [4, 3, 2, 1, 0];
-  const colRange = splitMode === "9" ? [1, 2, 3] : [0, 1, 2, 3, 4];
+  let colRange = splitMode === "9" ? [1, 2, 3] : [0, 1, 2, 3, 4];
+  if(isLeft) colRange = [...colRange].reverse();
   const allCells = rowRange.flatMap(r => colRange.map(c => byKey[`${r}_${c}`])).filter(Boolean);
   let html = `<div class="cz-figure-row${isLeft ? " cz-flip" : ""}">${CZ_BATTER_SVG}<table class="cz-grid-table"><tbody>`;
   for(const visRow of rowRange){
@@ -1119,11 +1149,12 @@ function renderCourseZoneSection(seasonsMap, years, currentYear){
           <button type="button" class="pill-btn" data-split="25">25分割（ボールゾーン含む）</button>
         </div>
       </div>
+      <div class="fctrl-group-title">フィルター</div>
       <div class="fctrl-row">
         <span class="fctrl-label">年度</span>
-        <div class="pill-group cz-year-group">
-          ${years.map(y => `<button type="button" class="pill-btn${y === currentYear ? " active" : ""}" data-year="${escapeHtml(y)}">${escapeHtml(y)}年</button>`).join("")}
-        </div>
+        <select class="fctrl-select cz-year-select">
+          ${years.map(y => `<option value="${escapeHtml(y)}"${y === currentYear ? " selected" : ""}>${escapeHtml(y)}年</option>`).join("")}
+        </select>
       </div>
     </div>
     <div data-cz-body></div>
@@ -1153,21 +1184,20 @@ function renderCourseZoneBody(byZone){
 function wireCourseZoneSection(scope, seasonsMap, isLeft){
   const splitGroup = scope.querySelector(".cz-split-group");
   const metricGroup = scope.querySelector(".cz-metric-group");
-  const yearGroup = scope.querySelector(".cz-year-group");
+  const yearSel = scope.querySelector(".cz-year-select");
   const body = scope.querySelector("[data-cz-body]");
-  if(!metricGroup || !yearGroup || !body) return;
+  if(!metricGroup || !yearSel || !body) return;
   function currentMetric(){ return (metricGroup.querySelector(".pill-btn.active") || {}).dataset?.metric || CZ_METRICS[0][0]; }
-  function currentYear(){ return (yearGroup.querySelector(".pill-btn.active") || {}).dataset?.year; }
   function currentSplit(){ return (splitGroup?.querySelector(".pill-btn.active") || {}).dataset?.split || "9"; }
   function redrawGrids(){
-    const byZone = (seasonsMap[currentYear()] || {}).byCourseZone || { all: [], vsR: [], vsL: [] };
+    const byZone = (seasonsMap[yearSel.value] || {}).byCourseZone || { all: [], vsR: [], vsL: [] };
     scope.querySelectorAll("[data-cz-grid]").forEach(wrap => {
       const hand = wrap.dataset.czGrid; // "vsR" | "vsL"
       wrap.innerHTML = renderCourseGrid(byZone[hand] || [], currentMetric(), currentSplit(), isLeft);
     });
   }
   function redrawBody(){
-    const byZone = (seasonsMap[currentYear()] || {}).byCourseZone || { all: [], vsR: [], vsL: [] };
+    const byZone = (seasonsMap[yearSel.value] || {}).byCourseZone || { all: [], vsR: [], vsL: [] };
     body.innerHTML = renderCourseZoneBody(byZone);
     redrawGrids();
   }
@@ -1182,7 +1212,7 @@ function wireCourseZoneSection(scope, seasonsMap, isLeft){
   }
   if(splitGroup) wirePillGroup(splitGroup, redrawGrids);
   wirePillGroup(metricGroup, redrawGrids);
-  wirePillGroup(yearGroup, redrawBody);
+  yearSel.addEventListener("change", redrawBody);
   redrawBody();
 }
 
@@ -1318,19 +1348,20 @@ function wireSituationSection(scope, seasonsMap){
 function renderCountSection(years, currentYear){
   return `
     <div class="fctrl-block">
+      <div class="fctrl-group-title">フィルター</div>
       <div class="fctrl-row">
-        <span class="fctrl-label">対戦</span>
-        <div class="pill-group ct-hand-group">
-          <button type="button" class="pill-btn active" data-hand="all">全体</button>
-          <button type="button" class="pill-btn" data-hand="vsR">対右投手</button>
-          <button type="button" class="pill-btn" data-hand="vsL">対左投手</button>
-        </div>
+        <span class="fctrl-label">対左右</span>
+        <select class="fctrl-select ct-hand-select">
+          <option value="all">全体</option>
+          <option value="vsR">対右投手</option>
+          <option value="vsL">対左投手</option>
+        </select>
       </div>
       <div class="fctrl-row">
         <span class="fctrl-label">年度</span>
-        <div class="pill-group ct-year-group">
-          ${years.map(y => `<button type="button" class="pill-btn${y === currentYear ? " active" : ""}" data-year="${escapeHtml(y)}">${escapeHtml(y)}年</button>`).join("")}
-        </div>
+        <select class="fctrl-select ct-year-select">
+          ${years.map(y => `<option value="${escapeHtml(y)}"${y === currentYear ? " selected" : ""}>${escapeHtml(y)}年</option>`).join("")}
+        </select>
       </div>
     </div>
     <div data-ct-table></div>
@@ -1344,29 +1375,19 @@ function countStrikeGroupLabel(s){
 }
 
 function wireCountSection(scope, seasonsMap){
-  const handGroup = scope.querySelector(".ct-hand-group");
-  const yearGroup = scope.querySelector(".ct-year-group");
+  const handSel = scope.querySelector(".ct-hand-select");
+  const yearSel = scope.querySelector(".ct-year-select");
   const table = scope.querySelector("[data-ct-table]");
-  if(!handGroup || !yearGroup || !table) return;
-  function currentHand(){ return (handGroup.querySelector(".pill-btn.active") || {}).dataset?.hand || "all"; }
-  function currentYear(){ return (yearGroup.querySelector(".pill-btn.active") || {}).dataset?.year; }
+  if(!handSel || !yearSel || !table) return;
   function redraw(){
-    const season = seasonsMap[currentYear()] || {};
+    const season = seasonsMap[yearSel.value] || {};
     const byC = season.byCount || { all: [], vsR: [], vsL: [] };
     // 要望どおり「カウント区分」（グループ列）＋「カウント」（キー列）で固定表示。
     // 軸切り替え等は無く、常にこの2列構成のまま。
-    table.innerHTML = renderKeyedStatTable(byC[currentHand()] || [], "カウント", "countKey", KEYED_STAT_METRICS_FULL, null,
+    table.innerHTML = renderKeyedStatTable(byC[handSel.value] || [], "カウント", "countKey", KEYED_STAT_METRICS_FULL, null,
       { label: countStrikeGroupLabel, header: "カウント区分" });
   }
-  [handGroup, yearGroup].forEach(group => {
-    group.addEventListener("click", (e) => {
-      const btn = e.target.closest(".pill-btn");
-      if(!btn) return;
-      group.querySelectorAll(".pill-btn").forEach(b => b.classList.remove("active"));
-      btn.classList.add("active");
-      redraw();
-    });
-  });
+  [handSel, yearSel].forEach(sel => sel.addEventListener("change", redraw));
   redraw();
 }
 
@@ -1655,50 +1676,51 @@ function renderPivotTable(rows, activeAxes){
   </table></div>`;
 }
 
-function pvDimButtons(groupClass, includeNone, activeValue){
-  const noneBtn = includeNone ? `<button type="button" class="pill-btn${activeValue === "none" ? " active" : ""}" data-value="none">なし</button>` : "";
-  const dimBtns = Object.entries(PV_DIMS).map(([k, d]) => `<button type="button" class="pill-btn${activeValue === k ? " active" : ""}" data-value="${k}">${escapeHtml(d.label)}</button>`).join("");
-  return `<div class="pill-group ${groupClass}">${noneBtn}${dimBtns}</div>`;
-}
-function pvValueButtons(groupClass, options, activeValue){
-  return `<div class="pill-group ${groupClass}">${options.map(([v, l]) => `<button type="button" class="pill-btn${activeValue === v ? " active" : ""}" data-value="${escapeHtml(v)}">${escapeHtml(l)}</button>`).join("")}</div>`;
+function pvSelectOptions(options, activeValue){
+  return options.map(([v, l]) => `<option value="${escapeHtml(v)}"${activeValue === v ? " selected" : ""}>${escapeHtml(l)}</option>`).join("");
 }
 
 function renderPivotSection(seasonsMap, years){
   const pitchVals = pvCollectPitchValues(seasonsMap, years);
+  const dimOptions = (includeNone) => {
+    const noneOpt = includeNone ? `<option value="none">なし</option>` : "";
+    return noneOpt + Object.entries(PV_DIMS).map(([k, d]) => `<option value="${k}">${escapeHtml(d.label)}</option>`).join("");
+  };
   return `
     <div class="fctrl-block">
-      <div class="fctrl-row" data-pv-filter-wrap="year">
-        <span class="fctrl-label">年度</span>
-        ${pvValueButtons("pv-filter-year", years.map(y => [y, y]), years[0])}
-      </div>
+      <div class="fctrl-group-title">軸</div>
       <div class="fctrl-row">
         <span class="fctrl-label">軸1</span>
-        ${pvDimButtons("pv-axis1-group", false, "year")}
+        <select class="fctrl-select pv-axis1-select">${dimOptions(false)}</select>
       </div>
       <div class="fctrl-row">
         <span class="fctrl-label">軸2</span>
-        ${pvDimButtons("pv-axis2-group", true, "none")}
+        <select class="fctrl-select pv-axis2-select">${dimOptions(true)}</select>
       </div>
       <div class="fctrl-row">
         <span class="fctrl-label">軸3</span>
-        ${pvDimButtons("pv-axis3-group", true, "none")}
+        <select class="fctrl-select pv-axis3-select">${dimOptions(true)}</select>
+      </div>
+      <div class="fctrl-group-title">フィルター</div>
+      <div class="fctrl-row" data-pv-filter-wrap="year">
+        <span class="fctrl-label">年度</span>
+        <select class="fctrl-select pv-filter-year">${pvSelectOptions(years.map(y => [y, y]), years[0])}</select>
       </div>
       <div class="fctrl-row" data-pv-filter-wrap="hand">
         <span class="fctrl-label">対左右</span>
-        ${pvValueButtons("pv-filter-hand", [["all", "全体"], ["vsR", "対右投手"], ["vsL", "対左投手"]], "all")}
+        <select class="fctrl-select pv-filter-hand">${pvSelectOptions([["all", "全体"], ["vsR", "対右投手"], ["vsL", "対左投手"]], "all")}</select>
       </div>
       <div class="fctrl-row" data-pv-filter-wrap="mid">
         <span class="fctrl-label">球種カテゴリ</span>
-        ${pvValueButtons("pv-filter-mid", [["all", "すべて"], ...pitchVals.mids.map(v => [v, v])], "all")}
+        <select class="fctrl-select pv-filter-mid">${pvSelectOptions([["all", "すべて"], ...pitchVals.mids.map(v => [v, v])], "all")}</select>
       </div>
       <div class="fctrl-row" data-pv-filter-wrap="detail">
         <span class="fctrl-label">球種詳細</span>
-        ${pvValueButtons("pv-filter-detail", [["all", "すべて"], ...pitchVals.details.map(v => [v, v])], "all")}
+        <select class="fctrl-select pv-filter-detail">${pvSelectOptions([["all", "すべて"], ...pitchVals.details.map(v => [v, v])], "all")}</select>
       </div>
       <div class="fctrl-row" data-pv-filter-wrap="band">
         <span class="fctrl-label">球速帯</span>
-        ${pvValueButtons("pv-filter-band", [["all", "すべて"], ...PV_BAND_VALUES.map(v => [v, v])], "all")}
+        <select class="fctrl-select pv-filter-band">${pvSelectOptions([["all", "すべて"], ...PV_BAND_VALUES.map(v => [v, v])], "all")}</select>
       </div>
     </div>
     <div data-pv-table></div>
@@ -1707,21 +1729,19 @@ function renderPivotSection(seasonsMap, years){
 
 function wirePivotSection(scope, seasonsMap, years, rankPool){
   const table = scope.querySelector("[data-pv-table]");
-  const axis1Group = scope.querySelector(".pv-axis1-group");
-  const axis2Group = scope.querySelector(".pv-axis2-group");
-  const axis3Group = scope.querySelector(".pv-axis3-group");
+  const axis1Sel = scope.querySelector(".pv-axis1-select");
+  const axis2Sel = scope.querySelector(".pv-axis2-select");
+  const axis3Sel = scope.querySelector(".pv-axis3-select");
   const filterYear = scope.querySelector(".pv-filter-year");
   const filterHand = scope.querySelector(".pv-filter-hand");
   const filterMid = scope.querySelector(".pv-filter-mid");
   const filterDetail = scope.querySelector(".pv-filter-detail");
   const filterBand = scope.querySelector(".pv-filter-band");
-  if(!table || !axis1Group || !axis2Group || !axis3Group) return;
+  if(!table || !axis1Sel || !axis2Sel || !axis3Sel) return;
+  axis1Sel.value = "year";
+  axis2Sel.value = "none";
+  axis3Sel.value = "none";
 
-  function activeVal(group){ return (group?.querySelector(".pill-btn.active") || {}).dataset?.value; }
-  function setActive(group, value){
-    if(!group) return;
-    group.querySelectorAll(".pill-btn").forEach(b => b.classList.toggle("active", b.dataset.value === value));
-  }
   function updateFilterVisibility(usedDims){
     scope.querySelectorAll("[data-pv-filter-wrap]").forEach(wrap => {
       wrap.style.display = usedDims.has(wrap.dataset.pvFilterWrap) ? "none" : "";
@@ -1729,30 +1749,21 @@ function wirePivotSection(scope, seasonsMap, years, rankPool){
   }
   function redraw(){
     // 軸2・軸3は、それより前の軸ですでに選ばれている次元と重複していたら「なし」に落とす
-    // （見た目のボタン状態もあわせてリセットし、実際に効いている軸と表示を一致させる）
-    const axis1 = activeVal(axis1Group) || "year";
-    const axis2Raw = activeVal(axis2Group);
-    const axis2 = (axis2Raw && axis2Raw !== "none" && axis2Raw !== axis1) ? axis2Raw : "none";
-    if(axis2 === "none" && axis2Raw !== "none") setActive(axis2Group, "none");
-    const axis3Raw = activeVal(axis3Group);
-    const axis3 = (axis3Raw && axis3Raw !== "none" && axis3Raw !== axis1 && axis3Raw !== axis2) ? axis3Raw : "none";
-    if(axis3 === "none" && axis3Raw !== "none") setActive(axis3Group, "none");
+    const axis1 = axis1Sel.value;
+    let axis2 = (axis2Sel.value !== "none" && axis2Sel.value !== axis1) ? axis2Sel.value : "none";
+    let axis3 = (axis3Sel.value !== "none" && axis3Sel.value !== axis1 && axis3Sel.value !== axis2) ? axis3Sel.value : "none";
+    if(axis2Sel.value !== axis2) axis2Sel.value = axis2;
+    if(axis3Sel.value !== axis3) axis3Sel.value = axis3;
     const activeAxes = [axis1, axis2, axis3].filter(a => a !== "none");
     updateFilterVisibility(new Set(activeAxes));
     const filters = {
-      year: activeVal(filterYear), hand: activeVal(filterHand) || "all",
-      mid: activeVal(filterMid) || "all", detail: activeVal(filterDetail) || "all", band: activeVal(filterBand) || "all",
+      year: filterYear.value, hand: filterHand.value,
+      mid: filterMid.value, detail: filterDetail.value, band: filterBand.value,
     };
     table.innerHTML = renderPivotTable(buildPivotRows3(seasonsMap, years, activeAxes, filters, rankPool), activeAxes);
   }
-  [axis1Group, axis2Group, axis3Group, filterYear, filterHand, filterMid, filterDetail, filterBand].forEach(group => {
-    if(!group) return;
-    group.addEventListener("click", (e) => {
-      const btn = e.target.closest(".pill-btn");
-      if(!btn) return;
-      setActive(group, btn.dataset.value);
-      redraw();
-    });
+  [axis1Sel, axis2Sel, axis3Sel, filterYear, filterHand, filterMid, filterDetail, filterBand].forEach(elm => {
+    elm.addEventListener("change", redraw);
   });
   redraw();
 }
