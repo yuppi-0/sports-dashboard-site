@@ -59,6 +59,11 @@
   .level-toggle button.active{ background:var(--panel-alt); color:var(--text-bright); }
   .filter-select{ flex:1; min-width:0; background:var(--panel); border:1px solid rgba(148,163,184,0.2); border-radius:8px;
     color:var(--text); font-size:12px; padding:6px 8px; outline:none; }
+  /* チーム・ポジションのフィルタ（.msel。他の.mselと違いサイドバー内の狭い列に収まるように
+     flex:1で幅いっぱいに伸ばし、ボタンの見た目を.filter-selectに揃える） */
+  .filter-msel{ flex:1; min-width:0; }
+  .filter-msel .msel-btn{ width:100%; min-width:0; max-width:none; background:var(--panel);
+    font-size:12px; padding:6px 8px; }
   .sort-dir-btn{ flex-shrink:0; border:1px solid rgba(148,163,184,0.2); background:var(--panel); color:var(--text-dim);
     font-size:12px; font-weight:700; padding:6px 10px; border-radius:8px; cursor:pointer; white-space:nowrap; }
   .sort-dir-btn:hover{ color:var(--text-bright); }
@@ -225,37 +230,50 @@
   .pt-band-table td:first-child{ color:var(--text-dim); font-weight:400; }
   .pt-band-empty{ color:var(--text-dim); text-align:left !important; padding:6px 0; }
 
-  /* 各項目（指標・分割・年度・軸1〜3・対左右・球種カテゴリ等）は必ず1行を占有し、
-     他の項目と同じ行に混ざらないようにする。項目内はラベルと値を横並びにする
-     （ラベル幅を揃えることで、値の開始位置が縦にきれいに揃う）。
-     見出し（軸・フィルター）とラベル（指標・年度等）はフォントサイズ・太さ・色を統一しておく。 */
-  .fctrl-block{ display:flex; flex-direction:column; gap:8px; margin-bottom:10px; }
-  .fctrl-group-title{ font-size:11.5px; font-weight:700; color:var(--text-bright); letter-spacing:0.02em;
-    margin-top:6px; padding-bottom:4px; border-bottom:1px solid rgba(148,163,184,0.15); }
+  /* 軸1〜3、フィルターの対左右/球種カテゴリ等のような「コンパクトなドロップダウン」の項目は
+     横並びにして画面幅を有効に使う（.fctrl-group）。一方、指標・分割のような選択肢が多い
+     ボタン列は、他の項目と同じ行に混ざると見づらくなるため、.fctrl-groupに入れず単独で
+     1行を占有させる（.fctrl-row をそのまま.fctrl-block直下に置く）。
+     見出し（軸・フィルター）とラベル（指標・年度等）はフォントサイズ・太さ・色を完全に統一する。 */
+  .fctrl-block{ display:flex; flex-direction:column; gap:10px; margin-bottom:10px; }
+  .fctrl-group-title{ font-size:11px; color:var(--text-dim); font-weight:700; margin-top:6px; }
   .fctrl-group-title:first-child{ margin-top:0; }
-  .fctrl-row{ display:flex; align-items:center; flex-wrap:wrap; gap:6px 10px; }
-  .fctrl-label{ font-size:11.5px; color:var(--text-dim); font-weight:700; min-width:78px; flex-shrink:0; }
+  .fctrl-group{ display:flex; flex-wrap:wrap; gap:14px; }
+  .fctrl-row{ display:flex; flex-direction:column; align-items:flex-start; gap:6px; }
+  .fctrl-label{ font-size:11px; color:var(--text-dim); font-weight:700; }
   .fctrl-select{ background:var(--panel-alt); color:var(--text-bright); border:1px solid rgba(148,163,184,0.2);
     border-radius:6px; padding:5px 8px; font-size:11.5px; min-width:120px; }
   .pill-group{ display:flex; gap:4px; flex-wrap:wrap; }
   .pill-btn{ border:1px solid rgba(255,255,255,0.1); background:transparent; color:var(--text-dim);
     font-size:11px; font-weight:600; padding:4px 10px; border-radius:6px; cursor:pointer; white-space:nowrap; }
   .pill-btn.active{ border-color:rgba(59,130,246,0.7); background:rgba(59,130,246,0.18); color:var(--blue-text); }
-  /* 複数選択できるフィルター（対左右・球種カテゴリ・球種詳細・球速帯）用のドロップダウン。
-     ボタン＋チェックリストのポップアップで、選択中の値をボタン内に要約表示する。 */
+  /* 複数選択できるフィルター（対左右・球種カテゴリ・球種詳細・球速帯、チーム・ポジション）用の
+     ドロップダウン。ボタン＋検索欄＋全選択/全解除＋チェックリストのポップアップ。
+     パネル内のクリックはdocumentまでバブリングさせない（wireMultiSelects側でstopPropagation
+     している）。バブリングさせてしまうと、1つ選択するたびに「外側クリックで閉じる」処理が
+     反応してパネルが閉じてしまう不具合になる。 */
   .msel{ position:relative; }
   .msel-btn{ background:var(--panel-alt); color:var(--text-bright); border:1px solid rgba(148,163,184,0.2);
-    border-radius:6px; padding:5px 10px; font-size:11.5px; cursor:pointer; min-width:120px; text-align:left;
-    display:flex; align-items:center; justify-content:space-between; gap:8px; }
-  .msel-btn::after{ content:"⌄"; color:var(--text-dim); font-size:11px; }
+    border-radius:6px; padding:5px 10px; font-size:11.5px; cursor:pointer; min-width:120px; max-width:220px;
+    text-align:left; display:flex; align-items:center; justify-content:space-between; gap:8px;
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .msel-btn::after{ content:"⌄"; color:var(--text-dim); font-size:11px; flex-shrink:0; }
   .msel-panel{ position:absolute; top:calc(100% + 4px); left:0; z-index:20; background:var(--panel-alt);
-    border:1px solid rgba(148,163,184,0.25); border-radius:8px; padding:6px; min-width:160px; max-height:220px;
-    overflow-y:auto; box-shadow:0 8px 24px rgba(0,0,0,0.4); display:none; }
-  .msel.open .msel-panel{ display:block; }
+    border:1px solid rgba(148,163,184,0.25); border-radius:8px; padding:8px; width:220px; max-height:280px;
+    display:none; flex-direction:column; gap:6px; box-shadow:0 8px 24px rgba(0,0,0,0.4); }
+  .msel.open .msel-panel{ display:flex; }
+  .msel-search{ background:var(--panel); color:var(--text-bright); border:1px solid rgba(148,163,184,0.2);
+    border-radius:6px; padding:5px 8px; font-size:11.5px; width:100%; }
+  .msel-actions{ display:flex; gap:6px; }
+  .msel-action{ flex:1; border:1px solid rgba(148,163,184,0.2); background:transparent; color:var(--text-dim);
+    font-size:10.5px; font-weight:600; padding:3px 6px; border-radius:5px; cursor:pointer; }
+  .msel-action:hover{ background:rgba(148,163,184,0.12); }
+  .msel-opts{ overflow-y:auto; max-height:190px; display:flex; flex-direction:column; }
   .msel-opt{ display:flex; align-items:center; gap:6px; padding:4px 6px; border-radius:5px; font-size:11.5px;
     color:var(--text-bright); cursor:pointer; white-space:nowrap; }
   .msel-opt:hover{ background:rgba(148,163,184,0.12); }
-  .msel-opt input{ accent-color:var(--blue); }
+  .msel-opt input{ accent-color:var(--blue); flex-shrink:0; }
+  .msel-empty{ font-size:11px; color:var(--text-dim); padding:4px 6px; }
 
   /* コース別成績グリッド（対右投手・対左投手を並べて表示） */
   .cz-split-toggle{ display:flex; gap:3px; background:var(--panel-alt); border-radius:6px; padding:2px; }
@@ -407,12 +425,8 @@
           <button type="button" data-farm-level="ni">2軍</button>
         </div>
         <div class="filter-panel-row">
-          <select id="teamSelect" class="filter-select">
-            <option value="">全チーム</option>
-          </select>
-          <select id="posSelect" class="filter-select">
-            <option value="">全ポジション</option>
-          </select>
+          <div id="teamSelect" class="msel filter-msel"></div>
+          <div id="posSelect" class="msel filter-msel"></div>
         </div>
         <div class="filter-panel-row">
           <label class="filter-row">
@@ -461,8 +475,8 @@ let allPlayers = [];
 const leagueStateCache = {};
 function snapshotLeagueState(){
   return {
-    search: searchInputEl.value, team: teamSelectEl.value,
-    pos: posSelectEl.value, sortField, sortDir, aiOnly: aiOnlyFilterEl.checked,
+    search: searchInputEl.value, team: multiSelectValues(teamSelectEl),
+    pos: multiSelectValues(posSelectEl), sortField, sortDir, aiOnly: aiOnlyFilterEl.checked,
     minPa: minPaFilterEl.value, activePlayerId, activePlayerName: activeCardData ? activeCardData.name : null,
     farmLevel: currentFarmLevel,
   };
@@ -648,7 +662,8 @@ async function fetchFarmData(league, playerName){
 
 function populateTeamSelect(players){
   const teams = [...new Set(players.map(p => p.team).filter(Boolean))].sort();
-  teamSelectEl.innerHTML = '<option value="">全チーム</option>' + teams.map(t => `<option value="${escapeHtml(t)}">${escapeHtml(t)}</option>`).join("");
+  teamSelectEl.innerHTML = renderMultiSelectInner(teams.map(t => [t, t]), teams);
+  wireOneMultiSelect(teamSelectEl, renderPlayerList);
 }
 // ポジションの正規の並び順（フィルタのプルダウンをこの順で表示する）。
 // 「打」「打指」「指」「走」「走一」等は守備位置ではない（代打/DH/代走）ため、
@@ -668,7 +683,21 @@ function populatePosSelect(players){
     }
   });
   const poss = POSITION_ORDER.filter(p => found.has(p));
-  posSelectEl.innerHTML = '<option value="">全ポジション</option>' + poss.map(p => `<option value="${escapeHtml(p)}">${escapeHtml(p)}</option>`).join("");
+  posSelectEl.innerHTML = renderMultiSelectInner(poss.map(p => [p, p]), poss);
+  wireOneMultiSelect(posSelectEl, renderPlayerList);
+}
+// 保存済みの選択（チーム/ポジションのフィルタ）を、populate直後（デフォルトは全選択）の
+// チェック状態に反映し直す。savedValuesが空（＝保存時点で全選択だった）なら何もしない
+// （populate直後の状態＝全選択のままでよいため）。
+function restoreMselSelection(wrap, savedValues){
+  if(!wrap || !savedValues || !savedValues.length) return;
+  wrap.querySelectorAll("input[type=checkbox]").forEach(cb => {
+    cb.checked = savedValues.includes(cb.value);
+  });
+  const optionLabels = [...wrap.querySelectorAll(".msel-opt")].map(lab => [
+    lab.querySelector("input").value, lab.querySelector(".msel-opt-label").textContent,
+  ]);
+  multiSelectSummaryUpdate(wrap, optionLabels);
 }
 
 async function loadPlayerIndex(league){
@@ -679,7 +708,6 @@ async function loadPlayerIndex(league){
   llmDataLoaded = false;
   playersWithLlmData = new Set();
   aiOnlyFilterEl.checked = saved ? saved.aiOnly : false;
-  posSelectEl.value = "";
   sortField = saved ? saved.sortField : "ops";
   sortDir = saved ? saved.sortDir : "desc";
   sortFieldEl.value = sortField;
@@ -697,7 +725,7 @@ async function loadPlayerIndex(league){
   bodyLayoutEl.classList.remove("has-selection");
   updateSidebarSummary("選手を選択してください", "");
   await loadPlayerListForCurrentFarmLevel();
-  if(saved){ teamSelectEl.value = saved.team || ""; posSelectEl.value = saved.pos || ""; }
+  if(saved){ restoreMselSelection(teamSelectEl, saved.team); restoreMselSelection(posSelectEl, saved.pos); }
   if(aiOnlyFilterEl.checked && !llmDataLoaded){
     aiOnlyFilterEl.disabled = true;
     await loadAllLlmPlayerNames();
@@ -759,9 +787,11 @@ function filteredSortedPlayers(){
   let list = allPlayers.slice();
   const q = searchInputEl.value.trim().toLowerCase();
   if(q) list = list.filter(p => (p.name || "").toLowerCase().includes(q));
-  if(teamSelectEl.value) list = list.filter(p => p.team === teamSelectEl.value);
+  const teamSel = multiSelectValuesForFilter(teamSelectEl);
+  if(teamSel.length) list = list.filter(p => teamSel.includes(p.team));
   // 「左」で絞り込んだ時に「左右」のような複数ポジション表記の選手も対象に含める（部分一致）
-  if(posSelectEl.value) list = list.filter(p => stripParens(p.pos).includes(posSelectEl.value));
+  const posSel = multiSelectValuesForFilter(posSelectEl);
+  if(posSel.length) list = list.filter(p => posSel.some(v => stripParens(p.pos).includes(v)));
   const minPa = Number(minPaFilterEl.value || 0);
   if(minPa > 0) list = list.filter(p => (p.pa || 0) >= minPa);
   if(aiOnlyFilterEl.checked) list = list.filter(p => playersWithLlmData.has(p.name));
@@ -814,7 +844,9 @@ function renderPlayerList(){
   });
 }
 
-[searchInputEl, teamSelectEl, posSelectEl, minPaFilterEl].forEach(elm => {
+// teamSelectEl/posSelectEl（.msel）は populateTeamSelect/populatePosSelect 内で
+// wireOneMultiSelect(..., renderPlayerList) として個別に配線済み。
+[searchInputEl, minPaFilterEl].forEach(elm => {
   elm.addEventListener("input", renderPlayerList);
   elm.addEventListener("change", renderPlayerList);
 });
@@ -1165,11 +1197,13 @@ function renderCourseZoneSection(seasonsMap, years, currentYear){
         </div>
       </div>
       <div class="fctrl-group-title">フィルター</div>
-      <div class="fctrl-row">
-        <span class="fctrl-label">年度</span>
-        <select class="fctrl-select cz-year-select">
-          ${years.map(y => `<option value="${escapeHtml(y)}"${y === currentYear ? " selected" : ""}>${escapeHtml(y)}年</option>`).join("")}
-        </select>
+      <div class="fctrl-group">
+        <div class="fctrl-row">
+          <span class="fctrl-label">年度</span>
+          <select class="fctrl-select cz-year-select">
+            ${years.map(y => `<option value="${escapeHtml(y)}"${y === currentYear ? " selected" : ""}>${escapeHtml(y)}年</option>`).join("")}
+          </select>
+        </div>
       </div>
     </div>
     <div data-cz-body></div>
@@ -1316,19 +1350,21 @@ function renderSituationSection(seasonsMap, years, currentYear){
   return `
     <div class="fctrl-block">
       <div class="fctrl-group-title">フィルター</div>
-      <div class="fctrl-row">
-        <span class="fctrl-label">対左右</span>
-        <select class="fctrl-select st-hand-select">
-          <option value="all">全体</option>
-          <option value="vsR">対右投手</option>
-          <option value="vsL">対左投手</option>
-        </select>
-      </div>
-      <div class="fctrl-row">
-        <span class="fctrl-label">年度</span>
-        <select class="fctrl-select st-year-select">
-          ${years.map(y => `<option value="${escapeHtml(y)}"${y === currentYear ? " selected" : ""}>${escapeHtml(y)}年</option>`).join("")}
-        </select>
+      <div class="fctrl-group">
+        <div class="fctrl-row">
+          <span class="fctrl-label">対左右</span>
+          <select class="fctrl-select st-hand-select">
+            <option value="all">全体</option>
+            <option value="vsR">対右投手</option>
+            <option value="vsL">対左投手</option>
+          </select>
+        </div>
+        <div class="fctrl-row">
+          <span class="fctrl-label">年度</span>
+          <select class="fctrl-select st-year-select">
+            ${years.map(y => `<option value="${escapeHtml(y)}"${y === currentYear ? " selected" : ""}>${escapeHtml(y)}年</option>`).join("")}
+          </select>
+        </div>
       </div>
     </div>
     <div data-st-table></div>
@@ -1355,19 +1391,21 @@ function renderCountSection(years, currentYear){
   return `
     <div class="fctrl-block">
       <div class="fctrl-group-title">フィルター</div>
-      <div class="fctrl-row">
-        <span class="fctrl-label">対左右</span>
-        <select class="fctrl-select ct-hand-select">
-          <option value="all">全体</option>
-          <option value="vsR">対右投手</option>
-          <option value="vsL">対左投手</option>
-        </select>
-      </div>
-      <div class="fctrl-row">
-        <span class="fctrl-label">年度</span>
-        <select class="fctrl-select ct-year-select">
-          ${years.map(y => `<option value="${escapeHtml(y)}"${y === currentYear ? " selected" : ""}>${escapeHtml(y)}年</option>`).join("")}
-        </select>
+      <div class="fctrl-group">
+        <div class="fctrl-row">
+          <span class="fctrl-label">対左右</span>
+          <select class="fctrl-select ct-hand-select">
+            <option value="all">全体</option>
+            <option value="vsR">対右投手</option>
+            <option value="vsL">対左投手</option>
+          </select>
+        </div>
+        <div class="fctrl-row">
+          <span class="fctrl-label">年度</span>
+          <select class="fctrl-select ct-year-select">
+            ${years.map(y => `<option value="${escapeHtml(y)}"${y === currentYear ? " selected" : ""}>${escapeHtml(y)}年</option>`).join("")}
+          </select>
+        </div>
       </div>
     </div>
     <div data-ct-table></div>
@@ -1715,60 +1753,123 @@ function pvSelectOptions(options, activeValue){
   return options.map(([v, l]) => `<option value="${escapeHtml(v)}"${activeValue === v ? " selected" : ""}>${escapeHtml(l)}</option>`).join("");
 }
 
-// ── 複数選択ドロップダウン（対左右・球種カテゴリ・球種詳細・球速帯で使用） ──
-// options: [[value, label], ...]。selectedValues が空、または全選択中は「すべて」と要約表示する。
-function renderMultiSelect(cls, options, selectedValues){
-  const isAll = selectedValues.length === 0 || selectedValues.length === options.length;
-  const summary = isAll ? "すべて" : selectedValues.map(v => (options.find(o => o[0] === v) || [v, v])[1]).join("、");
+// ── 複数選択ドロップダウン（対左右・球種カテゴリ・球種詳細・球速帯、チーム・ポジションで使用） ──
+// options: [[value, label], ...]。デフォルトは全選択（＝絞り込み無し）で使う想定。
+// 検索欄・全選択/全解除ボタン付き。renderMultiSelectInnerは既存の要素（class="msel"を
+// あらかじめ持つコンテナ、例：チーム/ポジションのフィルタ）に流し込む中身だけを返す版。
+function renderMultiSelectInner(options, selectedValues){
+  const allChecked = selectedValues.length === options.length;
+  const summary = allChecked ? "すべて" : (selectedValues.length === 0 ? "選択なし"
+    : selectedValues.map(v => (options.find(o => o[0] === v) || [v, v])[1]).join("、"));
   return `
-    <div class="msel ${cls}">
-      <button type="button" class="msel-btn" data-msel-toggle>${escapeHtml(summary)}</button>
-      <div class="msel-panel">
+    <button type="button" class="msel-btn" data-msel-toggle title="${escapeHtml(summary)}">${escapeHtml(summary)}</button>
+    <div class="msel-panel">
+      ${options.length > 6 ? `<input type="text" class="msel-search" placeholder="検索…">` : ""}
+      <div class="msel-actions">
+        <button type="button" class="msel-action" data-msel-all>すべて選択</button>
+        <button type="button" class="msel-action" data-msel-clear>すべて解除</button>
+      </div>
+      <div class="msel-opts">
         ${options.map(([v, l]) => `
           <label class="msel-opt">
             <input type="checkbox" value="${escapeHtml(v)}"${selectedValues.includes(v) ? " checked" : ""}>
-            ${escapeHtml(l)}
+            <span class="msel-opt-label">${escapeHtml(l)}</span>
           </label>
         `).join("")}
       </div>
     </div>
   `;
 }
-// 現在チェックされている値を返す。何もチェックされていなければ「すべて」を意味する空配列を返す。
+function renderMultiSelect(cls, options, selectedValues){
+  return `<div class="msel ${cls}">${renderMultiSelectInner(options, selectedValues)}</div>`;
+}
+// 現在チェックされている値をそのまま返す（呼び出し側で「全選択＝絞り込み無し／
+// 0件＝該当なし」をどう扱うかは multiSelectValuesForFilter を参照）。
 function multiSelectValues(wrap){
   return wrap ? [...wrap.querySelectorAll("input[type=checkbox]:checked")].map(cb => cb.value) : [];
+}
+// フィルターとして使う値に変換する：全選択＝絞り込み無し（空配列。pvSelKind等の
+// 既存の「空配列=all」規約にそのまま乗せる）、0選択＝該当なしを保証するダミー値。
+function multiSelectValuesForFilter(wrap){
+  if(!wrap) return [];
+  const total = wrap.querySelectorAll("input[type=checkbox]").length;
+  const checked = multiSelectValues(wrap);
+  if(total === 0 || checked.length === total) return [];
+  if(checked.length === 0) return ["__MSEL_NONE__"];
+  return checked;
 }
 function multiSelectSummaryUpdate(wrap, options){
   const btn = wrap.querySelector("[data-msel-toggle]");
   const selected = multiSelectValues(wrap);
-  const isAll = selected.length === 0 || selected.length === options.length;
-  btn.textContent = isAll ? "すべて" : selected.map(v => (options.find(o => o[0] === v) || [v, v])[1]).join("、");
+  const allChecked = selected.length === options.length;
+  const summary = allChecked ? "すべて" : (selected.length === 0 ? "選択なし"
+    : selected.map(v => (options.find(o => o[0] === v) || [v, v])[1]).join("、"));
+  btn.textContent = summary;
+  btn.title = summary;
 }
-// scope内の.mselすべてに開閉・チェック変更の配線をする。onChangeは値が変わるたびに呼ばれる。
-function wireMultiSelects(scope, onChange){
-  scope.querySelectorAll(".msel").forEach(wrap => {
-    const btn = wrap.querySelector("[data-msel-toggle]");
-    const optionLabels = [...wrap.querySelectorAll(".msel-opt")].map(lab => [
-      lab.querySelector("input").value, lab.textContent.trim(),
-    ]);
-    btn.addEventListener("click", (e) => {
-      e.stopPropagation();
-      scope.querySelectorAll(".msel.open").forEach(o => { if(o !== wrap) o.classList.remove("open"); });
-      wrap.classList.toggle("open");
-    });
-    wrap.querySelectorAll("input[type=checkbox]").forEach(cb => {
-      cb.addEventListener("change", () => {
-        multiSelectSummaryUpdate(wrap, optionLabels);
-        onChange();
-      });
+function ensureMselOutsideClickHandler(){
+  if(document._mselOutsideClickWired) return;
+  document.addEventListener("click", () => {
+    document.querySelectorAll(".msel.open").forEach(o => o.classList.remove("open"));
+  });
+  document._mselOutsideClickWired = true;
+}
+// 1つの.msel要素（wrap自身がclass="msel"を持つ）に開閉・検索・全選択/全解除・
+// チェック変更の配線をする。onChangeは値が変わるたびに呼ばれる。
+function wireOneMultiSelect(wrap, onChange){
+  const btn = wrap.querySelector("[data-msel-toggle]");
+  const panel = wrap.querySelector(".msel-panel");
+  const search = wrap.querySelector(".msel-search");
+  const allBtn = wrap.querySelector("[data-msel-all]");
+  const clearBtn = wrap.querySelector("[data-msel-clear]");
+  const optionLabels = [...wrap.querySelectorAll(".msel-opt")].map(lab => [
+    lab.querySelector("input").value, lab.querySelector(".msel-opt-label").textContent,
+  ]);
+  btn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    document.querySelectorAll(".msel.open").forEach(o => { if(o !== wrap) o.classList.remove("open"); });
+    wrap.classList.toggle("open");
+    if(wrap.classList.contains("open") && search) search.focus();
+  });
+  // パネル内（チェックボックス・検索欄・全選択/全解除ボタン含む）のクリックはdocumentまで
+  // バブリングさせない。これをしないと、外側クリックで閉じる処理が反応して、1つ選ぶ
+  // たびにパネルが閉じてしまう。
+  panel.addEventListener("click", (e) => e.stopPropagation());
+  wrap.querySelectorAll("input[type=checkbox]").forEach(cb => {
+    cb.addEventListener("change", () => {
+      multiSelectSummaryUpdate(wrap, optionLabels);
+      onChange();
     });
   });
-  if(!document._mselOutsideClickWired){
-    document.addEventListener("click", () => {
-      document.querySelectorAll(".msel.open").forEach(o => o.classList.remove("open"));
+  if(allBtn){
+    allBtn.addEventListener("click", () => {
+      wrap.querySelectorAll("input[type=checkbox]").forEach(cb => { cb.checked = true; });
+      multiSelectSummaryUpdate(wrap, optionLabels);
+      onChange();
     });
-    document._mselOutsideClickWired = true;
   }
+  if(clearBtn){
+    clearBtn.addEventListener("click", () => {
+      wrap.querySelectorAll("input[type=checkbox]").forEach(cb => { cb.checked = false; });
+      multiSelectSummaryUpdate(wrap, optionLabels);
+      onChange();
+    });
+  }
+  if(search){
+    search.addEventListener("input", () => {
+      const q = search.value.trim().toLowerCase();
+      wrap.querySelectorAll(".msel-opt").forEach(lab => {
+        const text = lab.querySelector(".msel-opt-label").textContent.toLowerCase();
+        lab.style.display = text.includes(q) ? "" : "none";
+      });
+    });
+  }
+  ensureMselOutsideClickHandler();
+}
+// scope内の.mselすべてに配線する（テンプレート文字列でまとめて生成したセクション向け）。
+function wireMultiSelects(scope, onChange){
+  scope.querySelectorAll(".msel").forEach(wrap => wireOneMultiSelect(wrap, onChange));
+  ensureMselOutsideClickHandler();
 }
 
 function renderPivotSection(seasonsMap, years){
@@ -1784,38 +1885,42 @@ function renderPivotSection(seasonsMap, years){
   return `
     <div class="fctrl-block">
       <div class="fctrl-group-title">軸</div>
-      <div class="fctrl-row">
-        <span class="fctrl-label">軸1</span>
-        <select class="fctrl-select pv-axis1-select">${dimOptions(false)}</select>
-      </div>
-      <div class="fctrl-row">
-        <span class="fctrl-label">軸2</span>
-        <select class="fctrl-select pv-axis2-select">${dimOptions(true)}</select>
-      </div>
-      <div class="fctrl-row">
-        <span class="fctrl-label">軸3</span>
-        <select class="fctrl-select pv-axis3-select">${dimOptions(true)}</select>
+      <div class="fctrl-group">
+        <div class="fctrl-row">
+          <span class="fctrl-label">軸1</span>
+          <select class="fctrl-select pv-axis1-select">${dimOptions(false)}</select>
+        </div>
+        <div class="fctrl-row">
+          <span class="fctrl-label">軸2</span>
+          <select class="fctrl-select pv-axis2-select">${dimOptions(true)}</select>
+        </div>
+        <div class="fctrl-row">
+          <span class="fctrl-label">軸3</span>
+          <select class="fctrl-select pv-axis3-select">${dimOptions(true)}</select>
+        </div>
       </div>
       <div class="fctrl-group-title">フィルター</div>
-      <div class="fctrl-row">
-        <span class="fctrl-label">年度</span>
-        <select class="fctrl-select pv-filter-year">${pvSelectOptions(years.map(y => [y, y]), years[0])}</select>
-      </div>
-      <div class="fctrl-row" data-pv-filter-wrap="hand">
-        <span class="fctrl-label">対左右</span>
-        ${renderMultiSelect("pv-filter-hand", HAND_OPTIONS, [])}
-      </div>
-      <div class="fctrl-row" data-pv-filter-wrap="mid">
-        <span class="fctrl-label">球種カテゴリ</span>
-        ${renderMultiSelect("pv-filter-mid", midOptions, [])}
-      </div>
-      <div class="fctrl-row" data-pv-filter-wrap="detail">
-        <span class="fctrl-label">球種詳細</span>
-        ${renderMultiSelect("pv-filter-detail", detailOptions, [])}
-      </div>
-      <div class="fctrl-row" data-pv-filter-wrap="band">
-        <span class="fctrl-label">球速帯</span>
-        ${renderMultiSelect("pv-filter-band", bandOptions, [])}
+      <div class="fctrl-group">
+        <div class="fctrl-row">
+          <span class="fctrl-label">年度</span>
+          <select class="fctrl-select pv-filter-year">${pvSelectOptions(years.map(y => [y, y]), years[0])}</select>
+        </div>
+        <div class="fctrl-row" data-pv-filter-wrap="hand">
+          <span class="fctrl-label">対左右</span>
+          ${renderMultiSelect("pv-filter-hand", HAND_OPTIONS, HAND_OPTIONS.map(o => o[0]))}
+        </div>
+        <div class="fctrl-row" data-pv-filter-wrap="mid">
+          <span class="fctrl-label">球種カテゴリ</span>
+          ${renderMultiSelect("pv-filter-mid", midOptions, midOptions.map(o => o[0]))}
+        </div>
+        <div class="fctrl-row" data-pv-filter-wrap="detail">
+          <span class="fctrl-label">球種詳細</span>
+          ${renderMultiSelect("pv-filter-detail", detailOptions, detailOptions.map(o => o[0]))}
+        </div>
+        <div class="fctrl-row" data-pv-filter-wrap="band">
+          <span class="fctrl-label">球速帯</span>
+          ${renderMultiSelect("pv-filter-band", bandOptions, bandOptions.map(o => o[0]))}
+        </div>
       </div>
     </div>
     <div data-pv-table></div>
@@ -1853,8 +1958,8 @@ function wirePivotSection(scope, seasonsMap, years, rankPool){
     updateFilterVisibility(new Set(activeAxes));
     const filters = {
       year: filterYear.value,
-      hand: multiSelectValues(filterHand), mid: multiSelectValues(filterMid),
-      detail: multiSelectValues(filterDetail), band: multiSelectValues(filterBand),
+      hand: multiSelectValuesForFilter(filterHand), mid: multiSelectValuesForFilter(filterMid),
+      detail: multiSelectValuesForFilter(filterDetail), band: multiSelectValuesForFilter(filterBand),
     };
     table.innerHTML = renderPivotTable(buildPivotRows3(seasonsMap, years, activeAxes, filters, rankPool), activeAxes);
   }
