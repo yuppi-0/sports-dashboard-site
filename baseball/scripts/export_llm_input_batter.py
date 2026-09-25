@@ -646,12 +646,16 @@ def _compute_group_rankings(pools: dict[str, list[tuple[str, dict]]],
                              rank_min_pa: float = PIVOT_RANK_MIN_PA) -> dict[str, dict]:
     """任意のグループ分け（球種名・カテゴリ名・"球種|球速帯"キーなど）について、
     グループごとに独立した母集団で_RANK_SPECS_ENの各指標を順位付けする共通ロジック。
+    資格打席（rank_min_pa）未満の選手にも、その指標の順位算出自体は行われたが対象外
+    だったことが分かるよう {"rank": None, "total": 母数} を明示的に入れる
+    （pitcher-cards.htmlの仕様に合わせ、フロント側でこの場合だけ「-」を表示できるように）。
     pools: {グループキー: [(選手名, 統計オブジェクト(英語キー)), ...]}
     戻り値: {グループキー: {選手名: {metric: {"rank","total"}}}}
     """
     result: dict[str, dict] = {}
     for group_key, entries in pools.items():
         qualified = [(name, stat) for name, stat in entries if (stat.get("pa") or 0) >= rank_min_pa]
+        unqualified_names = [name for name, stat in entries if (stat.get("pa") or 0) < rank_min_pa]
         group_result: dict[str, dict] = {}
         for metric, higher_is_better in _RANK_SPECS_EN:
             valid = [(name, stat[metric]) for name, stat in qualified if stat.get(metric) is not None]
@@ -659,6 +663,8 @@ def _compute_group_rankings(pools: dict[str, list[tuple[str, dict]]],
             total = len(valid)
             for rank, (name, _) in enumerate(valid, start=1):
                 group_result.setdefault(name, {})[metric] = {"rank": rank, "total": total}
+            for name in unqualified_names:
+                group_result.setdefault(name, {})[metric] = {"rank": None, "total": total}
         result[group_key] = group_result
     return result
 
