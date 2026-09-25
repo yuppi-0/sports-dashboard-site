@@ -184,10 +184,11 @@
   .split-table td, .disc-table td, .pt-table td, .pt-band-table td{ text-align:right; padding:7px 8px; border-bottom:1px solid rgba(148,163,184,0.08); white-space:nowrap; }
   .split-table td:first-child, .disc-table td:first-child, .pt-table td:first-child, .pt-band-table td:first-child{ text-align:left; font-weight:700; color:var(--text-bright); }
   .kst-group-cell{ vertical-align:middle; background:var(--panel-alt); border-right:1px solid rgba(148,163,184,0.15);
-    font-size:11px; color:var(--text-dim); }
+    font-size:11px; color:var(--text-dim); text-align:center; }
   /* カウント別成績のようにグループ列(rowspan)があると、グループの先頭行だけtd数が1つ多くなり
-     :first-child頼みのスタイル（太字・左寄せ）がずれてしまうため、キー列には明示クラスで固定する */
-  .split-table td.kst-key-cell{ text-align:left; font-weight:700; color:var(--text-bright); }
+     :first-child頼みのスタイル（太字・左寄せ）がずれてしまうため、キー列には明示クラスで固定する。
+     カウント区分・カウントの値は見やすさのため中央揃えにする（他の列は右寄せ/左寄せのまま）。 */
+  .split-table td.kst-key-cell{ text-align:center; font-weight:700; color:var(--text-bright); }
   .split-table tbody tr:hover, .disc-table tbody tr:hover{ background:rgba(148,163,184,0.05); }
 
   /* テーブルが画面幅を超える場合の横スクロールラッパー（split-table等、汎用） */
@@ -743,6 +744,31 @@ function updateFarmLevelToggleUI(){
   });
 }
 
+// MLBのindex.jsonには、同一選手が大文字小文字違いの表記（例："Pete Crow-Armstrong"と
+// "pete crow-armstrong"）で複数エントリとして混入していることがある（データソース側の
+// 表記ゆれ）。表示上重複しないよう、名前を正規化（trim+小文字化）したキーで1人にまとめる。
+// 重複がある場合は、打席数(pa)が多い方＝より完全なデータを優先し、同数なら小文字のみ
+// （表記が崩れている側）より通常の大文字始まりの表記を優先する。
+function dedupePlayersByName(players){
+  const byKey = new Map();
+  for(const p of players){
+    const key = String(p.name || "").trim().toLowerCase();
+    if(!key) continue;
+    const existing = byKey.get(key);
+    if(!existing){
+      byKey.set(key, p);
+      continue;
+    }
+    const pPa = p.pa || 0, ePa = existing.pa || 0;
+    const pLooksProper = /[A-Z]/.test(p.name || "");
+    const eLooksProper = /[A-Z]/.test(existing.name || "");
+    if(pPa > ePa || (pPa === ePa && pLooksProper && !eLooksProper)){
+      byKey.set(key, p);
+    }
+  }
+  return [...byKey.values()];
+}
+
 // currentLeague・currentFarmLevelに応じたindex.jsonを取得してallPlayersに入れる
 // （1軍/2軍リストを完全に差し替える。選手詳細内のfarm-toggleとは別軸）
 async function loadPlayerListForCurrentFarmLevel(){
@@ -760,7 +786,7 @@ async function loadPlayerListForCurrentFarmLevel(){
     const res = await fetch(bust(`${basePath}/index.json`), { cache: "no-store" });
     if(!res.ok) throw new Error(`index.json の取得に失敗しました (${res.status})`);
     const data = await res.json();
-    allPlayers = data.players || [];
+    allPlayers = dedupePlayersByName(data.players || []);
     populateTeamSelect(allPlayers);
     populatePosSelect(allPlayers);
   }catch(e){
@@ -1108,17 +1134,29 @@ const CZ_METRICS = [
   ["avg", "打率"], ["hr", "本塁打"], ["ops", "OPS"], ["obp", "出塁率"], ["slg", "長打率"],
   ["swing_pct", "スイング率"], ["swing_contact_pct", "コンタクト率"],
   ["whiff_pct_all", "空振り率（/すべて）"], ["whiff_pct", "空振り率（/スイング）"],
-  ["gb_pct", "GB%"],
+  ["gb_pct", "GB%"], ["hr_pct", "HR%"],
+  // MLB独自（NPBは常に値なし＝「-」表示）
+  ["hard_hit_pct", "Hard-Hit%"], ["xwoba", "xwOBA"], ["pull_pct", "Pull%"],
 ];
 const CZ_METRIC_FMT = { avg: "avg", hr: "int", obp: "avg", slg: "avg", ops: "ops",
-  swing_pct: "pct", swing_contact_pct: "pct", whiff_pct_all: "pct", whiff_pct: "pct", gb_pct: "pct" };
+  swing_pct: "pct", swing_contact_pct: "pct", whiff_pct_all: "pct", whiff_pct: "pct", gb_pct: "pct",
+  hr_pct: "pct", hard_hit_pct: "pct", xwoba: "avg", pull_pct: "pct" };
+// スイング率・コンタクト率・空振り率（対すべて/対スイング）は分母が「打席」ではなく「球数」
+// （スイング率・空振り率（/すべて）はゾーン内外含む全投球数、コンタクト率・空振り率（/スイング）は
+// スイング数）なので、これらの指標では打席数ではなく球数(cell.n)をサブテキストに表示する。
+const CZ_PITCH_DENOM_METRICS = new Set(["swing_pct", "swing_contact_pct", "whiff_pct_all", "whiff_pct"]);
+// 値が低いほど（打者にとって）良い＝色を濃くしたい指標（今までは高いほど濃かった指標を反転）。
+const CZ_LOWER_IS_BETTER = new Set(["whiff_pct_all", "whiff_pct", "gb_pct"]);
 
 function courseZoneCellText(cell, metric){
-  if(!cell || cell[metric] == null) return { text: "-", sub: cell ? `${cell.pa ?? 0}打席` : "" };
+  const denomLabel = CZ_PITCH_DENOM_METRICS.has(metric)
+    ? `${cell ? (cell.n ?? 0) : 0}球`
+    : `${cell ? (cell.pa ?? 0) : 0}打席`;
+  if(!cell || cell[metric] == null) return { text: "-", sub: denomLabel };
   const kind = CZ_METRIC_FMT[metric] || "pct";
   const text = kind === "avg" ? fmtAvg(cell[metric]) : kind === "ops" ? fmt(cell[metric], 3)
     : kind === "int" ? String(cell[metric]) : fmt(cell[metric], 1, "%");
-  return { text, sub: `${cell.pa ?? 0}打席` };
+  return { text, sub: denomLabel };
 }
 
 // inZone=true（ストライクゾーン内）は青系、false（ボールゾーン）はpitcher-cards.htmlの
@@ -1129,7 +1167,10 @@ function courseZoneColor(cell, metric, allCells, inZone){
   const vals = allCells.filter(c => c && c[metric] != null).map(c => c[metric]);
   if(vals.length === 0) return emptyBg;
   const lo = Math.min(...vals), hi = Math.max(...vals);
-  const t = hi > lo ? (cell[metric] - lo) / (hi - lo) : 0.5;
+  let t = hi > lo ? (cell[metric] - lo) / (hi - lo) : 0.5;
+  // 空振り率（/すべて・/スイング）・GB%は値が低いほど打者にとって良いので、濃淡を反転する
+  // （低いほど濃い色になる）。
+  if(CZ_LOWER_IS_BETTER.has(metric)) t = 1 - t;
   const alpha = (0.08 + t * 0.7).toFixed(2);
   const hue = inZone ? "59,130,246" : "100,116,139";
   return `rgba(${hue},${alpha})`;
@@ -1181,6 +1222,7 @@ function renderCourseGrid(list, metric, splitMode, isLeft){
 }
 
 function renderCourseZoneSection(seasonsMap, years, currentYear){
+  const pitchVals = pvCollectPitchValues(seasonsMap, years);
   return `
     <div class="fctrl-block">
       <div class="fctrl-row">
@@ -1203,6 +1245,18 @@ function renderCourseZoneSection(seasonsMap, years, currentYear){
           <select class="fctrl-select cz-year-select">
             ${years.map(y => `<option value="${escapeHtml(y)}"${y === currentYear ? " selected" : ""}>${escapeHtml(y)}年</option>`).join("")}
           </select>
+        </div>
+        <div class="fctrl-row">
+          <span class="fctrl-label">球種カテゴリ</span>
+          ${renderMultiSelect("cz-mid-select", pitchVals.mids.map(v => [v, v]), pitchVals.mids)}
+        </div>
+        <div class="fctrl-row">
+          <span class="fctrl-label">球種詳細</span>
+          ${renderMultiSelect("cz-detail-select", pitchVals.details.map(v => [v, v]), pitchVals.details)}
+        </div>
+        <div class="fctrl-row">
+          <span class="fctrl-label">球速帯</span>
+          ${renderMultiSelect("cz-band-select", PV_BAND_VALUES.map(v => [v, v]), PV_BAND_VALUES)}
         </div>
       </div>
     </div>
@@ -1230,23 +1284,102 @@ function renderCourseZoneBody(byZone){
   `;
 }
 
+// ── コース別成績グリッドの球種フィルター用：生データ(courseZoneByPitchRaw)から
+// リアルタイムで(row,col)ごとに合算して%を算出する。_agg_pitch_group()/
+// _agg_batted_quality_extra()（export_llm_input_batter.py）と同じ計算式のJS版。
+// フィルター無し（球種カテゴリ・球種詳細・球速帯すべて選択＝絞り込み無し）の時は
+// こちらを使わず、従来どおりサーバー側で事前集計済みのbyCourseZoneを使う（軽量・高速）。
+function aggCourseCellStats(entries){
+  const sum = (k) => entries.reduce((a, e) => a + (e[k] || 0), 0);
+  const n = sum("n"), pa = sum("pa"), ab = sum("ab"), h = sum("h_");
+  const d2 = sum("2b"), d3 = sum("3b"), hr = sum("hr"), bb = sum("bb"), hbp = sum("hbp");
+  const sw = sum("sw"), ws = sum("ws");
+  const gb = sum("gb"), ld = sum("ld"), fb = sum("fb");
+  const evn = sum("evn"), hh = sum("hh");
+  const xwn = sum("xwn"), xwsum = sum("xwsum");
+  const pu = sum("pu"), spn = sum("spn");
+  const singles = Math.max(h - d2 - d3 - hr, 0);
+  const tb = singles + d2 * 2 + d3 * 3 + hr * 4;
+  const obpDen = ab + bb + hbp;
+  const bipKnown = gb + ld + fb;
+  const avg = ab > 0 ? h / ab : null;
+  const slg = ab > 0 ? tb / ab : null;
+  const obp = obpDen > 0 ? (h + bb + hbp) / obpDen : null;
+  const r1 = (v) => v == null ? null : Math.round(v * 10) / 10;
+  const r3 = (v) => v == null ? null : Math.round(v * 1000) / 1000;
+  return {
+    pa, n, hr,
+    avg: r3(avg), slg: r3(slg), obp: r3(obp),
+    ops: (avg != null && slg != null && obp != null) ? r3(slg + obp) : null,
+    swing_pct: n > 0 ? r1(sw / n * 100) : null,
+    whiff_pct_all: n > 0 ? r1(ws / n * 100) : null,
+    swing_contact_pct: sw > 0 ? r1((sw - ws) / sw * 100) : null,
+    whiff_pct: sw > 0 ? r1(ws / sw * 100) : null,
+    gb_pct: bipKnown > 0 ? r1(gb / bipKnown * 100) : null,
+    hr_pct: pa > 0 ? r1(hr / pa * 100) : null,
+    hard_hit_pct: evn > 0 ? r1(hh / evn * 100) : null,
+    xwoba: xwn > 0 ? r3(xwsum / xwn) : null,
+    pull_pct: spn > 0 ? r1(pu / spn * 100) : null,
+  };
+}
+// raw: season.courseZoneByPitchRaw（全ゾーン×全球種×全球速帯×両サイドの生カウント一覧）。
+// hand: "vsR"|"vsL"。midSel/detailSel/bandSel: multiSelectValuesForFilter()と同じ規約
+// （空配列=絞り込み無し）。戻り値はbyCourseZoneの各セルと同じ形（zoneRow/zoneCol付き）。
+function czBuildFilteredZoneList(raw, hand, midSel, detailSel, bandSel){
+  const wantHand = hand === "vsR" ? "R" : "L";
+  const filtered = raw.filter(e => e.h === wantHand
+    && (midSel.length === 0 || midSel.includes(e.pitchCategoryMid))
+    && (detailSel.length === 0 || detailSel.includes(e.pitchType))
+    && (bandSel.length === 0 || bandSel.includes(e.band)));
+  const byCell = {};
+  filtered.forEach(e => {
+    const key = `${e.zoneRow}_${e.zoneCol}`;
+    (byCell[key] || (byCell[key] = [])).push(e);
+  });
+  return Object.keys(byCell).map(key => {
+    const [row, col] = key.split("_").map(Number);
+    return { ...aggCourseCellStats(byCell[key]), zoneRow: row, zoneCol: col };
+  });
+}
+
 function wireCourseZoneSection(scope, seasonsMap, isLeft){
   const splitGroup = scope.querySelector(".cz-split-group");
   const metricGroup = scope.querySelector(".cz-metric-group");
   const yearSel = scope.querySelector(".cz-year-select");
+  const midSel = scope.querySelector(".cz-mid-select");
+  const detailSel = scope.querySelector(".cz-detail-select");
+  const bandSel = scope.querySelector(".cz-band-select");
   const body = scope.querySelector("[data-cz-body]");
   if(!metricGroup || !yearSel || !body) return;
   function currentMetric(){ return (metricGroup.querySelector(".pill-btn.active") || {}).dataset?.metric || CZ_METRICS[0][0]; }
   function currentSplit(){ return (splitGroup?.querySelector(".pill-btn.active") || {}).dataset?.split || "9"; }
+  function pitchFiltersActive(){
+    const m = multiSelectValuesForFilter(midSel), d = multiSelectValuesForFilter(detailSel), b = multiSelectValuesForFilter(bandSel);
+    return (m.length > 0 || d.length > 0 || b.length > 0) ? { m, d, b } : null;
+  }
+  function zoneListFor(hand){
+    const season = seasonsMap[yearSel.value] || {};
+    const active = pitchFiltersActive();
+    if(!active){
+      const byZone = season.byCourseZone || { all: [], vsR: [], vsL: [] };
+      return byZone[hand] || [];
+    }
+    // 球種カテゴリ/球種詳細/球速帯のいずれかで絞り込まれている場合は、球種タグ付きの
+    // 生データ(courseZoneByPitchRaw)をその場で合算する（NPBや旧データでこのフィールドが
+    // 無い場合は空配列＝該当データなし、として扱う）。
+    const raw = season.courseZoneByPitchRaw || [];
+    return czBuildFilteredZoneList(raw, hand, active.m, active.d, active.b);
+  }
   function redrawGrids(){
-    const byZone = (seasonsMap[yearSel.value] || {}).byCourseZone || { all: [], vsR: [], vsL: [] };
     scope.querySelectorAll("[data-cz-grid]").forEach(wrap => {
       const hand = wrap.dataset.czGrid; // "vsR" | "vsL"
-      wrap.innerHTML = renderCourseGrid(byZone[hand] || [], currentMetric(), currentSplit(), isLeft);
+      wrap.innerHTML = renderCourseGrid(zoneListFor(hand), currentMetric(), currentSplit(), isLeft);
     });
   }
   function redrawBody(){
-    const byZone = (seasonsMap[yearSel.value] || {}).byCourseZone || { all: [], vsR: [], vsL: [] };
+    const byZone = pitchFiltersActive()
+      ? { vsR: zoneListFor("vsR"), vsL: zoneListFor("vsL") }
+      : ((seasonsMap[yearSel.value] || {}).byCourseZone || { all: [], vsR: [], vsL: [] });
     body.innerHTML = renderCourseZoneBody(byZone);
     redrawGrids();
   }
@@ -1262,6 +1395,9 @@ function wireCourseZoneSection(scope, seasonsMap, isLeft){
   if(splitGroup) wirePillGroup(splitGroup, redrawGrids);
   wirePillGroup(metricGroup, redrawGrids);
   yearSel.addEventListener("change", redrawBody);
+  [midSel, detailSel, bandSel].forEach(wrap => {
+    if(wrap) wireOneMultiSelect(wrap, redrawBody);
+  });
   redrawBody();
 }
 
@@ -1282,6 +1418,12 @@ const KEYED_STAT_METRICS_FULL = [
   ["k_pct", false, "K%", "pct"], ["bb_pct", true, "BB%", "pct"],
   ["z_swing_pct", true, "Z-Swing%", "pct"], ["z_contact_pct", true, "Z-Contact%", "pct"],
   ["whiff_pct", false, "Whiff%", "pct"], ["chase_pct", false, "Chase%", "pct"], ["gb_pct", false, "GB%", "pct"],
+  ["hr_pct", true, "HR%", "pct"],
+  // MLB独自の打球質指標。NPBデータでは値が常にnull（自動的に「-」表示、magnitudeBgも
+  // vals.length<2で塗り無しになるので害はない）。
+  ["hard_hit_pct", true, "Hard-Hit%", "pct"], ["avg_ev", true, "平均EV(km/h)", "num1"],
+  ["sweet_spot_pct", true, "Sweet Spot%", "pct"], ["xwoba", true, "xwOBA", "avg"],
+  ["pull_pct", true, "Pull%", "pct"],
 ];
 // contact_pct（実体はZ-Swing%として計算済み）等、旧フィールド名で来るデータを新フィールド名に
 // 正規化する。z_contact_pct/gb_pctは元データに無ければnullのまま（表示は自動的に「-」）。
@@ -1298,15 +1440,18 @@ function fmtKeyedVal(v, kind){
   if(kind === "avg") return fmtAvg(v);
   if(kind === "ops") return fmt(v, 3);
   if(kind === "int") return v ?? "-";
+  if(kind === "num1") return fmt(v, 1);
   return fmt(v, 1, "%");
 }
 // コース別成績のcourseZoneColor()と同じ考え方：列内の最小〜最大でmin-max正規化した濃淡。
-function magnitudeBg(value, allValues, hueRgb){
+// higherIsBetter=falseの指標（K%・Whiff%・Chase%・GB%等）は値が低いほど色を濃くする。
+function magnitudeBg(value, allValues, hueRgb, higherIsBetter){
   if(value == null) return "";
   const vals = allValues.filter(v => v != null);
   if(vals.length < 2) return "";
   const lo = Math.min(...vals), hi = Math.max(...vals);
-  const t = hi > lo ? (value - lo) / (hi - lo) : 0.5;
+  let t = hi > lo ? (value - lo) / (hi - lo) : 0.5;
+  if(higherIsBetter === false) t = 1 - t;
   const alpha = (0.06 + t * 0.34).toFixed(2);
   return `rgba(${hueRgb},${alpha})`;
 }
@@ -1328,9 +1473,9 @@ function renderKeyedStatTable(list, keyLabel, keyField, metrics, emptyNote, grou
         groupCell = `<td class="kst-group-cell" rowspan="${span}">${escapeHtml(groupLabels[idx])}</td>`;
       }
     }
-    const cells = metrics.map(([m, , , kind], i) => {
+    const cells = metrics.map(([m, higherIsBetter, , kind], i) => {
       const text = fmtKeyedVal(s[m], kind);
-      const bg = magnitudeBg(s[m], columnsAll[m], KEYED_HUES[i % KEYED_HUES.length]);
+      const bg = magnitudeBg(s[m], columnsAll[m], KEYED_HUES[i % KEYED_HUES.length], higherIsBetter);
       return `<td${bg ? ` style="background:${bg}"` : ""}>${text}</td>`;
     }).join("");
     return `<tr>${groupCell}<td class="kst-key-cell">${escapeHtml(s[keyField] ?? "-")}</td><td>${s.pa ?? "-"}</td>${cells}</tr>`;
@@ -1531,7 +1676,11 @@ const PV_BAND_VALUES = ["速い", "中間", "遅い"];  // 表示順は速い→
 const PV_FULL_COLUMNS = [
   ["pa", "打席"], ["avg", "打率"], ["hr", "本塁打"], ["rbi", "打点"], ["ops", "OPS"], ["obp", "出塁率"], ["slg", "長打率"],
   ["k_pct", "K%"], ["bb_pct", "BB%"], ["z_swing_pct", "Z-Swing%"], ["z_contact_pct", "Z-Contact%"],
-  ["whiff_pct", "Whiff%"], ["chase_pct", "Chase%"], ["gb_pct", "GB%"],
+  ["whiff_pct", "Whiff%"], ["chase_pct", "Chase%"], ["gb_pct", "GB%"], ["hr_pct", "HR%"],
+  // MLB独自の打球質指標。NPB側は値が常にnullのため自動的に「-」表示（rankedTdも
+  // 順位無しのまま値だけ表示するので害はない）。
+  ["hard_hit_pct", "Hard-Hit%"], ["avg_ev", "平均EV(km/h)"], ["sweet_spot_pct", "Sweet Spot%"],
+  ["xwoba", "xwOBA"], ["pull_pct", "Pull%"],
 ];
 
 function pvHandLabel(h){ return h === "vsR" ? "対右投手" : h === "vsL" ? "対左投手" : "全体"; }
@@ -1726,10 +1875,12 @@ function renderPivotTable(rows, activeAxes){
       if(key === "pa" || key === "count") return `<td>${r[key] ?? "-"}</td>`;  // 打席・球数は順位・カラースケール対象外
       const v = r[key];
       let text;
-      if(key === "avg" || key === "obp" || key === "slg") text = fmtAvg(v);
+      if(key === "avg" || key === "obp" || key === "slg" || key === "xwoba") text = fmtAvg(v);
       else if(key === "ops") text = fmt(v, 3);
+      else if(key === "avg_ev") text = fmt(v, 1);
       else if(key === "k_pct" || key === "bb_pct" || key === "z_swing_pct" || key === "z_contact_pct"
-        || key === "whiff_pct" || key === "chase_pct" || key === "gb_pct") text = fmt(v, 1, "%");
+        || key === "whiff_pct" || key === "chase_pct" || key === "gb_pct" || key === "hr_pct"
+        || key === "hard_hit_pct" || key === "sweet_spot_pct" || key === "pull_pct") text = fmt(v, 1, "%");
       else text = v ?? "-";
       // 値自体は常にそのまま表示し、資格打席未満で順位が付いていない場合は
       // rankedTd側が順位部分だけを「-」にする（pitcher-cards.htmlと同じ仕様）。
@@ -1837,6 +1988,21 @@ function wireOneMultiSelect(wrap, onChange){
   panel.addEventListener("click", (e) => e.stopPropagation());
   wrap.querySelectorAll("input[type=checkbox]").forEach(cb => {
     cb.addEventListener("change", () => {
+      multiSelectSummaryUpdate(wrap, optionLabels);
+      onChange();
+    });
+  });
+  // ラベルのテキスト部分（チェックボックス本体ではなく）をクリックした時は、
+  // 通常のチェック切り替えではなく「その項目だけを選択」する（他は全て解除）。
+  // チェックボックス自体のクリックは従来どおり複数選択のトグルのまま。
+  wrap.querySelectorAll(".msel-opt").forEach(lab => {
+    const cb = lab.querySelector("input[type=checkbox]");
+    const labelSpan = lab.querySelector(".msel-opt-label");
+    if(!cb || !labelSpan) return;
+    labelSpan.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      wrap.querySelectorAll("input[type=checkbox]").forEach(other => { other.checked = (other === cb); });
       multiSelectSummaryUpdate(wrap, optionLabels);
       onChange();
     });
