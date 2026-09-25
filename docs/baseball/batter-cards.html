@@ -1096,10 +1096,6 @@ function wireCourseZoneSection(scope, seasonObj){
 // whiff_pct/chase_pct/contact_pct」という同じ形なので、ここで共通化する。
 // 順位データが無いテーブルなので、relativeTier（表内の相対値）でカラースケールを付ける。
 // [フィールド名, 高いほど良いか, 見出しラベル, 表示形式]
-const KEYED_STAT_METRICS_BASIC = [
-  ["avg", true, "打率", "avg"], ["whiff_pct", false, "空振り率", "pct"],
-  ["chase_pct", false, "chase%", "pct"], ["contact_pct", true, "contact%", "pct"],
-];
 const KEYED_STAT_METRICS_FULL = [
   ["avg", true, "打率", "avg"], ["hr", true, "本塁打", "int"], ["rbi", true, "打点", "int"],
   ["obp", true, "出塁率", "avg"], ["slg", true, "長打率", "avg"], ["ops", true, "OPS", "ops"],
@@ -1183,9 +1179,9 @@ function renderCountSection(seasonObj){
       <button type="button" class="hand-btn" data-hand="vsR">対右投手</button>
       <button type="button" class="hand-btn" data-hand="vsL">対左投手</button>
     </div>
-    <div data-ct-panel="all">${renderKeyedStatTable(byC.all, "カウント", "countKey", KEYED_STAT_METRICS_BASIC)}</div>
-    <div data-ct-panel="vsR" style="display:none">${renderKeyedStatTable(byC.vsR, "カウント", "countKey", KEYED_STAT_METRICS_BASIC)}</div>
-    <div data-ct-panel="vsL" style="display:none">${renderKeyedStatTable(byC.vsL, "カウント", "countKey", KEYED_STAT_METRICS_BASIC)}</div>
+    <div data-ct-panel="all">${renderKeyedStatTable(byC.all, "カウント", "countKey", KEYED_STAT_METRICS_FULL)}</div>
+    <div data-ct-panel="vsR" style="display:none">${renderKeyedStatTable(byC.vsR, "カウント", "countKey", KEYED_STAT_METRICS_FULL)}</div>
+    <div data-ct-panel="vsL" style="display:none">${renderKeyedStatTable(byC.vsL, "カウント", "countKey", KEYED_STAT_METRICS_FULL)}</div>
   `;
 }
 
