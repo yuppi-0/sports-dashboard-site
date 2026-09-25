@@ -1,4 +1,4 @@
-﻿# %%
+# %%
 # ==================================================
 # NPB データ収集 → データマート 一括生成パイプライン
 #
@@ -1037,6 +1037,41 @@ def ab_result_flags(category: str, result: str) -> tuple[int, int, int]:
     return 1, int(is_hit), int(is_xbh)
 
 
+# 被打率・被長打率・被OPS（コース別・球種別・カウント別）用の詳細版。ab_result_flags()と
+# 同じ判定ロジックだが、二塁打・三塁打・本塁打を区別して総塁打が計算できるようにし、
+# さらに四球・死球（ab_result_flagsでは0,0,0に丸められていた）も別フラグとして拾う。
+# これにより球種別・コース別・カウント別の内訳でも 本塁打・長打率・出塁率・OPS が算出できる。
+_BB_PAT  = re.compile(r"^四球$|敬遠")
+_HBP_PAT = re.compile(r"^死球$")
+
+
+def ab_result_detail(category: str, result: str) -> tuple[int, int, int, int, int, int, int, int]:
+    """打席完了球の (打数, 安打, 二塁打, 三塁打, 本塁打, 四球, 死球, 三振) を0/1で返す。
+    打点(RBI)はNPBの投球チャートデータに得点状況の情報が無く、この粒度では算出できない
+    （MLB側はStatcastのbat_score/post_bat_scoreから算出できるため、run_mlb.py側にのみ
+    rbiフィールドがある）。"""
+    res = str(result or "").strip()
+    if not res or res == "nan":
+        return 0, 0, 0, 0, 0, 0, 0, 0
+    if _BB_PAT.search(res):
+        return 0, 0, 0, 0, 0, 1, 0, 0
+    if _HBP_PAT.search(res):
+        return 0, 0, 0, 0, 0, 0, 1, 0
+    is_k = "三振" in res
+    if not (is_k or category in _INPLAY_CATS):
+        if category not in ("", "nan", "None") or not _AB_RESULT_PAT.search(res):
+            return 0, 0, 0, 0, 0, 0, 0, 0
+    if _AB_EXCLUDE_PAT.search(res):  # 犠打・犠飛等（四球・死球は上で既に判定済み）
+        return 0, 0, 0, 0, 0, 0, 0, 0
+    if is_k:
+        return 1, 0, 0, 0, 0, 0, 0, 1
+    is_hr = bool(_HR_PAT.search(res))
+    is_3b = ("3塁打" in res) and not is_hr
+    is_2b = ("2塁打" in res) and not is_hr and not is_3b
+    is_hit = is_hr or is_3b or is_2b or ("安打" in res)
+    return 1, int(is_hit), int(is_2b), int(is_3b), int(is_hr), 0, 0, 0
+
+
 # ==================================================
 # 打者版バッターカード用：球種×球速帯×対戦投手利き腕の集計
 # ==================================================
@@ -1054,7 +1089,7 @@ def build_batter_pitch_splits(df_pitch: "pd.DataFrame", pit_hand_map: dict) -> "
     if df_pitch is None or df_pitch.empty:
         return pd.DataFrame(columns=[
             "試合ID", "選手名", "球種", "球速帯", "対戦投手利き腕",
-            "球数", "打席", "打数", "安打",
+            "球数", "打席", "打数", "安打", "二塁打", "三塁打", "本塁打", "四球", "死球", "三振",
             "SW数", "空振り数", "ゾーン内投球数", "ゾーン外投球数",
             "ゾーン内SW数", "ゾーン外SW数",
         ])
@@ -1072,13 +1107,12 @@ def build_batter_pitch_splits(df_pitch: "pd.DataFrame", pit_hand_map: dict) -> "
         if band is None or pd.isna(bname) or not str(bname).strip():
             continue  # 球速データが無い投球・打者名不明の行は除外
         last = g[g["_pa_last"]]
-        ab_n = h_n = 0
+        ab_n = h_n = d2_n = d3_n = hr_n = bb_n = hbp_n = k_n = 0
         for _, r in last.iterrows():
             res = str(r.get("打席完了結果", "") or "")
             cat = str(r.get("判定カテゴリ", "") or "")
-            a, h, _xh = ab_result_flags(cat, res)
-            ab_n += a
-            h_n  += h
+            a, h, d2, d3, hr, bb, hbp, k = ab_result_detail(cat, res)
+            ab_n += a; h_n += h; d2_n += d2; d3_n += d3; hr_n += hr; bb_n += bb; hbp_n += hbp; k_n += k
         in_z  = g["in_zone"]  if "in_zone"  in g.columns else pd.Series([False]*len(g), index=g.index)
         out_z = g["out_zone"] if "out_zone" in g.columns else pd.Series([False]*len(g), index=g.index)
         swing = g["is_swing"]
@@ -1086,6 +1120,7 @@ def build_batter_pitch_splits(df_pitch: "pd.DataFrame", pit_hand_map: dict) -> "
             "試合ID": str(gid), "選手名": bname, "球種": str(pitch_label),
             "球速帯": band, "対戦投手利き腕": hand,
             "球数": int(len(g)), "打席": int(len(last)), "打数": ab_n, "安打": h_n,
+            "二塁打": d2_n, "三塁打": d3_n, "本塁打": hr_n, "四球": bb_n, "死球": hbp_n, "三振": k_n,
             "SW数": int(swing.sum()), "空振り数": int(g["is_swstr"].sum()),
             "ゾーン内投球数": int(in_z.sum()), "ゾーン外投球数": int(out_z.sum()),
             "ゾーン内SW数": int((swing & in_z).sum()), "ゾーン外SW数": int((swing & out_z).sum()),
@@ -1113,7 +1148,7 @@ def build_batter_course_splits(df_pitch: "pd.DataFrame", pit_hand_map: dict) -> 
     export_llm_input_batter.py側の集計ロジック（_agg_pitch_group）をそのまま共有できる。
     """
     cols = ["試合ID", "選手名", "ゾーン行", "ゾーン列", "対戦投手利き腕",
-            "球数", "打席", "打数", "安打",
+            "球数", "打席", "打数", "安打", "二塁打", "三塁打", "本塁打", "四球", "死球", "三振",
             "SW数", "空振り数", "ゾーン内投球数", "ゾーン外投球数",
             "ゾーン内SW数", "ゾーン外SW数"]
     if df_pitch is None or df_pitch.empty:
@@ -1153,13 +1188,12 @@ def build_batter_course_splits(df_pitch: "pd.DataFrame", pit_hand_map: dict) -> 
         if pd.isna(bname) or not str(bname).strip():
             continue
         last = g[g["_pa_last"]]
-        ab_n = h_n = 0
+        ab_n = h_n = d2_n = d3_n = hr_n = bb_n = hbp_n = k_n = 0
         for _, r in last.iterrows():
             res = str(r.get("打席完了結果", "") or "")
             cat = str(r.get("判定カテゴリ", "") or "")
-            a, h, _xh = ab_result_flags(cat, res)
-            ab_n += a
-            h_n  += h
+            a, h, d2, d3, hr, bb, hbp, k = ab_result_detail(cat, res)
+            ab_n += a; h_n += h; d2_n += d2; d3_n += d3; hr_n += hr; bb_n += bb; hbp_n += hbp; k_n += k
         in_z  = g["in_zone"]  if "in_zone"  in g.columns else pd.Series([False] * len(g), index=g.index)
         out_z = g["out_zone"] if "out_zone" in g.columns else pd.Series([False] * len(g), index=g.index)
         swing = g["is_swing"]
@@ -1167,6 +1201,7 @@ def build_batter_course_splits(df_pitch: "pd.DataFrame", pit_hand_map: dict) -> 
             "試合ID": str(gid), "選手名": bname, "ゾーン行": int(zrow), "ゾーン列": int(zcol),
             "対戦投手利き腕": hand,
             "球数": int(len(g)), "打席": int(len(last)), "打数": ab_n, "安打": h_n,
+            "二塁打": d2_n, "三塁打": d3_n, "本塁打": hr_n, "四球": bb_n, "死球": hbp_n, "三振": k_n,
             "SW数": int(swing.sum()), "空振り数": int(g["is_swstr"].sum()),
             "ゾーン内投球数": int(in_z.sum()), "ゾーン外投球数": int(out_z.sum()),
             "ゾーン内SW数": int((swing & in_z).sum()), "ゾーン外SW数": int((swing & out_z).sum()),
@@ -1191,7 +1226,7 @@ def build_batter_count_splits(df_pitch: "pd.DataFrame", pit_hand_map: dict) -> "
     _agg_pitch_group()をそのまま流用できる。
     """
     cols = ["試合ID", "選手名", "カウント", "対戦投手利き腕",
-            "球数", "打席", "打数", "安打",
+            "球数", "打席", "打数", "安打", "二塁打", "三塁打", "本塁打", "四球", "死球", "三振",
             "SW数", "空振り数", "ゾーン内投球数", "ゾーン外投球数",
             "ゾーン内SW数", "ゾーン外SW数"]
     if df_pitch is None or df_pitch.empty:
@@ -1218,19 +1253,19 @@ def build_batter_count_splits(df_pitch: "pd.DataFrame", pit_hand_map: dict) -> "
         if pd.isna(bname) or not str(bname).strip():
             continue
         last = g[g["_pa_last"]]
-        ab_n = h_n = 0
+        ab_n = h_n = d2_n = d3_n = hr_n = bb_n = hbp_n = k_n = 0
         for _, r in last.iterrows():
             res = str(r.get("打席完了結果", "") or "")
             cat = str(r.get("判定カテゴリ", "") or "")
-            a, h, _xh = ab_result_flags(cat, res)
-            ab_n += a
-            h_n  += h
+            a, h, d2, d3, hr, bb, hbp, k = ab_result_detail(cat, res)
+            ab_n += a; h_n += h; d2_n += d2; d3_n += d3; hr_n += hr; bb_n += bb; hbp_n += hbp; k_n += k
         in_z  = g["in_zone"]  if "in_zone"  in g.columns else pd.Series([False] * len(g), index=g.index)
         out_z = g["out_zone"] if "out_zone" in g.columns else pd.Series([False] * len(g), index=g.index)
         swing = g["is_swing"]
         rows.append({
             "試合ID": str(gid), "選手名": bname, "カウント": count_key, "対戦投手利き腕": hand,
             "球数": int(len(g)), "打席": int(len(last)), "打数": ab_n, "安打": h_n,
+            "二塁打": d2_n, "三塁打": d3_n, "本塁打": hr_n, "四球": bb_n, "死球": hbp_n, "三振": k_n,
             "SW数": int(swing.sum()), "空振り数": int(g["is_swstr"].sum()),
             "ゾーン内投球数": int(in_z.sum()), "ゾーン外投球数": int(out_z.sum()),
             "ゾーン内SW数": int((swing & in_z).sum()), "ゾーン外SW数": int((swing & out_z).sum()),
@@ -2636,6 +2671,12 @@ def _build_dashboard_data(datamart_path: str, pitch_locs: dict | None = None, cb
             "pa":   _iv(r.get("打席")),
             "ab":   _iv(r.get("打数")),
             "h_":   _iv(r.get("安打")),
+            "2b":   _iv(r.get("二塁打")),
+            "3b":   _iv(r.get("三塁打")),
+            "hr":   _iv(r.get("本塁打")),
+            "bb":   _iv(r.get("四球")),
+            "hbp":  _iv(r.get("死球")),
+            "k":    _iv(r.get("三振")),
             "sw":   _iv(r.get("SW数")),
             "ws":   _iv(r.get("空振り数")),
             "z":    _iv(r.get("ゾーン内投球数")),
@@ -2655,6 +2696,12 @@ def _build_dashboard_data(datamart_path: str, pitch_locs: dict | None = None, cb
             "pa":   _iv(r.get("打席")),
             "ab":   _iv(r.get("打数")),
             "h_":   _iv(r.get("安打")),
+            "2b":   _iv(r.get("二塁打")),
+            "3b":   _iv(r.get("三塁打")),
+            "hr":   _iv(r.get("本塁打")),
+            "bb":   _iv(r.get("四球")),
+            "hbp":  _iv(r.get("死球")),
+            "k":    _iv(r.get("三振")),
             "sw":   _iv(r.get("SW数")),
             "ws":   _iv(r.get("空振り数")),
             "z":    _iv(r.get("ゾーン内投球数")),
@@ -2673,6 +2720,12 @@ def _build_dashboard_data(datamart_path: str, pitch_locs: dict | None = None, cb
             "pa":    _iv(r.get("打席")),
             "ab":    _iv(r.get("打数")),
             "h_":    _iv(r.get("安打")),
+            "2b":    _iv(r.get("二塁打")),
+            "3b":    _iv(r.get("三塁打")),
+            "hr":    _iv(r.get("本塁打")),
+            "bb":    _iv(r.get("四球")),
+            "hbp":   _iv(r.get("死球")),
+            "k":     _iv(r.get("三振")),
             "sw":    _iv(r.get("SW数")),
             "ws":    _iv(r.get("空振り数")),
             "z":     _iv(r.get("ゾーン内投球数")),

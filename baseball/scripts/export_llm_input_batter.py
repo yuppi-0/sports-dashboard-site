@@ -120,16 +120,25 @@ PITCH_MID_CATEGORY = {
     "ツーシーム": "ストレート系", "ワンシーム": "ストレート系",
     "スライダー": "スライダー系", "カットボール": "スライダー系",
     "スイーパー": "スライダー系", "縦スライダー": "スライダー系", "スラーブ": "スライダー系",
-    "カーブ": "カーブ系", "ナックルカーブ": "カーブ系", "スローボール": "カーブ系",
+    "カーブ": "カーブ系", "ナックルカーブ": "カーブ系", "スローボール": "カーブ系", "スローカーブ": "カーブ系",
     "フォーク": "フォーク系", "チェンジアップ": "フォーク系", "スプリット": "フォーク系",
+    # シンカー/シュートは動きの系統が同じ（腕側に沈む球）ため、中カテゴリは1つにまとめる
     "シンカー": "シンカー系",
-    "シュート": "シュート系",
+    "シュート": "シンカー系",
 }
 PITCH_MAJOR_CATEGORY = {
     "ストレート系": "ストレート系",
-    "スライダー系": "曲がる系", "シュート系": "曲がる系", "シンカー系": "曲がる系",
+    "スライダー系": "曲がる系", "シンカー系": "曲がる系",
     "カーブ系": "落ちる系", "フォーク系": "落ちる系",
 }
+
+# 球種詳細・中カテゴリの表示順（PITCH_MID_CATEGORYを定義した並び＝中カテゴリごとに
+# まとめた順が、そのまま球種詳細の表示順になる。batter-cards.html側のプルダウン・
+# 軸の値一覧もbyPitchTypeの並び順をそのまま使うため、ここで一度だけ順序を決めておけば
+# バックエンド・フロントエンドで表示順がずれない）。
+PITCH_DETAIL_ORDER = list(PITCH_MID_CATEGORY.keys())
+PITCH_MID_ORDER = ["ストレート系", "スライダー系", "カーブ系", "フォーク系", "シンカー系"]
+PITCH_MAJOR_ORDER = ["ストレート系", "曲がる系", "落ちる系"]
 
 
 def pitch_category(pitch_type: str) -> tuple[str, str]:
@@ -137,6 +146,15 @@ def pitch_category(pitch_type: str) -> tuple[str, str]:
     mid = PITCH_MID_CATEGORY.get(pitch_type, "その他")
     major = PITCH_MAJOR_CATEGORY.get(mid, "その他")
     return mid, major
+
+
+def _pitch_sort_key(pitch_type: str) -> tuple[int, int]:
+    """球種詳細を「中カテゴリの表示順→中カテゴリ内の表示順」で並べるためのソートキー。
+    未知の球種（マッピングに無い＝「その他」）は末尾に回す。"""
+    mid, _ = pitch_category(pitch_type)
+    mi = PITCH_MID_ORDER.index(mid) if mid in PITCH_MID_ORDER else len(PITCH_MID_ORDER)
+    di = PITCH_DETAIL_ORDER.index(pitch_type) if pitch_type in PITCH_DETAIL_ORDER else len(PITCH_DETAIL_ORDER)
+    return (mi, di)
 
 
 # ==================================================
@@ -319,26 +337,51 @@ def determine_primary_position(appearances: list[dict]) -> str | None:
 # ==================================================
 # 元データは run.py（NPB）/ run_mlb.py（MLB）が日別JSONの各打者エントリに付与する
 # "pitchSplits"（試合×球種×球速帯×対戦投手利き腕、で事前集計済みのリスト）。
-# どちらのリーグも同じキー構成（t/band/h/n/pa/ab/h_/sw/ws/z/oz/zsw/ozsw）で出力するため、
-# ここのロジックはリーグに依存しない。
+# どちらのリーグも同じキー構成（t/band/h/n/pa/ab/h_/2b/3b/hr/bb/hbp/k/sw/ws/z/oz/zsw/ozsw）
+# で出力するため、ここのロジックはリーグに依存しない。ただし"rbi"（打点）はMLBの
+# pitchSplits等にしか無い（NPBの投球チャートデータには得点状況の情報が無く、
+# コース別・球種別・カウント別・状況別の粒度では打点を算出できないため）。
+# 2b/3b/hr/bb/hbp/k/rbiは、この内訳を追加した時点（2026年版）以降に生成された
+# データにしか無い。無い場合は.get(...,0)で0扱いになり、総塁打・出塁率の分母が0に
+# なるので、None（"-"表示）に自然にフォールバックする（古いキャッシュ済みJSONを
+# 読んでも壊れない）。rbiは「entriesのどれか1つでもrbiキーを持っていればMLBのデータ、
+# 1つも持っていなければNPBか旧データ」とみなしNoneのままにする（0との混同を避ける）。
 
 def _agg_pitch_group(entries: list[dict]) -> dict:
-    """pitchSplitsエントリのリストから、打率・選球眼指標を集計した1オブジェクトを作る。
-    obp/slg/opsはpitchSplits側に単打/長打/四球の内訳が無いため計算できない
-    （打率のみ正確に出せる。選球眼系はゾーン内外のスイング数から計算する）。"""
+    """pitchSplitsエントリのリストから、打率・長打率・出塁率・OPS・本塁打・打点・
+    K%・BB%・選球眼指標を集計した1オブジェクトを作る。"""
     n = sum(e.get("n", 0) or 0 for e in entries)
     pa = sum(e.get("pa", 0) or 0 for e in entries)
     ab = sum(e.get("ab", 0) or 0 for e in entries)
     h = sum(e.get("h_", 0) or 0 for e in entries)
+    doubles = sum(e.get("2b", 0) or 0 for e in entries)
+    triples = sum(e.get("3b", 0) or 0 for e in entries)
+    hr = sum(e.get("hr", 0) or 0 for e in entries)
+    bb = sum(e.get("bb", 0) or 0 for e in entries)
+    hbp = sum(e.get("hbp", 0) or 0 for e in entries)
+    k = sum(e.get("k", 0) or 0 for e in entries)
+    has_rbi = any("rbi" in e for e in entries)
+    rbi = sum(e.get("rbi", 0) or 0 for e in entries) if has_rbi else None
     sw = sum(e.get("sw", 0) or 0 for e in entries)
     ws = sum(e.get("ws", 0) or 0 for e in entries)
     z = sum(e.get("z", 0) or 0 for e in entries)
     oz = sum(e.get("oz", 0) or 0 for e in entries)
     zsw = sum(e.get("zsw", 0) or 0 for e in entries)
     ozsw = sum(e.get("ozsw", 0) or 0 for e in entries)
+
+    singles = max(h - doubles - triples - hr, 0)
+    total_bases = singles + doubles * 2 + triples * 3 + hr * 4
+    obp_den = ab + bb + hbp  # 犠飛は元データに無いため近似（他のOBP計算と同じ扱い）
+
     return {
-        "count": n, "pa": pa, "ab": ab, "h": h,
+        "count": n, "pa": pa, "ab": ab, "h": h, "hr": hr, "rbi": rbi,
         "avg": round(h / ab, 3) if ab > 0 else None,
+        "slg": round(total_bases / ab, 3) if ab > 0 else None,
+        "obp": round((h + bb + hbp) / obp_den, 3) if obp_den > 0 else None,
+        "ops": (round(total_bases / ab, 3) + round((h + bb + hbp) / obp_den, 3))
+               if ab > 0 and obp_den > 0 else None,
+        "k_pct": round(k / pa * 100, 1) if pa > 0 else None,
+        "bb_pct": round(bb / pa * 100, 1) if pa > 0 else None,
         "whiff_pct": round(ws / sw * 100, 1) if sw > 0 else None,
         "chase_pct": round(ozsw / oz * 100, 1) if oz > 0 else None,     # O-Swing%
         "contact_pct": round(zsw / z * 100, 1) if z > 0 else None,       # Z-Swing%
@@ -384,7 +427,9 @@ def build_by_pitch_type(appearances: list[dict], hand_filter: str | None = None)
 
         result.append(stats)
 
-    result.sort(key=lambda r: -(r["count"] or 0))
+    # 球種詳細の並びは「中カテゴリでまとめた順」に統一する（count順だとシーズンごと・
+    # 選手ごとに順序がバラつき、プルダウン等の見た目が安定しないため）
+    result.sort(key=lambda r: _pitch_sort_key(r["pitchType"]))
     return result
 
 
@@ -478,13 +523,16 @@ def build_by_count(appearances: list[dict], hand_filter: str | None = None) -> l
     result = []
     for count_key, count_entries in by_count.items():
         stats = _agg_pitch_group(count_entries)
-        stats["count"] = count_key
+        # 球数(count)は_agg_pitch_group側で正しく積み上げ済みなので、カウント表記
+        # ("0-1"等)は別キー(countKey)に入れる（以前はここで"count"に上書きしてしまい、
+        # 球数の値が失われていた）。
+        stats["countKey"] = count_key
         result.append(stats)
 
     # カウントを見やすい順（0-0, 0-1, ..., 3-2）に並べる
     def _count_sort_key(r):
         try:
-            b, s = r["count"].split("-")
+            b, s = r["countKey"].split("-")
             return (int(b), int(s))
         except (ValueError, AttributeError):
             return (99, 99)

@@ -1,4 +1,4 @@
-﻿# %%
+# %%
 # ==================================================
 # MLB データ収集 → データマート 一括生成パイプライン  v2
 #
@@ -2402,7 +2402,7 @@ def build_batter_pitch_splits_mlb(df: pd.DataFrame) -> pd.DataFrame:
     get_pitch_type_jp()で和訳し、投手側の球種別成績と表記を揃える）。
     """
     cols = ["試合ID", "選手名", "球種", "球速帯", "対戦投手利き腕",
-            "球数", "打席", "打数", "安打",
+            "球数", "打席", "打数", "安打", "二塁打", "三塁打", "本塁打", "四球", "死球", "三振", "打点",
             "SW数", "空振り数", "ゾーン内投球数", "ゾーン外投球数",
             "ゾーン内SW数", "ゾーン外SW数"]
     if df is None or df.empty or "batter_name" not in df.columns or "pitch_type" not in df.columns:
@@ -2447,11 +2447,24 @@ def build_batter_pitch_splits_mlb(df: pd.DataFrame) -> pd.DataFrame:
         ev = last["_event"]
         ab_n = int(ev.isin(MLB_AB_EVENTS).sum())
         h_n  = int(ev.isin(["single", "double", "triple", "home_run"]).sum())
+        d2_n = int((ev == "double").sum())
+        d3_n = int((ev == "triple").sum())
+        hr_n = int((ev == "home_run").sum())
+        bb_n = int(ev.isin(["walk", "intent_walk"]).sum())
+        hbp_n = int((ev == "hit_by_pitch").sum())
+        k_n = int(ev.isin(["strikeout", "strikeout_double_play"]).sum())
+        # 打点：Statcastはbat_score/post_bat_scoreを最終投球に付与しているため
+        # (post_bat_score-bat_score)の差分がその打席のRBI（NPBには対応する情報が無い）
+        if "post_bat_score" in last.columns and "bat_score" in last.columns:
+            rbi_n = int((last["post_bat_score"].fillna(0) - last["bat_score"].fillna(0)).clip(lower=0).sum())
+        else:
+            rbi_n = 0
         swing = g["_is_swing"]
         rows.append({
             "試合ID": str(gid), "選手名": bname, "球種": get_pitch_type_jp(pitch_code),
             "球速帯": band, "対戦投手利き腕": hand,
             "球数": int(len(g)), "打席": int(len(last)), "打数": ab_n, "安打": h_n,
+            "二塁打": d2_n, "三塁打": d3_n, "本塁打": hr_n, "四球": bb_n, "死球": hbp_n, "三振": k_n, "打点": rbi_n,
             "SW数": int(swing.sum()), "空振り数": int(g["_is_swstr"].sum()),
             "ゾーン内投球数": int(g["_in_zone"].sum()), "ゾーン外投球数": int(g["_out_zone"].sum()),
             "ゾーン内SW数": int((swing & g["_in_zone"]).sum()),
@@ -2479,7 +2492,7 @@ def build_batter_course_splits_mlb(df: pd.DataFrame) -> pd.DataFrame:
     MLB_SZ_BOT_AVG = 1.5
 
     cols = ["試合ID", "選手名", "ゾーン行", "ゾーン列", "対戦投手利き腕",
-            "球数", "打席", "打数", "安打",
+            "球数", "打席", "打数", "安打", "二塁打", "三塁打", "本塁打", "四球", "死球", "三振", "打点",
             "SW数", "空振り数", "ゾーン内投球数", "ゾーン外投球数",
             "ゾーン内SW数", "ゾーン外SW数"]
     if df is None or df.empty or "batter_name" not in df.columns or "plate_x" not in df.columns:
@@ -2507,7 +2520,12 @@ def build_batter_course_splits_mlb(df: pd.DataFrame) -> pd.DataFrame:
 
     d["_zone_col"] = [hm_get_cell(v, COURSE_ZONE_EDGES) for v in cx]
     d["_zone_row"] = [hm_get_cell(v, COURSE_ZONE_EDGES) for v in cy]
-    d["_hand"] = stand.apply(lambda s: "L" if s == "L" else "R")
+    # バグ修正：ここは「対戦投手利き腕」なのでp_throws（投手側）を使う必要があった。
+    # 以前はstand（打者自身の打席側）を使っていたため、スイッチヒッター以外の打者は
+    # 常に自分の打席側と同じhandにしか分類されず、vsR/vsLのどちらか一方が必ず
+    # 空になっていた（flip_x計算では正しくp_throwsを使えていたのに、_hand側だけ
+    # 取り違えていた）。
+    d["_hand"] = p_throws.apply(lambda h: "L" if str(h).upper() == "L" else "R")
 
     desc = d["description"].fillna("") if "description" in d.columns else pd.Series([""] * len(d), index=d.index)
     event = d["events"].fillna("") if "events" in d.columns else pd.Series([""] * len(d), index=d.index)
@@ -2540,11 +2558,24 @@ def build_batter_course_splits_mlb(df: pd.DataFrame) -> pd.DataFrame:
         ev = last["_event"]
         ab_n = int(ev.isin(MLB_AB_EVENTS).sum())
         h_n = int(ev.isin(["single", "double", "triple", "home_run"]).sum())
+        d2_n = int((ev == "double").sum())
+        d3_n = int((ev == "triple").sum())
+        hr_n = int((ev == "home_run").sum())
+        bb_n = int(ev.isin(["walk", "intent_walk"]).sum())
+        hbp_n = int((ev == "hit_by_pitch").sum())
+        k_n = int(ev.isin(["strikeout", "strikeout_double_play"]).sum())
+        # 打点：Statcastはbat_score/post_bat_scoreを最終投球に付与しているため
+        # (post_bat_score-bat_score)の差分がその打席のRBI（NPBには対応する情報が無い）
+        if "post_bat_score" in last.columns and "bat_score" in last.columns:
+            rbi_n = int((last["post_bat_score"].fillna(0) - last["bat_score"].fillna(0)).clip(lower=0).sum())
+        else:
+            rbi_n = 0
         swing = g["_is_swing"]
         rows.append({
             "試合ID": str(gid), "選手名": bname, "ゾーン行": int(zrow), "ゾーン列": int(zcol),
             "対戦投手利き腕": hand,
             "球数": int(len(g)), "打席": int(len(last)), "打数": ab_n, "安打": h_n,
+            "二塁打": d2_n, "三塁打": d3_n, "本塁打": hr_n, "四球": bb_n, "死球": hbp_n, "三振": k_n, "打点": rbi_n,
             "SW数": int(swing.sum()), "空振り数": int(g["_is_swstr"].sum()),
             "ゾーン内投球数": int(g["_in_zone"].sum()), "ゾーン外投球数": int(g["_out_zone"].sum()),
             "ゾーン内SW数": int((swing & g["_in_zone"]).sum()),
@@ -2560,7 +2591,7 @@ def build_batter_count_splits_mlb(df: pd.DataFrame) -> pd.DataFrame:
     投手側の_build_mlb_locs_and_cbsと同じカウントキー形式（3ボール・2ストライクで頭打ち）を使う。
     """
     cols = ["試合ID", "選手名", "カウント", "対戦投手利き腕",
-            "球数", "打席", "打数", "安打",
+            "球数", "打席", "打数", "安打", "二塁打", "三塁打", "本塁打", "四球", "死球", "三振", "打点",
             "SW数", "空振り数", "ゾーン内投球数", "ゾーン外投球数",
             "ゾーン内SW数", "ゾーン外SW数"]
     if df is None or df.empty or "batter_name" not in df.columns or "balls" not in df.columns or "strikes" not in df.columns:
@@ -2574,8 +2605,11 @@ def build_batter_count_splits_mlb(df: pd.DataFrame) -> pd.DataFrame:
         return pd.DataFrame(columns=cols)
 
     d["_count"] = [f"{min(int(b), 3)}-{min(int(s), 2)}" for b, s in zip(d["_balls"], d["_strikes"])]
-    stand = d["stand"].fillna("") if "stand" in d.columns else pd.Series([""] * len(d), index=d.index)
-    d["_hand"] = stand.apply(lambda s: "L" if s == "L" else "R")
+    # バグ修正：「対戦投手利き腕」はp_throws（投手側）を使う（build_batter_course_splits_mlbと
+    # 同じ取り違えバグがここにもあった。standを使うとスイッチヒッター以外は常にvsR/vsLの
+    # 片方が空になってしまう）。
+    p_throws = d["p_throws"].fillna("") if "p_throws" in d.columns else pd.Series([""] * len(d), index=d.index)
+    d["_hand"] = p_throws.apply(lambda h: "L" if str(h).upper() == "L" else "R")
 
     desc = d["description"].fillna("") if "description" in d.columns else pd.Series([""] * len(d), index=d.index)
     event = d["events"].fillna("") if "events" in d.columns else pd.Series([""] * len(d), index=d.index)
@@ -2608,10 +2642,23 @@ def build_batter_count_splits_mlb(df: pd.DataFrame) -> pd.DataFrame:
         ev = last["_event"]
         ab_n = int(ev.isin(MLB_AB_EVENTS).sum())
         h_n = int(ev.isin(["single", "double", "triple", "home_run"]).sum())
+        d2_n = int((ev == "double").sum())
+        d3_n = int((ev == "triple").sum())
+        hr_n = int((ev == "home_run").sum())
+        bb_n = int(ev.isin(["walk", "intent_walk"]).sum())
+        hbp_n = int((ev == "hit_by_pitch").sum())
+        k_n = int(ev.isin(["strikeout", "strikeout_double_play"]).sum())
+        # 打点：Statcastはbat_score/post_bat_scoreを最終投球に付与しているため
+        # (post_bat_score-bat_score)の差分がその打席のRBI（NPBには対応する情報が無い）
+        if "post_bat_score" in last.columns and "bat_score" in last.columns:
+            rbi_n = int((last["post_bat_score"].fillna(0) - last["bat_score"].fillna(0)).clip(lower=0).sum())
+        else:
+            rbi_n = 0
         swing = g["_is_swing"]
         rows.append({
             "試合ID": str(gid), "選手名": bname, "カウント": count_key, "対戦投手利き腕": hand,
             "球数": int(len(g)), "打席": int(len(last)), "打数": ab_n, "安打": h_n,
+            "二塁打": d2_n, "三塁打": d3_n, "本塁打": hr_n, "四球": bb_n, "死球": hbp_n, "三振": k_n, "打点": rbi_n,
             "SW数": int(swing.sum()), "空振り数": int(g["_is_swstr"].sum()),
             "ゾーン内投球数": int(g["_in_zone"].sum()), "ゾーン外投球数": int(g["_out_zone"].sum()),
             "ゾーン内SW数": int((swing & g["_in_zone"]).sum()),
@@ -2626,7 +2673,7 @@ def build_batter_situation_splits_mlb(df: pd.DataFrame) -> pd.DataFrame:
     get_on_base_situation()（on_1b/on_2b/on_3bから8状態を判定）をそのまま使う。
     """
     cols = ["試合ID", "選手名", "状況", "対戦投手利き腕",
-            "球数", "打席", "打数", "安打",
+            "球数", "打席", "打数", "安打", "二塁打", "三塁打", "本塁打", "四球", "死球", "三振", "打点",
             "SW数", "空振り数", "ゾーン内投球数", "ゾーン外投球数",
             "ゾーン内SW数", "ゾーン外SW数"]
     need_cols = {"batter_name", "on_1b", "on_2b", "on_3b"}
@@ -2635,8 +2682,9 @@ def build_batter_situation_splits_mlb(df: pd.DataFrame) -> pd.DataFrame:
 
     d = df.copy()
     d["_situation"] = [get_on_base_situation(r["on_1b"], r["on_2b"], r["on_3b"]) for _, r in d.iterrows()]
-    stand = d["stand"].fillna("") if "stand" in d.columns else pd.Series([""] * len(d), index=d.index)
-    d["_hand"] = stand.apply(lambda s: "L" if s == "L" else "R")
+    # バグ修正：他の3関数と同じ取り違え（standではなくp_throwsを使う）
+    p_throws = d["p_throws"].fillna("") if "p_throws" in d.columns else pd.Series([""] * len(d), index=d.index)
+    d["_hand"] = p_throws.apply(lambda h: "L" if str(h).upper() == "L" else "R")
 
     desc = d["description"].fillna("") if "description" in d.columns else pd.Series([""] * len(d), index=d.index)
     event = d["events"].fillna("") if "events" in d.columns else pd.Series([""] * len(d), index=d.index)
@@ -2669,10 +2717,23 @@ def build_batter_situation_splits_mlb(df: pd.DataFrame) -> pd.DataFrame:
         ev = last["_event"]
         ab_n = int(ev.isin(MLB_AB_EVENTS).sum())
         h_n = int(ev.isin(["single", "double", "triple", "home_run"]).sum())
+        d2_n = int((ev == "double").sum())
+        d3_n = int((ev == "triple").sum())
+        hr_n = int((ev == "home_run").sum())
+        bb_n = int(ev.isin(["walk", "intent_walk"]).sum())
+        hbp_n = int((ev == "hit_by_pitch").sum())
+        k_n = int(ev.isin(["strikeout", "strikeout_double_play"]).sum())
+        # 打点：Statcastはbat_score/post_bat_scoreを最終投球に付与しているため
+        # (post_bat_score-bat_score)の差分がその打席のRBI（NPBには対応する情報が無い）
+        if "post_bat_score" in last.columns and "bat_score" in last.columns:
+            rbi_n = int((last["post_bat_score"].fillna(0) - last["bat_score"].fillna(0)).clip(lower=0).sum())
+        else:
+            rbi_n = 0
         swing = g["_is_swing"]
         rows.append({
             "試合ID": str(gid), "選手名": bname, "状況": situation, "対戦投手利き腕": hand,
             "球数": int(len(g)), "打席": int(len(last)), "打数": ab_n, "安打": h_n,
+            "二塁打": d2_n, "三塁打": d3_n, "本塁打": hr_n, "四球": bb_n, "死球": hbp_n, "三振": k_n, "打点": rbi_n,
             "SW数": int(swing.sum()), "空振り数": int(g["_is_swstr"].sum()),
             "ゾーン内投球数": int(g["_in_zone"].sum()), "ゾーン外投球数": int(g["_out_zone"].sum()),
             "ゾーン内SW数": int((swing & g["_in_zone"]).sum()),
@@ -2945,6 +3006,13 @@ def _build_game_json(dm_path: str, date: str,
             "pa":   _iv(r.get("打席")),
             "ab":   _iv(r.get("打数")),
             "h_":   _iv(r.get("安打")),
+            "2b":   _iv(r.get("二塁打")),
+            "3b":   _iv(r.get("三塁打")),
+            "hr":   _iv(r.get("本塁打")),
+            "bb":   _iv(r.get("四球")),
+            "hbp":  _iv(r.get("死球")),
+            "k":    _iv(r.get("三振")),
+            "rbi":  _iv(r.get("打点")),
             "sw":   _iv(r.get("SW数")),
             "ws":   _iv(r.get("空振り数")),
             "z":    _iv(r.get("ゾーン内投球数")),
@@ -2965,6 +3033,13 @@ def _build_game_json(dm_path: str, date: str,
             "pa":   _iv(r.get("打席")),
             "ab":   _iv(r.get("打数")),
             "h_":   _iv(r.get("安打")),
+            "2b":   _iv(r.get("二塁打")),
+            "3b":   _iv(r.get("三塁打")),
+            "hr":   _iv(r.get("本塁打")),
+            "bb":   _iv(r.get("四球")),
+            "hbp":  _iv(r.get("死球")),
+            "k":    _iv(r.get("三振")),
+            "rbi":  _iv(r.get("打点")),
             "sw":   _iv(r.get("SW数")),
             "ws":   _iv(r.get("空振り数")),
             "z":    _iv(r.get("ゾーン内投球数")),
@@ -2984,6 +3059,13 @@ def _build_game_json(dm_path: str, date: str,
             "pa":    _iv(r.get("打席")),
             "ab":    _iv(r.get("打数")),
             "h_":    _iv(r.get("安打")),
+            "2b":    _iv(r.get("二塁打")),
+            "3b":    _iv(r.get("三塁打")),
+            "hr":    _iv(r.get("本塁打")),
+            "bb":    _iv(r.get("四球")),
+            "hbp":   _iv(r.get("死球")),
+            "k":     _iv(r.get("三振")),
+            "rbi":   _iv(r.get("打点")),
             "sw":    _iv(r.get("SW数")),
             "ws":    _iv(r.get("空振り数")),
             "z":     _iv(r.get("ゾーン内投球数")),
@@ -3003,6 +3085,13 @@ def _build_game_json(dm_path: str, date: str,
             "pa":    _iv(r.get("打席")),
             "ab":    _iv(r.get("打数")),
             "h_":    _iv(r.get("安打")),
+            "2b":    _iv(r.get("二塁打")),
+            "3b":    _iv(r.get("三塁打")),
+            "hr":    _iv(r.get("本塁打")),
+            "bb":    _iv(r.get("四球")),
+            "hbp":   _iv(r.get("死球")),
+            "k":     _iv(r.get("三振")),
+            "rbi":   _iv(r.get("打点")),
             "sw":    _iv(r.get("SW数")),
             "ws":    _iv(r.get("空振り数")),
             "z":     _iv(r.get("ゾーン内投球数")),
