@@ -308,15 +308,15 @@
     .cz-val{ font-size:9.5px; }
     .cz-sub{ font-size:7.5px; }
     .cz-pair{ gap:10px; }
-    /* 軸1〜3・フィルターの各項目を、画面幅にかかわらず必ず3つまでは折り返さず
-       1行に収める（3列グリッド）。4つ目以降（球種詳細・球速帯など）だけ次の行に回る。 */
-    .fctrl-group{ display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:8px 6px; }
-    .fctrl-row{ width:100%; min-width:0; }
-    .fctrl-select, .msel-btn{ width:100%; min-width:0; max-width:none; box-sizing:border-box; }
-    /* シーズン成績等の「値＋順位」表示は、常時2行スタック（rk-val/rk-subがdiv=ブロック要素の
-       ため改行される）だと縦に間延びして見づらいので、モバイルでは同じ行に収める */
-    .rk-val, .rk-sub{ display:inline; }
-    .rk-sub{ margin-left:4px; }
+    /* 軸1〜3・フィルターの各項目は、内容に応じた幅で自然にパッキングする（3列固定グリッドだと
+       フィルター（対左右・球種カテゴリ等、値が短い）が不要に折り返されてしまうため、
+       flex-wrapで「入るだけ並べる」方式に変更。軸1〜3のように選択肢の文字列が長めの項目は
+       専用クラスで少し広めの最小幅を確保する）。 */
+    .fctrl-group{ display:flex; flex-wrap:wrap; gap:8px 8px; }
+    .fctrl-row{ flex:0 0 auto; min-width:0; }
+    .fctrl-select{ width:auto; min-width:64px; max-width:none; box-sizing:border-box; }
+    .msel-btn{ width:auto; min-width:64px; max-width:150px; box-sizing:border-box; }
+    .pv-axis1-select, .pv-axis2-select, .pv-axis3-select{ min-width:100px; }
     /* シーズン成績表（軸で球種カテゴリ等を選んだ時の内訳表）は指標列が多くなりがちなので、
        固定列（軸ラベル）を狭め、文字も一段階小さくして一度に見える指標の数を増やす */
     .pv-result-table{ font-size:10.5px; }
