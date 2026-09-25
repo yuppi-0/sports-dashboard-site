@@ -286,7 +286,7 @@ def calc_season_batter_stats(appearances: list[dict], hand_filter: str | None = 
         return {
             "試合数": 0, "打席": 0, "打数": 0, "安打": 0, "本塁打": 0, "四死球": 0,
             "三振": 0, "打点": 0, "盗塁": 0, "盗塁死": None, "打率": None, "出塁率": None, "長打率": None,
-            "OPS": None, "K%": None, "BB%": None,
+            "OPS": None, "K%": None, "BB%": None, "HR%": None,
             "O-Swing%": None, "Z-Swing%": None, "whiff%": None,
         }
 
@@ -304,6 +304,7 @@ def calc_season_batter_stats(appearances: list[dict], hand_filter: str | None = 
     avg = round(h / ab, 3) if ab > 0 else None
     kpct = round(k / pa * 100, 1) if pa > 0 else None
     bbpct = round(bb / pa * 100, 1) if pa > 0 else None
+    hrpct = round(hr / pa * 100, 1) if pa > 0 else None
 
     # OBP/SLG/OPSは打席内訳が無いため、試合ごとの計算済み値を打席数で加重平均した近似値
     obp = _weighted_avg([(ap["player"].get("obp"), ap["player"].get("pa") or 0) for ap in rows])
@@ -318,7 +319,7 @@ def calc_season_batter_stats(appearances: list[dict], hand_filter: str | None = 
         "試合数": len(rows), "打席": pa, "打数": ab, "安打": h, "本塁打": hr,
         "四死球": bb, "三振": k, "打点": rbi, "盗塁": sb, "盗塁死": cs,
         "打率": avg, "出塁率": obp, "長打率": slg, "OPS": ops,
-        "K%": kpct, "BB%": bbpct,
+        "K%": kpct, "BB%": bbpct, "HR%": hrpct,
         "O-Swing%": chase, "Z-Swing%": contact, "whiff%": whiff,
     }
 
@@ -409,6 +410,38 @@ def _agg_pitch_group(entries: list[dict]) -> dict:
         "swing_pct": round(sw / n * 100, 1) if n > 0 else None,           # スイング率＝SW数/球数
         "whiff_pct_all": round(ws / n * 100, 1) if n > 0 else None,       # 空振り率（/すべて）＝空振り数/球数
         "swing_contact_pct": round((sw - ws) / sw * 100, 1) if sw > 0 else None,  # コンタクト率＝(SW数-空振り数)/SW数
+        # HR%＝本塁打/打席。hr・paはどちらのリーグのpitchSplits/courseSplits/countSplits/
+        # situationSplitsエントリにも元から含まれているため、バックエンド側の追加データ無しで
+        # 両リーグとも算出できる。
+        "hr_pct": round(hr / pa * 100, 1) if pa > 0 else None,
+        # ── MLB独自の打球質指標（Hard-Hit%・平均EV・Sweet Spot%・xwOBA・Pull%）──
+        **_agg_batted_quality_extra(entries),
+    }
+
+
+# MLB独自の打球質指標（Hard-Hit%・平均EV・Sweet Spot%・xwOBA・Pull%）の集計。
+# 元データは run_mlb.py が courseSplits/countSplits/situationSplitsの各エントリに追加した
+# evsum/evn/hh/lan/ss/xwsum/xwn/pu/spn（打球ごとのEV・LA・xwOBA・打球方向の生集計値）。
+# NPB側のエントリにはこれらのキーが無いため、その場合は全て0のまま集計され、分母チェック
+# （各*_n > 0）でNoneになり自動的に「-」表示になる（他のMLB専用指標と同じフォールバック方針）。
+# EVはStatcast上mph基準のため、km/h表示に揃えるためここで×1.60934している
+# （run_mlb.py側の他の速度指標(mph2kmh)と同じ換算係数）。
+def _agg_batted_quality_extra(entries: list[dict]) -> dict:
+    ev_sum = sum(e.get("evsum", 0) or 0 for e in entries)
+    ev_n   = sum(e.get("evn", 0) or 0 for e in entries)
+    hh_n   = sum(e.get("hh", 0) or 0 for e in entries)
+    la_n   = sum(e.get("lan", 0) or 0 for e in entries)
+    ss_n   = sum(e.get("ss", 0) or 0 for e in entries)
+    xw_sum = sum(e.get("xwsum", 0) or 0 for e in entries)
+    xw_n   = sum(e.get("xwn", 0) or 0 for e in entries)
+    pu_n   = sum(e.get("pu", 0) or 0 for e in entries)
+    sp_n   = sum(e.get("spn", 0) or 0 for e in entries)
+    return {
+        "avg_ev":         round(ev_sum / ev_n * 1.60934, 1) if ev_n > 0 else None,
+        "hard_hit_pct":   round(hh_n / ev_n * 100, 1) if ev_n > 0 else None,
+        "sweet_spot_pct": round(ss_n / la_n * 100, 1) if la_n > 0 else None,
+        "xwoba":          round(xw_sum / xw_n, 3) if xw_n > 0 else None,
+        "pull_pct":       round(pu_n / sp_n * 100, 1) if sp_n > 0 else None,
     }
 
 
@@ -511,6 +544,26 @@ def build_by_course_zone(appearances: list[dict], hand_filter: str | None = None
     return result
 
 
+def build_season_batted_quality_extra_mlb(appearances: list[dict], hand_filter: str | None = None) -> dict:
+    """
+    season["overall"]/season["splits"]用に、MLB独自の打球質指標（avg_ev/hard_hit_pct/
+    sweet_spot_pct/xwoba/pull_pct）をシーズン全体（対左右フィルタ込み）で1つに集計する。
+    courseSplitsのエントリ全件（ゾーンで分けずに）を_agg_batted_quality_extra()に通すだけ
+    （courseSplitsはほぼ全投球をカバーするため、シーズン集計の近似として妥当。NPB側は
+    courseSplitsにこれらのキーが無いため、自動的に全項目Noneになる＝表示は「-」のまま）。
+    """
+    entries: list[dict] = []
+    for ap in appearances:
+        p = ap.get("player")
+        if not isinstance(p, dict):
+            continue
+        for e in (p.get("courseSplits") or []):
+            if hand_filter and e.get("h") != hand_filter:
+                continue
+            entries.append(e)
+    return _agg_batted_quality_extra(entries)
+
+
 def build_course_zone_breakdown(appearances: list[dict]) -> dict:
     """byCourseZoneの3系統（all/vsR/vsL）をまとめて返す"""
     return {
@@ -518,6 +571,48 @@ def build_course_zone_breakdown(appearances: list[dict]) -> dict:
         "vsR": build_by_course_zone(appearances, hand_filter="R"),
         "vsL": build_by_course_zone(appearances, hand_filter="L"),
     }
+
+
+# コース別成績グリッドの球種カテゴリ/球種詳細/球速帯フィルター用の生データ。
+# 元データは run.py（NPB）・run_mlb.py（MLB）が日別JSONの各打者エントリに付与する
+# "courseSplitsByPitch"（試合×コースゾーン×球種×球速帯×対戦投手利き腕、で事前集計済みの
+# リスト）。courseSplits（球種で分けない集計、byCourseZoneの元データ）とは別枠で、
+# シーズン全体で(ゾーン,球種,球速帯,対戦投手利き腕)ごとに実数を積み上げるだけにとどめ、
+# %や平均への変換はしない（batter-cards.html側で選択されたフィルターに一致するセルだけを
+# 合算してから%を出すため。_agg_pitch_group()と同じ考え方をJS側に持たせている）。
+# 球速データが無い投球はcourseSplitsByPitch自体に含まれない（run.py/run_mlb.py側の制約。
+# build_batter_pitch_splits系と同じ）。NPB/MLBどちらもcourseSplitsByPitchが無い古いデータ
+# ではこの関数は空リストを返し、フロント側は自動的にフィルター無し表示にフォールバックする。
+_COURSE_PITCH_SUM_KEYS = ["n", "pa", "ab", "h_", "2b", "3b", "hr", "bb", "hbp", "k", "rbi",
+                          "sw", "ws", "z", "oz", "zsw", "ozsw", "zws", "gb", "ld", "fb",
+                          "evsum", "evn", "hh", "lan", "ss", "xwsum", "xwn", "pu", "spn"]
+
+
+def build_course_zone_by_pitch_raw(appearances: list[dict]) -> list[dict]:
+    by_key: dict[tuple, dict] = {}
+    for ap in appearances:
+        p = ap.get("player")
+        if not isinstance(p, dict):
+            continue
+        for e in (p.get("courseSplitsByPitch") or []):
+            row, col = e.get("row"), e.get("col")
+            if row is None or col is None:
+                continue
+            key = (row, col, e.get("t", ""), e.get("band", ""), e.get("h", ""))
+            acc = by_key.setdefault(key, {k: 0 for k in _COURSE_PITCH_SUM_KEYS})
+            for k in _COURSE_PITCH_SUM_KEYS:
+                acc[k] += e.get(k, 0) or 0
+
+    result = []
+    for (row, col, pt, band, hand), sums in by_key.items():
+        mid, major = pitch_category(pt)
+        result.append({
+            "zoneRow": row, "zoneCol": col, "pitchType": pt,
+            "pitchCategoryMid": mid, "pitchCategoryMajor": major,
+            "band": band, "h": hand,
+            **sums,
+        })
+    return result
 
 
 # ==================================================
@@ -671,6 +766,13 @@ _RANK_SPECS_EN = [
     # 表示上は順位を出してほしいとの要望のため、低いほど良い（＝ゴロが少ない＝長打力がある
     # 打球傾向）という一般的な整理を採用している。この向きに異論があれば変更可能。
     ("gb_pct", False),
+    # HR%は両リーグで算出可能。MLB独自の打球質4指標はNPB側では値が常にNoneになるため、
+    # _compute_group_rankings側で自動的にvalid=[]（=順位0/0）になり実害無くスキップされる。
+    # Pull%は「引っ張り傾向が強い/弱い」自体に一意の良し悪しは無いが、表示上は順位を
+    # 出してほしいとの要望のため、他の一般的な整理に合わせて高いほど良い扱いにしている
+    # （異論があれば変更可能）。
+    ("hr_pct", True),
+    ("avg_ev", True), ("hard_hit_pct", True), ("sweet_spot_pct", True), ("xwoba", True), ("pull_pct", True),
 ]
 
 
@@ -1074,12 +1176,16 @@ def _to_stat_obj(s: dict) -> dict:
         "h": s.get("安打"), "hr": s.get("本塁打"), "bb": s.get("四死球"),
         "k": s.get("三振"), "rbi": s.get("打点"), "sb": s.get("盗塁"), "cs": s.get("盗塁死"),
         "avg": s.get("打率"), "obp": s.get("出塁率"), "slg": s.get("長打率"), "ops": s.get("OPS"),
-        "k_pct": s.get("K%"), "bb_pct": s.get("BB%"),
+        "k_pct": s.get("K%"), "bb_pct": s.get("BB%"), "hr_pct": s.get("HR%"),
         "chase_pct": s.get("O-Swing%"), "contact_pct": s.get("Z-Swing%"), "z_swing_pct": s.get("Z-Swing%"),
         "whiff_pct": s.get("whiff%"),
         # Z-Contact%・GB%は現状のcalc_season_batter_stats（試合単位の集計）にも元データが無く
         # 算出不可（_agg_pitch_group側のコメント参照）。追加時はここにも配線すること。
         "z_contact_pct": None, "gb_pct": None,
+        # MLB独自の打球質指標（avg_ev/hard_hit_pct/sweet_spot_pct/xwoba/pull_pct）は
+        # calc_season_batter_stats自体には元データが無いため、ここでは埋めない。
+        # season["overall"]/season["splits"]への付与は build_season_batted_quality_extra_mlb()
+        # の戻り値をエクスポート処理側でこの辞書にマージすることで行う。
     }
 
 
@@ -1185,10 +1291,19 @@ def export_llm_input_batter_xlsx(games_json_dir: str, out_path: str, min_pa: flo
                     "qualifiedPA": is_qualified,
                     "qualifiedPAThreshold": qualifying_pa_threshold,
                     "teamGames": team_games,
-                    "overall": _fill_swing_rates_fallback(_to_stat_obj(season), pt_breakdown.get("all") or []),
+                    "overall": {
+                        **_fill_swing_rates_fallback(_to_stat_obj(season), pt_breakdown.get("all") or []),
+                        **build_season_batted_quality_extra_mlb(appearances),
+                    },
                     "splits": {
-                        "vsR": _fill_swing_rates_fallback(_to_stat_obj(vs_r), pt_breakdown.get("vsR") or []),
-                        "vsL": _fill_swing_rates_fallback(_to_stat_obj(vs_l), pt_breakdown.get("vsL") or []),
+                        "vsR": {
+                            **_fill_swing_rates_fallback(_to_stat_obj(vs_r), pt_breakdown.get("vsR") or []),
+                            **build_season_batted_quality_extra_mlb(appearances, hand_filter="R"),
+                        },
+                        "vsL": {
+                            **_fill_swing_rates_fallback(_to_stat_obj(vs_l), pt_breakdown.get("vsL") or []),
+                            **build_season_batted_quality_extra_mlb(appearances, hand_filter="L"),
+                        },
                     },
                     "byPitchType": pt_breakdown,
                     "byPitchCategoryMid": {
@@ -1204,6 +1319,7 @@ def export_llm_input_batter_xlsx(games_json_dir: str, out_path: str, min_pa: flo
                         for pop in ("all", "vsR", "vsL")
                     },
                     "byCourseZone": build_course_zone_breakdown(appearances),
+                    "courseZoneByPitchRaw": build_course_zone_by_pitch_raw(appearances),
                     "byCount": build_count_breakdown(appearances),
                     "bySituation": build_situation_breakdown(appearances),
                     "game_log": game_log_dicts,

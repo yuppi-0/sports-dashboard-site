@@ -1225,6 +1225,84 @@ def build_batter_course_splits(df_pitch: "pd.DataFrame", pit_hand_map: dict) -> 
     return pd.DataFrame(rows, columns=cols)
 
 
+def build_batter_course_pitch_splits(df_pitch: "pd.DataFrame", pit_hand_map: dict) -> "pd.DataFrame":
+    """
+    打者×試合×コースゾーン(5x5)×球種×球速帯×対戦投手利き腕の集計。
+    build_batter_course_splits()に球種次元を足しただけの派生版（コース別成績グリッドの
+    球種カテゴリ/球種詳細/球速帯フィルター用）。既存のbyCourseZone（球種で分けない集計）は
+    このテーブルを使わず従来どおり別経路のまま維持し、この関数の出力はフィルター用の
+    追加データとしてのみ使う。球速データが無い投球は除外する（build_batter_pitch_splitsと
+    同じ制約・同じ仕様）。
+    """
+    cols = ["試合ID", "選手名", "ゾーン行", "ゾーン列", "球種", "球速帯", "対戦投手利き腕",
+            "球数", "打席", "打数", "安打", "二塁打", "三塁打", "本塁打", "四球", "死球", "三振",
+            "SW数", "空振り数", "ゾーン内投球数", "ゾーン外投球数",
+            "ゾーン内SW数", "ゾーン外SW数", "ゾーン内空振り数", "GB", "LD", "FB"]
+    if df_pitch is None or df_pitch.empty:
+        return pd.DataFrame(columns=cols)
+    need_cols = {"コース(Left)", "コース(Top)", "打者名", "投手名", "打左右"}
+    if not need_cols.issubset(df_pitch.columns):
+        return pd.DataFrame(columns=cols)
+
+    df = df_pitch.copy()
+    df["_top"]  = pd.to_numeric(df["コース(Top)"],  errors="coerce")
+    df["_left"] = pd.to_numeric(df["コース(Left)"], errors="coerce")
+    df = df.dropna(subset=["_top", "_left"])
+    if df.empty:
+        return pd.DataFrame(columns=cols)
+
+    df["_pa_last"] = df["打席内球数"] == df.groupby("打席番号")["打席内球数"].transform("max")
+
+    def _cell(row):
+        bat_left = (row.get("打左右", "") == "左打")
+        pit_left = (pit_hand_map.get(row.get("投手名", ""), "") == "左投")
+        flip_x = pit_left != bat_left
+        cx = (row["_left"] - (ZONE_LEFT_MIN + ZONE_LEFT_MAX) / 2) / ((ZONE_LEFT_MAX - ZONE_LEFT_MIN) / 2)
+        if flip_x:
+            cx = -cx
+        cy = -((row["_top"] - (ZONE_TOP_MIN + ZONE_TOP_MAX) / 2) / ((ZONE_TOP_MAX - ZONE_TOP_MIN) / 2))
+        return hm_get_cell(cx, COURSE_ZONE_EDGES), hm_get_cell(cy, COURSE_ZONE_EDGES)
+
+    cells = df.apply(_cell, axis=1)
+    df["_zone_col"] = [c[0] for c in cells]
+    df["_zone_row"] = [c[1] for c in cells]
+    df["_hand"] = df["投手名"].map(lambda n: "L" if pit_hand_map.get(n, "") == "左投" else "R")
+
+    df["_pitch_code"] = df["球種"].apply(to_pitch_key)
+    df["_band"] = [velo_band_label(pc, v) for pc, v in zip(df["_pitch_code"], df.get("球速_num"))]
+
+    rows = []
+    group_cols = ["試合ID", "打者名", "_zone_row", "_zone_col", "球種", "_band", "_hand"]
+    for keys, g in df.groupby(group_cols, dropna=False):
+        gid, bname, zrow, zcol, pitch_label, band, hand = keys
+        if band is None or pd.isna(bname) or not str(bname).strip():
+            continue
+        last = g[g["_pa_last"]]
+        ab_n = h_n = d2_n = d3_n = hr_n = bb_n = hbp_n = k_n = 0
+        for _, r in last.iterrows():
+            res = str(r.get("打席完了結果", "") or "")
+            cat = str(r.get("判定カテゴリ", "") or "")
+            a, h, d2, d3, hr, bb, hbp, k = ab_result_detail(cat, res)
+            ab_n += a; h_n += h; d2_n += d2; d3_n += d3; hr_n += hr; bb_n += bb; hbp_n += hbp; k_n += k
+        in_z  = g["in_zone"]  if "in_zone"  in g.columns else pd.Series([False] * len(g), index=g.index)
+        out_z = g["out_zone"] if "out_zone" in g.columns else pd.Series([False] * len(g), index=g.index)
+        swing = g["is_swing"]
+        swstr = g["is_swstr"]
+        bd = calc_batted_stats(last["打席完了結果"]) if len(last) else {"GB": 0, "LD": 0, "FB": 0}
+        rows.append({
+            "試合ID": str(gid), "選手名": bname, "ゾーン行": int(zrow), "ゾーン列": int(zcol),
+            "球種": str(pitch_label), "球速帯": band, "対戦投手利き腕": hand,
+            "球数": int(len(g)), "打席": int(len(last)), "打数": ab_n, "安打": h_n,
+            "二塁打": d2_n, "三塁打": d3_n, "本塁打": hr_n, "四球": bb_n, "死球": hbp_n, "三振": k_n,
+            "SW数": int(swing.sum()), "空振り数": int(swstr.sum()),
+            "ゾーン内投球数": int(in_z.sum()), "ゾーン外投球数": int(out_z.sum()),
+            "ゾーン内SW数": int((swing & in_z).sum()), "ゾーン外SW数": int((swing & out_z).sum()),
+            "ゾーン内空振り数": int((swing & in_z & swstr).sum()),
+            "GB": bd["GB"], "LD": bd["LD"], "FB": bd["FB"],
+        })
+    return pd.DataFrame(rows, columns=cols)
+
+
 # ==================================================
 # 打者版バッターカード用：カウント別成績
 # ==================================================
@@ -1996,6 +2074,9 @@ def run_datamart(
     fact_bat_pitch_splits = build_batter_pitch_splits(df_pitch, pit_hand_map_pm)
     # 打者版バッターカード用：打者×コースゾーン(5x5)×対戦投手利き腕の集計（同じdf_pitchから）
     fact_bat_course_splits = build_batter_course_splits(df_pitch, pit_hand_map_pm)
+    # 打者版バッターカード用：打者×コースゾーン(5x5)×球種×球速帯×対戦投手利き腕の集計
+    # （コース別成績グリッドの球種カテゴリ/球種詳細/球速帯フィルター用の追加データ）
+    fact_bat_course_pitch_splits = build_batter_course_pitch_splits(df_pitch, pit_hand_map_pm)
     # 打者版バッターカード用：打者×カウント×対戦投手利き腕の集計（同じdf_pitchから）
     fact_bat_count_splits = build_batter_count_splits(df_pitch, pit_hand_map_pm)
 
@@ -2491,6 +2572,7 @@ def run_datamart(
         _dm_reorder(fact_pitch_mix_lr,    DM_COL_MIX_LR).to_excel(writer, sheet_name="試合別投球配球_左右別", index=False)
         fact_bat_pitch_splits.to_excel(writer,  sheet_name="試合別打者被球種別成績",  index=False)
         fact_bat_course_splits.to_excel(writer, sheet_name="試合別打者被コース別成績", index=False)
+        fact_bat_course_pitch_splits.to_excel(writer, sheet_name="試合別打者被コース別球種別成績", index=False)
         fact_bat_count_splits.to_excel(writer,  sheet_name="試合別打者被カウント別成績", index=False)
         df_highlights.to_excel(writer,         sheet_name="活躍選手",              index=False)
 
@@ -2504,6 +2586,7 @@ def run_datamart(
         ("試合別投球配球_左右別", fact_pitch_mix_lr),
         ("試合別打者被球種別成績", fact_bat_pitch_splits),
         ("試合別打者被コース別成績", fact_bat_course_splits),
+        ("試合別打者被コース別球種別成績", fact_bat_course_pitch_splits),
         ("試合別打者被カウント別成績", fact_bat_count_splits),
         ("活躍選手",              df_highlights),
     ]:
@@ -2751,6 +2834,39 @@ def _build_dashboard_data(datamart_path: str, pitch_locs: dict | None = None, cb
             "fb":   _iv(r.get("FB")),
         })
 
+    # 試合別打者被コース別球種別成績 → 打者カードのcourseSplitsByPitch
+    # （コースゾーン×球種×球速帯×対戦投手利き腕。コース別成績グリッドの球種カテゴリ/
+    # 球種詳細/球速帯フィルター用。既存のcourseSplitsとは別枠で持つ）
+    bat_course_pitch_splits_idx = defaultdict(list)
+    for r in sheets.get("試合別打者被コース別球種別成績", []):
+        bat_course_pitch_splits_idx[(str(r.get("試合ID", "")), r.get("選手名", ""))].append({
+            "row":  _iv(r.get("ゾーン行")),
+            "col":  _iv(r.get("ゾーン列")),
+            "t":    r.get("球種", ""),
+            "band": r.get("球速帯", ""),
+            "h":    r.get("対戦投手利き腕", ""),
+            "n":    _iv(r.get("球数")),
+            "pa":   _iv(r.get("打席")),
+            "ab":   _iv(r.get("打数")),
+            "h_":   _iv(r.get("安打")),
+            "2b":   _iv(r.get("二塁打")),
+            "3b":   _iv(r.get("三塁打")),
+            "hr":   _iv(r.get("本塁打")),
+            "bb":   _iv(r.get("四球")),
+            "hbp":  _iv(r.get("死球")),
+            "k":    _iv(r.get("三振")),
+            "sw":   _iv(r.get("SW数")),
+            "ws":   _iv(r.get("空振り数")),
+            "z":    _iv(r.get("ゾーン内投球数")),
+            "oz":   _iv(r.get("ゾーン外投球数")),
+            "zsw":  _iv(r.get("ゾーン内SW数")),
+            "ozsw": _iv(r.get("ゾーン外SW数")),
+            "zws":  _iv(r.get("ゾーン内空振り数")),
+            "gb":   _iv(r.get("GB")),
+            "ld":   _iv(r.get("LD")),
+            "fb":   _iv(r.get("FB")),
+        })
+
     # 試合別打者被カウント別成績 → 打者カードのcountSplits（カウント×対戦投手利き腕）
     bat_count_splits_idx = defaultdict(list)
     for r in sheets.get("試合別打者被カウント別成績", []):
@@ -2936,6 +3052,7 @@ def _build_dashboard_data(datamart_path: str, pitch_locs: dict | None = None, cb
             # 打者版バッターカード用：球種×球速帯×対戦投手利き腕の内訳（試合単位で事前集計済み）
             "pitchSplits": bat_pitch_splits_idx.get((str(bat_row.get("試合ID", "")), bat_row.get("選手名", "")), []),
             "courseSplits": bat_course_splits_idx.get((str(bat_row.get("試合ID", "")), bat_row.get("選手名", "")), []),
+            "courseSplitsByPitch": bat_course_pitch_splits_idx.get((str(bat_row.get("試合ID", "")), bat_row.get("選手名", "")), []),
             "countSplits": bat_count_splits_idx.get((str(bat_row.get("試合ID", "")), bat_row.get("選手名", "")), []),
         }
 
