@@ -225,25 +225,37 @@
   .pt-band-table td:first-child{ color:var(--text-dim); font-weight:400; }
   .pt-band-empty{ color:var(--text-dim); text-align:left !important; padding:6px 0; }
 
-  /* 汎用ピル型ボタングループ（pitcher-cards.htmlのhm-controls/hm-filter-btnと同じ見た目・
-     同じ構造：ラベルの下にボタン行、を1つの「絞り込み次元」ごとに縦に並べる）。
-     プルダウンをやめてこの形に統一する：シーズン成績の軸・絞り込み、コース別成績の
-     指標・年度、カウント別・ランナー状況別成績の年度、など。 */
-  .fctrl-block{ display:flex; flex-direction:column; gap:10px; margin-bottom:10px; }
-  .fctrl-group-title{ font-size:11px; font-weight:700; color:var(--text-bright); letter-spacing:0.02em;
-    margin-top:4px; }
+  /* 各項目（指標・分割・年度・軸1〜3・対左右・球種カテゴリ等）は必ず1行を占有し、
+     他の項目と同じ行に混ざらないようにする。項目内はラベルと値を横並びにする
+     （ラベル幅を揃えることで、値の開始位置が縦にきれいに揃う）。
+     見出し（軸・フィルター）とラベル（指標・年度等）はフォントサイズ・太さ・色を統一しておく。 */
+  .fctrl-block{ display:flex; flex-direction:column; gap:8px; margin-bottom:10px; }
+  .fctrl-group-title{ font-size:11.5px; font-weight:700; color:var(--text-bright); letter-spacing:0.02em;
+    margin-top:6px; padding-bottom:4px; border-bottom:1px solid rgba(148,163,184,0.15); }
   .fctrl-group-title:first-child{ margin-top:0; }
-  /* 軸1/軸2/軸3、対左右/球種カテゴリ/球種詳細/球速帯 のように、同じ見出し（軸・フィルター）に
-     属する項目は縦に積まず横に並べる（画面幅が足りなければ折り返す）。 */
-  .fctrl-group{ display:flex; flex-wrap:wrap; gap:14px; }
-  .fctrl-row{ display:flex; flex-direction:column; align-items:flex-start; gap:6px; }
-  .fctrl-label{ font-size:10px; color:var(--text-dim); font-weight:700; }
+  .fctrl-row{ display:flex; align-items:center; flex-wrap:wrap; gap:6px 10px; }
+  .fctrl-label{ font-size:11.5px; color:var(--text-dim); font-weight:700; min-width:78px; flex-shrink:0; }
   .fctrl-select{ background:var(--panel-alt); color:var(--text-bright); border:1px solid rgba(148,163,184,0.2);
     border-radius:6px; padding:5px 8px; font-size:11.5px; min-width:120px; }
   .pill-group{ display:flex; gap:4px; flex-wrap:wrap; }
   .pill-btn{ border:1px solid rgba(255,255,255,0.1); background:transparent; color:var(--text-dim);
-    font-size:10.5px; font-weight:600; padding:4px 10px; border-radius:6px; cursor:pointer; white-space:nowrap; }
+    font-size:11px; font-weight:600; padding:4px 10px; border-radius:6px; cursor:pointer; white-space:nowrap; }
   .pill-btn.active{ border-color:rgba(59,130,246,0.7); background:rgba(59,130,246,0.18); color:var(--blue-text); }
+  /* 複数選択できるフィルター（対左右・球種カテゴリ・球種詳細・球速帯）用のドロップダウン。
+     ボタン＋チェックリストのポップアップで、選択中の値をボタン内に要約表示する。 */
+  .msel{ position:relative; }
+  .msel-btn{ background:var(--panel-alt); color:var(--text-bright); border:1px solid rgba(148,163,184,0.2);
+    border-radius:6px; padding:5px 10px; font-size:11.5px; cursor:pointer; min-width:120px; text-align:left;
+    display:flex; align-items:center; justify-content:space-between; gap:8px; }
+  .msel-btn::after{ content:"⌄"; color:var(--text-dim); font-size:11px; }
+  .msel-panel{ position:absolute; top:calc(100% + 4px); left:0; z-index:20; background:var(--panel-alt);
+    border:1px solid rgba(148,163,184,0.25); border-radius:8px; padding:6px; min-width:160px; max-height:220px;
+    overflow-y:auto; box-shadow:0 8px 24px rgba(0,0,0,0.4); display:none; }
+  .msel.open .msel-panel{ display:block; }
+  .msel-opt{ display:flex; align-items:center; gap:6px; padding:4px 6px; border-radius:5px; font-size:11.5px;
+    color:var(--text-bright); cursor:pointer; white-space:nowrap; }
+  .msel-opt:hover{ background:rgba(148,163,184,0.12); }
+  .msel-opt input{ accent-color:var(--blue); }
 
   /* コース別成績グリッド（対右投手・対左投手を並べて表示） */
   .cz-split-toggle{ display:flex; gap:3px; background:var(--panel-alt); border-radius:6px; padding:2px; }
@@ -1139,29 +1151,25 @@ function renderCourseGrid(list, metric, splitMode, isLeft){
 function renderCourseZoneSection(seasonsMap, years, currentYear){
   return `
     <div class="fctrl-block">
-      <div class="fctrl-group">
-        <div class="fctrl-row">
-          <span class="fctrl-label">指標</span>
-          <div class="pill-group cz-metric-group">
-            ${CZ_METRICS.map(([v, l], i) => `<button type="button" class="pill-btn${i === 0 ? " active" : ""}" data-metric="${v}">${escapeHtml(l)}</button>`).join("")}
-          </div>
+      <div class="fctrl-row">
+        <span class="fctrl-label">指標</span>
+        <div class="pill-group cz-metric-group">
+          ${CZ_METRICS.map(([v, l], i) => `<button type="button" class="pill-btn${i === 0 ? " active" : ""}" data-metric="${v}">${escapeHtml(l)}</button>`).join("")}
         </div>
-        <div class="fctrl-row">
-          <span class="fctrl-label">分割</span>
-          <div class="pill-group cz-split-group">
-            <button type="button" class="pill-btn active" data-split="9">9分割</button>
-            <button type="button" class="pill-btn" data-split="25">25分割（ボールゾーン含む）</button>
-          </div>
+      </div>
+      <div class="fctrl-row">
+        <span class="fctrl-label">分割</span>
+        <div class="pill-group cz-split-group">
+          <button type="button" class="pill-btn active" data-split="9">9分割</button>
+          <button type="button" class="pill-btn" data-split="25">25分割（ボールゾーン含む）</button>
         </div>
       </div>
       <div class="fctrl-group-title">フィルター</div>
-      <div class="fctrl-group">
-        <div class="fctrl-row">
-          <span class="fctrl-label">年度</span>
-          <select class="fctrl-select cz-year-select">
-            ${years.map(y => `<option value="${escapeHtml(y)}"${y === currentYear ? " selected" : ""}>${escapeHtml(y)}年</option>`).join("")}
-          </select>
-        </div>
+      <div class="fctrl-row">
+        <span class="fctrl-label">年度</span>
+        <select class="fctrl-select cz-year-select">
+          ${years.map(y => `<option value="${escapeHtml(y)}"${y === currentYear ? " selected" : ""}>${escapeHtml(y)}年</option>`).join("")}
+        </select>
       </div>
     </div>
     <div data-cz-body></div>
@@ -1308,21 +1316,19 @@ function renderSituationSection(seasonsMap, years, currentYear){
   return `
     <div class="fctrl-block">
       <div class="fctrl-group-title">フィルター</div>
-      <div class="fctrl-group">
-        <div class="fctrl-row">
-          <span class="fctrl-label">対左右</span>
-          <select class="fctrl-select st-hand-select">
-            <option value="all">全体</option>
-            <option value="vsR">対右投手</option>
-            <option value="vsL">対左投手</option>
-          </select>
-        </div>
-        <div class="fctrl-row">
-          <span class="fctrl-label">年度</span>
-          <select class="fctrl-select st-year-select">
-            ${years.map(y => `<option value="${escapeHtml(y)}"${y === currentYear ? " selected" : ""}>${escapeHtml(y)}年</option>`).join("")}
-          </select>
-        </div>
+      <div class="fctrl-row">
+        <span class="fctrl-label">対左右</span>
+        <select class="fctrl-select st-hand-select">
+          <option value="all">全体</option>
+          <option value="vsR">対右投手</option>
+          <option value="vsL">対左投手</option>
+        </select>
+      </div>
+      <div class="fctrl-row">
+        <span class="fctrl-label">年度</span>
+        <select class="fctrl-select st-year-select">
+          ${years.map(y => `<option value="${escapeHtml(y)}"${y === currentYear ? " selected" : ""}>${escapeHtml(y)}年</option>`).join("")}
+        </select>
       </div>
     </div>
     <div data-st-table></div>
@@ -1349,21 +1355,19 @@ function renderCountSection(years, currentYear){
   return `
     <div class="fctrl-block">
       <div class="fctrl-group-title">フィルター</div>
-      <div class="fctrl-group">
-        <div class="fctrl-row">
-          <span class="fctrl-label">対左右</span>
-          <select class="fctrl-select ct-hand-select">
-            <option value="all">全体</option>
-            <option value="vsR">対右投手</option>
-            <option value="vsL">対左投手</option>
-          </select>
-        </div>
-        <div class="fctrl-row">
-          <span class="fctrl-label">年度</span>
-          <select class="fctrl-select ct-year-select">
-            ${years.map(y => `<option value="${escapeHtml(y)}"${y === currentYear ? " selected" : ""}>${escapeHtml(y)}年</option>`).join("")}
-          </select>
-        </div>
+      <div class="fctrl-row">
+        <span class="fctrl-label">対左右</span>
+        <select class="fctrl-select ct-hand-select">
+          <option value="all">全体</option>
+          <option value="vsR">対右投手</option>
+          <option value="vsL">対左投手</option>
+        </select>
+      </div>
+      <div class="fctrl-row">
+        <span class="fctrl-label">年度</span>
+        <select class="fctrl-select ct-year-select">
+          ${years.map(y => `<option value="${escapeHtml(y)}"${y === currentYear ? " selected" : ""}>${escapeHtml(y)}年</option>`).join("")}
+        </select>
       </div>
     </div>
     <div data-ct-table></div>
@@ -1516,12 +1520,18 @@ function pvAxisValues(dim, years, pitchVals){
   return [null];
 }
 
-function pvFilterPitchList(list, pf){
-  return list.filter(pt => {
-    if(pf.detail && pf.detail !== "all" && pt.pitchType !== pf.detail) return false;
-    if(pf.mid && pf.mid !== "all" && (pt.pitchCategoryMid || "その他") !== pf.mid) return false;
-    return true;
-  });
+// pf.hand/mid/detail/band は、軸として使われている場合は単一の値（文字列）、
+// フィルターとしてのみ使われている場合は複数選択ドロップダウンからの配列（0件〜複数件）
+// のどちらかで来る。ここで統一的に扱えるよう正規化する。
+// mode: "none"（絞り込み無し＝all/未選択） / "one"（単一値に特定） / "many"（複数値でOR絞り込み）
+function pvSelKind(v){
+  if(Array.isArray(v)){
+    if(v.length === 0) return { mode: "none" };
+    if(v.length === 1) return { mode: "one", value: v[0] };
+    return { mode: "many", value: v };
+  }
+  if(v == null || v === "all") return { mode: "none" };
+  return { mode: "one", value: v };
 }
 
 // 複数のエントリ（球種詳細や球速帯など、pa/avg/hr/rbi/obp/slg/ops/...の形を持つオブジェクト）
@@ -1568,51 +1578,74 @@ const PV_EMPTY_ROW = { pa: null, count: null, avg: null, hr: null, rbi: null, ob
   k_pct: null, bb_pct: null, z_swing_pct: null, z_contact_pct: null, whiff_pct: null, chase_pct: null, gb_pct: null, _rk: null };
 
 // 1つのピボットセル（軸の値の組み合わせ1通り）ぶんのデータを、最も具体的なランキング母集団を
-// 優先して取ってくる。
+// 優先して取ってくる。単一値に特定できるケース（軸として使われている、またはフィルターで
+// 1つだけ選ばれている）ではサーバー側の正確な順位付き集計を使い、複数選択でのOR絞り込みの
+// 場合はクライアント側で該当エントリを合算する（この場合は順位母集団が定義できないため
+// 順位は付かない）。
 function buildPivotCell(seasonsMap, pf, rankPool){
   const year = pf.year;
-  const hand = pf.hand || "all";
   const season = seasonsMap[year] || {};
-  const detailPinned = pf.detail && pf.detail !== "all";
-  const midPinned = pf.mid && pf.mid !== "all";
-  const bandPinned = pf.band && pf.band !== "all";
+  const handSel = pvSelKind(pf.hand);
+  const detailSel = pvSelKind(pf.detail);
+  const midSel = pvSelKind(pf.mid);
+  const bandSel = pvSelKind(pf.band);
+  // 対左右を両方選択した場合は「全体」と同じ意味になる（合算すれば全体と一致するため）
+  const handKey = handSel.mode === "one" ? handSel.value : "all";
+  const poolRk = season.splitRankings ? (season.splitRankings[rankPool] || null) : null;
 
-  if(!detailPinned && !midPinned && !bandPinned){
-    const stat = hand === "all" ? (season.overall || {}) : (season.splits?.[hand] || {});
-    const poolRk = season.splitRankings ? (season.splitRankings[rankPool] || null) : null;
-    return { ...pvStatFields(stat), _rk: poolRk ? (poolRk[hand] || null) : null };
+  if(detailSel.mode === "none" && midSel.mode === "none" && bandSel.mode === "none"){
+    const stat = handKey === "all" ? (season.overall || {}) : (season.splits?.[handKey] || {});
+    return { ...pvStatFields(stat), _rk: poolRk ? (poolRk[handKey] || null) : null };
   }
 
-  if(detailPinned){
-    const pt = (season.byPitchType?.[hand] || []).find(p => p.pitchType === pf.detail);
+  if(detailSel.mode === "one"){
+    const pt = (season.byPitchType?.[handKey] || []).find(p => p.pitchType === detailSel.value);
     if(!pt) return { ...PV_EMPTY_ROW };
-    if(bandPinned){
-      const band = (pt.byVelocityBand || []).find(b => b.band === pf.band);
+    if(bandSel.mode === "one"){
+      const band = (pt.byVelocityBand || []).find(b => b.band === bandSel.value);
       return band ? { ...pvStatFields(band), _rk: band.rankings || null } : { ...PV_EMPTY_ROW };
+    }
+    if(bandSel.mode === "many"){
+      const bandEntries = (pt.byVelocityBand || []).filter(b => bandSel.value.includes(b.band));
+      const agg = aggregatePitchEntries(bandEntries);
+      return agg ? { ...pvStatFields(agg), _rk: null } : { ...PV_EMPTY_ROW };
     }
     return { ...pvStatFields(pt), _rk: pt.rankings || null };
   }
 
-  if(bandPinned){
-    if(!midPinned){
-      // 球種を一切絞り込んでいない場合：球種を問わず球速帯だけで集約したバックエンド側の
-      // byVelocityBandOnly（順位計算済み）をそのまま使う。
-      const stat = season.byVelocityBandOnly?.[hand]?.[pf.band];
+  // ここに来るのは：球種詳細が複数選択（OR）、または球種カテゴリ/球速帯のいずれかで
+  // 絞り込みが効いている場合。byPitchTypeをmid/detailでOR絞り込みしてから必要に応じて
+  // band単位へ展開・合算する。
+  let list = season.byPitchType?.[handKey] || [];
+  list = list.filter(pt => {
+    if(midSel.mode === "one" && (pt.pitchCategoryMid || "その他") !== midSel.value) return false;
+    if(midSel.mode === "many" && !midSel.value.includes(pt.pitchCategoryMid || "その他")) return false;
+    if(detailSel.mode === "many" && !detailSel.value.includes(pt.pitchType)) return false;
+    return true;
+  });
+
+  if(bandSel.mode === "none"){
+    // 球種カテゴリを1つだけ選んでいる（球種詳細・球速帯の絞り込みは無い）特殊ケースは、
+    // サーバー側の正確な順位付き集計（byPitchCategoryMid）をそのまま使う。
+    if(midSel.mode === "one" && detailSel.mode === "none"){
+      const stat = season.byPitchCategoryMid?.[handKey]?.[midSel.value];
       return stat ? { ...pvStatFields(stat), _rk: stat.rankings || null } : { ...PV_EMPTY_ROW };
     }
-    // midで球種を絞り込みつつ球速帯も指定した場合：該当する複数球種の球速帯エントリを
-    // クライアント側で合算する（この組み合わせの順位母集団は無いので順位は付けない）。
-    const list = pvFilterPitchList(season.byPitchType?.[hand] || [], pf);
-    const bandEntries = list.flatMap(pt => (pt.byVelocityBand || []).filter(b => b.band === pf.band));
-    const agg = aggregatePitchEntries(bandEntries);
+    const agg = aggregatePitchEntries(list);
     return agg ? { ...pvStatFields(agg), _rk: null } : { ...PV_EMPTY_ROW };
   }
 
-  if(midPinned){
-    const stat = season.byPitchCategoryMid?.[hand]?.[pf.mid];
+  // 球種の絞り込みが一切無く、球速帯だけ単一選択している特殊ケースは、サーバー側の
+  // byVelocityBandOnly（順位計算済み）をそのまま使う。
+  if(midSel.mode === "none" && detailSel.mode === "none" && bandSel.mode === "one"){
+    const stat = season.byVelocityBandOnly?.[handKey]?.[bandSel.value];
     return stat ? { ...pvStatFields(stat), _rk: stat.rankings || null } : { ...PV_EMPTY_ROW };
   }
-  return { ...PV_EMPTY_ROW };
+  const bandEntries = list.flatMap(pt => (pt.byVelocityBand || []).filter(b =>
+    bandSel.mode === "one" ? b.band === bandSel.value : bandSel.value.includes(b.band)
+  ));
+  const agg = aggregatePitchEntries(bandEntries);
+  return agg ? { ...pvStatFields(agg), _rk: null } : { ...PV_EMPTY_ROW };
 }
 
 // 軸1〜3（activeAxes、最大3つ）の値のデカルト積で全行を組み立てる。
@@ -1682,51 +1715,107 @@ function pvSelectOptions(options, activeValue){
   return options.map(([v, l]) => `<option value="${escapeHtml(v)}"${activeValue === v ? " selected" : ""}>${escapeHtml(l)}</option>`).join("");
 }
 
+// ── 複数選択ドロップダウン（対左右・球種カテゴリ・球種詳細・球速帯で使用） ──
+// options: [[value, label], ...]。selectedValues が空、または全選択中は「すべて」と要約表示する。
+function renderMultiSelect(cls, options, selectedValues){
+  const isAll = selectedValues.length === 0 || selectedValues.length === options.length;
+  const summary = isAll ? "すべて" : selectedValues.map(v => (options.find(o => o[0] === v) || [v, v])[1]).join("、");
+  return `
+    <div class="msel ${cls}">
+      <button type="button" class="msel-btn" data-msel-toggle>${escapeHtml(summary)}</button>
+      <div class="msel-panel">
+        ${options.map(([v, l]) => `
+          <label class="msel-opt">
+            <input type="checkbox" value="${escapeHtml(v)}"${selectedValues.includes(v) ? " checked" : ""}>
+            ${escapeHtml(l)}
+          </label>
+        `).join("")}
+      </div>
+    </div>
+  `;
+}
+// 現在チェックされている値を返す。何もチェックされていなければ「すべて」を意味する空配列を返す。
+function multiSelectValues(wrap){
+  return wrap ? [...wrap.querySelectorAll("input[type=checkbox]:checked")].map(cb => cb.value) : [];
+}
+function multiSelectSummaryUpdate(wrap, options){
+  const btn = wrap.querySelector("[data-msel-toggle]");
+  const selected = multiSelectValues(wrap);
+  const isAll = selected.length === 0 || selected.length === options.length;
+  btn.textContent = isAll ? "すべて" : selected.map(v => (options.find(o => o[0] === v) || [v, v])[1]).join("、");
+}
+// scope内の.mselすべてに開閉・チェック変更の配線をする。onChangeは値が変わるたびに呼ばれる。
+function wireMultiSelects(scope, onChange){
+  scope.querySelectorAll(".msel").forEach(wrap => {
+    const btn = wrap.querySelector("[data-msel-toggle]");
+    const optionLabels = [...wrap.querySelectorAll(".msel-opt")].map(lab => [
+      lab.querySelector("input").value, lab.textContent.trim(),
+    ]);
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      scope.querySelectorAll(".msel.open").forEach(o => { if(o !== wrap) o.classList.remove("open"); });
+      wrap.classList.toggle("open");
+    });
+    wrap.querySelectorAll("input[type=checkbox]").forEach(cb => {
+      cb.addEventListener("change", () => {
+        multiSelectSummaryUpdate(wrap, optionLabels);
+        onChange();
+      });
+    });
+  });
+  if(!document._mselOutsideClickWired){
+    document.addEventListener("click", () => {
+      document.querySelectorAll(".msel.open").forEach(o => o.classList.remove("open"));
+    });
+    document._mselOutsideClickWired = true;
+  }
+}
+
 function renderPivotSection(seasonsMap, years){
   const pitchVals = pvCollectPitchValues(seasonsMap, years);
   const dimOptions = (includeNone) => {
     const noneOpt = includeNone ? `<option value="none">なし</option>` : "";
     return noneOpt + Object.entries(PV_DIMS).map(([k, d]) => `<option value="${k}">${escapeHtml(d.label)}</option>`).join("");
   };
+  const HAND_OPTIONS = [["vsR", "対右投手"], ["vsL", "対左投手"]];
+  const midOptions = pitchVals.mids.map(v => [v, v]);
+  const detailOptions = pitchVals.details.map(v => [v, v]);
+  const bandOptions = PV_BAND_VALUES.map(v => [v, v]);
   return `
     <div class="fctrl-block">
       <div class="fctrl-group-title">軸</div>
-      <div class="fctrl-group">
-        <div class="fctrl-row">
-          <span class="fctrl-label">軸1</span>
-          <select class="fctrl-select pv-axis1-select">${dimOptions(false)}</select>
-        </div>
-        <div class="fctrl-row">
-          <span class="fctrl-label">軸2</span>
-          <select class="fctrl-select pv-axis2-select">${dimOptions(true)}</select>
-        </div>
-        <div class="fctrl-row">
-          <span class="fctrl-label">軸3</span>
-          <select class="fctrl-select pv-axis3-select">${dimOptions(true)}</select>
-        </div>
+      <div class="fctrl-row">
+        <span class="fctrl-label">軸1</span>
+        <select class="fctrl-select pv-axis1-select">${dimOptions(false)}</select>
+      </div>
+      <div class="fctrl-row">
+        <span class="fctrl-label">軸2</span>
+        <select class="fctrl-select pv-axis2-select">${dimOptions(true)}</select>
+      </div>
+      <div class="fctrl-row">
+        <span class="fctrl-label">軸3</span>
+        <select class="fctrl-select pv-axis3-select">${dimOptions(true)}</select>
       </div>
       <div class="fctrl-group-title">フィルター</div>
-      <div class="fctrl-group">
-        <div class="fctrl-row" data-pv-filter-wrap="year">
-          <span class="fctrl-label">年度</span>
-          <select class="fctrl-select pv-filter-year">${pvSelectOptions(years.map(y => [y, y]), years[0])}</select>
-        </div>
-        <div class="fctrl-row" data-pv-filter-wrap="hand">
-          <span class="fctrl-label">対左右</span>
-          <select class="fctrl-select pv-filter-hand">${pvSelectOptions([["all", "全体"], ["vsR", "対右投手"], ["vsL", "対左投手"]], "all")}</select>
-        </div>
-        <div class="fctrl-row" data-pv-filter-wrap="mid">
-          <span class="fctrl-label">球種カテゴリ</span>
-          <select class="fctrl-select pv-filter-mid">${pvSelectOptions([["all", "すべて"], ...pitchVals.mids.map(v => [v, v])], "all")}</select>
-        </div>
-        <div class="fctrl-row" data-pv-filter-wrap="detail">
-          <span class="fctrl-label">球種詳細</span>
-          <select class="fctrl-select pv-filter-detail">${pvSelectOptions([["all", "すべて"], ...pitchVals.details.map(v => [v, v])], "all")}</select>
-        </div>
-        <div class="fctrl-row" data-pv-filter-wrap="band">
-          <span class="fctrl-label">球速帯</span>
-          <select class="fctrl-select pv-filter-band">${pvSelectOptions([["all", "すべて"], ...PV_BAND_VALUES.map(v => [v, v])], "all")}</select>
-        </div>
+      <div class="fctrl-row">
+        <span class="fctrl-label">年度</span>
+        <select class="fctrl-select pv-filter-year">${pvSelectOptions(years.map(y => [y, y]), years[0])}</select>
+      </div>
+      <div class="fctrl-row" data-pv-filter-wrap="hand">
+        <span class="fctrl-label">対左右</span>
+        ${renderMultiSelect("pv-filter-hand", HAND_OPTIONS, [])}
+      </div>
+      <div class="fctrl-row" data-pv-filter-wrap="mid">
+        <span class="fctrl-label">球種カテゴリ</span>
+        ${renderMultiSelect("pv-filter-mid", midOptions, [])}
+      </div>
+      <div class="fctrl-row" data-pv-filter-wrap="detail">
+        <span class="fctrl-label">球種詳細</span>
+        ${renderMultiSelect("pv-filter-detail", detailOptions, [])}
+      </div>
+      <div class="fctrl-row" data-pv-filter-wrap="band">
+        <span class="fctrl-label">球速帯</span>
+        ${renderMultiSelect("pv-filter-band", bandOptions, [])}
       </div>
     </div>
     <div data-pv-table></div>
@@ -1763,14 +1852,14 @@ function wirePivotSection(scope, seasonsMap, years, rankPool){
     const activeAxes = [axis1, axis2, axis3].filter(a => a !== "none");
     updateFilterVisibility(new Set(activeAxes));
     const filters = {
-      year: filterYear.value, hand: filterHand.value,
-      mid: filterMid.value, detail: filterDetail.value, band: filterBand.value,
+      year: filterYear.value,
+      hand: multiSelectValues(filterHand), mid: multiSelectValues(filterMid),
+      detail: multiSelectValues(filterDetail), band: multiSelectValues(filterBand),
     };
     table.innerHTML = renderPivotTable(buildPivotRows3(seasonsMap, years, activeAxes, filters, rankPool), activeAxes);
   }
-  [axis1Sel, axis2Sel, axis3Sel, filterYear, filterHand, filterMid, filterDetail, filterBand].forEach(elm => {
-    elm.addEventListener("change", redraw);
-  });
+  [axis1Sel, axis2Sel, axis3Sel, filterYear].forEach(elm => elm.addEventListener("change", redraw));
+  wireMultiSelects(scope, redraw);
   redraw();
 }
 
