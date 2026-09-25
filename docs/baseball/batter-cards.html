@@ -184,11 +184,17 @@
   .split-table td, .disc-table td, .pt-table td, .pt-band-table td{ text-align:right; padding:7px 8px; border-bottom:1px solid rgba(148,163,184,0.08); white-space:nowrap; }
   .split-table td:first-child, .disc-table td:first-child, .pt-table td:first-child, .pt-band-table td:first-child{ text-align:left; font-weight:700; color:var(--text-bright); }
   .kst-group-cell{ vertical-align:middle; background:var(--panel-alt); border-right:1px solid rgba(148,163,184,0.15);
-    font-size:11px; color:var(--text-dim); text-align:center; }
+    font-size:11px; color:var(--text-dim); text-align:center;
+    position:sticky; left:0; z-index:1; width:70px; }
   /* カウント別成績のようにグループ列(rowspan)があると、グループの先頭行だけtd数が1つ多くなり
      :first-child頼みのスタイル（太字・左寄せ）がずれてしまうため、キー列には明示クラスで固定する。
-     カウント区分・カウントの値は見やすさのため中央揃えにする（他の列は右寄せ/左寄せのまま）。 */
-  .split-table td.kst-key-cell{ text-align:center; font-weight:700; color:var(--text-bright); }
+     カウント区分・カウントの値は見やすさのため中央揃えにする（他の列は右寄せ/左寄せのまま）。
+     横スクロール時もカウント区分・カウント（ランナー状況別成績では状況のみ）が見えるよう固定する。
+     グループ列がある表（カウント別成績）はrenderKeyedStatTable側でleft:70px（グループ列の幅ぶん）を
+     インラインで指定し、グループ列が無い表（ランナー状況別成績）はデフォルトのleft:0のままにする。 */
+  .split-table td.kst-key-cell, .split-table th.kst-key-cell{ text-align:center; font-weight:700; color:var(--text-bright);
+    position:sticky; left:0; z-index:1; background:var(--panel); }
+  .split-table thead th.kst-group-cell, .split-table thead th.kst-key-cell{ z-index:2; }
   .split-table tbody tr:hover, .disc-table tbody tr:hover{ background:rgba(148,163,184,0.05); }
 
   /* テーブルが画面幅を超える場合の横スクロールラッパー（split-table等、汎用） */
@@ -298,8 +304,24 @@
   .cz-sub{ font-size:8.5px; color:var(--text-dim); margin-top:1px; }
   .cz-note{ font-size:10.5px; color:var(--text-dim); margin-top:8px; }
   @media (max-width:720px){
-    .cz-cell{ width:44px; height:38px; }
-    .cz-val{ font-size:10.5px; }
+    .cz-cell{ width:36px; height:34px; }
+    .cz-val{ font-size:9.5px; }
+    .cz-sub{ font-size:7.5px; }
+    .cz-pair{ gap:10px; }
+    /* 軸1〜3・フィルターの各項目を、画面幅にかかわらず必ず3つまでは折り返さず
+       1行に収める（3列グリッド）。4つ目以降（球種詳細・球速帯など）だけ次の行に回る。 */
+    .fctrl-group{ display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:8px 6px; }
+    .fctrl-row{ width:100%; min-width:0; }
+    .fctrl-select, .msel-btn{ width:100%; min-width:0; max-width:none; box-sizing:border-box; }
+    /* シーズン成績等の「値＋順位」表示は、常時2行スタック（rk-val/rk-subがdiv=ブロック要素の
+       ため改行される）だと縦に間延びして見づらいので、モバイルでは同じ行に収める */
+    .rk-val, .rk-sub{ display:inline; }
+    .rk-sub{ margin-left:4px; }
+    /* シーズン成績表（軸で球種カテゴリ等を選んだ時の内訳表）は指標列が多くなりがちなので、
+       固定列（軸ラベル）を狭め、文字も一段階小さくして一度に見える指標の数を増やす */
+    .pv-result-table{ font-size:10.5px; }
+    .pv-result-table th, .pv-result-table td{ padding:5px 6px; }
+    .pv-result-table th.pv-axis-col, .pv-result-table td.pv-axis-col{ min-width:60px; }
   }
 
   /* シーズン成績ピボット表（軸1〜3・絞り込みはfctrl-block/pill-btnで表示、結果テーブルのみ） */
@@ -1478,11 +1500,11 @@ function renderKeyedStatTable(list, keyLabel, keyField, metrics, emptyNote, grou
       const bg = magnitudeBg(s[m], columnsAll[m], KEYED_HUES[i % KEYED_HUES.length], higherIsBetter);
       return `<td${bg ? ` style="background:${bg}"` : ""}>${text}</td>`;
     }).join("");
-    return `<tr>${groupCell}<td class="kst-key-cell">${escapeHtml(s[keyField] ?? "-")}</td><td>${s.pa ?? "-"}</td>${cells}</tr>`;
+    return `<tr>${groupCell}<td class="kst-key-cell"${groupSpec ? ` style="left:70px"` : ""}>${escapeHtml(s[keyField] ?? "-")}</td><td>${s.pa ?? "-"}</td>${cells}</tr>`;
   }).join("");
-  const groupHeadTh = groupSpec ? `<th>${escapeHtml(groupSpec.header)}</th>` : "";
+  const groupHeadTh = groupSpec ? `<th class="kst-group-cell">${escapeHtml(groupSpec.header)}</th>` : "";
   return `<div class="table-scroll"><table class="split-table">
-    <thead><tr>${groupHeadTh}<th>${escapeHtml(keyLabel)}</th><th>打席</th>${metrics.map(([, , l]) => `<th>${escapeHtml(l)}</th>`).join("")}</tr></thead>
+    <thead><tr>${groupHeadTh}<th class="kst-key-cell"${groupSpec ? ` style="left:70px"` : ""}>${escapeHtml(keyLabel)}</th><th>打席</th>${metrics.map(([, , l]) => `<th>${escapeHtml(l)}</th>`).join("")}</tr></thead>
     <tbody>${rows}</tbody>
   </table></div>`;
 }
@@ -1867,7 +1889,11 @@ function renderPivotTable(rows, activeAxes){
     ? [PV_FULL_COLUMNS[0], ["count", "球数"], ...PV_FULL_COLUMNS.slice(1)]
     : PV_FULL_COLUMNS;
   const headCols = activeAxes.map(dim => PV_DIMS[dim]?.label || "-");
-  const axisColStyle = (i) => ` class="pv-axis-col" style="left:${i * 92}px"`;
+  // 固定列（軸ラベル）の幅はCSSのmin-width（.pv-axis-col）と揃える必要がある
+  // （position:stickyのleftオフセットはJS側で計算するしかないため）。モバイルでは
+  // より多くの指標列を一度に見せたいので、CSS側のモバイル用min-widthに合わせて狭める。
+  const axisColWidth = window.matchMedia("(max-width:720px)").matches ? 60 : 92;
+  const axisColStyle = (i) => ` class="pv-axis-col" style="left:${i * axisColWidth}px"`;
 
   const trs = rows.map(r => {
     const labelCells = activeAxes.map((_, i) => `<td${axisColStyle(i)}>${escapeHtml(r[`_label${i + 1}`] ?? "-")}</td>`);
