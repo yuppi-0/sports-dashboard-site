@@ -282,6 +282,12 @@
   .msel-opt input{ accent-color:var(--blue); flex-shrink:0; }
   .msel-empty{ font-size:11px; color:var(--text-dim); padding:4px 6px; }
 
+  /* 対戦投手別成績（得意/苦手投手）：通算/年度別トグル＋2列（得意/苦手）テーブル */
+  .vp-note{ font-size:10.5px; color:var(--text-dim); margin:2px 0 10px; }
+  .vp-pair{ display:flex; gap:16px; flex-wrap:wrap; }
+  .vp-col{ flex:1 1 260px; min-width:0; }
+  .vp-col-label{ font-size:11px; font-weight:700; color:var(--text-dim); margin-bottom:6px; }
+
   /* コース別成績グリッド（対右投手・対左投手を並べて表示） */
   .cz-split-toggle{ display:flex; gap:3px; background:var(--panel-alt); border-radius:6px; padding:2px; }
   .cz-split-toggle button{ border:none; background:transparent; color:var(--text-dim); font-size:10.5px; font-weight:700;
@@ -1250,6 +1256,113 @@ function renderCourseGrid(list, metric, splitMode, isLeft){
   return html;
 }
 
+// ── 対戦投手別成績（得意/苦手投手） ──
+const VS_PITCHER_MIN_PA = 10;  // これ未満はサンプル過小として集計対象から除外する
+
+// 得意/苦手投手の判定に使う基本成績（打率・長打率・出塁率・OPS）を、生のカウント
+// （打席・打数・安打・二塁打・三塁打・本塁打・四球・死球）から算出する。
+function vsPitcherCalc(e){
+  const ab = e.ab || 0, h = e.h_ || 0, d2 = e["2b"] || 0, d3 = e["3b"] || 0, hr = e.hr || 0;
+  const bb = e.bb || 0, hbp = e.hbp || 0;
+  const singles = Math.max(h - d2 - d3 - hr, 0);
+  const tb = singles + d2 * 2 + d3 * 3 + hr * 4;
+  const avg = ab > 0 ? h / ab : null;
+  const slg = ab > 0 ? tb / ab : null;
+  const obpDen = ab + bb + hbp;
+  const obp = obpDen > 0 ? (h + bb + hbp) / obpDen : null;
+  const ops = (avg != null && slg != null && obp != null) ? slg + obp : null;
+  return { avg, slg, obp, ops };
+}
+
+// 通算表示用：seasonsMapの全年度ぶんのvsPitcherを投手名ごとに合算する
+// （コース別成績の球種フィルターと同じ「生カウントを積み上げてから計算する」方式）。
+function vsPitcherMerged(seasonsMap, years){
+  const acc = {};
+  years.forEach(y => {
+    ((seasonsMap[y] || {}).vsPitcher || []).forEach(e => {
+      const a = acc[e.pitcher] || (acc[e.pitcher] = { pitcher: e.pitcher, pa: 0, ab: 0, h_: 0, "2b": 0, "3b": 0, hr: 0, bb: 0, hbp: 0, k: 0 });
+      a.pa += e.pa || 0; a.ab += e.ab || 0; a.h_ += e.h_ || 0;
+      a["2b"] += e["2b"] || 0; a["3b"] += e["3b"] || 0; a.hr += e.hr || 0;
+      a.bb += e.bb || 0; a.hbp += e.hbp || 0; a.k += e.k || 0;
+    });
+  });
+  return Object.values(acc);
+}
+
+function renderVsPitcherTable(list){
+  if(list.length === 0) return `<div class="pv-empty">対象データがありません（${VS_PITCHER_MIN_PA}打席以上の対戦がまだありません）。</div>`;
+  const rows = list.map(e => {
+    const s = vsPitcherCalc(e);
+    return `<tr><td>${escapeHtml(e.pitcher)}</td><td>${e.pa}</td><td>${fmtAvg(s.avg)}</td><td>${e.hr}</td><td>${fmt(s.ops, 3)}</td></tr>`;
+  }).join("");
+  return `<div class="table-scroll"><table class="split-table">
+    <thead><tr><th>投手</th><th>打席</th><th>打率</th><th>本塁打</th><th>OPS</th></tr></thead>
+    <tbody>${rows}</tbody>
+  </table></div>`;
+}
+
+function renderVsPitcherSection(years, currentYear){
+  return `
+    <div class="fctrl-block">
+      <div class="fctrl-row">
+        <span class="fctrl-label">集計</span>
+        <div class="pill-group vp-scope-group">
+          <button type="button" class="pill-btn active" data-scope="career">通算</button>
+          <button type="button" class="pill-btn" data-scope="season">年度別</button>
+        </div>
+      </div>
+      <div class="fctrl-row" data-vp-year-row style="display:none">
+        <span class="fctrl-label">年度</span>
+        <select class="fctrl-select vp-year-select">
+          ${years.map(y => `<option value="${escapeHtml(y)}"${y === currentYear ? " selected" : ""}>${escapeHtml(y)}年</option>`).join("")}
+        </select>
+      </div>
+    </div>
+    <div class="vp-note">${VS_PITCHER_MIN_PA}打席以上対戦した投手のみが対象です。サンプルが少ない投手は参考値程度に見てください。</div>
+    <div class="vp-pair">
+      <div class="vp-col">
+        <div class="vp-col-label">得意投手（OPSが高い順・上位5人）</div>
+        <div data-vp-good></div>
+      </div>
+      <div class="vp-col">
+        <div class="vp-col-label">苦手投手（OPSが低い順・上位5人）</div>
+        <div data-vp-bad></div>
+      </div>
+    </div>
+  `;
+}
+
+function wireVsPitcherSection(scope, seasonsMap, years, currentYear){
+  const scopeGroup = scope.querySelector(".vp-scope-group");
+  const yearRow = scope.querySelector("[data-vp-year-row]");
+  const yearSel = scope.querySelector(".vp-year-select");
+  const goodEl = scope.querySelector("[data-vp-good]");
+  const badEl = scope.querySelector("[data-vp-bad]");
+  if(!scopeGroup || !goodEl || !badEl) return;
+  function currentScope(){ return (scopeGroup.querySelector(".pill-btn.active") || {}).dataset?.scope || "career"; }
+  function redraw(){
+    const isCareer = currentScope() === "career";
+    if(yearRow) yearRow.style.display = isCareer ? "none" : "";
+    const raw = isCareer ? vsPitcherMerged(seasonsMap, years) : ((seasonsMap[yearSel?.value] || {}).vsPitcher || []);
+    const qualified = raw.filter(e => (e.pa || 0) >= VS_PITCHER_MIN_PA)
+      .map(e => ({ ...e, _ops: vsPitcherCalc(e).ops }))
+      .filter(e => e._ops != null);
+    const good = [...qualified].sort((a, b) => b._ops - a._ops).slice(0, 5);
+    const bad = [...qualified].sort((a, b) => a._ops - b._ops).slice(0, 5);
+    goodEl.innerHTML = renderVsPitcherTable(good);
+    badEl.innerHTML = renderVsPitcherTable(bad);
+  }
+  scopeGroup.addEventListener("click", (e) => {
+    const btn = e.target.closest(".pill-btn");
+    if(!btn) return;
+    scopeGroup.querySelectorAll(".pill-btn").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    redraw();
+  });
+  if(yearSel) yearSel.addEventListener("change", redraw);
+  redraw();
+}
+
 function renderCourseZoneSection(seasonsMap, years, currentYear){
   const pitchVals = pvCollectPitchValues(seasonsMap, years);
   return `
@@ -2041,8 +2154,11 @@ function wireOneMultiSelect(wrap, onChange){
       onChange();
     });
   });
-  // ラベルのテキスト部分（チェックボックス本体ではなく）をクリックした時は、
-  // 通常のチェック切り替えではなく「その項目だけを選択」する（他は全て解除）。
+  // ラベルのテキスト部分（チェックボックス本体ではなく）をクリックした時は：
+  // ・全項目が選択されている（＝絞り込み無し）状態からなら「その項目だけを選択」する
+  //   （他は全て解除。フィルターを新しく絞り込み始める操作として扱う）。
+  // ・すでに一部だけ選択されている状態からなら、クリックした項目を追加で選択する
+  //   （既存の絞り込みに足していく操作として扱う。全解除はしない）。
   // チェックボックス自体のクリックは従来どおり複数選択のトグルのまま。
   wrap.querySelectorAll(".msel-opt").forEach(lab => {
     const cb = lab.querySelector("input[type=checkbox]");
@@ -2051,7 +2167,13 @@ function wireOneMultiSelect(wrap, onChange){
     labelSpan.addEventListener("click", (e) => {
       e.preventDefault();
       e.stopPropagation();
-      wrap.querySelectorAll("input[type=checkbox]").forEach(other => { other.checked = (other === cb); });
+      const allCbs = [...wrap.querySelectorAll("input[type=checkbox]")];
+      const allChecked = allCbs.length > 0 && allCbs.every(o => o.checked);
+      if(allChecked){
+        allCbs.forEach(other => { other.checked = (other === cb); });
+      }else{
+        cb.checked = true;
+      }
       multiSelectSummaryUpdate(wrap, optionLabels);
       onChange();
     });
@@ -2317,6 +2439,11 @@ function renderPlayerCard(card, llm){
         ${renderSituationSection(seasonsMap, years, currentSeasonYear)}
       </div>
 
+      <div class="section" data-vp-section>
+        <div class="section-title"><span class="bar"></span><span class="label">対戦投手別成績</span><span class="sub">得意投手・苦手投手</span></div>
+        ${renderVsPitcherSection(years, currentSeasonYear)}
+      </div>
+
       <div class="section section-note">
         <div class="section-title"><span class="bar" style="background:var(--amber)"></span><span class="label">守備・走塁</span></div>
         <div class="defense-note">
@@ -2368,6 +2495,10 @@ function renderPlayerCard(card, llm){
   // ランナー状況別成績：全体/対右/対左トグル＋年度フィルタ
   const stSection = mainContentEl.querySelector("[data-st-section]");
   if(stSection) wireSituationSection(stSection, seasonsMap);
+
+  // 対戦投手別成績：通算/年度別トグル
+  const vpSection = mainContentEl.querySelector("[data-vp-section]");
+  if(vpSection) wireVsPitcherSection(vpSection, seasonsMap, years, currentSeasonYear);
 
   // 試合ログ：シーズン成績/試合別タブ
   const gamelogSection = mainContentEl.querySelector("[data-gamelog-section]");
