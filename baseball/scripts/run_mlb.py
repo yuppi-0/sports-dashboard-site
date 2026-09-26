@@ -3011,15 +3011,18 @@ def build_batter_situation_splits_mlb(df: pd.DataFrame) -> pd.DataFrame:
 
 def build_batter_vs_pitcher_mlb(df: pd.DataFrame) -> pd.DataFrame:
     """
-    打者×試合×対戦投手の集計（「対戦投手別成績（得意/苦手投手）」セクション用）。
-    コース/カウント/状況別成績と違い、投手ごとの通算・年度別を見せる用途なので、球種や
-    ゾーンでは分けず基本の打撃結果カウントだけを持つ（打席数のしきい値判定と
-    打率/OPS/本塁打の表示にはこれで十分）。
+    打者×試合×対戦投手の集計（「対戦投手別成績」セクション用）。
+    build_batter_count_splits_mlb()と同じ考え方で、打撃結果カウントに加えて
+    スイング率・ゾーン内外・GB/LD/FBの実数も持たせる（K%/BB%/Z-Swing%/Z-Contact%/
+    Whiff%/Chase%/GB%/HR%をexport_llm_input_batter.py側の_agg_pitch_group()で
+    算出できるようにするため）。
     Statcastの生データでは"player_name"が対戦投手（投球のオーナー）の表記名で、
     打者名は別途_add_batter_names()で付与された"batter_name"。
     """
     cols = ["試合ID", "選手名", "投手名", "打席", "打数", "安打", "二塁打", "三塁打", "本塁打",
-            "四球", "死球", "三振", "打点"]
+            "四球", "死球", "三振", "打点",
+            "SW数", "空振り数", "ゾーン内投球数", "ゾーン外投球数",
+            "ゾーン内SW数", "ゾーン外SW数", "ゾーン内空振り数", "GB", "LD", "FB"]
     if df is None or df.empty or "batter_name" not in df.columns or "player_name" not in df.columns:
         return pd.DataFrame(columns=cols)
 
@@ -3027,6 +3030,23 @@ def build_batter_vs_pitcher_mlb(df: pd.DataFrame) -> pd.DataFrame:
     event = d["events"].fillna("") if "events" in d.columns else pd.Series([""] * len(d), index=d.index)
     d["_is_final"] = event.astype(str).str.strip().ne("")
     d["_event"] = event
+
+    desc = d["description"].fillna("") if "description" in d.columns else pd.Series([""] * len(d), index=d.index)
+    is_swstr = desc.isin(["swinging_strike", "swinging_strike_blocked", "foul_tip"])
+    is_foul = desc.isin(["foul", "foul_bunt"]) & ~is_swstr
+    is_inplay = desc.str.startswith("hit_into_play")
+    d["_is_swing"] = is_swstr | is_foul | is_inplay
+    d["_is_swstr"] = is_swstr
+
+    if "zone" in d.columns:
+        has_zone = d["zone"].notna()
+        in_zone = pd.Series(False, index=d.index)
+        in_zone.loc[has_zone] = d.loc[has_zone, "zone"].apply(is_in_zone)
+    else:
+        has_zone = pd.Series(False, index=d.index)
+        in_zone = pd.Series(False, index=d.index)
+    d["_in_zone"] = in_zone
+    d["_out_zone"] = has_zone & ~in_zone
 
     rows = []
     group_cols = ["game_pk", "batter_name", "player_name"]
@@ -3050,10 +3070,21 @@ def build_batter_vs_pitcher_mlb(df: pd.DataFrame) -> pd.DataFrame:
             rbi_n = int((last["post_bat_score"].fillna(0) - last["bat_score"].fillna(0)).clip(lower=0).sum())
         else:
             rbi_n = 0
+        swing = g["_is_swing"]
+        bb_type_last = last["bb_type"] if "bb_type" in last.columns else pd.Series(dtype=object)
+        gb_n2 = int(bb_type_last.eq("ground_ball").sum())
+        ld_n2 = int(bb_type_last.eq("line_drive").sum())
+        fb_n2 = int(bb_type_last.eq("fly_ball").sum())
         rows.append({
             "試合ID": str(gid), "選手名": bname, "投手名": pname,
             "打席": int(len(last)), "打数": ab_n, "安打": h_n,
             "二塁打": d2_n, "三塁打": d3_n, "本塁打": hr_n, "四球": bb_n, "死球": hbp_n, "三振": k_n, "打点": rbi_n,
+            "SW数": int(swing.sum()), "空振り数": int(g["_is_swstr"].sum()),
+            "ゾーン内投球数": int(g["_in_zone"].sum()), "ゾーン外投球数": int(g["_out_zone"].sum()),
+            "ゾーン内SW数": int((swing & g["_in_zone"]).sum()),
+            "ゾーン外SW数": int((swing & g["_out_zone"]).sum()),
+            "ゾーン内空振り数": int((swing & g["_in_zone"] & g["_is_swstr"]).sum()),
+            "GB": gb_n2, "LD": ld_n2, "FB": fb_n2,
         })
     return pd.DataFrame(rows, columns=cols) if rows else pd.DataFrame(columns=cols)
 
@@ -3495,7 +3526,7 @@ def _build_game_json(dm_path: str, date: str,
             "pu":    _iv(r.get("Pull数")), "spn": _iv(r.get("Pull分母")),
         })
 
-    # 試合別打者被投手別成績 → 打者カードのvsPitcher（対戦投手別「得意/苦手投手」セクション用）
+    # 試合別打者被投手別成績 → 打者カードのvsPitcher（対戦投手別成績セクション用）
     bat_vs_pitcher_idx: dict = {}
     for r in _rows("試合別打者被投手別成績"):
         k = (str(r.get("試合ID", "")), r.get("選手名", ""))
@@ -3511,6 +3542,16 @@ def _build_game_json(dm_path: str, date: str,
             "hbp": _iv(r.get("死球")),
             "k":   _iv(r.get("三振")),
             "rbi": _iv(r.get("打点")),
+            "sw":   _iv(r.get("SW数")),
+            "ws":   _iv(r.get("空振り数")),
+            "z":    _iv(r.get("ゾーン内投球数")),
+            "oz":   _iv(r.get("ゾーン外投球数")),
+            "zsw":  _iv(r.get("ゾーン内SW数")),
+            "ozsw": _iv(r.get("ゾーン外SW数")),
+            "zws":  _iv(r.get("ゾーン内空振り数")),
+            "gb":   _iv(r.get("GB")),
+            "ld":   _iv(r.get("LD")),
+            "fb":   _iv(r.get("FB")),
         })
 
     def _mix_obj(r, game_id: str = "", pitcher_name: str = "", bat_hand: str = "ALL"):

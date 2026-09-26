@@ -1373,14 +1373,17 @@ def build_batter_count_splits(df_pitch: "pd.DataFrame", pit_hand_map: dict) -> "
 
 def build_batter_vs_pitcher(df_pitch: "pd.DataFrame") -> "pd.DataFrame":
     """
-    打者×試合×対戦投手の集計（「対戦投手別成績（得意/苦手投手）」セクション用）。
-    カウント別/コース別成績と違い、投手ごとの通算・年度別を見せる用途なので、球種や
-    ゾーンでは分けず基本の打撃結果カウントだけを持つ（打席数のしきい値判定と
-    打率/OPS/本塁打の表示にはこれで十分）。打点はこの粒度の元データ（df_pitch）には
-    無いため持たない（他のNPB側成績表と同じ制約）。
+    打者×試合×対戦投手の集計（「対戦投手別成績」セクション用）。
+    build_batter_count_splits()と同じ考え方で、打撃結果カウントに加えて
+    スイング率・ゾーン内外・GB/LD/FBの実数も持たせる（K%/BB%/Z-Swing%/Z-Contact%/
+    Whiff%/Chase%/GB%/HR%をexport_llm_input_batter.py側の_agg_pitch_group()で
+    算出できるようにするため）。打点はこの粒度の元データ（df_pitch）には無いため
+    持たない（他のNPB側成績表と同じ制約。MLB側はrun_mlb.pyのStatcast由来で算出可能）。
     """
     cols = ["試合ID", "選手名", "投手名", "打席", "打数", "安打", "二塁打", "三塁打", "本塁打",
-            "四球", "死球", "三振"]
+            "四球", "死球", "三振",
+            "SW数", "空振り数", "ゾーン内投球数", "ゾーン外投球数",
+            "ゾーン内SW数", "ゾーン外SW数", "ゾーン内空振り数", "GB", "LD", "FB"]
     if df_pitch is None or df_pitch.empty:
         return pd.DataFrame(columns=cols)
     need_cols = {"打者名", "投手名"}
@@ -1405,10 +1408,20 @@ def build_batter_vs_pitcher(df_pitch: "pd.DataFrame") -> "pd.DataFrame":
             cat = str(r.get("判定カテゴリ", "") or "")
             a, h, d2, d3, hr, bb, hbp, k = ab_result_detail(cat, res)
             ab_n += a; h_n += h; d2_n += d2; d3_n += d3; hr_n += hr; bb_n += bb; hbp_n += hbp; k_n += k
+        in_z  = g["in_zone"]  if "in_zone"  in g.columns else pd.Series([False] * len(g), index=g.index)
+        out_z = g["out_zone"] if "out_zone" in g.columns else pd.Series([False] * len(g), index=g.index)
+        swing = g["is_swing"]
+        swstr = g["is_swstr"]
+        bd = calc_batted_stats(last["打席完了結果"]) if len(last) else {"GB": 0, "LD": 0, "FB": 0}
         rows.append({
             "試合ID": str(gid), "選手名": bname, "投手名": pname,
             "打席": int(len(last)), "打数": ab_n, "安打": h_n,
             "二塁打": d2_n, "三塁打": d3_n, "本塁打": hr_n, "四球": bb_n, "死球": hbp_n, "三振": k_n,
+            "SW数": int(swing.sum()), "空振り数": int(swstr.sum()),
+            "ゾーン内投球数": int(in_z.sum()), "ゾーン外投球数": int(out_z.sum()),
+            "ゾーン内SW数": int((swing & in_z).sum()), "ゾーン外SW数": int((swing & out_z).sum()),
+            "ゾーン内空振り数": int((swing & in_z & swstr).sum()),
+            "GB": bd["GB"], "LD": bd["LD"], "FB": bd["FB"],
         })
     return pd.DataFrame(rows, columns=cols)
 
@@ -2941,7 +2954,7 @@ def _build_dashboard_data(datamart_path: str, pitch_locs: dict | None = None, cb
             "fb":    _iv(r.get("FB")),
         })
 
-    # 試合別打者被投手別成績 → 打者カードのvsPitcher（対戦投手別「得意/苦手投手」セクション用）
+    # 試合別打者被投手別成績 → 打者カードのvsPitcher（対戦投手別成績セクション用）
     bat_vs_pitcher_idx = defaultdict(list)
     for r in sheets.get("試合別打者被投手別成績", []):
         bat_vs_pitcher_idx[(str(r.get("試合ID", "")), r.get("選手名", ""))].append({
@@ -2955,6 +2968,16 @@ def _build_dashboard_data(datamart_path: str, pitch_locs: dict | None = None, cb
             "bb":  _iv(r.get("四球")),
             "hbp": _iv(r.get("死球")),
             "k":   _iv(r.get("三振")),
+            "sw":   _iv(r.get("SW数")),
+            "ws":   _iv(r.get("空振り数")),
+            "z":    _iv(r.get("ゾーン内投球数")),
+            "oz":   _iv(r.get("ゾーン外投球数")),
+            "zsw":  _iv(r.get("ゾーン内SW数")),
+            "ozsw": _iv(r.get("ゾーン外SW数")),
+            "zws":  _iv(r.get("ゾーン内空振り数")),
+            "gb":   _iv(r.get("GB")),
+            "ld":   _iv(r.get("LD")),
+            "fb":   _iv(r.get("FB")),
         })
 
     # 試合別投手成績_左右別 → pitStatVsR / pitStatVsL

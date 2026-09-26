@@ -615,17 +615,14 @@ def build_course_zone_by_pitch_raw(appearances: list[dict]) -> list[dict]:
     return result
 
 
-# 「対戦投手別成績（得意/苦手投手）」セクション用。run.py/run_mlb.pyが日別JSONの各打者
-# エントリに付与する"vsPitcher"（試合×対戦投手ごとの基本打撃結果カウント）を、シーズン
-# 全体で投手ごとに積み上げるだけにとどめ（%や打率・OPSへの変換はしない）、batter-cards.html
-# 側で「通算」表示時に複数シーズン分をさらに合算できるようにする（コース別成績の球種
-# フィルターと同じ設計）。打点(rbi)はMLBのみ元データにあるため、無い場合は0のまま
-# （batter-cards.html側では使わない想定なので実害無い）。
-_VS_PITCHER_SUM_KEYS = ["pa", "ab", "h_", "2b", "3b", "hr", "bb", "hbp", "k", "rbi"]
-
-
+# 「対戦投手別成績」セクション用。run.py/run_mlb.pyが日別JSONの各打者エントリに付与する
+# "vsPitcher"（試合×対戦投手ごとの、pitchSplits等と同じキー構成を持つ打撃結果・スイング・
+# 打球種別の実数）を、シーズン全体で投手ごとにグルーピングしてから_agg_pitch_group()に通す
+# （球種別/カウント別等の他の内訳と同じ集計方式）。これによりK%/BB%/Z-Swing%/Z-Contact%/
+# Whiff%/Chase%/GB%/HR%まで統一的に算出できる（要望：得意/苦手の区分は廃止し、単一の表を
+# 全カラム表示・ソート可能にする）。
 def build_vs_pitcher_breakdown(appearances: list[dict]) -> list[dict]:
-    by_pitcher: dict[str, dict] = {}
+    by_pitcher: dict[str, list[dict]] = {}
     for ap in appearances:
         p = ap.get("player")
         if not isinstance(p, dict):
@@ -634,10 +631,13 @@ def build_vs_pitcher_breakdown(appearances: list[dict]) -> list[dict]:
             name = e.get("p", "")
             if not name:
                 continue
-            acc = by_pitcher.setdefault(name, {k: 0 for k in _VS_PITCHER_SUM_KEYS})
-            for k in _VS_PITCHER_SUM_KEYS:
-                acc[k] += e.get(k, 0) or 0
-    return [{"pitcher": name, **sums} for name, sums in by_pitcher.items()]
+            by_pitcher.setdefault(name, []).append(e)
+    result = []
+    for name, entries in by_pitcher.items():
+        stats = _agg_pitch_group(entries)
+        stats["pitcher"] = name
+        result.append(stats)
+    return result
 
 
 # ==================================================
@@ -930,6 +930,9 @@ def _aggregate_pt_group_py(entries: list[dict]) -> dict:
         "whiff_pct": _wavg("whiff_pct", 1), "chase_pct": _wavg("chase_pct", 1),
         "contact_pct": _wavg("contact_pct", 1), "z_swing_pct": _wavg("z_swing_pct", 1),
         "z_contact_pct": _wavg("z_contact_pct", 1), "gb_pct": _wavg("gb_pct", 1),
+        # HR%＝本塁打/打席。積み上げ済みのhr・paから直接算出（build_by_pitch_category/
+        # build_by_velocity_band_onlyの集計元でも、pvFullColumnsFor()のHR%列と同じ定義）。
+        "hr_pct": round(hr / pa * 100, 1) if pa > 0 else None,
     }
 
 
