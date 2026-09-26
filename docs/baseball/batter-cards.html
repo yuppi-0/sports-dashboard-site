@@ -114,10 +114,12 @@
   .p-team-pos{ font-weight:700; color:var(--text-bright); font-size:12.5px; margin-top:2px; }
   /* .297のような先頭ゼロなしの数値とOPS 0.802のような先頭ゼロありの数値が混在すると、
      align-items:centerでは箱の中心は揃っても文字のベースラインが微妙にずれて見えるため、
-     baseline揃えにし、数字幅も揃える（tabular-nums）。自分の行を単独で持つので、収まらない
-     場合はここで折り返してよい（横スクロールで隠れるより見つけやすいため）。 */
-  .p-count-line{ display:flex; flex-wrap:wrap; align-items:baseline; gap:4px 12px; font-size:11.5px; color:var(--text-dim);
+     baseline揃えにし、数字幅も揃える（tabular-nums）。要望により折り返さず必ず1行で表示する。
+     チーム/ポジションと別行に分けた分、以前（同じ行に両方入れていた頃）よりは短いが、
+     さらに画面幅に確実に収まるようフォントサイズと項目間隔を控えめにしてある。 */
+  .p-count-line{ display:flex; flex-wrap:nowrap; align-items:baseline; gap:2px 8px; font-size:10.5px; color:var(--text-dim);
     font-variant-numeric:tabular-nums; margin-top:3px; }
+  .p-count-line .cl-item{ flex-shrink:0; }
   .p-count-line .cl-item b{ color:var(--text-bright); font-weight:700; margin-left:2px; }
 
   .stat-grid{ display:grid; grid-template-columns:repeat(6,1fr); gap:8px; margin-top:14px; }
@@ -337,12 +339,16 @@
     .pv-axis1-select, .pv-axis2-select, .pv-axis3-select{ min-width:100px; }
     /* フィルター（年度・対左右・球種カテゴリ・球種詳細・球速帯）は項目数が多く、
        通常のflex-wrapパッキングだと末尾の項目（球速帯）だけ次の行に折り返されて
-       見づらくなるため、常に1行に収まるよう均等幅で詰めて表示する（要望）。
-       ボタン内のテキストは幅が足りない場合ellipsisで省略される。 */
-    .fctrl-group-filter{ flex-wrap:nowrap; gap:4px; }
-    .fctrl-group-filter .fctrl-row{ flex:1 1 0; min-width:0; }
-    .fctrl-group-filter .fctrl-label{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; width:100%; font-size:10px; }
-    .fctrl-group-filter .fctrl-select, .fctrl-group-filter .msel-btn{ width:100%; min-width:0; max-width:none;
+       見づらくなるため、常に1行に収まるよう詰めて表示する。
+       項目を均等幅で引き伸ばす(flex:1 1 0)と、項目数がセクションごとに違う（4個/5個等）
+       せいで同じ「年度」でも列幅・間隔が section ごとにバラバラに見えてしまうため、
+       各項目は中身に応じた自然な幅のまま並べ、余ればそこで止まり、入り切らない時だけ
+       全項目が同じ比率で縮む（flex:0 1 auto）方式にする。これでどのセクションでも
+       同じ項目は同じ幅・同じ間隔で表示される。 */
+    .fctrl-group-filter{ flex-wrap:nowrap; gap:6px; }
+    .fctrl-group-filter .fctrl-row{ flex:0 1 auto; min-width:0; }
+    .fctrl-group-filter .fctrl-label{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-size:10px; }
+    .fctrl-group-filter .fctrl-select, .fctrl-group-filter .msel-btn{ width:auto; min-width:0; max-width:none;
       padding-left:4px; padding-right:4px; font-size:10px; }
     /* シーズン成績表（軸で球種カテゴリ等を選んだ時の内訳表）は指標列が多くなりがちなので、
        固定列（軸ラベル）を狭め、文字も一段階小さくして一度に見える指標の数を増やす */
@@ -1341,7 +1347,9 @@ function wireVsPitcherSection(scope, seasonsMap, years, currentYear){
   const table = scope.querySelector("[data-vp-table]");
   if(!scopeGroup || !table) return;
   function currentScope(){ return (scopeGroup.querySelector(".pill-btn.active") || {}).dataset?.scope || "career"; }
-  let sortState = null;
+  // デフォルトはOPS降順（要望）。集計切り替え・年度切り替え時もこのデフォルトに戻す。
+  const DEFAULT_SORT = { key: "ops", dir: "desc" };
+  let sortState = { ...DEFAULT_SORT };
   function redraw(){
     const isCareer = currentScope() === "career";
     if(yearRow) yearRow.style.display = isCareer ? "none" : "";
@@ -1355,10 +1363,10 @@ function wireVsPitcherSection(scope, seasonsMap, years, currentYear){
     if(!btn) return;
     scopeGroup.querySelectorAll(".pill-btn").forEach(b => b.classList.remove("active"));
     btn.classList.add("active");
-    sortState = null;
+    sortState = { ...DEFAULT_SORT };
     redraw();
   });
-  if(yearSel) yearSel.addEventListener("change", () => { sortState = null; redraw(); });
+  if(yearSel) yearSel.addEventListener("change", () => { sortState = { ...DEFAULT_SORT }; redraw(); });
   wireSortHeaders(table, (key) => { sortState = cycleSortState(sortState, key); redraw(); });
   redraw();
 }
@@ -1605,10 +1613,16 @@ function applySortState(list, state, getVal){
   return withIdx.map(x => x.item);
 }
 // ソート可能な<th>を生成する。現在ソート中の列にだけ▲（昇順）/▼（降順）を表示する。
-function sortTh(label, key, state, extraAttrs){
+// extraClassはsort-thに追加するクラス（kst-key-cell等）。呼び出し側でclass="..."を
+// extraAttrsに直接書くと、HTMLは同じ要素に複数のclass属性が来た場合は最初の1つしか
+// 有効にならない（2つ目以降は無視される）ため、固定列用のクラスが黙って効かなくなる
+// 不具合の元だった。クラスは必ずこの引数経由で渡し、extraAttrsにはstyle等クラス以外の
+// 属性だけを渡すこと。
+function sortTh(label, key, state, extraAttrs, extraClass){
   const active = state && state.key === key;
   const arrow = active ? (state.dir === "asc" ? "▲" : "▼") : "";
-  return `<th class="sort-th" data-sort-key="${escapeHtml(key)}"${extraAttrs || ""}>${escapeHtml(label)}${arrow ? ` <span class="sort-arrow">${arrow}</span>` : ""}</th>`;
+  const cls = extraClass ? `sort-th ${extraClass}` : "sort-th";
+  return `<th class="${escapeHtml(cls)}" data-sort-key="${escapeHtml(key)}"${extraAttrs || ""}>${escapeHtml(label)}${arrow ? ` <span class="sort-arrow">${arrow}</span>` : ""}</th>`;
 }
 // テーブルを内包するcontainer要素に、ヘッダークリックでのソートを1回だけ仕込む
 // （container.innerHTMLを再描画で差し替えてもイベント委譲は効き続ける）。
@@ -1678,10 +1692,10 @@ function renderKeyedStatTable(list, keyLabel, keyField, metrics, emptyNote, grou
     const countCell = showCount ? `<td>${s.count ?? "-"}</td>` : "";
     return `<tr>${groupCell}<td class="kst-key-cell"${groupSpec ? ` style="left:70px"` : ""}>${escapeHtml(s[keyField] ?? "-")}</td><td>${s.pa ?? "-"}</td>${countCell}${cells}</tr>`;
   }).join("");
-  const groupHeadTh = groupSpec ? sortTh(groupSpec.header, "__group", sortState, ` class="kst-group-cell sort-th"`) : "";
+  const groupHeadTh = groupSpec ? sortTh(groupSpec.header, "__group", sortState, undefined, "kst-group-cell") : "";
   const countHeadTh = showCount ? sortTh("球数", "count", sortState) : "";
   return `<div class="table-scroll"><table class="split-table">
-    <thead><tr>${groupHeadTh}${sortTh(keyLabel, "__key", sortState, ` class="kst-key-cell sort-th"${groupSpec ? ` style="left:70px"` : ""}`)}${sortTh("打席", "pa", sortState)}${countHeadTh}${metrics.map(([m, , l]) => sortTh(l, m, sortState)).join("")}</tr></thead>
+    <thead><tr>${groupHeadTh}${sortTh(keyLabel, "__key", sortState, groupSpec ? ` style="left:70px"` : "", "kst-key-cell")}${sortTh("打席", "pa", sortState)}${countHeadTh}${metrics.map(([m, , l]) => sortTh(l, m, sortState)).join("")}</tr></thead>
     <tbody>${rows}</tbody>
   </table></div>`;
 }
@@ -2139,12 +2153,7 @@ function renderPivotTable(rows0, activeAxes, sortState){
     return `<tr>${labelCells.join("")}${statCells.join("")}</tr>`;
   }).join("");
 
-  const headAxisCells = headCols.map((h, i) => {
-    const key = `_label${i + 1}`;
-    const active = sortState && sortState.key === key;
-    const arrow = active ? (sortState.dir === "asc" ? " ▲" : " ▼") : "";
-    return `<th${axisColStyle(i)} class="pv-axis-col sort-th" data-sort-key="${key}">${escapeHtml(h)}${arrow ? ` <span class="sort-arrow">${arrow.trim()}</span>` : ""}</th>`;
-  }).join("");
+  const headAxisCells = headCols.map((h, i) => sortTh(h, `_label${i + 1}`, sortState, ` style="left:${i * axisColWidth}px"`, "pv-axis-col")).join("");
   return `<div class="table-scroll"><table class="split-table pv-result-table">
     <thead><tr>${headAxisCells}${cols.map(([k, l]) => sortTh(l, k, sortState)).join("")}</tr></thead>
     <tbody>${trs}</tbody>
@@ -2543,7 +2552,7 @@ function renderPlayerCard(card, llm){
       </div>
 
       <div class="section" data-vp-section>
-        <div class="section-title"><span class="bar"></span><span class="label">対戦投手別成績</span><span class="sub">得意投手・苦手投手</span></div>
+        <div class="section-title"><span class="bar"></span><span class="label">対戦投手別成績</span></div>
         ${renderVsPitcherSection(years, currentSeasonYear)}
       </div>
 
