@@ -104,13 +104,23 @@
     background:rgba(245,158,11,0.15); border-radius:4px; padding:1px 5px; margin-left:5px; vertical-align:middle; }
   .p-meta{ font-size:12px; color:var(--text-dim); }
 
+  /* すべての表：ヘッダークリックで昇順/降順に並び替えできる（sortTh/wireSortHeaders） */
+  .sort-th{ cursor:pointer; user-select:none; white-space:nowrap; }
+  .sort-th:hover{ color:var(--text-bright); }
+  .sort-arrow{ color:var(--blue-text); font-size:9px; margin-left:1px; }
+
   /* チーム / ポジション / 打撃カウント成績（試合数・打席数・打率・本塁打・打点・盗塁） */
   /* .297のような先頭ゼロなしの数値とOPS 0.802のような先頭ゼロありの数値が混在すると、
      align-items:centerでは箱の中心は揃っても文字のベースラインが微妙にずれて見えるため、
-     baseline揃えにし、数字幅も揃える（tabular-nums）。 */
-  .p-count-line{ display:flex; flex-wrap:wrap; align-items:baseline; gap:4px 12px; font-size:11.5px; color:var(--text-dim);
-    font-variant-numeric:tabular-nums; }
-  .p-count-line .cl-team-pos{ font-weight:700; color:var(--text-bright); font-size:12.5px; margin-right:2px; }
+     baseline揃えにし、数字幅も揃える（tabular-nums）。要望により折り返しは行わず、
+     画面幅に収まらない場合は横スクロールで1行のまま見せる（横スクロール可能なことが
+     分かるよう、右端をわずかにフェードさせる）。 */
+  .p-count-line{ display:flex; flex-wrap:nowrap; align-items:baseline; gap:4px 12px; font-size:11.5px; color:var(--text-dim);
+    font-variant-numeric:tabular-nums; overflow-x:auto; -webkit-overflow-scrolling:touch; white-space:nowrap;
+    padding-bottom:2px; scrollbar-width:none; }
+  .p-count-line::-webkit-scrollbar{ display:none; }
+  .p-count-line .cl-team-pos{ font-weight:700; color:var(--text-bright); font-size:12.5px; margin-right:2px; flex-shrink:0; }
+  .p-count-line .cl-item{ flex-shrink:0; }
   .p-count-line .cl-item b{ color:var(--text-bright); font-weight:700; margin-left:2px; }
 
   .stat-grid{ display:grid; grid-template-columns:repeat(6,1fr); gap:8px; margin-top:14px; }
@@ -323,6 +333,15 @@
     .fctrl-select{ width:auto; min-width:64px; max-width:none; box-sizing:border-box; }
     .msel-btn{ width:auto; min-width:64px; max-width:150px; box-sizing:border-box; }
     .pv-axis1-select, .pv-axis2-select, .pv-axis3-select{ min-width:100px; }
+    /* フィルター（年度・対左右・球種カテゴリ・球種詳細・球速帯）は項目数が多く、
+       通常のflex-wrapパッキングだと末尾の項目（球速帯）だけ次の行に折り返されて
+       見づらくなるため、常に1行に収まるよう均等幅で詰めて表示する（要望）。
+       ボタン内のテキストは幅が足りない場合ellipsisで省略される。 */
+    .fctrl-group-filter{ flex-wrap:nowrap; gap:4px; }
+    .fctrl-group-filter .fctrl-row{ flex:1 1 0; min-width:0; }
+    .fctrl-group-filter .fctrl-label{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; width:100%; font-size:10px; }
+    .fctrl-group-filter .fctrl-select, .fctrl-group-filter .msel-btn{ width:100%; min-width:0; max-width:none;
+      padding-left:4px; padding-right:4px; font-size:10px; }
     /* シーズン成績表（軸で球種カテゴリ等を選んだ時の内訳表）は指標列が多くなりがちなので、
        固定列（軸ラベル）を狭め、文字も一段階小さくして一度に見える指標の数を増やす */
     .pv-result-table{ font-size:10.5px; }
@@ -1159,7 +1178,7 @@ function wirePitchTypeSection(scope){
 // courseSplitsにゾーン内空振り数・打球種別（GB/LD/FB）が追加されたことで算出できる
 // ようになった指標（_agg_pitch_group側で計算済み）。
 const CZ_METRICS = [
-  ["avg", "打率"], ["hr", "本塁打"], ["ops", "OPS"], ["obp", "出塁率"], ["slg", "長打率"],
+  ["avg", "打率"], ["ops", "OPS"], ["slg", "長打率"],
   ["swing_pct", "スイング率"], ["swing_contact_pct", "コンタクト率"],
   ["whiff_pct_all", "空振り率（/すべて）"], ["whiff_pct", "空振り率（/スイング）"],
   ["gb_pct", "GB%"], ["hr_pct", "HR%"],
@@ -1189,6 +1208,12 @@ function courseZoneCellText(cell, metric){
     : `${cell ? (cell.pa ?? 0) : 0}打席`;
   if(!cell || cell[metric] == null) return { text: "-", sub: denomLabel };
   const kind = CZ_METRIC_FMT[metric] || "pct";
+  // HR%は「本塁打」列を削除した代わりに、割合の後ろに本塁打の実数を(N)で併記する
+  // （例：5.9%(2)）。cell.hrはbyCourseZone側にpitchSplitsと同じhr実数が入っている。
+  if(metric === "hr_pct") {
+    const text = `${fmt(cell.hr_pct, 1, "%")}(${cell.hr ?? 0})`;
+    return { text, sub: denomLabel };
+  }
   const text = kind === "avg" ? fmtAvg(cell[metric]) : kind === "ops" ? fmt(cell[metric], 3)
     : kind === "int" ? String(cell[metric]) : fmt(cell[metric], 1, "%");
   return { text, sub: denomLabel };
@@ -1256,49 +1281,33 @@ function renderCourseGrid(list, metric, splitMode, isLeft){
   return html;
 }
 
-// ── 対戦投手別成績（得意/苦手投手） ──
+// ── 対戦投手別成績 ──
 const VS_PITCHER_MIN_PA = 10;  // これ未満はサンプル過小として集計対象から除外する
 
-// 得意/苦手投手の判定に使う基本成績（打率・長打率・出塁率・OPS）を、生のカウント
-// （打席・打数・安打・二塁打・三塁打・本塁打・四球・死球）から算出する。
-function vsPitcherCalc(e){
-  const ab = e.ab || 0, h = e.h_ || 0, d2 = e["2b"] || 0, d3 = e["3b"] || 0, hr = e.hr || 0;
-  const bb = e.bb || 0, hbp = e.hbp || 0;
-  const singles = Math.max(h - d2 - d3 - hr, 0);
-  const tb = singles + d2 * 2 + d3 * 3 + hr * 4;
-  const avg = ab > 0 ? h / ab : null;
-  const slg = ab > 0 ? tb / ab : null;
-  const obpDen = ab + bb + hbp;
-  const obp = obpDen > 0 ? (h + bb + hbp) / obpDen : null;
-  const ops = (avg != null && slg != null && obp != null) ? slg + obp : null;
-  return { avg, slg, obp, ops };
+// 打席・打率・本塁打・打点・OPS・出塁率・長打率・K%・BB%・Z-Swing%・Z-Contact%・Whiff%・
+// Chase%・GB%・HR%を1つの表にまとめて表示する（得意/苦手の区分・上位5人への絞り込みは
+// 廃止し、対象投手を全員ソート可能な1表で見せる要望）。KEYED_STAT_METRICS_FULLは
+// avg/hr/rbi/ops/obp/slg/k_pct/bb_pct/z_swing_pct/z_contact_pct/whiff_pct/chase_pct/
+// gb_pct/hr_pctの後にMLB独自指標を続けた構成なので、そのMLB独自部分だけ除いてそのまま
+// 使う（renderKeyedStatTableの表示・ソートロジックをそのまま流用できる）。
+// KEYED_STAT_METRICS_FULLはこのファイルの後方で定義されるため、関数化して呼び出し時に
+// 評価する（czMetricsFor()/keyedStatMetricsFor()と同じパターン）。
+function vpMetricsFor(){
+  return KEYED_STAT_METRICS_FULL.filter(([k]) => !MLB_ONLY_METRIC_KEYS.has(k));
 }
 
-// 通算表示用：seasonsMapの全年度ぶんのvsPitcherを投手名ごとに合算する
-// （コース別成績の球種フィルターと同じ「生カウントを積み上げてから計算する」方式）。
+// 通算表示用：seasonsMapの全年度ぶんのvsPitcher（シーズン単位で_agg_pitch_group()により
+// 集計済み＝pa/ab/h/hr/rbiと各種割合指標を持つ）を投手名ごとにさらに合算する。
+// aggregatePitchEntries()（打席数で加重平均する既存ヘルパー、コース別成績の球種フィルターと
+// 同じ考え方）にそのまま渡せる形になっている。
 function vsPitcherMerged(seasonsMap, years){
   const acc = {};
   years.forEach(y => {
     ((seasonsMap[y] || {}).vsPitcher || []).forEach(e => {
-      const a = acc[e.pitcher] || (acc[e.pitcher] = { pitcher: e.pitcher, pa: 0, ab: 0, h_: 0, "2b": 0, "3b": 0, hr: 0, bb: 0, hbp: 0, k: 0 });
-      a.pa += e.pa || 0; a.ab += e.ab || 0; a.h_ += e.h_ || 0;
-      a["2b"] += e["2b"] || 0; a["3b"] += e["3b"] || 0; a.hr += e.hr || 0;
-      a.bb += e.bb || 0; a.hbp += e.hbp || 0; a.k += e.k || 0;
+      (acc[e.pitcher] || (acc[e.pitcher] = [])).push(e);
     });
   });
-  return Object.values(acc);
-}
-
-function renderVsPitcherTable(list){
-  if(list.length === 0) return `<div class="pv-empty">対象データがありません（${VS_PITCHER_MIN_PA}打席以上の対戦がまだありません）。</div>`;
-  const rows = list.map(e => {
-    const s = vsPitcherCalc(e);
-    return `<tr><td>${escapeHtml(e.pitcher)}</td><td>${e.pa}</td><td>${fmtAvg(s.avg)}</td><td>${e.hr}</td><td>${fmt(s.ops, 3)}</td></tr>`;
-  }).join("");
-  return `<div class="table-scroll"><table class="split-table">
-    <thead><tr><th>投手</th><th>打席</th><th>打率</th><th>本塁打</th><th>OPS</th></tr></thead>
-    <tbody>${rows}</tbody>
-  </table></div>`;
+  return Object.entries(acc).map(([pitcher, entries]) => ({ pitcher, ...aggregatePitchEntries(entries) }));
 }
 
 function renderVsPitcherSection(years, currentYear){
@@ -1319,16 +1328,7 @@ function renderVsPitcherSection(years, currentYear){
       </div>
     </div>
     <div class="vp-note">${VS_PITCHER_MIN_PA}打席以上対戦した投手のみが対象です。サンプルが少ない投手は参考値程度に見てください。</div>
-    <div class="vp-pair">
-      <div class="vp-col">
-        <div class="vp-col-label">得意投手（OPSが高い順・上位5人）</div>
-        <div data-vp-good></div>
-      </div>
-      <div class="vp-col">
-        <div class="vp-col-label">苦手投手（OPSが低い順・上位5人）</div>
-        <div data-vp-bad></div>
-      </div>
-    </div>
+    <div data-vp-table></div>
   `;
 }
 
@@ -1336,30 +1336,28 @@ function wireVsPitcherSection(scope, seasonsMap, years, currentYear){
   const scopeGroup = scope.querySelector(".vp-scope-group");
   const yearRow = scope.querySelector("[data-vp-year-row]");
   const yearSel = scope.querySelector(".vp-year-select");
-  const goodEl = scope.querySelector("[data-vp-good]");
-  const badEl = scope.querySelector("[data-vp-bad]");
-  if(!scopeGroup || !goodEl || !badEl) return;
+  const table = scope.querySelector("[data-vp-table]");
+  if(!scopeGroup || !table) return;
   function currentScope(){ return (scopeGroup.querySelector(".pill-btn.active") || {}).dataset?.scope || "career"; }
+  let sortState = null;
   function redraw(){
     const isCareer = currentScope() === "career";
     if(yearRow) yearRow.style.display = isCareer ? "none" : "";
     const raw = isCareer ? vsPitcherMerged(seasonsMap, years) : ((seasonsMap[yearSel?.value] || {}).vsPitcher || []);
-    const qualified = raw.filter(e => (e.pa || 0) >= VS_PITCHER_MIN_PA)
-      .map(e => ({ ...e, _ops: vsPitcherCalc(e).ops }))
-      .filter(e => e._ops != null);
-    const good = [...qualified].sort((a, b) => b._ops - a._ops).slice(0, 5);
-    const bad = [...qualified].sort((a, b) => a._ops - b._ops).slice(0, 5);
-    goodEl.innerHTML = renderVsPitcherTable(good);
-    badEl.innerHTML = renderVsPitcherTable(bad);
+    const qualified = raw.filter(e => (e.pa || 0) >= VS_PITCHER_MIN_PA);
+    table.innerHTML = renderKeyedStatTable(qualified, "投手", "pitcher", vpMetricsFor(),
+      `対象データがありません（${VS_PITCHER_MIN_PA}打席以上の対戦がまだありません）。`, undefined, false, sortState);
   }
   scopeGroup.addEventListener("click", (e) => {
     const btn = e.target.closest(".pill-btn");
     if(!btn) return;
     scopeGroup.querySelectorAll(".pill-btn").forEach(b => b.classList.remove("active"));
     btn.classList.add("active");
+    sortState = null;
     redraw();
   });
-  if(yearSel) yearSel.addEventListener("change", redraw);
+  if(yearSel) yearSel.addEventListener("change", () => { sortState = null; redraw(); });
+  wireSortHeaders(table, (key) => { sortState = cycleSortState(sortState, key); redraw(); });
   redraw();
 }
 
@@ -1381,7 +1379,7 @@ function renderCourseZoneSection(seasonsMap, years, currentYear){
         </div>
       </div>
       <div class="fctrl-group-title">フィルター</div>
-      <div class="fctrl-group">
+      <div class="fctrl-group fctrl-group-filter">
         <div class="fctrl-row">
           <span class="fctrl-label">年度</span>
           <select class="fctrl-select cz-year-select">
@@ -1580,6 +1578,47 @@ function normStat(s){
     gb_pct: s.gb_pct ?? null,
   };
 }
+// ── 汎用：クリックで昇順・降順ソートできるテーブルヘッダー ──
+// 「すべての表で昇順・降順に並び替えたい」という要望に対応する共通ヘルパー群。
+// state: {key, dir("desc"|"asc")} | null。ヘッダーをクリックするたびに
+// 降順→昇順→元の順（null・並び替え解除）の順で循環する。
+function cycleSortState(state, key){
+  if(!state || state.key !== key) return { key, dir: "desc" };
+  if(state.dir === "desc") return { key, dir: "asc" };
+  return null;
+}
+// list: 元配列（非破壊）。getVal(item)は比較に使う値（数値 or 文字列 or null）を返す。
+// null（打席不足等でデータが無いセル）は常に末尾に回す。同値の場合は元の順序を保つ（安定ソート）。
+function applySortState(list, state, getVal){
+  if(!state) return list;
+  const withIdx = list.map((item, i) => ({ item, i, v: getVal(item) }));
+  withIdx.sort((a, b) => {
+    if(a.v == null && b.v == null) return a.i - b.i;
+    if(a.v == null) return 1;
+    if(b.v == null) return -1;
+    const c = (typeof a.v === "string" || typeof b.v === "string")
+      ? String(a.v).localeCompare(String(b.v), "ja") : (a.v - b.v);
+    return c !== 0 ? (state.dir === "asc" ? c : -c) : a.i - b.i;
+  });
+  return withIdx.map(x => x.item);
+}
+// ソート可能な<th>を生成する。現在ソート中の列にだけ▲（昇順）/▼（降順）を表示する。
+function sortTh(label, key, state, extraAttrs){
+  const active = state && state.key === key;
+  const arrow = active ? (state.dir === "asc" ? "▲" : "▼") : "";
+  return `<th class="sort-th" data-sort-key="${escapeHtml(key)}"${extraAttrs || ""}>${escapeHtml(label)}${arrow ? ` <span class="sort-arrow">${arrow}</span>` : ""}</th>`;
+}
+// テーブルを内包するcontainer要素に、ヘッダークリックでのソートを1回だけ仕込む
+// （container.innerHTMLを再描画で差し替えてもイベント委譲は効き続ける）。
+// onSortKey(key)側でstateを更新し、テーブルを再描画すること。
+function wireSortHeaders(container, onSortKey){
+  container.addEventListener("click", (e) => {
+    const th = e.target.closest("th[data-sort-key]");
+    if(!th) return;
+    onSortKey(th.dataset.sortKey);
+  });
+}
+
 const KEYED_HUES = ["59,130,246"];  // 青(--blue)のみ。全指標を同じ色系統の濃淡で統一する
 function fmtKeyedVal(v, kind){
   if(kind === "avg") return fmtAvg(v);
@@ -1600,21 +1639,32 @@ function magnitudeBg(value, allValues, hueRgb, higherIsBetter){
   const alpha = (0.06 + t * 0.34).toFixed(2);
   return `rgba(${hueRgb},${alpha})`;
 }
-function renderKeyedStatTable(list, keyLabel, keyField, metrics, emptyNote, groupSpec){
+// showCount=trueの場合、打席カラムの隣に「球数」列を追加する（カウント別成績のみで使用。
+// byCountの各エントリは_agg_pitch_group()由来で"count"（=投球数の実数）を持っている）。
+// sortState={key,dir}|null: キーは"__key"(keyLabel列)/"__group"(グループ列)/"pa"/"count"/各指標キー。
+// ソートを適用すると、グループ列（カウント区分等）のrowspan結合は隣接する行同士でのみ有効になる
+// （並び替えで同じグループの行が離れた場合は、各行に単独でラベルが表示される＝壊れずに縮退する）。
+function renderKeyedStatTable(list, keyLabel, keyField, metrics, emptyNote, groupSpec, showCount, sortState){
   if(!list || list.length === 0){
     return `<div class="defense-note">${escapeHtml(emptyNote || "この条件に該当するデータがありません。")}</div>`;
   }
   list = list.map(normStat);
   const columnsAll = {};
   metrics.forEach(([m]) => { columnsAll[m] = list.map(s => s[m]); });
-  const groupLabels = groupSpec ? list.map(s => groupSpec.label(s)) : null;
-  const rows = list.map((s, idx) => {
+  const sortGetVal = (key) => {
+    if(key === "__key") return (item) => item[keyField];
+    if(key === "__group") return (item) => groupSpec.label(item);
+    return (item) => item[key];
+  };
+  const sortedList = sortState ? applySortState(list, sortState, sortGetVal(sortState.key)) : list;
+  const groupLabels = groupSpec ? sortedList.map(s => groupSpec.label(s)) : null;
+  const rows = sortedList.map((s, idx) => {
     let groupCell = "";
     if(groupSpec){
       const isFirstOfGroup = idx === 0 || groupLabels[idx] !== groupLabels[idx - 1];
       if(isFirstOfGroup){
         let span = 1;
-        while(idx + span < list.length && groupLabels[idx + span] === groupLabels[idx]) span++;
+        while(idx + span < sortedList.length && groupLabels[idx + span] === groupLabels[idx]) span++;
         groupCell = `<td class="kst-group-cell" rowspan="${span}">${escapeHtml(groupLabels[idx])}</td>`;
       }
     }
@@ -1623,11 +1673,13 @@ function renderKeyedStatTable(list, keyLabel, keyField, metrics, emptyNote, grou
       const bg = magnitudeBg(s[m], columnsAll[m], KEYED_HUES[i % KEYED_HUES.length], higherIsBetter);
       return `<td${bg ? ` style="background:${bg}"` : ""}>${text}</td>`;
     }).join("");
-    return `<tr>${groupCell}<td class="kst-key-cell"${groupSpec ? ` style="left:70px"` : ""}>${escapeHtml(s[keyField] ?? "-")}</td><td>${s.pa ?? "-"}</td>${cells}</tr>`;
+    const countCell = showCount ? `<td>${s.count ?? "-"}</td>` : "";
+    return `<tr>${groupCell}<td class="kst-key-cell"${groupSpec ? ` style="left:70px"` : ""}>${escapeHtml(s[keyField] ?? "-")}</td><td>${s.pa ?? "-"}</td>${countCell}${cells}</tr>`;
   }).join("");
-  const groupHeadTh = groupSpec ? `<th class="kst-group-cell">${escapeHtml(groupSpec.header)}</th>` : "";
+  const groupHeadTh = groupSpec ? sortTh(groupSpec.header, "__group", sortState, ` class="kst-group-cell sort-th"`) : "";
+  const countHeadTh = showCount ? sortTh("球数", "count", sortState) : "";
   return `<div class="table-scroll"><table class="split-table">
-    <thead><tr>${groupHeadTh}<th class="kst-key-cell"${groupSpec ? ` style="left:70px"` : ""}>${escapeHtml(keyLabel)}</th><th>打席</th>${metrics.map(([, , l]) => `<th>${escapeHtml(l)}</th>`).join("")}</tr></thead>
+    <thead><tr>${groupHeadTh}${sortTh(keyLabel, "__key", sortState, ` class="kst-key-cell sort-th"${groupSpec ? ` style="left:70px"` : ""}`)}${sortTh("打席", "pa", sortState)}${countHeadTh}${metrics.map(([m, , l]) => sortTh(l, m, sortState)).join("")}</tr></thead>
     <tbody>${rows}</tbody>
   </table></div>`;
 }
@@ -1666,13 +1718,16 @@ function wireSituationSection(scope, seasonsMap){
   const yearSel = scope.querySelector(".st-year-select");
   const table = scope.querySelector("[data-st-table]");
   if(!handSel || !yearSel || !table) return;
+  let sortState = null;
   function redraw(){
     const season = seasonsMap[yearSel.value] || {};
     const byS = season.bySituation || { all: [], vsR: [], vsL: [] };
     table.innerHTML = renderKeyedStatTable(byS[handSel.value] || [], "状況", "situation", keyedStatMetricsFor(),
-      "この条件に該当するデータがありません（ランナー状況別は現在MLBのみ対応です。NPBの元データにランナー状況の情報が含まれていません）。");
+      "この条件に該当するデータがありません（ランナー状況別は現在MLBのみ対応です。NPBの元データにランナー状況の情報が含まれていません）。",
+      undefined, false, sortState);
   }
   [handSel, yearSel].forEach(sel => sel.addEventListener("change", redraw));
+  wireSortHeaders(table, (key) => { sortState = cycleSortState(sortState, key); redraw(); });
   redraw();
 }
 
@@ -1713,30 +1768,32 @@ function wireCountSection(scope, seasonsMap){
   const yearSel = scope.querySelector(".ct-year-select");
   const table = scope.querySelector("[data-ct-table]");
   if(!handSel || !yearSel || !table) return;
+  let sortState = null;
   function redraw(){
     const season = seasonsMap[yearSel.value] || {};
     const byC = season.byCount || { all: [], vsR: [], vsL: [] };
     // 要望どおり「カウント区分」（グループ列）＋「カウント」（キー列）で固定表示。
     // 軸切り替え等は無く、常にこの2列構成のまま。
     table.innerHTML = renderKeyedStatTable(byC[handSel.value] || [], "カウント", "countKey", keyedStatMetricsFor(), null,
-      { label: countStrikeGroupLabel, header: "カウント区分" });
+      { label: countStrikeGroupLabel, header: "カウント区分" }, true, sortState);
   }
   [handSel, yearSel].forEach(sel => sel.addEventListener("change", redraw));
+  wireSortHeaders(table, (key) => { sortState = cycleSortState(sortState, key); redraw(); });
   redraw();
 }
 
-function renderSeasonSummaryTable(seasonsMap, years){
-  const rows = years.map(y => {
-    const s = (seasonsMap[y] || {}).overall || {};
-    return `<tr>
-      <td>${escapeHtml(y)}</td><td>${s.games ?? "-"}</td><td>${s.pa ?? "-"}</td>
+function renderSeasonSummaryTable(seasonsMap, years, sortState){
+  const rows0 = years.map(y => ({ year: y, ...((seasonsMap[y] || {}).overall || {}) }));
+  const sortGetVal = (key) => (key === "year" ? (item) => item.year : (item) => item[key]);
+  const rows = sortState ? applySortState(rows0, sortState, sortGetVal(sortState.key)) : rows0;
+  const trs = rows.map(s => `<tr>
+      <td>${escapeHtml(s.year)}</td><td>${s.games ?? "-"}</td><td>${s.pa ?? "-"}</td>
       <td>${fmtAvg(s.avg)}</td><td>${fmtAvg(s.obp)}</td><td>${fmtAvg(s.slg)}</td><td>${fmt(s.ops, 3)}</td>
       <td>${s.hr ?? "-"}</td><td>${s.rbi ?? "-"}</td><td>${s.sb ?? "-"}</td>
-    </tr>`;
-  }).join("");
+    </tr>`).join("");
   return `<div class="table-scroll"><table class="split-table">
-    <thead><tr><th>年度</th><th>試合</th><th>打席</th><th>打率</th><th>出塁率</th><th>長打率</th><th>OPS</th><th>本塁打</th><th>打点</th><th>盗塁</th></tr></thead>
-    <tbody>${rows}</tbody>
+    <thead><tr>${sortTh("年度", "year", sortState)}${sortTh("試合", "games", sortState)}${sortTh("打席", "pa", sortState)}${sortTh("打率", "avg", sortState)}${sortTh("出塁率", "obp", sortState)}${sortTh("長打率", "slg", sortState)}${sortTh("OPS", "ops", sortState)}${sortTh("本塁打", "hr", sortState)}${sortTh("打点", "rbi", sortState)}${sortTh("盗塁", "sb", sortState)}</tr></thead>
+    <tbody>${trs}</tbody>
   </table></div>`;
 }
 
@@ -1747,9 +1804,22 @@ function renderGameLogYearGroup(year, gameLog){
   return `
     <div class="gl-year-group" data-gl-year="${escapeHtml(year)}">
       <div class="gl-year-header"><span class="gl-caret">▾</span>${escapeHtml(year)}年（${(gameLog || []).length}試合）</div>
-      ${renderGameLogTable(gameLog)}
+      <div data-gl-table-wrap>${renderGameLogTable(gameLog)}</div>
     </div>
   `;
+}
+
+// 試合別ログ表（年ごとにグループ化）：グループごとに独立したソート状態を持たせる。
+function wireGameLogTables(scope, seasonsMap){
+  scope.querySelectorAll(".gl-year-group").forEach(group => {
+    const year = group.dataset.glYear;
+    const wrap = group.querySelector("[data-gl-table-wrap]");
+    if(!wrap) return;
+    const gameLog = (seasonsMap && seasonsMap[year] && seasonsMap[year].game_log) || [];
+    let sortState = null;
+    function redraw(){ wrap.innerHTML = renderGameLogTable(gameLog, sortState); }
+    wireSortHeaders(wrap, (key) => { sortState = cycleSortState(sortState, key); redraw(); });
+  });
 }
 
 function renderGameLogSection(seasonsMap, years, seasonObj){
@@ -1758,12 +1828,12 @@ function renderGameLogSection(seasonsMap, years, seasonObj){
       <button type="button" class="hand-btn active" data-tab="season">シーズン成績</button>
       <button type="button" class="hand-btn" data-tab="game">試合別</button>
     </div>
-    <div data-gamelog-tab="season">${renderSeasonSummaryTable(seasonsMap, years)}</div>
+    <div data-gamelog-tab="season"></div>
     <div data-gamelog-tab="game" style="display:none">${renderGameLogYearGroup(currentSeasonYear, seasonObj.game_log)}</div>
   `;
 }
 
-function wireGameLogSection(scope){
+function wireGameLogSection(scope, seasonsMap, years){
   const toggle = scope.querySelector(".gamelog-tab-toggle");
   if(toggle){
     toggle.addEventListener("click", (e) => {
@@ -1777,6 +1847,15 @@ function wireGameLogSection(scope){
       });
     });
   }
+  // シーズン成績（年度別）表：ヘッダークリックでソートできるよう、他の表と同じredrawパターンにする。
+  const seasonTable = scope.querySelector('[data-gamelog-tab="season"]');
+  if(seasonTable && seasonsMap && years){
+    let sortState = null;
+    function redraw(){ seasonTable.innerHTML = renderSeasonSummaryTable(seasonsMap, years, sortState); }
+    wireSortHeaders(seasonTable, (key) => { sortState = cycleSortState(sortState, key); redraw(); });
+    redraw();
+  }
+  wireGameLogTables(scope, seasonsMap);
   scope.querySelectorAll(".gl-year-header").forEach(header => {
     header.addEventListener("click", () => {
       header.closest(".gl-year-group").classList.toggle("collapsed");
@@ -2016,8 +2095,8 @@ function buildPivotRows3(seasonsMap, years, activeAxes, filters, rankPool){
   });
 }
 
-function renderPivotTable(rows, activeAxes){
-  if(rows.length === 0) return `<div class="defense-note">条件に一致するデータがありません。</div>`;
+function renderPivotTable(rows0, activeAxes, sortState){
+  if(rows0.length === 0) return `<div class="defense-note">条件に一致するデータがありません。</div>`;
   // 球種カテゴリ/球種詳細/球速帯を軸に使っている場合だけ、打席の右に「球数」列を追加する。
   const showCount = activeAxes.some(a => PV_PITCH_COUNT_DIMS.has(a));
   const fullCols = pvFullColumnsFor();
@@ -2030,6 +2109,10 @@ function renderPivotTable(rows, activeAxes){
   // より多くの指標列を一度に見せたいので、CSS側のモバイル用min-widthに合わせて狭める。
   const axisColWidth = window.matchMedia("(max-width:720px)").matches ? 60 : 92;
   const axisColStyle = (i) => ` class="pv-axis-col" style="left:${i * axisColWidth}px"`;
+
+  // 軸列（_label1〜3）は文字列比較、指標列は数値比較でソートする。
+  const sortGetVal = (key) => (r) => r[key];
+  const rows = sortState ? applySortState(rows0, sortState, sortGetVal(sortState.key)) : rows0;
 
   const trs = rows.map(r => {
     const labelCells = activeAxes.map((_, i) => `<td${axisColStyle(i)}>${escapeHtml(r[`_label${i + 1}`] ?? "-")}</td>`);
@@ -2054,9 +2137,14 @@ function renderPivotTable(rows, activeAxes){
     return `<tr>${labelCells.join("")}${statCells.join("")}</tr>`;
   }).join("");
 
-  const headAxisCells = headCols.map((h, i) => `<th${axisColStyle(i)}>${escapeHtml(h)}</th>`).join("");
+  const headAxisCells = headCols.map((h, i) => {
+    const key = `_label${i + 1}`;
+    const active = sortState && sortState.key === key;
+    const arrow = active ? (sortState.dir === "asc" ? " ▲" : " ▼") : "";
+    return `<th${axisColStyle(i)} class="pv-axis-col sort-th" data-sort-key="${key}">${escapeHtml(h)}${arrow ? ` <span class="sort-arrow">${arrow.trim()}</span>` : ""}</th>`;
+  }).join("");
   return `<div class="table-scroll"><table class="split-table pv-result-table">
-    <thead><tr>${headAxisCells}${cols.map(([, l]) => `<th>${escapeHtml(l)}</th>`).join("")}</tr></thead>
+    <thead><tr>${headAxisCells}${cols.map(([k, l]) => sortTh(l, k, sortState)).join("")}</tr></thead>
     <tbody>${trs}</tbody>
 
   </table></div>`;
@@ -2237,7 +2325,7 @@ function renderPivotSection(seasonsMap, years){
         </div>
       </div>
       <div class="fctrl-group-title">フィルター</div>
-      <div class="fctrl-group">
+      <div class="fctrl-group fctrl-group-filter">
         <div class="fctrl-row">
           <span class="fctrl-label">年度</span>
           <select class="fctrl-select pv-filter-year">${pvSelectOptions(years.map(y => [y, y]), years[0])}</select>
@@ -2298,19 +2386,31 @@ function wirePivotSection(scope, seasonsMap, years, rankPool){
       hand: multiSelectValuesForFilter(filterHand), mid: multiSelectValuesForFilter(filterMid),
       detail: multiSelectValuesForFilter(filterDetail), band: multiSelectValuesForFilter(filterBand),
     };
-    table.innerHTML = renderPivotTable(buildPivotRows3(seasonsMap, years, activeAxes, filters, rankPool), activeAxes);
+    table.innerHTML = renderPivotTable(buildPivotRows3(seasonsMap, years, activeAxes, filters, rankPool), activeAxes, sortState);
   }
-  [axis1Sel, axis2Sel, axis3Sel, filterYear].forEach(elm => elm.addEventListener("change", redraw));
-  wireMultiSelects(scope, redraw);
+  let sortState = null;
+  // 軸・フィルターを変更すると列構成や母集団が変わるため、ソート状態はリセットする
+  const redrawResetSort = () => { sortState = null; redraw(); };
+  [axis1Sel, axis2Sel, axis3Sel, filterYear].forEach(elm => elm.addEventListener("change", redrawResetSort));
+  wireMultiSelects(scope, redrawResetSort);
+  wireSortHeaders(table, (key) => { sortState = cycleSortState(sortState, key); redraw(); });
   redraw();
 }
 
-function renderGameLogTable(gameLog){
-  const rows = (gameLog || []).slice().reverse(); // 直近の試合を上に
+// gameLog: 試合ログの配列。sortState={key,dir}|null。
+// 「この試合の内容」(abs)は打席結果の配列なので、ソート時はカンマ区切り文字列として比較する。
+function renderGameLogTable(gameLog, sortState){
+  const rows0 = (gameLog || []).slice().reverse(); // 直近の試合を上に（デフォルト順）
+  const sortGetVal = (key) => {
+    if(key === "pos") return (g) => stripParens(g.pos) || "";
+    if(key === "abs") return (g) => (g.abs || []).join(",");
+    return (g) => g[key];
+  };
+  const rows = sortState ? applySortState(rows0, sortState, sortGetVal(sortState.key)) : rows0;
   return `<div class="gamelog-scroll"><table class="gamelog-table">
     <thead><tr>
-      <th>日付</th><th>対戦</th><th>打順</th><th>守備</th><th>打席</th><th>打数</th><th>安打</th>
-      <th>本塁打</th><th>四死球</th><th>三振</th><th>打点</th><th>盗塁</th><th>この試合の内容</th>
+      ${sortTh("日付", "date", sortState)}${sortTh("対戦", "opponent", sortState)}${sortTh("打順", "order", sortState)}${sortTh("守備", "pos", sortState)}${sortTh("打席", "pa", sortState)}${sortTh("打数", "ab", sortState)}${sortTh("安打", "h", sortState)}
+      ${sortTh("本塁打", "hr", sortState)}${sortTh("四死球", "bb", sortState)}${sortTh("三振", "k", sortState)}${sortTh("打点", "rbi", sortState)}${sortTh("盗塁", "sb", sortState)}${sortTh("この試合の内容", "abs", sortState)}
     </tr></thead>
     <tbody>
       ${rows.map(g => `<tr>
@@ -2502,7 +2602,7 @@ function renderPlayerCard(card, llm){
 
   // 試合ログ：シーズン成績/試合別タブ
   const gamelogSection = mainContentEl.querySelector("[data-gamelog-section]");
-  if(gamelogSection) wireGameLogSection(gamelogSection);
+  if(gamelogSection) wireGameLogSection(gamelogSection, seasonsMap, years);
 
   // 1軍/2軍 切り替え：同じ選手のもう一方のデータでカードを丸ごと再描画する
   const farmToggleEl = mainContentEl.querySelector(".farm-toggle");
