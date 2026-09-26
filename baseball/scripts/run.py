@@ -1381,7 +1381,7 @@ def build_batter_vs_pitcher(df_pitch: "pd.DataFrame") -> "pd.DataFrame":
     持たない（他のNPB側成績表と同じ制約。MLB側はrun_mlb.pyのStatcast由来で算出可能）。
     """
     cols = ["試合ID", "選手名", "投手名", "打席", "打数", "安打", "二塁打", "三塁打", "本塁打",
-            "四球", "死球", "三振",
+            "四球", "死球", "三振", "球数",
             "SW数", "空振り数", "ゾーン内投球数", "ゾーン外投球数",
             "ゾーン内SW数", "ゾーン外SW数", "ゾーン内空振り数", "GB", "LD", "FB"]
     if df_pitch is None or df_pitch.empty:
@@ -1417,6 +1417,7 @@ def build_batter_vs_pitcher(df_pitch: "pd.DataFrame") -> "pd.DataFrame":
             "試合ID": str(gid), "選手名": bname, "投手名": pname,
             "打席": int(len(last)), "打数": ab_n, "安打": h_n,
             "二塁打": d2_n, "三塁打": d3_n, "本塁打": hr_n, "四球": bb_n, "死球": hbp_n, "三振": k_n,
+            "球数": int(len(g)),
             "SW数": int(swing.sum()), "空振り数": int(swstr.sum()),
             "ゾーン内投球数": int(in_z.sum()), "ゾーン外投球数": int(out_z.sum()),
             "ゾーン内SW数": int((swing & in_z).sum()), "ゾーン外SW数": int((swing & out_z).sum()),
@@ -2968,6 +2969,7 @@ def _build_dashboard_data(datamart_path: str, pitch_locs: dict | None = None, cb
             "bb":  _iv(r.get("四球")),
             "hbp": _iv(r.get("死球")),
             "k":   _iv(r.get("三振")),
+            "n":    _iv(r.get("球数")),
             "sw":   _iv(r.get("SW数")),
             "ws":   _iv(r.get("空振り数")),
             "z":    _iv(r.get("ゾーン内投球数")),
