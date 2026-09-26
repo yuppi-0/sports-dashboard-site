@@ -109,18 +109,15 @@
   .sort-th:hover{ color:var(--text-bright); }
   .sort-arrow{ color:var(--blue-text); font-size:9px; margin-left:1px; }
 
-  /* チーム / ポジション / 打撃カウント成績（試合数・打席数・打率・本塁打・打点・盗塁） */
+  /* チーム/ポジション（要望により成績と別行にする）と、打撃カウント成績
+     （試合数・打席数・打率・本塁打・打点・盗塁・OPS）の行。 */
+  .p-team-pos{ font-weight:700; color:var(--text-bright); font-size:12.5px; margin-top:2px; }
   /* .297のような先頭ゼロなしの数値とOPS 0.802のような先頭ゼロありの数値が混在すると、
      align-items:centerでは箱の中心は揃っても文字のベースラインが微妙にずれて見えるため、
-     baseline揃えにし、数字幅も揃える（tabular-nums）。要望により折り返しは行わず、
-     画面幅に収まらない場合は横スクロールで1行のまま見せる（横スクロール可能なことが
-     分かるよう、右端をわずかにフェードさせる）。 */
-  .p-count-line{ display:flex; flex-wrap:nowrap; align-items:baseline; gap:4px 12px; font-size:11.5px; color:var(--text-dim);
-    font-variant-numeric:tabular-nums; overflow-x:auto; -webkit-overflow-scrolling:touch; white-space:nowrap;
-    padding-bottom:2px; scrollbar-width:none; }
-  .p-count-line::-webkit-scrollbar{ display:none; }
-  .p-count-line .cl-team-pos{ font-weight:700; color:var(--text-bright); font-size:12.5px; margin-right:2px; flex-shrink:0; }
-  .p-count-line .cl-item{ flex-shrink:0; }
+     baseline揃えにし、数字幅も揃える（tabular-nums）。自分の行を単独で持つので、収まらない
+     場合はここで折り返してよい（横スクロールで隠れるより見つけやすいため）。 */
+  .p-count-line{ display:flex; flex-wrap:wrap; align-items:baseline; gap:4px 12px; font-size:11.5px; color:var(--text-dim);
+    font-variant-numeric:tabular-nums; margin-top:3px; }
   .p-count-line .cl-item b{ color:var(--text-bright); font-weight:700; margin-left:2px; }
 
   .stat-grid{ display:grid; grid-template-columns:repeat(6,1fr); gap:8px; margin-top:14px; }
@@ -187,7 +184,12 @@
   .bullets.tone-negative .dot{ color:var(--red); }
   .bullets div b{ color:var(--text-bright); }
 
-  .split-table, .disc-table, .pt-table, .pt-band-table{ width:100%; border-collapse:collapse; font-size:12px; }
+  /* border-collapse:collapseだとiOS SafariでSticky指定した<td>/<th>が横スクロール時に
+     固定されずに流れてしまう既知の不具合があるため、border-collapse:separate + 
+     border-spacing:0に変更する（見た目はborder-bottomの罫線のみなのでcollapse時と同じ）。
+     これにより、カウント区分・カウント・状況・投手（対戦投手別成績）などの固定列や、
+     シーズン成績ピボットの軸列も正しく横スクロール時に固定されるようになる。 */
+  .split-table, .disc-table, .pt-table, .pt-band-table{ width:100%; border-collapse:separate; border-spacing:0; font-size:12px; }
   .split-table th, .disc-table th, .pt-table th, .pt-band-table th{ text-align:right; font-weight:700; color:var(--text-dim); padding:6px 8px;
     border-bottom:1px solid rgba(148,163,184,0.15); white-space:nowrap; }
   .split-table th:first-child, .disc-table th:first-child, .pt-table th:first-child, .pt-band-table th:first-child{ text-align:left; }
@@ -369,7 +371,7 @@
   .gl-year-group.collapsed .gl-caret{ transform:rotate(-90deg); }
   .gl-year-group.collapsed .gamelog-scroll{ display:none; }
   .gamelog-scroll{ overflow-x:auto; -webkit-overflow-scrolling:touch; }
-  .gamelog-table{ width:100%; min-width:760px; border-collapse:collapse; font-size:11px; }
+  .gamelog-table{ width:100%; min-width:760px; border-collapse:separate; border-spacing:0; font-size:11px; }
   .gamelog-table th{ text-align:right; font-weight:700; color:var(--text-dim); padding:6px 8px; white-space:nowrap;
     border-bottom:1px solid rgba(148,163,184,0.15); }
   .gamelog-table th:nth-child(1), .gamelog-table th:nth-child(2){ text-align:left; }
@@ -1346,7 +1348,7 @@ function wireVsPitcherSection(scope, seasonsMap, years, currentYear){
     const raw = isCareer ? vsPitcherMerged(seasonsMap, years) : ((seasonsMap[yearSel?.value] || {}).vsPitcher || []);
     const qualified = raw.filter(e => (e.pa || 0) >= VS_PITCHER_MIN_PA);
     table.innerHTML = renderKeyedStatTable(qualified, "投手", "pitcher", vpMetricsFor(),
-      `対象データがありません（${VS_PITCHER_MIN_PA}打席以上の対戦がまだありません）。`, undefined, false, sortState);
+      `対象データがありません（${VS_PITCHER_MIN_PA}打席以上の対戦がまだありません）。`, undefined, true, sortState);
   }
   scopeGroup.addEventListener("click", (e) => {
     const btn = e.target.closest(".pill-btn");
@@ -1692,7 +1694,7 @@ function renderSituationSection(seasonsMap, years, currentYear){
   return `
     <div class="fctrl-block">
       <div class="fctrl-group-title">フィルター</div>
-      <div class="fctrl-group">
+      <div class="fctrl-group fctrl-group-filter">
         <div class="fctrl-row">
           <span class="fctrl-label">対左右</span>
           <select class="fctrl-select st-hand-select">
@@ -1724,7 +1726,7 @@ function wireSituationSection(scope, seasonsMap){
     const byS = season.bySituation || { all: [], vsR: [], vsL: [] };
     table.innerHTML = renderKeyedStatTable(byS[handSel.value] || [], "状況", "situation", keyedStatMetricsFor(),
       "この条件に該当するデータがありません（ランナー状況別は現在MLBのみ対応です。NPBの元データにランナー状況の情報が含まれていません）。",
-      undefined, false, sortState);
+      undefined, true, sortState);
   }
   [handSel, yearSel].forEach(sel => sel.addEventListener("change", redraw));
   wireSortHeaders(table, (key) => { sortState = cycleSortState(sortState, key); redraw(); });
@@ -1736,7 +1738,7 @@ function renderCountSection(years, currentYear){
   return `
     <div class="fctrl-block">
       <div class="fctrl-group-title">フィルター</div>
-      <div class="fctrl-group">
+      <div class="fctrl-group fctrl-group-filter">
         <div class="fctrl-row">
           <span class="fctrl-label">対左右</span>
           <select class="fctrl-select ct-hand-select">
@@ -2459,7 +2461,8 @@ function renderPlayerCard(card, llm){
     ["守備指標", defenseVal, defenseRk],
   ];
 
-  // チーム / ポジション / 打撃カウント成績（試合数・打席数・打率・本塁打・打点・盗塁・OPS）
+  // チーム / ポジションと、打撃カウント成績（試合数・打席数・打率・本塁打・打点・盗塁・OPS）は
+  // 要望により別々の行にする（同じ行だと横スクロールしないと成績が見えず気づきにくいため）。
   const teamClean = seasonObj.team || card.team || "-";
   const posClean = stripParens(seasonObj.pos || card.pos || "-");
   const countLineParts = [
@@ -2467,8 +2470,8 @@ function renderPlayerCard(card, llm){
     `${overall.hr ?? "-"}本`, `${overall.rbi ?? "-"}打点`, `${overall.sb ?? "-"}盗塁`,
     `OPS ${fmt(overall.ops, 3)}`,
   ];
-  const countLineHtml = `<div class="p-count-line">
-    <span class="cl-team-pos">${escapeHtml(teamClean)} / ${escapeHtml(posClean)}</span>
+  const countLineHtml = `<div class="p-team-pos">${escapeHtml(teamClean)} / ${escapeHtml(posClean)}</div>
+  <div class="p-count-line">
     ${countLineParts.map(t => `<span class="cl-item">${escapeHtml(t)}</span>`).join("")}
   </div>`;
 
