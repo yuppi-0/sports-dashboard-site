@@ -1265,7 +1265,7 @@ const CZ_BATTER_SVG = `<svg class="cz-batter-svg" viewBox="0 0 30 60" width="24"
   <line x1="18" y1="18" x2="29" y2="6" stroke="rgba(148,163,184,0.45)" stroke-width="2.5" stroke-linecap="round"/>
 </svg>`;
 
-// isLeft: この選手が左打者かどうか（card.bats === "L"）。投手視点で見て打者が立つ側を
+// isLeft: この選手が左打者かどうか（seasonObj.bats === "L"、フォールバックでcard.bats）。投手視点で見て打者が立つ側を
 // 反転させる（CSS側のcz-flipクラスでイラストの表示位置・シルエット自体を鏡像にする）。
 // あわせて列の描画順も反転させる：イラストはCSSのrow-reverseでテーブルの右側に回り込む
 // だけで、テーブル内部のセル順はDOM順のまま変わらないため、列順もJS側で反転しないと
@@ -2622,10 +2622,16 @@ function renderPlayerCard(card, llm){
   if(pvSection) wirePivotSection(pvSection, seasonsMap, years, rankPoolUsable);
 
   // コース別成績：対戦・指標のボタンでグリッドを再描画（左打者は投手視点で見て逆サイドに立つ
-  // ため、card.batsが"L"ならシルエット・行を反転する。bats情報がまだ無い古いデータでは
+  // ため、seasonObj.batsが"L"ならシルエット・行を反転する。bats情報がまだ無い古いデータでは
   // 右打者扱い＝従来どおりの表示になる）。
+  // 実際のJSON構造では"bats"はカードのトップレベルではなく、season単位のオブジェクト
+  // （seasonsMap[currentSeasonYear]、すなわちseasonObj）の中に入っている
+  // （export_llm_input_batter.py側でnumeric_cards[name]＝1シーズンぶんのオブジェクトに
+  // "bats"を含めてseasons[year]として格納しているため）。card.batsを見ると常にundefined
+  // になり、常に右打者扱いのまま反転しない不具合があったため、seasonObj.batsを見る
+  // （念のためcard.batsもフォールバックとして見ておく）。
   const czSection = mainContentEl.querySelector("[data-cz-section]");
-  if(czSection) wireCourseZoneSection(czSection, seasonsMap, card.bats === "L");
+  if(czSection) wireCourseZoneSection(czSection, seasonsMap, (seasonObj.bats ?? card.bats) === "L");
 
   // カウント別成績：全体/対右/対左トグル
   const ctSection = mainContentEl.querySelector("[data-ct-section]");
