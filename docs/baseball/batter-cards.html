@@ -308,14 +308,16 @@
     padding:4px 10px; border-radius:5px; cursor:pointer; }
   .cz-split-toggle button.active{ background:var(--blue); color:#fff; }
   .cz-pair{ display:flex; gap:20px; flex-wrap:wrap; justify-content:center; }
-  .cz-col{ display:flex; flex-direction:column; align-items:center; gap:6px; }
+  /* 要望：グリッド（打者シルエット＋マトリックス）が列の中で中央寄せだと位置に違和感が
+     あるため、左寄せにする。 */
+  .cz-col{ display:flex; flex-direction:column; align-items:flex-start; gap:6px; }
   .cz-col-label{ font-size:11px; font-weight:700; color:var(--text-dim); }
   .cz-figure-row{ display:flex; align-items:flex-end; gap:4px; }
   /* 左打者は投手視点で見て逆サイドに立つため、行を反転しシルエット自体も左右反転する */
   .cz-figure-row.cz-flip{ flex-direction:row-reverse; }
   .cz-figure-row.cz-flip .cz-batter-svg{ transform:scaleX(-1); }
   .cz-batter-svg{ flex-shrink:0; margin-bottom:2px; }
-  .cz-grid-wrap{ display:flex; justify-content:center; overflow-x:auto; -webkit-overflow-scrolling:touch; }
+  .cz-grid-wrap{ display:flex; justify-content:flex-start; overflow-x:auto; -webkit-overflow-scrolling:touch; }
   .cz-grid-table{ border-collapse:collapse; }
   .cz-cell{ width:54px; height:44px; text-align:center; vertical-align:middle; padding:0;
     border:1px solid rgba(255,255,255,0.08); }
@@ -1211,8 +1213,12 @@ const CZ_PITCH_DENOM_METRICS = new Set(["swing_pct", "swing_contact_pct", "whiff
 const CZ_LOWER_IS_BETTER = new Set(["whiff_pct_all", "whiff_pct", "gb_pct"]);
 
 function courseZoneCellText(cell, metric){
+  // 球数の参照キーは2通りある：フィルター絞り込み時はaggCourseCellStats()（生データを
+  // クライアント側で集計、キー名は"n"）、絞り込み無し時はサーバー側byCourseZone
+  // （Python側_agg_pitch_group()由来でキー名は"count"）。片方しか見ていないと、
+  // 絞り込み無し時に常に0球と表示されてしまうため、両方を見る。
   const denomLabel = CZ_PITCH_DENOM_METRICS.has(metric)
-    ? `${cell ? (cell.n ?? 0) : 0}球`
+    ? `${cell ? (cell.n ?? cell.count ?? 0) : 0}球`
     : `${cell ? (cell.pa ?? 0) : 0}打席`;
   if(!cell || cell[metric] == null) return { text: "-", sub: denomLabel };
   const kind = CZ_METRIC_FMT[metric] || "pct";
@@ -1290,7 +1296,8 @@ function renderCourseGrid(list, metric, splitMode, isLeft){
 }
 
 // ── 対戦投手別成績 ──
-const VS_PITCHER_MIN_PA = 10;  // これ未満はサンプル過小として集計対象から除外する
+// 対象データを見て10打席では該当投手が少なすぎたため8打席に緩和（要望）。
+const VS_PITCHER_MIN_PA = 8;  // これ未満はサンプル過小として集計対象から除外する
 
 // 打席・打率・本塁打・打点・OPS・出塁率・長打率・K%・BB%・Z-Swing%・Z-Contact%・Whiff%・
 // Chase%・GB%・HR%を1つの表にまとめて表示する（得意/苦手の区分・上位5人への絞り込みは
@@ -1300,8 +1307,17 @@ const VS_PITCHER_MIN_PA = 10;  // これ未満はサンプル過小として集�
 // 使う（renderKeyedStatTableの表示・ソートロジックをそのまま流用できる）。
 // KEYED_STAT_METRICS_FULLはこのファイルの後方で定義されるため、関数化して呼び出し時に
 // 評価する（czMetricsFor()/keyedStatMetricsFor()と同じパターン）。
+// 対戦投手別成績用。MLB独自の打球質指標に加え、NPBでは打点（rbi）も除外する
+// （NPBのvsPitcher元データには打点情報が無く常に「-」になるため。MLBはStatcast由来の
+// bat_score差分から算出できるため表示したままにする）。
+// 対戦投手別成績用の指標一覧。
+// - MLB独自の打球質指標（Hard-Hit%等）は、NPBでは元データが無く常に「-」になるため除外し、
+//   MLBでは表示する（以前はリーグに関わらず常に除外していたが、MLBでも見たいとの要望）。
+// - 打点（rbi）は、NPBのvsPitcher元データには無く常に「-」になるためNPBでは除外し、
+//   MLBはStatcast由来のbat_score差分から算出できるため表示する。
 function vpMetricsFor(){
-  return KEYED_STAT_METRICS_FULL.filter(([k]) => !MLB_ONLY_METRIC_KEYS.has(k));
+  const exclude = currentLeague === "npb" ? (k) => MLB_ONLY_METRIC_KEYS.has(k) || k === "rbi" : (k) => false;
+  return KEYED_STAT_METRICS_FULL.filter(([k]) => !exclude(k));
 }
 
 // 通算表示用：seasonsMapの全年度ぶんのvsPitcher（シーズン単位で_agg_pitch_group()により
@@ -1575,8 +1591,12 @@ const KEYED_STAT_METRICS_FULL = [
   ["sweet_spot_pct", true, "Sweet Spot%", "pct"], ["xwoba", true, "xwOBA", "avg"],
   ["pull_pct", true, "Pull%", "pct"],
 ];
+// カウント別成績・ランナー状況別成績用。NPBのcountSplits/situationSplits元データには
+// 打点（rbi）情報が無く常に「-」になってしまうため、NPBでは打点列も除外する
+// （MLB側はpitchSplits単位でも打点を算出できるため表示したままにする）。
 function keyedStatMetricsFor(){
-  return currentLeague === "npb" ? KEYED_STAT_METRICS_FULL.filter(([k]) => !MLB_ONLY_METRIC_KEYS.has(k)) : KEYED_STAT_METRICS_FULL;
+  if(currentLeague !== "npb") return KEYED_STAT_METRICS_FULL;
+  return KEYED_STAT_METRICS_FULL.filter(([k]) => !MLB_ONLY_METRIC_KEYS.has(k) && k !== "rbi");
 }
 // contact_pct（実体はZ-Swing%として計算済み）等、旧フィールド名で来るデータを新フィールド名に
 // 正規化する。z_contact_pct/gb_pctは元データに無ければnullのまま（表示は自動的に「-」）。
@@ -1922,8 +1942,15 @@ const PV_FULL_COLUMNS = [
   ["hard_hit_pct", "Hard-Hit%"], ["avg_ev", "平均EV(km/h)"], ["sweet_spot_pct", "Sweet Spot%"],
   ["xwoba", "xwOBA"], ["pull_pct", "Pull%"],
 ];
-function pvFullColumnsFor(){
-  return currentLeague === "npb" ? PV_FULL_COLUMNS.filter(([k]) => !MLB_ONLY_METRIC_KEYS.has(k)) : PV_FULL_COLUMNS;
+// activeAxesを渡すと、球種カテゴリ/球種詳細/球速帯のいずれかが軸に含まれる場合、NPBでは
+// 「打点」列を除外する（NPBのpitchSplits元データには球単位の打点情報が無く、常に
+// 「-」になってしまうため）。MLBはpitchSplits側でも打点を算出できるため常に表示する。
+function pvFullColumnsFor(activeAxes){
+  let cols = currentLeague === "npb" ? PV_FULL_COLUMNS.filter(([k]) => !MLB_ONLY_METRIC_KEYS.has(k)) : PV_FULL_COLUMNS;
+  if(currentLeague === "npb" && activeAxes && activeAxes.some(a => PV_PITCH_COUNT_DIMS.has(a))){
+    cols = cols.filter(([k]) => k !== "rbi");
+  }
+  return cols;
 }
 
 function pvHandLabel(h){ return h === "vsR" ? "対右投手" : h === "vsL" ? "対左投手" : "全体"; }
@@ -2115,7 +2142,7 @@ function renderPivotTable(rows0, activeAxes, sortState){
   if(rows0.length === 0) return `<div class="defense-note">条件に一致するデータがありません。</div>`;
   // 球種カテゴリ/球種詳細/球速帯を軸に使っている場合だけ、打席の右に「球数」列を追加する。
   const showCount = activeAxes.some(a => PV_PITCH_COUNT_DIMS.has(a));
-  const fullCols = pvFullColumnsFor();
+  const fullCols = pvFullColumnsFor(activeAxes);
   const cols = showCount
     ? [fullCols[0], ["count", "球数"], ...fullCols.slice(1)]
     : fullCols;
