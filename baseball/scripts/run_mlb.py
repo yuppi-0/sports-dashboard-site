@@ -3018,11 +3018,15 @@ def build_batter_vs_pitcher_mlb(df: pd.DataFrame) -> pd.DataFrame:
     算出できるようにするため）。
     Statcastの生データでは"player_name"が対戦投手（投球のオーナー）の表記名で、
     打者名は別途_add_batter_names()で付与された"batter_name"。
+    Hard-Hit%・平均EV・Sweet Spot%・xwOBA・Pull%は_batter_batted_extra_mlb()（他のMLB側
+    集計＝コース/カウント/状況別成績と共通のヘルパー）で算出する。
     """
     cols = ["試合ID", "選手名", "投手名", "打席", "打数", "安打", "二塁打", "三塁打", "本塁打",
             "四球", "死球", "三振", "打点", "球数",
             "SW数", "空振り数", "ゾーン内投球数", "ゾーン外投球数",
-            "ゾーン内SW数", "ゾーン外SW数", "ゾーン内空振り数", "GB", "LD", "FB"]
+            "ゾーン内SW数", "ゾーン外SW数", "ゾーン内空振り数", "GB", "LD", "FB",
+            "EV合計", "EV件数", "Hard-Hit数2", "LA件数", "Sweet Spot数",
+            "xwOBA合計", "xwOBA件数", "Pull数", "Pull分母"]
     if df is None or df.empty or "batter_name" not in df.columns or "player_name" not in df.columns:
         return pd.DataFrame(columns=cols)
 
@@ -3075,6 +3079,7 @@ def build_batter_vs_pitcher_mlb(df: pd.DataFrame) -> pd.DataFrame:
         gb_n2 = int(bb_type_last.eq("ground_ball").sum())
         ld_n2 = int(bb_type_last.eq("line_drive").sum())
         fb_n2 = int(bb_type_last.eq("fly_ball").sum())
+        extra = _batter_batted_extra_mlb(last)
         rows.append({
             "試合ID": str(gid), "選手名": bname, "投手名": pname,
             "打席": int(len(last)), "打数": ab_n, "安打": h_n,
@@ -3086,6 +3091,10 @@ def build_batter_vs_pitcher_mlb(df: pd.DataFrame) -> pd.DataFrame:
             "ゾーン外SW数": int((swing & g["_out_zone"]).sum()),
             "ゾーン内空振り数": int((swing & g["_in_zone"] & g["_is_swstr"]).sum()),
             "GB": gb_n2, "LD": ld_n2, "FB": fb_n2,
+            "EV合計": extra["ev_sum"], "EV件数": extra["ev_n"], "Hard-Hit数2": extra["hardhit_n"],
+            "LA件数": extra["la_n"], "Sweet Spot数": extra["sweetspot_n"],
+            "xwOBA合計": extra["xwoba_sum"], "xwOBA件数": extra["xwoba_n"],
+            "Pull数": extra["pull_n"], "Pull分母": extra["spray_n"],
         })
     return pd.DataFrame(rows, columns=cols) if rows else pd.DataFrame(columns=cols)
 
@@ -3554,6 +3563,11 @@ def _build_game_json(dm_path: str, date: str,
             "gb":   _iv(r.get("GB")),
             "ld":   _iv(r.get("LD")),
             "fb":   _iv(r.get("FB")),
+            "evsum": _fv(r.get("EV合計")), "evn": _iv(r.get("EV件数")),
+            "hh":    _iv(r.get("Hard-Hit数2")),
+            "lan":   _iv(r.get("LA件数")), "ss": _iv(r.get("Sweet Spot数")),
+            "xwsum": _fv(r.get("xwOBA合計"), d=3), "xwn": _iv(r.get("xwOBA件数")),
+            "pu":    _iv(r.get("Pull数")), "spn": _iv(r.get("Pull分母")),
         })
 
     def _mix_obj(r, game_id: str = "", pitcher_name: str = "", bat_hand: str = "ALL"):

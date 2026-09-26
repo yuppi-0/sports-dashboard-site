@@ -933,6 +933,14 @@ def _aggregate_pt_group_py(entries: list[dict]) -> dict:
         # HR%＝本塁打/打席。積み上げ済みのhr・paから直接算出（build_by_pitch_category/
         # build_by_velocity_band_onlyの集計元でも、pvFullColumnsFor()のHR%列と同じ定義）。
         "hr_pct": round(hr / pa * 100, 1) if pa > 0 else None,
+        # MLB独自の打球質指標（Hard-Hit%・平均EV・Sweet Spot%・xwOBA・Pull%）。
+        # 入力entries（byPitchType detail単位）は既に_agg_pitch_group()でこれらのレート値まで
+        # 計算済みなので、ここでは生カウントへの遡りはできず、他の指標と同じく打席数で
+        # 加重平均した近似値にする（以前はこの5項目だけ引き継がれておらず、シーズン成績
+        # ピボット表で球種カテゴリ/球種詳細/球速帯を軸にするとMLBでも常に「-」になっていた）。
+        "hard_hit_pct": _wavg("hard_hit_pct", 1), "avg_ev": _wavg("avg_ev", 1),
+        "sweet_spot_pct": _wavg("sweet_spot_pct", 1), "xwoba": _wavg("xwoba", 3),
+        "pull_pct": _wavg("pull_pct", 1),
     }
 
 
