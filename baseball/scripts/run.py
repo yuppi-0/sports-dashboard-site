@@ -1371,6 +1371,48 @@ def build_batter_count_splits(df_pitch: "pd.DataFrame", pit_hand_map: dict) -> "
     return pd.DataFrame(rows, columns=cols)
 
 
+def build_batter_vs_pitcher(df_pitch: "pd.DataFrame") -> "pd.DataFrame":
+    """
+    打者×試合×対戦投手の集計（「対戦投手別成績（得意/苦手投手）」セクション用）。
+    カウント別/コース別成績と違い、投手ごとの通算・年度別を見せる用途なので、球種や
+    ゾーンでは分けず基本の打撃結果カウントだけを持つ（打席数のしきい値判定と
+    打率/OPS/本塁打の表示にはこれで十分）。打点はこの粒度の元データ（df_pitch）には
+    無いため持たない（他のNPB側成績表と同じ制約）。
+    """
+    cols = ["試合ID", "選手名", "投手名", "打席", "打数", "安打", "二塁打", "三塁打", "本塁打",
+            "四球", "死球", "三振"]
+    if df_pitch is None or df_pitch.empty:
+        return pd.DataFrame(columns=cols)
+    need_cols = {"打者名", "投手名"}
+    if not need_cols.issubset(df_pitch.columns):
+        return pd.DataFrame(columns=cols)
+
+    df = df_pitch.copy()
+    df["_pa_last"] = df["打席内球数"] == df.groupby("打席番号")["打席内球数"].transform("max")
+
+    rows = []
+    group_cols = ["試合ID", "打者名", "投手名"]
+    for keys, g in df.groupby(group_cols, dropna=False):
+        gid, bname, pname = keys
+        if pd.isna(bname) or not str(bname).strip() or pd.isna(pname) or not str(pname).strip():
+            continue
+        last = g[g["_pa_last"]]
+        if last.empty:
+            continue
+        ab_n = h_n = d2_n = d3_n = hr_n = bb_n = hbp_n = k_n = 0
+        for _, r in last.iterrows():
+            res = str(r.get("打席完了結果", "") or "")
+            cat = str(r.get("判定カテゴリ", "") or "")
+            a, h, d2, d3, hr, bb, hbp, k = ab_result_detail(cat, res)
+            ab_n += a; h_n += h; d2_n += d2; d3_n += d3; hr_n += hr; bb_n += bb; hbp_n += hbp; k_n += k
+        rows.append({
+            "試合ID": str(gid), "選手名": bname, "投手名": pname,
+            "打席": int(len(last)), "打数": ab_n, "安打": h_n,
+            "二塁打": d2_n, "三塁打": d3_n, "本塁打": hr_n, "四球": bb_n, "死球": hbp_n, "三振": k_n,
+        })
+    return pd.DataFrame(rows, columns=cols)
+
+
 def swing_counts(sw_g) -> dict:
     """投球DataFrameからスイング実数を返す"""
     if sw_g is None or (hasattr(sw_g, "empty") and sw_g.empty) or "is_swing" not in sw_g.columns:
@@ -2079,6 +2121,8 @@ def run_datamart(
     fact_bat_course_pitch_splits = build_batter_course_pitch_splits(df_pitch, pit_hand_map_pm)
     # 打者版バッターカード用：打者×カウント×対戦投手利き腕の集計（同じdf_pitchから）
     fact_bat_count_splits = build_batter_count_splits(df_pitch, pit_hand_map_pm)
+    # 打者版バッターカード用：打者×対戦投手の集計（「対戦投手別成績（得意/苦手投手）」用）
+    fact_bat_vs_pitcher = build_batter_vs_pitcher(df_pitch)
 
     # 打席完了結果から打者視点の打球アウト分類
     def _bat_batted(res: pd.Series) -> dict:
@@ -2574,6 +2618,7 @@ def run_datamart(
         fact_bat_course_splits.to_excel(writer, sheet_name="試合別打者被コース別成績", index=False)
         fact_bat_course_pitch_splits.to_excel(writer, sheet_name="試合別打者被コース別球種別成績", index=False)
         fact_bat_count_splits.to_excel(writer,  sheet_name="試合別打者被カウント別成績", index=False)
+        fact_bat_vs_pitcher.to_excel(writer,    sheet_name="試合別打者被投手別成績",   index=False)
         df_highlights.to_excel(writer,         sheet_name="活躍選手",              index=False)
 
     print(f"\n完了: '{output_path}'")
@@ -2588,6 +2633,7 @@ def run_datamart(
         ("試合別打者被コース別成績", fact_bat_course_splits),
         ("試合別打者被コース別球種別成績", fact_bat_course_pitch_splits),
         ("試合別打者被カウント別成績", fact_bat_count_splits),
+        ("試合別打者被投手別成績", fact_bat_vs_pitcher),
         ("活躍選手",              df_highlights),
     ]:
         print(f"  {name:18s}: {len(df):>5} rows")
@@ -2895,6 +2941,22 @@ def _build_dashboard_data(datamart_path: str, pitch_locs: dict | None = None, cb
             "fb":    _iv(r.get("FB")),
         })
 
+    # 試合別打者被投手別成績 → 打者カードのvsPitcher（対戦投手別「得意/苦手投手」セクション用）
+    bat_vs_pitcher_idx = defaultdict(list)
+    for r in sheets.get("試合別打者被投手別成績", []):
+        bat_vs_pitcher_idx[(str(r.get("試合ID", "")), r.get("選手名", ""))].append({
+            "p":   r.get("投手名", ""),
+            "pa":  _iv(r.get("打席")),
+            "ab":  _iv(r.get("打数")),
+            "h_":  _iv(r.get("安打")),
+            "2b":  _iv(r.get("二塁打")),
+            "3b":  _iv(r.get("三塁打")),
+            "hr":  _iv(r.get("本塁打")),
+            "bb":  _iv(r.get("四球")),
+            "hbp": _iv(r.get("死球")),
+            "k":   _iv(r.get("三振")),
+        })
+
     # 試合別投手成績_左右別 → pitStatVsR / pitStatVsL
     pit_lr_idx = {}
     for r in sheets.get("試合別投手成績_左右別", []):
@@ -3054,6 +3116,7 @@ def _build_dashboard_data(datamart_path: str, pitch_locs: dict | None = None, cb
             "courseSplits": bat_course_splits_idx.get((str(bat_row.get("試合ID", "")), bat_row.get("選手名", "")), []),
             "courseSplitsByPitch": bat_course_pitch_splits_idx.get((str(bat_row.get("試合ID", "")), bat_row.get("選手名", "")), []),
             "countSplits": bat_count_splits_idx.get((str(bat_row.get("試合ID", "")), bat_row.get("選手名", "")), []),
+            "vsPitcher": bat_vs_pitcher_idx.get((str(bat_row.get("試合ID", "")), bat_row.get("選手名", "")), []),
         }
 
     DATA = {}

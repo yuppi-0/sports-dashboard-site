@@ -2316,6 +2316,7 @@ def run_games_datamart(
             "試合別打者被コース別球種別成績": build_batter_course_pitch_splits_mlb(df),
             "試合別打者被カウント別成績": build_batter_count_splits_mlb(df),
             "試合別打者被状況別成績": build_batter_situation_splits_mlb(df),
+            "試合別打者被投手別成績": build_batter_vs_pitcher_mlb(df),
             "活躍選手":              hl_df,
         }
     except Exception as e:
@@ -3008,6 +3009,55 @@ def build_batter_situation_splits_mlb(df: pd.DataFrame) -> pd.DataFrame:
     return pd.DataFrame(rows, columns=cols) if rows else pd.DataFrame(columns=cols)
 
 
+def build_batter_vs_pitcher_mlb(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    打者×試合×対戦投手の集計（「対戦投手別成績（得意/苦手投手）」セクション用）。
+    コース/カウント/状況別成績と違い、投手ごとの通算・年度別を見せる用途なので、球種や
+    ゾーンでは分けず基本の打撃結果カウントだけを持つ（打席数のしきい値判定と
+    打率/OPS/本塁打の表示にはこれで十分）。
+    Statcastの生データでは"player_name"が対戦投手（投球のオーナー）の表記名で、
+    打者名は別途_add_batter_names()で付与された"batter_name"。
+    """
+    cols = ["試合ID", "選手名", "投手名", "打席", "打数", "安打", "二塁打", "三塁打", "本塁打",
+            "四球", "死球", "三振", "打点"]
+    if df is None or df.empty or "batter_name" not in df.columns or "player_name" not in df.columns:
+        return pd.DataFrame(columns=cols)
+
+    d = df.copy()
+    event = d["events"].fillna("") if "events" in d.columns else pd.Series([""] * len(d), index=d.index)
+    d["_is_final"] = event.astype(str).str.strip().ne("")
+    d["_event"] = event
+
+    rows = []
+    group_cols = ["game_pk", "batter_name", "player_name"]
+    for keys, g in d.groupby(group_cols, dropna=False):
+        gid, bname, pname = keys
+        if not str(bname).strip() or not str(pname).strip():
+            continue
+        last = g[g["_is_final"]]
+        if last.empty:
+            continue
+        ev = last["_event"]
+        ab_n = int(ev.isin(MLB_AB_EVENTS).sum())
+        h_n = int(ev.isin(["single", "double", "triple", "home_run"]).sum())
+        d2_n = int((ev == "double").sum())
+        d3_n = int((ev == "triple").sum())
+        hr_n = int((ev == "home_run").sum())
+        bb_n = int(ev.isin(["walk", "intent_walk"]).sum())
+        hbp_n = int((ev == "hit_by_pitch").sum())
+        k_n = int(ev.isin(["strikeout", "strikeout_double_play"]).sum())
+        if "post_bat_score" in last.columns and "bat_score" in last.columns:
+            rbi_n = int((last["post_bat_score"].fillna(0) - last["bat_score"].fillna(0)).clip(lower=0).sum())
+        else:
+            rbi_n = 0
+        rows.append({
+            "試合ID": str(gid), "選手名": bname, "投手名": pname,
+            "打席": int(len(last)), "打数": ab_n, "安打": h_n,
+            "二塁打": d2_n, "三塁打": d3_n, "本塁打": hr_n, "四球": bb_n, "死球": hbp_n, "三振": k_n, "打点": rbi_n,
+        })
+    return pd.DataFrame(rows, columns=cols) if rows else pd.DataFrame(columns=cols)
+
+
 def _build_mlb_locs_and_cbs(df: pd.DataFrame) -> tuple[dict, dict]:
     """
     Statcast DataFrame から pitch_locs と cbs_idx を生成する。
@@ -3445,6 +3495,24 @@ def _build_game_json(dm_path: str, date: str,
             "pu":    _iv(r.get("Pull数")), "spn": _iv(r.get("Pull分母")),
         })
 
+    # 試合別打者被投手別成績 → 打者カードのvsPitcher（対戦投手別「得意/苦手投手」セクション用）
+    bat_vs_pitcher_idx: dict = {}
+    for r in _rows("試合別打者被投手別成績"):
+        k = (str(r.get("試合ID", "")), r.get("選手名", ""))
+        bat_vs_pitcher_idx.setdefault(k, []).append({
+            "p":   r.get("投手名", ""),
+            "pa":  _iv(r.get("打席")),
+            "ab":  _iv(r.get("打数")),
+            "h_":  _iv(r.get("安打")),
+            "2b":  _iv(r.get("二塁打")),
+            "3b":  _iv(r.get("三塁打")),
+            "hr":  _iv(r.get("本塁打")),
+            "bb":  _iv(r.get("四球")),
+            "hbp": _iv(r.get("死球")),
+            "k":   _iv(r.get("三振")),
+            "rbi": _iv(r.get("打点")),
+        })
+
     def _mix_obj(r, game_id: str = "", pitcher_name: str = "", bat_hand: str = "ALL"):
         pt  = _nv(r.get("球種コード"), "")
         gb_n = _iv(r.get("GB")) or 0
@@ -3611,6 +3679,7 @@ def _build_game_json(dm_path: str, date: str,
             "courseSplitsByPitch": bat_course_pitch_splits_idx.get((str(r.get("試合ID", "")), r.get("選手名", "")), []),
             "countSplits": bat_count_splits_idx.get((str(r.get("試合ID", "")), r.get("選手名", "")), []),
             "situationSplits": bat_situation_splits_idx.get((str(r.get("試合ID", "")), r.get("選手名", "")), []),
+            "vsPitcher": bat_vs_pitcher_idx.get((str(r.get("試合ID", "")), r.get("選手名", "")), []),
         }
 
     def _parse_inn(s):

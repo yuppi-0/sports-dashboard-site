@@ -615,6 +615,31 @@ def build_course_zone_by_pitch_raw(appearances: list[dict]) -> list[dict]:
     return result
 
 
+# 「対戦投手別成績（得意/苦手投手）」セクション用。run.py/run_mlb.pyが日別JSONの各打者
+# エントリに付与する"vsPitcher"（試合×対戦投手ごとの基本打撃結果カウント）を、シーズン
+# 全体で投手ごとに積み上げるだけにとどめ（%や打率・OPSへの変換はしない）、batter-cards.html
+# 側で「通算」表示時に複数シーズン分をさらに合算できるようにする（コース別成績の球種
+# フィルターと同じ設計）。打点(rbi)はMLBのみ元データにあるため、無い場合は0のまま
+# （batter-cards.html側では使わない想定なので実害無い）。
+_VS_PITCHER_SUM_KEYS = ["pa", "ab", "h_", "2b", "3b", "hr", "bb", "hbp", "k", "rbi"]
+
+
+def build_vs_pitcher_breakdown(appearances: list[dict]) -> list[dict]:
+    by_pitcher: dict[str, dict] = {}
+    for ap in appearances:
+        p = ap.get("player")
+        if not isinstance(p, dict):
+            continue
+        for e in (p.get("vsPitcher") or []):
+            name = e.get("p", "")
+            if not name:
+                continue
+            acc = by_pitcher.setdefault(name, {k: 0 for k in _VS_PITCHER_SUM_KEYS})
+            for k in _VS_PITCHER_SUM_KEYS:
+                acc[k] += e.get(k, 0) or 0
+    return [{"pitcher": name, **sums} for name, sums in by_pitcher.items()]
+
+
 # ==================================================
 # Section 2d. カウント別集計（対左右投手の3系統: all/vsR/vsL）
 # ==================================================
@@ -1320,6 +1345,7 @@ def export_llm_input_batter_xlsx(games_json_dir: str, out_path: str, min_pa: flo
                     },
                     "byCourseZone": build_course_zone_breakdown(appearances),
                     "courseZoneByPitchRaw": build_course_zone_by_pitch_raw(appearances),
+                    "vsPitcher": build_vs_pitcher_breakdown(appearances),
                     "byCount": build_count_breakdown(appearances),
                     "bySituation": build_situation_breakdown(appearances),
                     "game_log": game_log_dicts,
