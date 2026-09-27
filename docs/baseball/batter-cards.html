@@ -349,10 +349,17 @@
        各項目は中身に応じた自然な幅のまま並べ、余ればそこで止まり、入り切らない時だけ
        全項目が同じ比率で縮む（flex:0 1 auto）方式にする。これでどのセクションでも
        同じ項目は同じ幅・同じ間隔で表示される。 */
-    .fctrl-group-filter{ flex-wrap:nowrap; gap:6px; }
-    .fctrl-group-filter .fctrl-row{ flex:0 1 auto; min-width:0; }
+    /* フィルター（年度・対左右・球種カテゴリ・球種詳細・球速帯）や軸（軸1〜4）は、
+       内容に応じた自然な幅のまま並べると項目数の違い（4個/5個等）でセクションごとに
+       行全体の横幅がバラバラになり、特に5項目の行が窮屈に見えてしまう（要望：軸4の
+       右端と5つ目のフィルターの右端を揃えたい）。そのため、常にコンテナいっぱい
+       （width:100%）まで均等幅で引き伸ばす方式にする。これで軸の行もフィルターの行も
+       同じ横幅いっぱいに広がるので右端が揃い、他のセクション（カウント別成績等、
+       項目数が少ない行）も同じ考え方で常にコンテナいっぱいに広がる。 */
+    .fctrl-group-filter{ flex-wrap:nowrap; gap:6px; width:100%; }
+    .fctrl-group-filter .fctrl-row{ flex:1 1 0; min-width:0; }
     .fctrl-group-filter .fctrl-label{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-size:10px; }
-    .fctrl-group-filter .fctrl-select, .fctrl-group-filter .msel-btn{ width:auto; min-width:0; max-width:none;
+    .fctrl-group-filter .fctrl-select, .fctrl-group-filter .msel-btn{ width:100%; min-width:0; max-width:none;
       padding-left:4px; padding-right:4px; font-size:10px; }
     /* シーズン成績表（軸で球種カテゴリ等を選んだ時の内訳表）は指標列が多くなりがちなので、
        文字も一段階小さくして一度に見える指標の数を増やす。固定列（軸ラベル）の幅は
@@ -424,10 +431,14 @@
     .p-meta{ font-size:11px; }
     .p-header{ gap:10px; }
     .search-input{ font-size:16px; }
+    /* msel-search（チーム/ポジション等の絞り込みパネル内の検索欄）もfont-sizeが16px未満だと、
+       iOS Safariがフォーカス時にページ全体をズームインしてしまい、パネルが異常に拡大表示
+       されたように見える不具合があった。search-inputと同じく16pxにして防ぐ。 */
+    .msel-search{ font-size:16px; }
     .filter-select{ font-size:12.5px; padding:6px 5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     .sort-dir-btn{ font-size:11px; padding:6px 8px; }
     .filter-row{ font-size:10.5px; gap:4px; }
-    .filter-row input[type="number"]{ width:36px; font-size:13px; padding:4px; }
+    .filter-row input[type="number"]{ width:36px; font-size:16px; padding:4px; }
     .player-item{ padding:13px 12px; }
     .stat-grid{ grid-template-columns:repeat(3,1fr); gap:6px; margin-top:8px; }
     .stat-box{ padding:5px 4px; }
