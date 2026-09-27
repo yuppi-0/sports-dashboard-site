@@ -1821,6 +1821,19 @@ function countStrikeGroupLabel(s){
   return m ? `${m[2]}ストライク` : "その他";
 }
 
+// グループ列(rowspan、カウント区分)がある表は、キー列(カウント)のposition:sticky用leftを
+// グループ列の幅ぶん右にずらす必要がある。table-layout:auto（既定）では、列が多い表だと
+// CSSでwidthを指定していても実際のレンダリング幅が一致するとは限らない（他の列との
+// 兼ね合いで縮む）ため、ハードコードした値に頼るとズレて隙間や文字欠けが生じる。
+// 描画後に実測してleftを動的に合わせることで、どんなフォント・列数でも必ず隙間なく
+// 隣接させる。
+function syncKstKeyLeft(container){
+  const groupCell = container.querySelector(".kst-group-cell");
+  if(!groupCell) return;
+  const w = groupCell.getBoundingClientRect().width;
+  container.querySelectorAll(".kst-key-cell").forEach(el => { el.style.left = `${w}px`; });
+}
+
 function wireCountSection(scope, seasonsMap){
   const handSel = scope.querySelector(".ct-hand-select");
   const yearSel = scope.querySelector(".ct-year-select");
@@ -1834,6 +1847,7 @@ function wireCountSection(scope, seasonsMap){
     // 軸切り替え等は無く、常にこの2列構成のまま。
     table.innerHTML = renderKeyedStatTable(byC[handSel.value] || [], "カウント", "countKey", keyedStatMetricsFor(true), null,
       { label: countStrikeGroupLabel, header: "カウント区分" }, true, sortState);
+    syncKstKeyLeft(table);
   }
   [handSel, yearSel].forEach(sel => sel.addEventListener("change", redraw));
   wireSortHeaders(table, (key) => { sortState = cycleSortState(sortState, key); redraw(); });
@@ -2378,7 +2392,7 @@ function renderPivotSection(seasonsMap, years){
   return `
     <div class="fctrl-block">
       <div class="fctrl-group-title">軸</div>
-      <div class="fctrl-group">
+      <div class="fctrl-group fctrl-group-filter">
         <div class="fctrl-row">
           <span class="fctrl-label">軸1</span>
           <select class="fctrl-select pv-axis1-select">${dimOptions(false)}</select>
