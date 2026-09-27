@@ -199,13 +199,15 @@
   .split-table td:first-child, .disc-table td:first-child, .pt-table td:first-child, .pt-band-table td:first-child{ text-align:left; font-weight:700; color:var(--text-bright); }
   .kst-group-cell{ vertical-align:middle; background:var(--panel-alt); border-right:1px solid rgba(148,163,184,0.15);
     font-size:11px; color:var(--text-dim); text-align:center;
-    position:sticky; left:0; z-index:1; width:70px; }
+    position:sticky; left:0; z-index:1; width:90px; }
   /* カウント別成績のようにグループ列(rowspan)があると、グループの先頭行だけtd数が1つ多くなり
      :first-child頼みのスタイル（太字・左寄せ）がずれてしまうため、キー列には明示クラスで固定する。
      カウント区分・カウントの値は見やすさのため中央揃えにする（他の列は右寄せ/左寄せのまま）。
      横スクロール時もカウント区分・カウント（ランナー状況別成績では状況のみ）が見えるよう固定する。
-     グループ列がある表（カウント別成績）はrenderKeyedStatTable側でleft:70px（グループ列の幅ぶん）を
-     インラインで指定し、グループ列が無い表（ランナー状況別成績）はデフォルトのleft:0のままにする。 */
+     グループ列がある表（カウント別成績）はrenderKeyedStatTable側でleft:90px（グループ列の実測幅ぶん。
+     「0ストライク」等のラベルがwidth指定の70pxより実際は広くレンダリングされ、指定値とずれて
+     隣の列が数ピクセル隠れる不具合があったため90pxに拡げて実測値に合わせた）をインラインで
+     指定し、グループ列が無い表（ランナー状況別成績）はデフォルトのleft:0のままにする。 */
   .split-table td.kst-key-cell, .split-table th.kst-key-cell{ text-align:center; font-weight:700; color:var(--text-bright);
     position:sticky; left:0; z-index:1; background:var(--panel); }
   .split-table thead th.kst-group-cell, .split-table thead th.kst-key-cell{ z-index:2; }
@@ -338,7 +340,7 @@
     .fctrl-row{ flex:0 0 auto; min-width:0; }
     .fctrl-select{ width:auto; min-width:64px; max-width:none; box-sizing:border-box; }
     .msel-btn{ width:auto; min-width:64px; max-width:150px; box-sizing:border-box; }
-    .pv-axis1-select, .pv-axis2-select, .pv-axis3-select{ min-width:100px; }
+    .pv-axis1-select, .pv-axis2-select, .pv-axis3-select, .pv-axis4-select{ min-width:100px; }
     /* フィルター（年度・対左右・球種カテゴリ・球種詳細・球速帯）は項目数が多く、
        通常のflex-wrapパッキングだと末尾の項目（球速帯）だけ次の行に折り返されて
        見づらくなるため、常に1行に収まるよう詰めて表示する。
@@ -353,19 +355,22 @@
     .fctrl-group-filter .fctrl-select, .fctrl-group-filter .msel-btn{ width:auto; min-width:0; max-width:none;
       padding-left:4px; padding-right:4px; font-size:10px; }
     /* シーズン成績表（軸で球種カテゴリ等を選んだ時の内訳表）は指標列が多くなりがちなので、
-       固定列（軸ラベル）を狭め、文字も一段階小さくして一度に見える指標の数を増やす */
+       文字も一段階小さくして一度に見える指標の数を増やす。固定列（軸ラベル）の幅は
+       軸ごとにJS側（PV_DIMS[dim].colWidth）でモバイル/デスクトップ別に指定しているため、
+       ここでは指定しない。 */
     .pv-result-table{ font-size:10.5px; }
     .pv-result-table th, .pv-result-table td{ padding:5px 6px; }
-    .pv-result-table th.pv-axis-col, .pv-result-table td.pv-axis-col{ min-width:60px; }
   }
 
   /* シーズン成績ピボット表（軸1〜3・絞り込みはfctrl-block/pill-btnで表示、結果テーブルのみ） */
   .pv-empty{ font-size:11px; color:var(--text-dim); }
   .pv-result-table{ min-width:760px; }
   /* 指標列が増えた分、横スクロールしても軸の値（どの行が何を指しているか）が見えるよう、
-     軸ラベル列（最大3列）を左端に固定表示する */
+     軸ラベル列（最大4列）を左端に固定表示する。幅・left位置は軸の種類（年度は狭く、
+     対左右/球種カテゴリ等は広く）に応じてrenderPivotTable側でインライン指定する
+     （要望：年度の列が一律幅だと不必要に広すぎたため）。 */
   .pv-result-table th.pv-axis-col, .pv-result-table td.pv-axis-col{
-    position:sticky; background:var(--panel); z-index:1; min-width:92px;
+    position:sticky; background:var(--panel); z-index:1;
   }
   .pv-result-table thead th.pv-axis-col{ z-index:2; }
 
@@ -872,9 +877,14 @@ function filteredSortedPlayers(){
   if(q) list = list.filter(p => (p.name || "").toLowerCase().includes(q));
   const teamSel = multiSelectValuesForFilter(teamSelectEl);
   if(teamSel.length) list = list.filter(p => teamSel.includes(p.team));
-  // 「左」で絞り込んだ時に「左右」のような複数ポジション表記の選手も対象に含める（部分一致）
+  // 「左」で絞り込んだ時に「左右」のような複数ポジション表記の選手も対象に含める（部分一致）。
+  // MLBはDH専念選手等、守備位置が判定できずpos===nullの選手がいる（populatePosSelect側では
+  // 既に`stripParens(p.pos) || ""`でガード済みだったが、ここは抜けていた）。ガード無しだと
+  // stripParens(null)がnullをそのまま返し、null.includes(...)で例外が飛んで
+  // filteredSortedPlayers()全体が失敗し、フィルターが一切効かなくなっていた（絞り込み前の
+  // リストのまま表示され続ける）。
   const posSel = multiSelectValuesForFilter(posSelectEl);
-  if(posSel.length) list = list.filter(p => posSel.some(v => stripParens(p.pos).includes(v)));
+  if(posSel.length) list = list.filter(p => posSel.some(v => (stripParens(p.pos) || "").includes(v)));
   const minPa = Number(minPaFilterEl.value || 0);
   if(minPa > 0) list = list.filter(p => (p.pa || 0) >= minPa);
   if(aiOnlyFilterEl.checked) list = list.filter(p => playersWithLlmData.has(p.name));
@@ -1188,7 +1198,7 @@ function wirePitchTypeSection(scope){
 // courseSplitsにゾーン内空振り数・打球種別（GB/LD/FB）が追加されたことで算出できる
 // ようになった指標（_agg_pitch_group側で計算済み）。
 const CZ_METRICS = [
-  ["avg", "打率"], ["ops", "OPS"], ["slg", "長打率"],
+  ["ops", "OPS"], ["slg", "長打率"], ["avg", "打率"],
   ["swing_pct", "スイング率"], ["swing_contact_pct", "コンタクト率"],
   ["whiff_pct_all", "空振り率（/すべて）"], ["whiff_pct", "空振り率（/スイング）"],
   ["gb_pct", "GB%"], ["hr_pct", "HR%"],
@@ -1205,29 +1215,33 @@ function czMetricsFor(){
 const CZ_METRIC_FMT = { avg: "avg", hr: "int", obp: "avg", slg: "avg", ops: "ops",
   swing_pct: "pct", swing_contact_pct: "pct", whiff_pct_all: "pct", whiff_pct: "pct", gb_pct: "pct",
   hr_pct: "pct", hard_hit_pct: "pct", xwoba: "avg", pull_pct: "pct" };
-// スイング率・コンタクト率・空振り率（対すべて/対スイング）は分母が「打席」ではなく「球数」
-// （スイング率・空振り率（/すべて）はゾーン内外含む全投球数、コンタクト率・空振り率（/スイング）は
-// スイング数）なので、これらの指標では打席数ではなく球数(cell.n)をサブテキストに表示する。
-const CZ_PITCH_DENOM_METRICS = new Set(["swing_pct", "swing_contact_pct", "whiff_pct_all", "whiff_pct"]);
 // 値が低いほど（打者にとって）良い＝色を濃くしたい指標（今までは高いほど濃かった指標を反転）。
 const CZ_LOWER_IS_BETTER = new Set(["whiff_pct_all", "whiff_pct", "gb_pct"]);
 
+// OPSを除く各指標の分子/分母（要望：「8球」のような分母だけでなく「4球/8球」のように
+// 分子も併記する）。値はcourseZoneCellTextに渡されるcell（サーバー側byCourseZone、または
+// クライアント側aggCourseCellStats/czBuildFilteredZoneListのいずれか）から直接引く。
+// unitは分子・分母どちらにも付ける単位表記。
+const CZ_FRACTION_DEF = {
+  avg:  { num: (c) => c.h, den: (c) => c.ab, unit: "打数" },
+  slg:  { num: (c) => c.tb, den: (c) => c.ab, unit: "打数" },
+  swing_pct: { num: (c) => c.sw, den: (c) => c.n ?? c.count, unit: "球" },
+  swing_contact_pct: { num: (c) => (c.sw ?? 0) - (c.ws ?? 0), den: (c) => c.sw, unit: "球" },
+  whiff_pct_all: { num: (c) => c.ws, den: (c) => c.n ?? c.count, unit: "球" },
+  whiff_pct: { num: (c) => c.ws, den: (c) => c.sw, unit: "球" },
+  gb_pct: { num: (c) => c.gb, den: (c) => (c.gb ?? 0) + (c.ld ?? 0) + (c.fb ?? 0), unit: "打球" },
+  hr_pct: { num: (c) => c.hr, den: (c) => c.pa, unit: "打席" },
+};
+
 function courseZoneCellText(cell, metric){
-  // 球数の参照キーは2通りある：フィルター絞り込み時はaggCourseCellStats()（生データを
-  // クライアント側で集計、キー名は"n"）、絞り込み無し時はサーバー側byCourseZone
-  // （Python側_agg_pitch_group()由来でキー名は"count"）。片方しか見ていないと、
-  // 絞り込み無し時に常に0球と表示されてしまうため、両方を見る。
-  const denomLabel = CZ_PITCH_DENOM_METRICS.has(metric)
-    ? `${cell ? (cell.n ?? cell.count ?? 0) : 0}球`
+  const fracDef = CZ_FRACTION_DEF[metric];
+  // OPSだけは単純な分子/分母を持たない（出塁率+長打率の合計）ため、従来どおり
+  // 打席数のみをサブテキストに表示する。
+  const denomLabel = fracDef
+    ? `${cell ? (fracDef.num(cell) ?? 0) : 0}${fracDef.unit}/${cell ? (fracDef.den(cell) ?? 0) : 0}${fracDef.unit}`
     : `${cell ? (cell.pa ?? 0) : 0}打席`;
   if(!cell || cell[metric] == null) return { text: "-", sub: denomLabel };
   const kind = CZ_METRIC_FMT[metric] || "pct";
-  // HR%は「本塁打」列を削除した代わりに、割合の後ろに本塁打の実数を(N)で併記する
-  // （例：5.9%(2)）。cell.hrはbyCourseZone側にpitchSplitsと同じhr実数が入っている。
-  if(metric === "hr_pct") {
-    const text = `${fmt(cell.hr_pct, 1, "%")}(${cell.hr ?? 0})`;
-    return { text, sub: denomLabel };
-  }
   const text = kind === "avg" ? fmtAvg(cell[metric]) : kind === "ops" ? fmt(cell[metric], 3)
     : kind === "int" ? String(cell[metric]) : fmt(cell[metric], 1, "%");
   return { text, sub: denomLabel };
@@ -1446,7 +1460,6 @@ function renderCourseZoneBody(byZone){
         <div class="cz-grid-wrap" data-cz-grid="vsL"></div>
       </div>
     </div>
-    <div class="cz-note">投手視点（中央3×3=ストライクゾーン、上段=高め）。内角/外角は打者自身の利き手を基準に正規化済みなので、右打者・左打者どちらでも同じ見方で読めます。打席数が少ないセルは参考値程度に見てください。</div>
   `;
 }
 
@@ -1474,7 +1487,8 @@ function aggCourseCellStats(entries){
   const r1 = (v) => v == null ? null : Math.round(v * 10) / 10;
   const r3 = (v) => v == null ? null : Math.round(v * 1000) / 1000;
   return {
-    pa, n, hr,
+    pa, n, hr, ab, h, tb,
+    sw, ws, gb, ld, fb,
     avg: r3(avg), slg: r3(slg), obp: r3(obp),
     ops: (avg != null && slg != null && obp != null) ? r3(slg + obp) : null,
     swing_pct: n > 0 ? r1(sw / n * 100) : null,
@@ -1594,9 +1608,16 @@ const KEYED_STAT_METRICS_FULL = [
 // カウント別成績・ランナー状況別成績用。NPBのcountSplits/situationSplits元データには
 // 打点（rbi）情報が無く常に「-」になってしまうため、NPBでは打点列も除外する
 // （MLB側はpitchSplits単位でも打点を算出できるため表示したままにする）。
-function keyedStatMetricsFor(){
-  if(currentLeague !== "npb") return KEYED_STAT_METRICS_FULL;
-  return KEYED_STAT_METRICS_FULL.filter(([k]) => !MLB_ONLY_METRIC_KEYS.has(k) && k !== "rbi");
+// excludeKBB=true: K%/BB%を除外する（カウント別成績専用。カウントごとのK%/BB%は
+// 「そのカウントに達した打席のうち、最終的にK/BBで終わった割合」であり、例えば
+// 0-0（初球）ではカウントの定義上どちらも必ず0%になるはずで意味が薄いため、
+// カウント別成績の表からは削除する。ランナー状況別成績・対戦投手別成績では
+// 引き続き表示する）。
+function keyedStatMetricsFor(excludeKBB){
+  let metrics = currentLeague !== "npb" ? KEYED_STAT_METRICS_FULL
+    : KEYED_STAT_METRICS_FULL.filter(([k]) => !MLB_ONLY_METRIC_KEYS.has(k) && k !== "rbi");
+  if(excludeKBB) metrics = metrics.filter(([k]) => k !== "k_pct" && k !== "bb_pct");
+  return metrics;
 }
 // contact_pct（実体はZ-Swing%として計算済み）等、旧フィールド名で来るデータを新フィールド名に
 // 正規化する。z_contact_pct/gb_pctは元データに無ければnullのまま（表示は自動的に「-」）。
@@ -1710,12 +1731,12 @@ function renderKeyedStatTable(list, keyLabel, keyField, metrics, emptyNote, grou
       return `<td${bg ? ` style="background:${bg}"` : ""}>${text}</td>`;
     }).join("");
     const countCell = showCount ? `<td>${s.count ?? "-"}</td>` : "";
-    return `<tr>${groupCell}<td class="kst-key-cell"${groupSpec ? ` style="left:70px"` : ""}>${escapeHtml(s[keyField] ?? "-")}</td><td>${s.pa ?? "-"}</td>${countCell}${cells}</tr>`;
+    return `<tr>${groupCell}<td class="kst-key-cell"${groupSpec ? ` style="left:90px"` : ""}>${escapeHtml(s[keyField] ?? "-")}</td><td>${s.pa ?? "-"}</td>${countCell}${cells}</tr>`;
   }).join("");
   const groupHeadTh = groupSpec ? sortTh(groupSpec.header, "__group", sortState, undefined, "kst-group-cell") : "";
   const countHeadTh = showCount ? sortTh("球数", "count", sortState) : "";
   return `<div class="table-scroll"><table class="split-table">
-    <thead><tr>${groupHeadTh}${sortTh(keyLabel, "__key", sortState, groupSpec ? ` style="left:70px"` : "", "kst-key-cell")}${sortTh("打席", "pa", sortState)}${countHeadTh}${metrics.map(([m, , l]) => sortTh(l, m, sortState)).join("")}</tr></thead>
+    <thead><tr>${groupHeadTh}${sortTh(keyLabel, "__key", sortState, groupSpec ? ` style="left:90px"` : "", "kst-key-cell")}${sortTh("打席", "pa", sortState)}${countHeadTh}${metrics.map(([m, , l]) => sortTh(l, m, sortState)).join("")}</tr></thead>
     <tbody>${rows}</tbody>
   </table></div>`;
 }
@@ -1810,7 +1831,7 @@ function wireCountSection(scope, seasonsMap){
     const byC = season.byCount || { all: [], vsR: [], vsL: [] };
     // 要望どおり「カウント区分」（グループ列）＋「カウント」（キー列）で固定表示。
     // 軸切り替え等は無く、常にこの2列構成のまま。
-    table.innerHTML = renderKeyedStatTable(byC[handSel.value] || [], "カウント", "countKey", keyedStatMetricsFor(), null,
+    table.innerHTML = renderKeyedStatTable(byC[handSel.value] || [], "カウント", "countKey", keyedStatMetricsFor(true), null,
       { label: countStrikeGroupLabel, header: "カウント区分" }, true, sortState);
   }
   [handSel, yearSel].forEach(sel => sel.addEventListener("change", redraw));
@@ -1918,12 +1939,16 @@ function renderSeasonTabs(years, current){
 // 上記のどれにも当てはまらない組み合わせ（例：球種カテゴリと球速帯を同時に軸にするなど、
 // 複数の球種詳細にまたがる集約になる場合）は、打席数で加重平均した近似値を表示するが
 // 順位は付かない（母集団を新たに定義しないと意味が無いため）。
+// colWidth: この軸の値の表示に必要な幅（[モバイル, デスクトップ]px）。以前は全軸で
+// 一律92px(デスクトップ)/60px(モバイル)だったが、「年度」（常に"2026"のような4桁数字のみ）
+// にはそれでは広すぎ、逆に「対左右」（"対右投手"等5文字）や「球種カテゴリ」（"ストレート系"等）
+// には狭すぎることがあったため、軸ごとに必要な幅を個別に持たせる（要望）。
 const PV_DIMS = {
-  year:   { label: "年度" },
-  hand:   { label: "対左右" },
-  mid:    { label: "球種カテゴリ" },
-  detail: { label: "球種詳細" },
-  band:   { label: "球速帯" },
+  year:   { label: "年度", colWidth: [52, 60] },
+  hand:   { label: "対左右", colWidth: [64, 92] },
+  mid:    { label: "球種カテゴリ", colWidth: [64, 96] },
+  detail: { label: "球種詳細", colWidth: [64, 96] },
+  band:   { label: "球速帯", colWidth: [56, 64] },
 };
 // この3つを軸に選んだ場合、打席の右に「球数」列を追加する（球種カテゴリ/球種詳細/球速帯は
 // 球種を絞り込む軸なので、投球数の内訳を見たいという要望）。
@@ -2147,11 +2172,14 @@ function renderPivotTable(rows0, activeAxes, sortState){
     ? [fullCols[0], ["count", "球数"], ...fullCols.slice(1)]
     : fullCols;
   const headCols = activeAxes.map(dim => PV_DIMS[dim]?.label || "-");
-  // 固定列（軸ラベル）の幅はCSSのmin-width（.pv-axis-col）と揃える必要がある
-  // （position:stickyのleftオフセットはJS側で計算するしかないため）。モバイルでは
-  // より多くの指標列を一度に見せたいので、CSS側のモバイル用min-widthに合わせて狭める。
-  const axisColWidth = window.matchMedia("(max-width:720px)").matches ? 60 : 92;
-  const axisColStyle = (i) => ` class="pv-axis-col" style="left:${i * axisColWidth}px"`;
+  // 固定列（軸ラベル）の幅は軸の種類ごとに異なる（PV_DIMS[dim].colWidth）ため、
+  // 各列のwidth/min-widthをインラインで指定しつつ、position:stickyのleftオフセットは
+  // それらの累積和で計算する（CSS側の一律min-widthには頼らない）。モバイルでは
+  // 指標列を一度に多く見せたいので、各軸ともモバイル用の狭い幅を使う。
+  const isMobileW = window.matchMedia("(max-width:720px)").matches;
+  const axisColWidths = activeAxes.map(dim => (PV_DIMS[dim]?.colWidth || [60, 92])[isMobileW ? 0 : 1]);
+  const axisColLefts = axisColWidths.reduce((acc, w, i) => { acc.push((acc[i - 1] ?? 0) + (i === 0 ? 0 : axisColWidths[i - 1])); return acc; }, []);
+  const axisColStyle = (i) => ` class="pv-axis-col" style="left:${axisColLefts[i]}px; width:${axisColWidths[i]}px; min-width:${axisColWidths[i]}px;"`;
 
   // 軸列（_label1〜3）は文字列比較、指標列は数値比較でソートする。
   const sortGetVal = (key) => (r) => r[key];
@@ -2180,7 +2208,8 @@ function renderPivotTable(rows0, activeAxes, sortState){
     return `<tr>${labelCells.join("")}${statCells.join("")}</tr>`;
   }).join("");
 
-  const headAxisCells = headCols.map((h, i) => sortTh(h, `_label${i + 1}`, sortState, ` style="left:${i * axisColWidth}px"`, "pv-axis-col")).join("");
+  const headAxisCells = headCols.map((h, i) => sortTh(h, `_label${i + 1}`, sortState,
+    ` style="left:${axisColLefts[i]}px; width:${axisColWidths[i]}px; min-width:${axisColWidths[i]}px;"`, "pv-axis-col")).join("");
   return `<div class="table-scroll"><table class="split-table pv-result-table">
     <thead><tr>${headAxisCells}${cols.map(([k, l]) => sortTh(l, k, sortState)).join("")}</tr></thead>
     <tbody>${trs}</tbody>
@@ -2361,6 +2390,10 @@ function renderPivotSection(seasonsMap, years){
           <span class="fctrl-label">軸3</span>
           <select class="fctrl-select pv-axis3-select">${dimOptions(true)}</select>
         </div>
+        <div class="fctrl-row">
+          <span class="fctrl-label">軸4</span>
+          <select class="fctrl-select pv-axis4-select">${dimOptions(true)}</select>
+        </div>
       </div>
       <div class="fctrl-group-title">フィルター</div>
       <div class="fctrl-group fctrl-group-filter">
@@ -2395,15 +2428,17 @@ function wirePivotSection(scope, seasonsMap, years, rankPool){
   const axis1Sel = scope.querySelector(".pv-axis1-select");
   const axis2Sel = scope.querySelector(".pv-axis2-select");
   const axis3Sel = scope.querySelector(".pv-axis3-select");
+  const axis4Sel = scope.querySelector(".pv-axis4-select");
   const filterYear = scope.querySelector(".pv-filter-year");
   const filterHand = scope.querySelector(".pv-filter-hand");
   const filterMid = scope.querySelector(".pv-filter-mid");
   const filterDetail = scope.querySelector(".pv-filter-detail");
   const filterBand = scope.querySelector(".pv-filter-band");
-  if(!table || !axis1Sel || !axis2Sel || !axis3Sel) return;
+  if(!table || !axis1Sel || !axis2Sel || !axis3Sel || !axis4Sel) return;
   axis1Sel.value = "year";
   axis2Sel.value = "none";
   axis3Sel.value = "none";
+  axis4Sel.value = "none";
 
   function updateFilterVisibility(usedDims){
     scope.querySelectorAll("[data-pv-filter-wrap]").forEach(wrap => {
@@ -2411,13 +2446,15 @@ function wirePivotSection(scope, seasonsMap, years, rankPool){
     });
   }
   function redraw(){
-    // 軸2・軸3は、それより前の軸ですでに選ばれている次元と重複していたら「なし」に落とす
+    // 軸2・軸3・軸4は、それより前の軸ですでに選ばれている次元と重複していたら「なし」に落とす
     const axis1 = axis1Sel.value;
     let axis2 = (axis2Sel.value !== "none" && axis2Sel.value !== axis1) ? axis2Sel.value : "none";
     let axis3 = (axis3Sel.value !== "none" && axis3Sel.value !== axis1 && axis3Sel.value !== axis2) ? axis3Sel.value : "none";
+    let axis4 = (axis4Sel.value !== "none" && axis4Sel.value !== axis1 && axis4Sel.value !== axis2 && axis4Sel.value !== axis3) ? axis4Sel.value : "none";
     if(axis2Sel.value !== axis2) axis2Sel.value = axis2;
     if(axis3Sel.value !== axis3) axis3Sel.value = axis3;
-    const activeAxes = [axis1, axis2, axis3].filter(a => a !== "none");
+    if(axis4Sel.value !== axis4) axis4Sel.value = axis4;
+    const activeAxes = [axis1, axis2, axis3, axis4].filter(a => a !== "none");
     updateFilterVisibility(new Set(activeAxes));
     const filters = {
       year: filterYear.value,
@@ -2429,7 +2466,7 @@ function wirePivotSection(scope, seasonsMap, years, rankPool){
   let sortState = null;
   // 軸・フィルターを変更すると列構成や母集団が変わるため、ソート状態はリセットする
   const redrawResetSort = () => { sortState = null; redraw(); };
-  [axis1Sel, axis2Sel, axis3Sel, filterYear].forEach(elm => elm.addEventListener("change", redrawResetSort));
+  [axis1Sel, axis2Sel, axis3Sel, axis4Sel, filterYear].forEach(elm => elm.addEventListener("change", redrawResetSort));
   wireMultiSelects(scope, redrawResetSort);
   wireSortHeaders(table, (key) => { sortState = cycleSortState(sortState, key); redraw(); });
   redraw();
