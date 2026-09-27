@@ -382,6 +382,10 @@ def _agg_pitch_group(entries: list[dict]) -> dict:
 
     return {
         "count": n, "pa": pa, "ab": ab, "h": h, "hr": hr, "rbi": rbi,
+        # コース別成績グリッドで「4/8」のように分子/分母を併記する要望に対応するため、
+        # 各指標の分子として使う生カウントも公開しておく（tb=長打率の分子となる塁打数、
+        # sw/ws=スイング・空振り数、gb/ld/fb=打球種別）。
+        "tb": total_bases, "sw": sw, "ws": ws, "gb": gb, "ld": ld, "fb": fb,
         "avg": round(h / ab, 3) if ab > 0 else None,
         "slg": round(total_bases / ab, 3) if ab > 0 else None,
         "obp": round((h + bb + hbp) / obp_den, 3) if obp_den > 0 else None,
