@@ -2130,11 +2130,18 @@ function ensurePivotPopulation(basePath, year){
   const key = `${basePath}|${year}`;
   let entry = pivotPopulationCache[key];
   if(!entry){
-    entry = { data: null, promise: null };
+    // loadedは「取得を試み終えたか」を表す（dataがnullでもtrueになり得る＝まだ
+    // pivot_population_{year}.jsonが生成されていない・404等で取得できなかった場合）。
+    // 呼び出し側（wirePivotSectionのredraw）はこのloadedを見て「もう一度だけ再描画する」
+    // 判断をするため、data==nullだけを条件にすると取得失敗のたびに同じ（既に解決済みの）
+    // promiseへ再度.then()を仕掛け続け、微小タスクが無限に連鎖してタブがフリーズする
+    // 不具合があった（population未生成のリーグ/年度で球種カテゴリ・球速帯の組み合わせ
+    // フィルターを操作すると発生）。
+    entry = { data: null, loaded: false, promise: null };
     entry.promise = fetch(bust(`${basePath}/pivot_population_${year}.json`), { cache: "no-store" })
       .then(res => res.ok ? res.json() : null)
-      .then(json => { entry.data = json; return json; })
-      .catch(() => null);
+      .then(json => { entry.data = json; entry.loaded = true; return json; })
+      .catch(() => { entry.loaded = true; return null; });
     pivotPopulationCache[key] = entry;
   }
   return entry;
@@ -2451,17 +2458,54 @@ function wireOneMultiSelect(wrap, onChange){
   // バブリングさせない。これをしないと、外側クリックで閉じる処理が反応して、1つ選ぶ
   // たびにパネルが閉じてしまう。
   panel.addEventListener("click", (e) => e.stopPropagation());
-  wrap.querySelectorAll("input[type=checkbox]").forEach(cb => {
+  // チェックボックス本体・テキスト部分・行の余白のどこをクリックしても選択できるように
+  // しつつ（要望）、「全選択状態から1つクリックするとそれだけに絞り込む」動作（要望）も
+  // 両立させる。この2つは実装を分ける必要がある：
+  // ・チェックボックス本体のクリックは、preventDefault()してもブラウザがこのclickイベント
+  //   発火前に既にchecked値を仮に反転させてしまっており、しかもpreventDefault()した場合は
+  //   発火完了後に元の値へ強制的に戻される（スクリプトでの上書きも巻き戻される）ため、
+  //   click時点でchecked値を書き換えようとしても効かない。そのため本体クリックはブラウザの
+  //   ネイティブなトグルをそのまま起こさせ、確定後に発火する"change"イベント側で
+  //   「全選択状態からのクリックだったか」を判定・補正する。
+  // ・ラベルのテキスト部分・余白のクリックは、ブラウザが「本体へのクリック転送」をまだ
+  //   行っていない時点でこのclickハンドラが働くため、preventDefault()で転送自体を止めれば
+  //   checked値はそのまま（反転されない）で読め、その場で判定・書き換えできる。
+  wrap.querySelectorAll(".msel-opt").forEach(lab => {
+    const cb = lab.querySelector("input[type=checkbox]");
+    if(!cb) return;
     cb.addEventListener("change", () => {
+      // 変更（ネイティブなトグル）が確定した直後。cb以外が全部checkedのまま変わっていない
+      // （＝クリック前は全選択状態だった）場合、この項目だけを選ぶ絞り込みとして扱う
+      // （クリック前にこの項目がON/OFFいずれだったかに関わらず、常にこの項目だけをONにする）。
+      // ただし「未選択だった最後の1件をチェックして全選択を完成させた」場合はこれに該当
+      // させない：この場合はネイティブなトグルでcb.checkedが既にtrueになっているため、
+      // 条件に!cb.checkedも加えることで区別できる（絞り込みたいクリックはcb.checkedが
+      // false＝チェック済みの項目を外そうとした結果、のときだけ）。
+      const allCbs = [...wrap.querySelectorAll("input[type=checkbox]")];
+      const others = allCbs.filter(o => o !== cb);
+      const othersAllChecked = others.length > 0 && others.every(o => o.checked);
+      if(othersAllChecked && !cb.checked){
+        others.forEach(o => { o.checked = false; });
+        cb.checked = true;
+      }
+      multiSelectSummaryUpdate(wrap, optionLabels);
+      onChange();
+    });
+    lab.addEventListener("click", (e) => {
+      if(e.target === cb) return; // チェックボックス本体のクリックはネイティブ処理+上のchangeに任せる
+      e.preventDefault();
+      e.stopPropagation();
+      const allCbs = [...wrap.querySelectorAll("input[type=checkbox]")];
+      const allChecked = allCbs.length > 0 && allCbs.every(o => o.checked);
+      if(allChecked){
+        allCbs.forEach(other => { other.checked = (other === cb); });
+      }else{
+        cb.checked = !cb.checked;
+      }
       multiSelectSummaryUpdate(wrap, optionLabels);
       onChange();
     });
   });
-  // .msel-optは<label>でinput/テキストの両方を包んでいるため、行のどこをクリックしても
-  // （テキスト部分・余白部分どちらでも）ブラウザ標準の挙動でチェックボックスがトグルされる
-  // （＝チェックボックス本体をクリックした場合と同じ「オン/オフの切り替え」になる。要望）。
-  // 以前はここでラベルクリック時だけ別の挙動（全選択中なら1件だけに絞り込む等）を
-  // 独自実装していたが、素朴なトグルとして期待する動きと食い違っていたため廃止した。
   if(allBtn){
     allBtn.addEventListener("click", () => {
       wrap.querySelectorAll("input[type=checkbox]").forEach(cb => { cb.checked = true; });
@@ -2590,7 +2634,11 @@ function wirePivotSection(scope, seasonsMap, years, rankPool){
       const basePath = activeCardData._isFarm ? LEAGUE_PATHS[currentLeague].farmNumeric : LEAGUE_PATHS[currentLeague].numeric;
       const popEntry = ensurePivotPopulation(basePath, filters.year);
       population = popEntry.data;
-      if(!population){
+      // loadedがfalse（＝まだ取得を試み終えていない）の間だけ、完了を待って1回だけ
+      // 再描画する。取得済み（成功・失敗問わずloaded=true）なら、たとえdataがnull
+      // （未生成・404等）でも再購読しない（同じ解決済みpromiseに.then()し続けて
+      // 再描画が無限に連鎖しフリーズする不具合を防ぐため）。
+      if(!popEntry.loaded){
         popEntry.promise.then(() => { if(filterYear.value === filters.year) redraw(); });
       }
     }
