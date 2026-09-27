@@ -779,6 +779,17 @@ function snapshotLeagueState(){
 let selectedRole = null; // 先発/中継ぎで絞り込み中の値（null=絞り込みなし）
 let activePlayerId = null;
 let activeCardData = null; // 現在表示中のカードのmerge済みデータ（投球回フィルタ変更時の再描画用）
+// loadPlayerIndex()・selectPlayer()はどちらも複数のawaitをまたぐ非同期処理で、
+// ページ読み込み直後にリーグ切り替えボタンをすぐクリックしたり、選手を連続でクリックした
+// りすると、古い呼び出し（例：初期表示のプロ野球一覧の読み込み）が新しい呼び出し
+// （例：直後にクリックしたMLB切り替え）より後に解決してしまい、共有状態（allPlayers・
+// playersWithLlmData・activeCardData等）を古いデータで上書きしてしまうことがあった
+// （選手一覧が「該当する選手がいません」と表示されたまま何も出てこなくなる不具合の原因）。
+// 呼び出しごとに増分するトークンを持たせ、自分より新しい呼び出しが始まっていたら
+// （＝トークンが変わっていたら）その時点で結果を反映せず処理を打ち切ることで、
+// 常に「一番最後に開始した呼び出し」の結果だけが画面に反映されるようにする。
+let playerIndexLoadToken = 0;
+let selectPlayerToken = 0;
 // デフォルトはK-BB%の降順・AIコメントがある選手のみ表示
 let sortField = "k_bb_pct";
 let sortDir = "desc"; // "asc" | "desc"
@@ -880,6 +891,9 @@ function bust(url){
 }
 
 async function loadPlayerIndex(league){
+  // 自分より新しいloadPlayerIndex呼び出しが割り込んでいたら、この呼び出しの結果は
+  // 一切反映しない（後述のmyToken !== playerIndexLoadTokenチェック参照）。
+  const myToken = ++playerIndexLoadToken;
   // このリーグを前回開いていたときの状態が残っていればそれを復元し、初めて開くリーグだけ
   // 従来どおりの既定値（AIコメントがある選手のみ・K-BB%降順）にする。
   const saved = leagueStateCache[league] || null;
@@ -907,12 +921,14 @@ async function loadPlayerIndex(league){
     const res = await fetch(bust(`${LEAGUE_PATHS[league].numeric}/index.json`), { cache: "no-store" });
     if(!res.ok) throw new Error(`index.json の取得に失敗しました (${res.status})`);
     const data = await res.json();
+    if(myToken !== playerIndexLoadToken) return; // 割り込まれていたらここで打ち切る
     firstPlayers = data.players || [];
     // 2軍の一覧は1軍と混ぜず別に持ち、サイドバーの「1軍/2軍」切り替えでどちらを出すか選ぶ
     // （以前は2軍にしか登板が無い選手を1軍一覧に混ぜていたため、並び替えで1軍と2軍の成績が
     // 同じ列に並んでいた）。2軍側は全員 id に "farm:" を付け、selectPlayer側でこのprefixを見て
     // 2軍データを取得する（1軍にも同名の選手がいれば、カード上で1軍/2軍を切り替えられる）。
     const farmIdx = await getFarmIndex(league);
+    if(myToken !== playerIndexLoadToken) return;
     farmPlayers = (farmIdx && farmIdx.players ? farmIdx.players : [])
       .map(fp => ({ ...fp, id: `farm:${fp.id}` }));
     // 2軍データが無いリーグ（MLB）では切り替え自体を出さず、常に1軍
@@ -925,9 +941,10 @@ async function loadPlayerIndex(league){
     // 一覧を描画する前にAIコメントの有無データを読み込んでおく
     if(aiOnlyFilterEl.checked && !llmDataLoaded){
       aiOnlyFilterEl.disabled = true;
-      await loadAllLlmPlayerNames();
-      aiOnlyFilterEl.disabled = false;
+      await loadAllLlmPlayerNames(myToken, league);
+      if(myToken === playerIndexLoadToken) aiOnlyFilterEl.disabled = false;
     }
+    if(myToken !== playerIndexLoadToken) return; // 割り込まれていたら描画しない（古い結果で上書きしない）
     renderPlayerList(applyFilters());
     // 前回このタブで選手を選んでいた場合は、一覧を出すだけでなくその選手のカードまで復元する
     if(saved && saved.activePlayerId){
@@ -938,6 +955,7 @@ async function loadPlayerIndex(league){
       }
     }
   }catch(e){
+    if(myToken !== playerIndexLoadToken) return;
     playerListEl.innerHTML = `<div class="empty-list">選手一覧を読み込めませんでした。<br>(${escapeHtml(e.message)})</div>`;
   }
 }
@@ -1057,7 +1075,7 @@ async function findLlmDataForPlayer(playerName, team, role){
   //    まだ読み込まれていなければ、ここで一度だけ読み込む（以降の選手選択では再利用される）。
   if(!llmDataLoaded){
     debugLog.push("LLMデータキャッシュが未読み込みのため、ここで読み込む");
-    await loadAllLlmPlayerNames();
+    await loadAllLlmPlayerNames(playerIndexLoadToken, currentLeague);
   }
   if(llmDataByName.has(playerName)){
     debugLog.push("ヒット（キャッシュ）");
@@ -1184,6 +1202,11 @@ async function fetchFarmData(league, playerName){
 }
 
 async function selectPlayer(id, name){
+  // 選手を連続でクリックした場合、後からクリックした選手の取得が先に終わって表示された後に、
+  // 先にクリックした（＝表示が遅い）選手のカードが遅れて上書き表示されてしまうことがあった。
+  // 自分より新しいselectPlayer呼び出しが始まっていたら（＝トークンが変わっていたら）、
+  // 自分の取得結果は画面に反映しない。
+  const myToken = ++selectPlayerToken;
   activePlayerId = id;
   bodyLayoutEl.classList.add("has-selection");
   document.body.classList.add("has-selection");
@@ -1210,6 +1233,7 @@ async function selectPlayer(id, name){
       const res = await fetch(bust(`${farmNumeric}/${farmId}.json`), { cache: "no-store" });
       if(!res.ok) throw new Error(`選手データの取得に失敗しました (${res.status})`);
       const numeric = await res.json();
+      if(myToken !== selectPlayerToken) return;
       const merged = mergeCardData(numeric, {});
       merged._isFarm = true;
       merged._noLlm = true; // 2軍データは現状AI解釈を持たない
@@ -1223,10 +1247,12 @@ async function selectPlayer(id, name){
     if(!res.ok) throw new Error(`選手データの取得に失敗しました (${res.status})`);
     const numeric = await res.json();
     const { data: llm, debugLog } = await findLlmDataForPlayer(name || numeric.name, numeric.team, numeric.role);
+    if(myToken !== selectPlayerToken) return;
     const merged = mergeCardData(numeric, llm);
     // 1軍カードを表示中の裏で2軍データも並行して探しておく（見つかった場合だけ
     // カード側に「1軍/2軍」の切り替えボタンが出る）
     const farmMerged = await fetchFarmData(currentLeague, numeric.name);
+    if(myToken !== selectPlayerToken) return;
     if(farmMerged){
       merged._farmData = farmMerged;
       merged._isFarm = false;
@@ -1240,6 +1266,7 @@ async function selectPlayer(id, name){
     activeCardData = toShow;
     renderCard(toShow);
   }catch(e){
+    if(myToken !== selectPlayerToken) return;
     mainContentEl.innerHTML = `<div class="error">カードを読み込めませんでした。<br>(${escapeHtml(e.message)})</div>`;
   }
 }
@@ -1316,37 +1343,46 @@ minIpFilterEl.addEventListener("input", () => {
 
 aiOnlyFilterEl.addEventListener("change", async () => {
   if(aiOnlyFilterEl.checked && !llmDataLoaded){
+    const myToken = playerIndexLoadToken;
     aiOnlyFilterEl.disabled = true;
-    await loadAllLlmPlayerNames();
-    aiOnlyFilterEl.disabled = false;
+    await loadAllLlmPlayerNames(myToken, currentLeague);
+    if(myToken === playerIndexLoadToken) aiOnlyFilterEl.disabled = false;
   }
   renderPlayerList(applyFilters());
 });
 
-// リーグ内の全バッチファイルを読み、「AI解釈テキストがある選手名」の集合を作る（1回だけキャッシュ）
-async function loadAllLlmPlayerNames(){
-  playersWithLlmData = new Set();
-  llmDataByName = new Map();
+// リーグ内の全バッチファイルを読み、「AI解釈テキストがある選手名」の集合を作る（1回だけキャッシュ）。
+// token・leagueは呼び出し時点のplayerIndexLoadToken・currentLeagueを渡す：全ファイルの取得中に
+// 別のloadPlayerIndex呼び出し（リーグ切り替え等）が割り込んでいたら（＝取得完了時点で
+// playerIndexLoadTokenが変わっていたら）、古いリーグのデータでplayersWithLlmData/llmDataByNameを
+// 上書きしないよう、結果を反映せずに捨てる（レース対策。ローカル変数に集めてから最後にまとめて
+// 反映するのはこのため）。
+async function loadAllLlmPlayerNames(token, league){
+  const nextWithLlmData = new Set();
+  const nextByName = new Map();
   try{
-    const idxRes = await fetch(bust(`${LEAGUE_PATHS[currentLeague].batches}/index.json`), { cache: "no-store" });
+    const idxRes = await fetch(bust(`${LEAGUE_PATHS[league].batches}/index.json`), { cache: "no-store" });
     if(idxRes.ok){
       const idx = await idxRes.json();
       const files = idx.batches || [];
       await Promise.all(files.map(async file => {
         try{
-          const res = await fetch(bust(`${LEAGUE_PATHS[currentLeague].batches}/${file}`), { cache: "no-store" });
+          const res = await fetch(bust(`${LEAGUE_PATHS[league].batches}/${file}`), { cache: "no-store" });
           if(!res.ok) return;
           const batch = await res.json();
           normalizeBatchEntries(batch).forEach(e => {
             if(e.name){
-              playersWithLlmData.add(e.name);
-              if(!llmDataByName.has(e.name)) llmDataByName.set(e.name, e.data); // 直接fetchのほうを優先したいので、既にあれば上書きしない
+              nextWithLlmData.add(e.name);
+              if(!nextByName.has(e.name)) nextByName.set(e.name, e.data); // 直接fetchのほうを優先したいので、既にあれば上書きしない
             }
           });
         }catch(e){ /* このバッチはスキップ */ }
       }));
     }
   }catch(e){ /* バッチ一覧が無ければ空のまま */ }
+  if(token !== playerIndexLoadToken) return; // 割り込まれていたら破棄する
+  playersWithLlmData = nextWithLlmData;
+  llmDataByName = nextByName;
   llmDataLoaded = true;
 }
 
@@ -2358,7 +2394,7 @@ function renderSeasonCourseSection(d){
   container.querySelectorAll(".hm-pitch-btn").forEach(btn => {
     btn.addEventListener("click", () => {
       const pkey = btn.dataset.pkey;
-      seasonHmState._hmSelectedPitchKeys = (pkey === "__all__") ? null : new Set([pkey]);
+      seasonHmState._hmSelectedPitchKeys = hmTogglePitchKey(seasonHmState._hmSelectedPitchKeys, pkey);
       renderSeasonCourseSection(d);
     });
   });
@@ -2591,6 +2627,22 @@ function hmDrawHeatmap(canvasId, locs, isBatterRight, flipX){
 function hexToRgb(hex){
   const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
   return m ? { r:parseInt(m[1],16), g:parseInt(m[2],16), b:parseInt(m[3],16) } : { r:59,g:130,b:246 };
+}
+
+// 球種フィルターボタンのクリック挙動（複数選択・要望）：
+// ・「全球種」をクリック → 絞り込み無し（null）に戻す。
+// ・絞り込み無し（currentSet=null）の状態から特定の球種（例：スライダー）をクリック
+//   → その球種だけを選択する（全球種→単一選択に絞り込む操作）。
+// ・すでに1つ以上選択されている状態から、まだ選ばれていない球種（例：カーブ）を
+//   クリック → 選択に追加する（複数選択）。
+// ・すでに選択されている球種を再度クリック → その球種だけ選択解除する。
+//   解除した結果0件になったら、絞り込み無し（全球種＝null）に自動的に戻す。
+function hmTogglePitchKey(currentSet, pkey){
+  if(pkey === "__all__") return null;
+  if(!currentSet) return new Set([pkey]);
+  const next = new Set(currentSet);
+  if(next.has(pkey)) next.delete(pkey); else next.add(pkey);
+  return next.size === 0 ? null : next;
 }
 
 // 球種フィルターボタン + 結果フィルタータブ + 9/25分割トグル
@@ -3008,8 +3060,9 @@ function wireComparePanelEvents(d){
   panel.querySelectorAll(".hm-pitch-btn").forEach(btn => {
     btn.addEventListener("click", () => {
       const pkey = btn.dataset.pkey;
-      // 単一選択：クリックした球種だけを選ぶ（前の選択は置き換え）。「全球種」でリセット
-      window._hmSelectedPitchKeys = (pkey === "__all__") ? null : new Set([pkey]);
+      // 複数選択：全球種→1つクリックで単一選択、以降は未選択の球種をクリックするたびに
+      // 追加、選択済みの球種を再クリックすると解除する（hmTogglePitchKey参照）。
+      window._hmSelectedPitchKeys = hmTogglePitchKey(window._hmSelectedPitchKeys, pkey);
       renderComparePanel(d);
     });
   });
