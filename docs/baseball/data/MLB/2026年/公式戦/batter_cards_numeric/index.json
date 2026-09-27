@@ -42,7 +42,7 @@
       "id": "ben_rice",
       "name": "Ben Rice",
       "team": "NYY",
-      "pos": "一",
+      "pos": "指",
       "categories": [
         "パワーヒッター",
         "選球眼型"
@@ -63,7 +63,7 @@
       "id": "bobby_witt_jr",
       "name": "Bobby Witt Jr.",
       "team": "AL",
-      "pos": null,
+      "pos": "指",
       "categories": [
         "選球眼型",
         "コンタクト型"
@@ -297,7 +297,7 @@
       "id": "iván_herrera",
       "name": "Iván Herrera",
       "team": "STL",
-      "pos": "捕",
+      "pos": "指",
       "categories": [],
       "games": 161,
       "pa": 714,
@@ -419,7 +419,7 @@
       "id": "kyle_schwarber",
       "name": "Kyle Schwarber",
       "team": "PHI",
-      "pos": "一",
+      "pos": "指",
       "categories": [
         "パワーヒッター",
         "選球眼型"
@@ -440,7 +440,7 @@
       "id": "luis_arraez",
       "name": "Luis Arraez",
       "team": "NL",
-      "pos": null,
+      "pos": "指",
       "categories": [],
       "games": 1,
       "pa": 1,
@@ -799,7 +799,7 @@
       "id": "yordan_alvarez",
       "name": "Yordan Alvarez",
       "team": "AL",
-      "pos": null,
+      "pos": "指",
       "categories": [
         "コンタクト型"
       ],
@@ -989,7 +989,7 @@
       "id": "adrian_del_castillo",
       "name": "adrian del castillo",
       "team": "AZ",
-      "pos": "捕",
+      "pos": "指",
       "categories": [],
       "games": 60,
       "pa": 191,
@@ -1007,7 +1007,7 @@
       "id": "agustín_ramírez",
       "name": "agustín ramírez",
       "team": "MIA",
-      "pos": "捕",
+      "pos": "指",
       "categories": [],
       "games": 70,
       "pa": 253,
@@ -1273,7 +1273,7 @@
       "id": "andrew_benintendi",
       "name": "andrew benintendi",
       "team": "CWS",
-      "pos": "左",
+      "pos": "指",
       "categories": [],
       "games": 140,
       "pa": 463,
@@ -1309,7 +1309,7 @@
       "id": "andrew_mccutchen",
       "name": "andrew mccutchen",
       "team": "TEX",
-      "pos": "右",
+      "pos": "指",
       "categories": [],
       "games": 38,
       "pa": 85,
@@ -1567,7 +1567,7 @@
       "id": "austin_hays",
       "name": "austin hays",
       "team": "SD",
-      "pos": "左",
+      "pos": "指",
       "categories": [],
       "games": 37,
       "pa": 100,
@@ -1717,7 +1717,7 @@
       "id": "ben_rice",
       "name": "ben rice",
       "team": "NYY",
-      "pos": "一",
+      "pos": "指",
       "categories": [
         "パワーヒッター",
         "選球眼型"
@@ -2082,7 +2082,7 @@
       "id": "braxton_fulford",
       "name": "braxton fulford",
       "team": "COL",
-      "pos": "捕",
+      "pos": "指",
       "categories": [],
       "games": 38,
       "pa": 85,
@@ -2140,7 +2140,7 @@
       "id": "brent_rooker",
       "name": "brent rooker",
       "team": "ATH",
-      "pos": "右",
+      "pos": "指",
       "categories": [],
       "games": 48,
       "pa": 203,
@@ -2475,7 +2475,7 @@
       "id": "bryce_eldridge",
       "name": "bryce eldridge",
       "team": "SF",
-      "pos": "一",
+      "pos": "指",
       "categories": [
         "選球眼型"
       ],
@@ -2516,7 +2516,7 @@
       "id": "bryce_johnson",
       "name": "bryce johnson",
       "team": "SD",
-      "pos": "右",
+      "pos": "指",
       "categories": [],
       "games": 20,
       "pa": 49,
@@ -3117,7 +3117,7 @@
       "id": "christian_yelich",
       "name": "christian yelich",
       "team": "MIL",
-      "pos": "左",
+      "pos": "指",
       "categories": [],
       "games": 117,
       "pa": 501,
@@ -4089,7 +4089,7 @@
       "id": "dominic_canzone",
       "name": "dominic canzone",
       "team": "SEA",
-      "pos": "右",
+      "pos": "指",
       "categories": [
         "パワーヒッター"
       ],
@@ -4109,7 +4109,7 @@
       "id": "dominic_smith",
       "name": "dominic smith",
       "team": "ATL",
-      "pos": "一",
+      "pos": "指",
       "categories": [],
       "games": 107,
       "pa": 300,
@@ -4237,7 +4237,7 @@
       "id": "drew_waters",
       "name": "drew waters",
       "team": "KC",
-      "pos": null,
+      "pos": "指",
       "categories": [
         "コンタクト型"
       ],
@@ -4315,7 +4315,7 @@
       "id": "dylan_carlson",
       "name": "dylan carlson",
       "team": "CHC",
-      "pos": "左",
+      "pos": "指",
       "categories": [],
       "games": 3,
       "pa": 5,
@@ -4351,7 +4351,7 @@
       "id": "dylan_moore",
       "name": "dylan moore",
       "team": "PHI",
-      "pos": "一",
+      "pos": "指",
       "categories": [
         "選球眼型"
       ],
@@ -4445,7 +4445,7 @@
       "id": "eduardo_valencia",
       "name": "eduardo valencia",
       "team": "DET",
-      "pos": "捕",
+      "pos": "指",
       "categories": [],
       "games": 41,
       "pa": 136,
@@ -4539,7 +4539,7 @@
       "id": "eloy_jiménez",
       "name": "eloy jiménez",
       "team": "TOR",
-      "pos": null,
+      "pos": "指",
       "categories": [],
       "games": 12,
       "pa": 35,
@@ -4707,7 +4707,7 @@
       "id": "eugenio_suárez",
       "name": "eugenio suárez",
       "team": "CIN",
-      "pos": "三",
+      "pos": "指",
       "categories": [
         "パワーヒッター"
       ],
@@ -5115,7 +5115,7 @@
       "id": "george_springer",
       "name": "george springer",
       "team": "TOR",
-      "pos": "左",
+      "pos": "指",
       "categories": [],
       "games": 123,
       "pa": 515,
@@ -5172,7 +5172,7 @@
       "id": "giancarlo_stanton",
       "name": "giancarlo stanton",
       "team": "NYY",
-      "pos": null,
+      "pos": "指",
       "categories": [],
       "games": 24,
       "pa": 96,
@@ -5702,7 +5702,7 @@
       "id": "iván_herrera",
       "name": "iván herrera",
       "team": "STL",
-      "pos": "捕",
+      "pos": "指",
       "categories": [],
       "games": 161,
       "pa": 714,
@@ -5796,7 +5796,7 @@
       "id": "jace_jung",
       "name": "jace jung",
       "team": "DET",
-      "pos": "二",
+      "pos": "指",
       "categories": [
         "選球眼型",
         "コンタクト型"
@@ -5949,7 +5949,7 @@
       "id": "jahmai_jones",
       "name": "jahmai jones",
       "team": "BOS",
-      "pos": "左",
+      "pos": "指",
       "categories": [],
       "games": 92,
       "pa": 181,
@@ -6721,7 +6721,7 @@
       "id": "joc_pederson",
       "name": "joc pederson",
       "team": "TEX",
-      "pos": "一",
+      "pos": "指",
       "categories": [
         "パワーヒッター"
       ],
@@ -6795,7 +6795,7 @@
       "id": "joey_meneses",
       "name": "joey meneses",
       "team": "ATH",
-      "pos": "一",
+      "pos": "指",
       "categories": [
         "選球眼型"
       ],
@@ -6889,7 +6889,7 @@
       "id": "johnathan_rodríguez",
       "name": "johnathan rodríguez",
       "team": "BAL",
-      "pos": "右",
+      "pos": "指",
       "categories": [
         "選球眼型"
       ],
@@ -7173,7 +7173,7 @@
       "id": "jorge_polanco",
       "name": "jorge polanco",
       "team": "NYM",
-      "pos": "一",
+      "pos": "指",
       "categories": [],
       "games": 37,
       "pa": 145,
@@ -7191,7 +7191,7 @@
       "id": "jorge_soler",
       "name": "jorge soler",
       "team": "LAA",
-      "pos": "右",
+      "pos": "指",
       "categories": [],
       "games": 87,
       "pa": 365,
@@ -7209,7 +7209,7 @@
       "id": "jose_fernandez",
       "name": "jose fernandez",
       "team": "AZ",
-      "pos": "三",
+      "pos": "指",
       "categories": [],
       "games": 67,
       "pa": 218,
@@ -7245,7 +7245,7 @@
       "id": "josh_bell",
       "name": "josh bell",
       "team": "MIN",
-      "pos": "一",
+      "pos": "指",
       "categories": [
         "パワーヒッター"
       ],
@@ -7547,7 +7547,7 @@
       "id": "josé_tena",
       "name": "josé tena",
       "team": "WSH",
-      "pos": "二",
+      "pos": "指",
       "categories": [],
       "games": 112,
       "pa": 288,
@@ -7910,7 +7910,7 @@
       "id": "kevin_alcántara",
       "name": "kevin alcántara",
       "team": "CHC",
-      "pos": "左",
+      "pos": "指",
       "categories": [],
       "games": 18,
       "pa": 29,
@@ -8008,7 +8008,7 @@
       "id": "kyle_farmer",
       "name": "kyle farmer",
       "team": "ATL",
-      "pos": "三",
+      "pos": "指",
       "categories": [],
       "games": 11,
       "pa": 20,
@@ -8098,7 +8098,7 @@
       "id": "kyle_schwarber",
       "name": "kyle schwarber",
       "team": "PHI",
-      "pos": "一",
+      "pos": "指",
       "categories": [
         "パワーヒッター",
         "選球眼型"
@@ -8740,7 +8740,7 @@
       "id": "luken_baker",
       "name": "luken baker",
       "team": "AZ",
-      "pos": "一",
+      "pos": "指",
       "categories": [],
       "games": 2,
       "pa": 5,
@@ -8796,7 +8796,7 @@
       "id": "marcell_ozuna",
       "name": "marcell ozuna",
       "team": "PIT",
-      "pos": null,
+      "pos": "指",
       "categories": [],
       "games": 69,
       "pa": 281,
@@ -8886,7 +8886,7 @@
       "id": "masataka_yoshida",
       "name": "masataka yoshida",
       "team": "BOS",
-      "pos": "左",
+      "pos": "指",
       "categories": [
         "コンタクト型"
       ],
@@ -9072,7 +9072,7 @@
       "id": "maverick_handley",
       "name": "maverick handley",
       "team": "BAL",
-      "pos": null,
+      "pos": "指",
       "categories": [],
       "games": 1,
       "pa": 1,
@@ -9187,7 +9187,7 @@
       "id": "michael_conforto",
       "name": "michael conforto",
       "team": "CHC",
-      "pos": "右",
+      "pos": "指",
       "categories": [],
       "games": 112,
       "pa": 313,
@@ -9317,7 +9317,7 @@
       "id": "mickey_gasper",
       "name": "mickey gasper",
       "team": "BOS",
-      "pos": "捕",
+      "pos": "指",
       "categories": [],
       "games": 66,
       "pa": 226,
@@ -9373,7 +9373,7 @@
       "id": "miguel_andújar",
       "name": "miguel andújar",
       "team": "SD",
-      "pos": "三",
+      "pos": "指",
       "categories": [
         "コンタクト型"
       ],
@@ -9491,7 +9491,7 @@
       "id": "miles_mikolas",
       "name": "miles mikolas",
       "team": "WSH",
-      "pos": null,
+      "pos": "指",
       "categories": [
         "コンタクト型"
       ],
@@ -9531,7 +9531,7 @@
       "id": "mj_melendez",
       "name": "mj melendez",
       "team": "NYM",
-      "pos": "左",
+      "pos": "指",
       "categories": [],
       "games": 55,
       "pa": 145,
@@ -9549,7 +9549,7 @@
       "id": "moisés_ballesteros",
       "name": "moisés ballesteros",
       "team": "LAA",
-      "pos": "捕",
+      "pos": "指",
       "categories": [],
       "games": 104,
       "pa": 350,
@@ -9930,7 +9930,7 @@
       "id": "nick_solak",
       "name": "nick solak",
       "team": "SD",
-      "pos": null,
+      "pos": "指",
       "categories": [
         "コンタクト型"
       ],
@@ -10100,7 +10100,7 @@
       "id": "omar_martinez",
       "name": "omar martinez",
       "team": "LAA",
-      "pos": "捕",
+      "pos": "指",
       "categories": [],
       "games": 2,
       "pa": 3,
@@ -10414,7 +10414,7 @@
       "id": "payton_henry",
       "name": "payton henry",
       "team": "NYY",
-      "pos": null,
+      "pos": "指",
       "categories": [
         "コンタクト型"
       ],
@@ -10620,7 +10620,7 @@
       "id": "randal_grichuk",
       "name": "randal grichuk",
       "team": "CWS",
-      "pos": "左",
+      "pos": "指",
       "categories": [],
       "games": 112,
       "pa": 282,
@@ -10653,26 +10653,6 @@
       "sb": 0,
       "k_pct": 21.5,
       "bb_pct": 10.1
-    },
-    {
-      "id": "randy_vásquez",
-      "name": "randy vásquez",
-      "team": "SD",
-      "pos": null,
-      "categories": [
-        "コンタクト型"
-      ],
-      "games": 1,
-      "pa": 1,
-      "avg": 0.0,
-      "obp": 0.0,
-      "slg": 0.0,
-      "ops": 0.0,
-      "hr": 0,
-      "rbi": 0,
-      "sb": 0,
-      "k_pct": 0.0,
-      "bb_pct": 0.0
     },
     {
       "id": "raynel_delgado",
@@ -10809,7 +10789,7 @@
       "id": "rob_refsnyder",
       "name": "rob refsnyder",
       "team": "SEA",
-      "pos": "右",
+      "pos": "指",
       "categories": [],
       "games": 53,
       "pa": 129,
@@ -10863,7 +10843,7 @@
       "id": "romy_gonzalez",
       "name": "romy gonzalez",
       "team": "BOS",
-      "pos": "二",
+      "pos": "指",
       "categories": [],
       "games": 19,
       "pa": 73,
@@ -10937,7 +10917,7 @@
       "id": "rowdy_tellez",
       "name": "rowdy tellez",
       "team": "ATL",
-      "pos": "一",
+      "pos": "指",
       "categories": [],
       "games": 7,
       "pa": 11,
@@ -11047,7 +11027,7 @@
       "id": "ryan_mountcastle",
       "name": "ryan mountcastle",
       "team": "BAL",
-      "pos": "一",
+      "pos": "指",
       "categories": [
         "コンタクト型"
       ],
@@ -11197,7 +11177,7 @@
       "id": "salvador_pérez",
       "name": "salvador pérez",
       "team": "KC",
-      "pos": "捕",
+      "pos": "指",
       "categories": [
         "パワーヒッター"
       ],
@@ -11593,7 +11573,7 @@
       "id": "starling_marte",
       "name": "starling marte",
       "team": "KC",
-      "pos": "右",
+      "pos": "指",
       "categories": [],
       "games": 56,
       "pa": 168,
@@ -11611,7 +11591,7 @@
       "id": "sterlin_thompson",
       "name": "sterlin thompson",
       "team": "COL",
-      "pos": "左",
+      "pos": "指",
       "categories": [],
       "games": 26,
       "pa": 77,
@@ -11890,7 +11870,7 @@
       "id": "tommy_pham",
       "name": "tommy pham",
       "team": "CWS",
-      "pos": "左",
+      "pos": "指",
       "categories": [
         "選球眼型"
       ],
@@ -11946,7 +11926,7 @@
       "id": "tomás_nido",
       "name": "tomás nido",
       "team": "DET",
-      "pos": null,
+      "pos": "指",
       "categories": [
         "コンタクト型"
       ],
@@ -12222,7 +12202,7 @@
       "id": "tyler_black",
       "name": "tyler black",
       "team": "MIL",
-      "pos": "一",
+      "pos": "指",
       "categories": [],
       "games": 9,
       "pa": 28,
@@ -12457,26 +12437,6 @@
       "sb": 0,
       "k_pct": 27.4,
       "bb_pct": 2.7
-    },
-    {
-      "id": "victor_mederos",
-      "name": "victor mederos",
-      "team": "ATL",
-      "pos": null,
-      "categories": [
-        "コンタクト型"
-      ],
-      "games": 1,
-      "pa": 1,
-      "avg": 1.0,
-      "obp": 1.0,
-      "slg": 1.0,
-      "ops": 2.0,
-      "hr": 0,
-      "rbi": 2,
-      "sb": 0,
-      "k_pct": 0.0,
-      "bb_pct": 0.0
     },
     {
       "id": "victor_mesa",
@@ -12800,7 +12760,7 @@
       "id": "will_wagner",
       "name": "will wagner",
       "team": "SD",
-      "pos": "二",
+      "pos": "指",
       "categories": [
         "選球眼型"
       ],
@@ -13091,7 +13051,7 @@
       "id": "yordan_álvarez",
       "name": "yordan álvarez",
       "team": "HOU",
-      "pos": "左",
+      "pos": "指",
       "categories": [
         "パワーヒッター",
         "選球眼型"
