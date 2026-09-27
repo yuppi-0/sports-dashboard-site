@@ -1899,6 +1899,18 @@ def compute_batter_positions_mlb(df: "pd.DataFrame") -> dict:
 def build_game_batter_stats(df: pd.DataFrame) -> pd.DataFrame:
     steal_idx = _compute_game_stolen_bases(df)
     pos_idx = compute_batter_positions_mlb(df)
+    # 指名打者(DH)の検出用：守備位置が一度も記録されない打者は、その試合で登板もしていなければ
+    # DH（指）とみなす（compute_batter_positions_mlb()はfielder_2〜9列にしか居ない選手のみを
+    # 拾うため、守備に一切就かないDH専念の打者は素通りしてpos_val=""のままになっていた）。
+    # 登板有無のチェックは、まれにNLルール下や延長戦の緊急登板で投手が打席に立つケースを
+    # 誤って「指」にしないため。
+    pitchers_by_game: dict = {}
+    if "pitcher" in df.columns:
+        for gid, g in df.groupby("game_pk"):
+            try:
+                pitchers_by_game[str(gid)] = set(int(v) for v in g["pitcher"].dropna())
+            except (ValueError, TypeError):
+                pitchers_by_game[str(gid)] = set()
     rows = []
     for (gid, bid), g in df.groupby(["game_pk","batter"]):
         row0 = g.iloc[0]
@@ -1919,6 +1931,9 @@ def build_game_batter_stats(df: pd.DataFrame) -> pd.DataFrame:
         _stand = row0.get("stand")
         try:
             pos_val = pos_idx.get((str(gid), int(bid)), "")
+            if not pos_val:
+                is_pitcher_this_game = int(bid) in pitchers_by_game.get(str(gid), set())
+                pos_val = "投" if is_pitcher_this_game else "指"
         except (ValueError, TypeError):
             pos_val = ""
         rows.append({"試合ID":str(gid),"試合日":str(row0["game_date"])[:10],
