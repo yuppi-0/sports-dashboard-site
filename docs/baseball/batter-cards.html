@@ -285,8 +285,6 @@
     border:1px solid rgba(148,163,184,0.25); border-radius:8px; padding:8px; width:220px; max-height:280px;
     display:none; flex-direction:column; gap:6px; box-shadow:0 8px 24px rgba(0,0,0,0.4); }
   .msel.open .msel-panel{ display:flex; }
-  .msel-search{ background:var(--panel); color:var(--text-bright); border:1px solid rgba(148,163,184,0.2);
-    border-radius:6px; padding:5px 8px; font-size:11.5px; width:100%; }
   .msel-actions{ display:flex; gap:6px; }
   .msel-action{ flex:1; border:1px solid rgba(148,163,184,0.2); background:transparent; color:var(--text-dim);
     font-size:10.5px; font-weight:600; padding:3px 6px; border-radius:5px; cursor:pointer; }
@@ -431,10 +429,6 @@
     .p-meta{ font-size:11px; }
     .p-header{ gap:10px; }
     .search-input{ font-size:16px; }
-    /* msel-search（チーム/ポジション等の絞り込みパネル内の検索欄）もfont-sizeが16px未満だと、
-       iOS Safariがフォーカス時にページ全体をズームインしてしまい、パネルが異常に拡大表示
-       されたように見える不具合があった。search-inputと同じく16pxにして防ぐ。 */
-    .msel-search{ font-size:16px; }
     .filter-select{ font-size:12.5px; padding:6px 5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     .sort-dir-btn{ font-size:11px; padding:6px 8px; }
     .filter-row{ font-size:10.5px; gap:4px; }
@@ -1244,14 +1238,25 @@ const CZ_FRACTION_DEF = {
   gb_pct: { num: (c) => c.gb, den: (c) => (c.gb ?? 0) + (c.ld ?? 0) + (c.fb ?? 0), unit: "打球" },
   hr_pct: { num: (c) => c.hr, den: (c) => c.pa, unit: "打席" },
 };
+// 長打率は分子（塁打数）を併記せず、打率と同じ分母（打数）だけを表示する
+// （要望：塁打数は打率の「安打」ほど直感的でなく、打率側と表記を揃えたほうが分かりやすいため）。
+const CZ_DENOM_ONLY_METRICS = new Set(["slg"]);
 
 function courseZoneCellText(cell, metric){
   const fracDef = CZ_FRACTION_DEF[metric];
   // OPSだけは単純な分子/分母を持たない（出塁率+長打率の合計）ため、従来どおり
   // 打席数のみをサブテキストに表示する。
-  const denomLabel = fracDef
-    ? `${cell ? (fracDef.num(cell) ?? 0) : 0}${fracDef.unit}/${cell ? (fracDef.den(cell) ?? 0) : 0}${fracDef.unit}`
-    : `${cell ? (cell.pa ?? 0) : 0}打席`;
+  // 分子/分母を併記する指標は「10打数/22打数」のように単位を2回書くと折り返されて
+  // 見づらいため、単位は分母側だけに付ける（「10/22打数」）。
+  let denomLabel;
+  if(fracDef){
+    const den = cell ? (fracDef.den(cell) ?? 0) : 0;
+    denomLabel = CZ_DENOM_ONLY_METRICS.has(metric)
+      ? `${den}${fracDef.unit}`
+      : `${cell ? (fracDef.num(cell) ?? 0) : 0}/${den}${fracDef.unit}`;
+  }else{
+    denomLabel = `${cell ? (cell.pa ?? 0) : 0}打席`;
+  }
   if(!cell || cell[metric] == null) return { text: "-", sub: denomLabel };
   const kind = CZ_METRIC_FMT[metric] || "pct";
   const text = kind === "avg" ? fmtAvg(cell[metric]) : kind === "ops" ? fmt(cell[metric], 3)
@@ -1430,7 +1435,7 @@ function renderCourseZoneSection(seasonsMap, years, currentYear){
           <button type="button" class="pill-btn" data-split="25">25分割（ボールゾーン含む）</button>
         </div>
       </div>
-      <div class="fctrl-group-title">フィルター</div>
+      <div class="fctrl-group-title">フィルタ</div>
       <div class="fctrl-group fctrl-group-filter">
         <div class="fctrl-row">
           <span class="fctrl-label">年度</span>
@@ -1739,6 +1744,13 @@ function renderKeyedStatTable(list, keyLabel, keyField, metrics, emptyNote, grou
     }
     const cells = metrics.map(([m, higherIsBetter, , kind], i) => {
       const text = fmtKeyedVal(s[m], kind);
+      // rankings（母集団全体との比較）が付いている表（カウント別・ランナー状況別成績）は
+      // 他の表と同じ順位付きセル（rankedTd）を使う。無い表（対戦投手別成績等）は従来どおり
+      // 表内だけの相対的な濃淡（magnitudeBg）にフォールバックする。
+      if(s.rankings){
+        const rk = s.rankings[m] ?? (m === "z_swing_pct" ? s.rankings.contact_pct : null);
+        return rankedTd(text, rk);
+      }
       const bg = magnitudeBg(s[m], columnsAll[m], KEYED_HUES[i % KEYED_HUES.length], higherIsBetter);
       return `<td${bg ? ` style="background:${bg}"` : ""}>${text}</td>`;
     }).join("");
@@ -1760,7 +1772,7 @@ function renderKeyedStatTable(list, keyLabel, keyField, metrics, emptyNote, grou
 function renderSituationSection(seasonsMap, years, currentYear){
   return `
     <div class="fctrl-block">
-      <div class="fctrl-group-title">フィルター</div>
+      <div class="fctrl-group-title">フィルタ</div>
       <div class="fctrl-group fctrl-group-filter">
         <div class="fctrl-row">
           <span class="fctrl-label">対左右</span>
@@ -1804,7 +1816,7 @@ function wireSituationSection(scope, seasonsMap){
 function renderCountSection(years, currentYear){
   return `
     <div class="fctrl-block">
-      <div class="fctrl-group-title">フィルター</div>
+      <div class="fctrl-group-title">フィルタ</div>
       <div class="fctrl-group fctrl-group-filter">
         <div class="fctrl-row">
           <span class="fctrl-label">対左右</span>
@@ -2094,12 +2106,113 @@ const PV_EMPTY_ROW = { pa: null, count: null, avg: null, hr: null, rbi: null, ob
   k_pct: null, bb_pct: null, hr_pct: null, z_swing_pct: null, z_contact_pct: null, whiff_pct: null, chase_pct: null,
   gb_pct: null, hard_hit_pct: null, avg_ev: null, sweet_spot_pct: null, xwoba: null, pull_pct: null, _rk: null };
 
+// ── シーズン成績ピボット表：球種カテゴリ・球速帯の複数選択／組み合わせ軸の順位 ──
+// 球種カテゴリ・球速帯を複数選択（マルチセレクト）したり、両方を軸にしたりすると、
+// その組み合わせに対応するランキング母集団を新たに定義しないと順位が出せない
+// （buildPivotCellの元のコメント参照）。1選手ぶんのnumeric jsonだけでは他の全選手の
+// 同じ組み合わせの値と比較できないため、export_llm_input_batter.py（build_pitch_category_band_grid）
+// が全選手ぶんの「中カテゴリ×球速帯」の生グリッドを書き出したpivot_population_{year}.jsonを
+// 遅延取得し、選ばれた部分集合ごとに全選手を集計し直して順位付けする。
+// 球種詳細(detail)は種類数が多く全選手ぶんを配るのが非現実的なため対象外
+// （detailで絞り込んでいる場合は従来通りbyPitchType/byVelocityBandのrankingsを使う）。
+const PV_POP_MIN_PA = 15;  // export_llm_input_batter.pyのPIVOT_RANK_MIN_PAと合わせる
+// (フィールド名, 高いほど良いか)。表示列(PV_FULL_COLUMNS)のうち順位付け対象の指標のみ。
+const PV_RANK_SPECS = [
+  ["avg", true], ["obp", true], ["slg", true], ["ops", true], ["hr", true], ["rbi", true],
+  ["k_pct", false], ["bb_pct", true],
+  ["whiff_pct", false], ["chase_pct", false], ["z_swing_pct", true], ["z_contact_pct", true],
+  ["gb_pct", false], ["hr_pct", true],
+  ["avg_ev", true], ["hard_hit_pct", true], ["sweet_spot_pct", true], ["xwoba", true], ["pull_pct", true],
+];
+
+const pivotPopulationCache = {};  // key: `${basePath}|${year}` -> { data, promise }
+function ensurePivotPopulation(basePath, year){
+  const key = `${basePath}|${year}`;
+  let entry = pivotPopulationCache[key];
+  if(!entry){
+    entry = { data: null, promise: null };
+    entry.promise = fetch(bust(`${basePath}/pivot_population_${year}.json`), { cache: "no-store" })
+      .then(res => res.ok ? res.json() : null)
+      .then(json => { entry.data = json; return json; })
+      .catch(() => null);
+    pivotPopulationCache[key] = entry;
+  }
+  return entry;
+}
+
+// pvSelKind()の結果を、絞り込み無し=null／単一・複数値=Setに正規化する
+// （computePivotGroupRankでmid/bandどちらも同じ形で扱えるようにするため）。
+function pvSelToSet(sel){
+  if(sel.mode === "none") return null;
+  return new Set(sel.mode === "one" ? [sel.value] : sel.value);
+}
+
+// population（pivot_population_{year}.jsonの中身）から、選ばれた球種カテゴリ・球速帯の
+// 部分集合（null=絞り込み無し）ごとに全選手ぶんを集計し直し（aggregatePitchEntriesを
+// そのまま流用）、現在表示中の選手(activePlayerId)の順位・母数を返す。
+function computePivotGroupRank(population, handKey, midSet, bandSet){
+  if(!population || !population.players || !activePlayerId) return null;
+  const players = population.players;
+  const valuesByMetric = {};
+  let selfAgg = null;
+  for(const pid in players){
+    const grid = players[pid] && players[pid][handKey];
+    if(!grid) continue;
+    const cells = [];
+    for(const mid in grid){
+      if(midSet && !midSet.has(mid)) continue;
+      const bandsObj = grid[mid];
+      for(const band in bandsObj){
+        if(bandSet && !bandSet.has(band)) continue;
+        cells.push(bandsObj[band]);
+      }
+    }
+    if(!cells.length) continue;
+    const agg = aggregatePitchEntries(cells);
+    if(!agg) continue;
+    if(pid === activePlayerId) selfAgg = agg;
+    if((agg.pa || 0) < PV_POP_MIN_PA) continue;
+    PV_RANK_SPECS.forEach(([metric]) => {
+      const v = agg[metric];
+      if(v != null){
+        (valuesByMetric[metric] || (valuesByMetric[metric] = [])).push({ id: pid, value: v });
+      }
+    });
+  }
+  if(!selfAgg) return null;
+  const selfQualified = (selfAgg.pa || 0) >= PV_POP_MIN_PA;
+  const rk = {};
+  PV_RANK_SPECS.forEach(([metric, higherIsBetter]) => {
+    const list = valuesByMetric[metric] || [];
+    const total = list.length;
+    if(!selfQualified || selfAgg[metric] == null){
+      rk[metric] = { rank: null, total };
+      return;
+    }
+    list.sort((a, b) => higherIsBetter ? b.value - a.value : a.value - b.value);
+    const idx = list.findIndex(e => e.id === activePlayerId);
+    rk[metric] = { rank: idx >= 0 ? idx + 1 : null, total };
+  });
+  return rk;
+}
+
+// この軸・フィルタの組み合わせで、pivot_populationからの順位計算が必要になり得るか
+// （＝事前に取得しておく価値があるか）を判定する。球種詳細が一切絞り込まれていない
+// （軸としても使われていない）場合に限り、球種カテゴリ・球速帯のどちらかが軸または
+// フィルターとして関与していればtrue。
+function pvComboMayNeedPopulation(activeAxes, filters){
+  if(activeAxes.includes("detail")) return false;
+  if(pvSelKind(filters.detail).mode !== "none") return false;
+  if(activeAxes.includes("mid") || activeAxes.includes("band")) return true;
+  return pvSelKind(filters.mid).mode !== "none" || pvSelKind(filters.band).mode !== "none";
+}
+
 // 1つのピボットセル（軸の値の組み合わせ1通り）ぶんのデータを、最も具体的なランキング母集団を
 // 優先して取ってくる。単一値に特定できるケース（軸として使われている、またはフィルターで
 // 1つだけ選ばれている）ではサーバー側の正確な順位付き集計を使い、複数選択でのOR絞り込みの
 // 場合はクライアント側で該当エントリを合算する（この場合は順位母集団が定義できないため
 // 順位は付かない）。
-function buildPivotCell(seasonsMap, pf, rankPool){
+function buildPivotCell(seasonsMap, pf, rankPool, population){
   const year = pf.year;
   const season = seasonsMap[year] || {};
   const handSel = pvSelKind(pf.hand);
@@ -2149,7 +2262,13 @@ function buildPivotCell(seasonsMap, pf, rankPool){
       return stat ? { ...pvStatFields(stat), _rk: stat.rankings || null } : { ...PV_EMPTY_ROW };
     }
     const agg = aggregatePitchEntries(list);
-    return agg ? { ...pvStatFields(agg), _rk: null } : { ...PV_EMPTY_ROW };
+    // 球種カテゴリを複数選択（OR）している場合は、pivot_population（球種カテゴリ×球速帯の
+    // 全選手ぶんグリッド）から同じ組み合わせを集計し直して順位を出す（detailの絞り込みが
+    // 無い場合のみ。detail種類数が多く population 側では対応していないため対象外）。
+    const rk = (agg && detailSel.mode === "none")
+      ? computePivotGroupRank(population, handKey, pvSelToSet(midSel), null)
+      : null;
+    return agg ? { ...pvStatFields(agg), _rk: rk } : { ...PV_EMPTY_ROW };
   }
 
   // 球種の絞り込みが一切無く、球速帯だけ単一選択している特殊ケースは、サーバー側の
@@ -2162,11 +2281,17 @@ function buildPivotCell(seasonsMap, pf, rankPool){
     bandSel.mode === "one" ? b.band === bandSel.value : bandSel.value.includes(b.band)
   ));
   const agg = aggregatePitchEntries(bandEntries);
-  return agg ? { ...pvStatFields(agg), _rk: null } : { ...PV_EMPTY_ROW };
+  // 球種カテゴリ×球速帯を両方軸にした場合（例：カテゴリ=1つ・球速帯=1つ）や、
+  // 球速帯を複数選択した場合も、pivot_populationから同じ組み合わせを集計し直して
+  // 順位を出す（detailの絞り込みが無い場合のみ）。
+  const rk = (agg && detailSel.mode === "none")
+    ? computePivotGroupRank(population, handKey, pvSelToSet(midSel), pvSelToSet(bandSel))
+    : null;
+  return agg ? { ...pvStatFields(agg), _rk: rk } : { ...PV_EMPTY_ROW };
 }
 
 // 軸1〜3（activeAxes、最大3つ）の値のデカルト積で全行を組み立てる。
-function buildPivotRows3(seasonsMap, years, activeAxes, filters, rankPool){
+function buildPivotRows3(seasonsMap, years, activeAxes, filters, rankPool, population){
   const pitchVals = pvCollectPitchValues(seasonsMap, years);
   const axisValueLists = activeAxes.map(dim => pvAxisValues(dim, years, pitchVals));
 
@@ -2183,7 +2308,7 @@ function buildPivotRows3(seasonsMap, years, activeAxes, filters, rankPool){
   return combos.map(combo => {
     const pf = { year: filters.year, hand: filters.hand, mid: filters.mid, detail: filters.detail, band: filters.band };
     activeAxes.forEach((dim, i) => { pf[dim] = combo[i]; });
-    const row = buildPivotCell(seasonsMap, pf, rankPool);
+    const row = buildPivotCell(seasonsMap, pf, rankPool, population);
     activeAxes.forEach((dim, i) => { row[`_label${i + 1}`] = pvLabelFor(dim, combo[i]); });
     return row;
   });
@@ -2258,7 +2383,6 @@ function renderMultiSelectInner(options, selectedValues){
   return `
     <button type="button" class="msel-btn" data-msel-toggle title="${escapeHtml(summary)}">${escapeHtml(summary)}</button>
     <div class="msel-panel">
-      ${options.length > 6 ? `<input type="text" class="msel-search" placeholder="検索…">` : ""}
       <div class="msel-actions">
         <button type="button" class="msel-action" data-msel-all>すべて選択</button>
         <button type="button" class="msel-action" data-msel-clear>すべて解除</button>
@@ -2313,7 +2437,6 @@ function ensureMselOutsideClickHandler(){
 function wireOneMultiSelect(wrap, onChange){
   const btn = wrap.querySelector("[data-msel-toggle]");
   const panel = wrap.querySelector(".msel-panel");
-  const search = wrap.querySelector(".msel-search");
   const allBtn = wrap.querySelector("[data-msel-all]");
   const clearBtn = wrap.querySelector("[data-msel-clear]");
   const optionLabels = [...wrap.querySelectorAll(".msel-opt")].map(lab => [
@@ -2323,9 +2446,8 @@ function wireOneMultiSelect(wrap, onChange){
     e.stopPropagation();
     document.querySelectorAll(".msel.open").forEach(o => { if(o !== wrap) o.classList.remove("open"); });
     wrap.classList.toggle("open");
-    if(wrap.classList.contains("open") && search) search.focus();
   });
-  // パネル内（チェックボックス・検索欄・全選択/全解除ボタン含む）のクリックはdocumentまで
+  // パネル内（チェックボックス・全選択/全解除ボタン含む）のクリックはdocumentまで
   // バブリングさせない。これをしないと、外側クリックで閉じる処理が反応して、1つ選ぶ
   // たびにパネルが閉じてしまう。
   panel.addEventListener("click", (e) => e.stopPropagation());
@@ -2335,30 +2457,11 @@ function wireOneMultiSelect(wrap, onChange){
       onChange();
     });
   });
-  // ラベルのテキスト部分（チェックボックス本体ではなく）をクリックした時は：
-  // ・全項目が選択されている（＝絞り込み無し）状態からなら「その項目だけを選択」する
-  //   （他は全て解除。フィルターを新しく絞り込み始める操作として扱う）。
-  // ・すでに一部だけ選択されている状態からなら、クリックした項目を追加で選択する
-  //   （既存の絞り込みに足していく操作として扱う。全解除はしない）。
-  // チェックボックス自体のクリックは従来どおり複数選択のトグルのまま。
-  wrap.querySelectorAll(".msel-opt").forEach(lab => {
-    const cb = lab.querySelector("input[type=checkbox]");
-    const labelSpan = lab.querySelector(".msel-opt-label");
-    if(!cb || !labelSpan) return;
-    labelSpan.addEventListener("click", (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      const allCbs = [...wrap.querySelectorAll("input[type=checkbox]")];
-      const allChecked = allCbs.length > 0 && allCbs.every(o => o.checked);
-      if(allChecked){
-        allCbs.forEach(other => { other.checked = (other === cb); });
-      }else{
-        cb.checked = true;
-      }
-      multiSelectSummaryUpdate(wrap, optionLabels);
-      onChange();
-    });
-  });
+  // .msel-optは<label>でinput/テキストの両方を包んでいるため、行のどこをクリックしても
+  // （テキスト部分・余白部分どちらでも）ブラウザ標準の挙動でチェックボックスがトグルされる
+  // （＝チェックボックス本体をクリックした場合と同じ「オン/オフの切り替え」になる。要望）。
+  // 以前はここでラベルクリック時だけ別の挙動（全選択中なら1件だけに絞り込む等）を
+  // 独自実装していたが、素朴なトグルとして期待する動きと食い違っていたため廃止した。
   if(allBtn){
     allBtn.addEventListener("click", () => {
       wrap.querySelectorAll("input[type=checkbox]").forEach(cb => { cb.checked = true; });
@@ -2371,15 +2474,6 @@ function wireOneMultiSelect(wrap, onChange){
       wrap.querySelectorAll("input[type=checkbox]").forEach(cb => { cb.checked = false; });
       multiSelectSummaryUpdate(wrap, optionLabels);
       onChange();
-    });
-  }
-  if(search){
-    search.addEventListener("input", () => {
-      const q = search.value.trim().toLowerCase();
-      wrap.querySelectorAll(".msel-opt").forEach(lab => {
-        const text = lab.querySelector(".msel-opt-label").textContent.toLowerCase();
-        lab.style.display = text.includes(q) ? "" : "none";
-      });
     });
   }
   ensureMselOutsideClickHandler();
@@ -2421,7 +2515,7 @@ function renderPivotSection(seasonsMap, years){
           <select class="fctrl-select pv-axis4-select">${dimOptions(true)}</select>
         </div>
       </div>
-      <div class="fctrl-group-title">フィルター</div>
+      <div class="fctrl-group-title">フィルタ</div>
       <div class="fctrl-group fctrl-group-filter">
         <div class="fctrl-row">
           <span class="fctrl-label">年度</span>
@@ -2462,7 +2556,7 @@ function wirePivotSection(scope, seasonsMap, years, rankPool){
   const filterBand = scope.querySelector(".pv-filter-band");
   if(!table || !axis1Sel || !axis2Sel || !axis3Sel || !axis4Sel) return;
   axis1Sel.value = "year";
-  axis2Sel.value = "none";
+  axis2Sel.value = "hand";  // 初期表示は軸1=年度・軸2=対左右（要望）
   axis3Sel.value = "none";
   axis4Sel.value = "none";
 
@@ -2487,7 +2581,20 @@ function wirePivotSection(scope, seasonsMap, years, rankPool){
       hand: multiSelectValuesForFilter(filterHand), mid: multiSelectValuesForFilter(filterMid),
       detail: multiSelectValuesForFilter(filterDetail), band: multiSelectValuesForFilter(filterBand),
     };
-    table.innerHTML = renderPivotTable(buildPivotRows3(seasonsMap, years, activeAxes, filters, rankPool), activeAxes, sortState);
+    // 球種カテゴリ・球速帯の複数選択／組み合わせ軸で順位が必要になり得る場合だけ、
+    // pivot_population_{year}.json を遅延取得する（毎回のシーズン成績表示で無条件に
+    // 取得すると通信量が無駄になるため）。未取得の間は順位無しでいったん描画し、
+    // 取得完了後、選択中の年度がまだ同じであれば再描画する。
+    let population = null;
+    if(pvComboMayNeedPopulation(activeAxes, filters) && activeCardData){
+      const basePath = activeCardData._isFarm ? LEAGUE_PATHS[currentLeague].farmNumeric : LEAGUE_PATHS[currentLeague].numeric;
+      const popEntry = ensurePivotPopulation(basePath, filters.year);
+      population = popEntry.data;
+      if(!population){
+        popEntry.promise.then(() => { if(filterYear.value === filters.year) redraw(); });
+      }
+    }
+    table.innerHTML = renderPivotTable(buildPivotRows3(seasonsMap, years, activeAxes, filters, rankPool, population), activeAxes, sortState);
   }
   let sortState = null;
   // 軸・フィルターを変更すると列構成や母集団が変わるため、ソート状態はリセットする

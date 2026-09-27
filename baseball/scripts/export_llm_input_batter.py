@@ -781,6 +781,11 @@ def build_game_log_rows_batter(appearances: list[dict]) -> list[dict]:
 # ランキング＝RANK_MIN_PA(=100)とは別物。細かい内訳ほど閾値を緩める必要があるため）。
 PIVOT_RANK_MIN_PA = 15
 
+# カウント別成績・ランナー状況別成績の順位算出の資格打席。「0-0」「走者なし」等、条件が
+# 細かく分かれるほど各選手のサンプル数が小さくなるため、PIVOT_RANK_MIN_PAよりさらに
+# 緩めの閾値にしている（他のランキング同様、ここを変えるだけで調整できる）。
+COUNT_SITUATION_RANK_MIN_PA = 5
+
 # (英語キー, 高いほど良いか)。打者にとって「良い」方向で統一する
 # （K%・空振り率・chase%は低いほど良いので higher_is_better=False）。
 # z_contact_pct/gb_pctは現状値が無い（常にNone）ため、_compute_group_rankings側で
@@ -971,6 +976,41 @@ def build_by_velocity_band_only(pt_list: list[dict]) -> dict[str, dict]:
             if key:
                 groups.setdefault(key, []).append(band)
     return {name: _aggregate_pt_group_py(entries) for name, entries in groups.items()}
+
+
+def build_pitch_category_band_grid(pt_list: list[dict]) -> dict[str, dict[str, dict]]:
+    """
+    球種中カテゴリ×球速帯の、実際にデータが存在する組み合わせだけを集約したグリッドを返す
+    （最大でも「中カテゴリ数×3球速帯」＝十数セル程度）。
+
+    batter-cards.htmlのシーズン成績ピボット表で、球種カテゴリ・球速帯を複数選択（マルチ
+    セレクト）した場合や、両方を軸にした場合（例：年度×球種カテゴリ×球速帯）でも順位・
+    カラースケールを表示できるようにするための元データ。1選手ぶんのnumeric jsonだけでは
+    「他の全選手が同じ組み合わせでどんな値か」が分からず順位を出せないため、全選手ぶんの
+    このグリッドをpivot_population_{year}.jsonとして別途書き出し、batter-cards.html側で
+    選ばれた部分集合ごとに全選手を集計し直して順位付けする（computePivotGroupRank参照）。
+
+    球種カテゴリ・球速帯は部分集合の組み合わせを全選手ぶん事前計算すると数百通りに
+    膨れ上がりファイルサイズが非現実的になるため、ここでは実際に存在する単純な
+    「カテゴリ×球速帯」のグリッドだけを渡し、部分集合への集約はフロント側で
+    aggregatePitchEntries()に通して行う（同関数の既存の加重平均ロジックをそのまま流用）。
+    球種詳細(detail)は種類数が多く同じ理由で全選手ぶんを配るのが非現実的なため対象外
+    （detailで絞り込んでいる場合は従来通りbyPitchType/byVelocityBandのrankingsを使う）。
+
+    戻り値: {中カテゴリ名: {球速帯: 集約統計オブジェクト}}
+    """
+    groups: dict[str, dict[str, list[dict]]] = {}
+    for pt in pt_list:
+        mid = pt.get("pitchCategoryMid") or "その他"
+        for band in (pt.get("byVelocityBand") or []):
+            band_label = band.get("band")
+            if not band_label:
+                continue
+            groups.setdefault(mid, {}).setdefault(band_label, []).append(band)
+    return {
+        mid: {band_label: _aggregate_pt_group_py(entries) for band_label, entries in bands.items()}
+        for mid, bands in groups.items()
+    }
 
 
 def _fill_swing_rates_fallback(stat_obj: dict, pt_list: list[dict]) -> dict:
@@ -1456,6 +1496,22 @@ def export_llm_input_batter_xlsx(games_json_dir: str, out_path: str, min_pa: flo
                 for cat_name, stat in (card[cat_field].get(population) or {}).items():
                     stat["rankings"] = cat_rankings.get(name, {}).get(cat_name, {})
 
+        # 5) カウント別・ランナー状況別ランキング。「0-0」「走者なし」のような個別の条件
+        #    ごとに、その条件内での順位を算出する（対左右フィルタ有無にかかわらず常に
+        #    順位が出るよう、all/vsR/vsLそれぞれ独立した母集団で計算する。資格打席は
+        #    他の細かい内訳よりさらに緩いCOUNT_SITUATION_RANK_MIN_PAを使う）。
+        for list_field, key_field in (("byCount", "countKey"), ("bySituation", "situation")):
+            cat_map_by_player = {
+                name: {e[key_field]: e for e in (card[list_field].get(population) or []) if e.get(key_field)}
+                for name, card in numeric_cards.items()
+            }
+            cat_rankings = compute_category_rankings(cat_map_by_player, rank_min_pa=COUNT_SITUATION_RANK_MIN_PA)
+            for name, card in numeric_cards.items():
+                for entry in (card[list_field].get(population) or []):
+                    key = entry.get(key_field)
+                    if key:
+                        entry["rankings"] = cat_rankings.get(name, {}).get(key, {})
+
     # 守備OAAのポジション別ランキング（KPI表示用。同じポジションの選手同士だけで比較する）
     oaa_by_player = {name: card["defense"].get("oaa", []) for name, card in numeric_cards.items()}
     defense_rankings = compute_defense_rankings(oaa_by_player)
@@ -1543,6 +1599,25 @@ def export_llm_input_batter_xlsx(games_json_dir: str, out_path: str, min_pa: flo
         with open(os.path.join(numeric_json_dir, "index.json"), "w", encoding="utf-8") as f:
             json.dump({"players": index_players}, f, ensure_ascii=False, indent=2)
         print(f"  数値JSON: {len(index_players)}選手分を {numeric_json_dir} に出力（対象シーズン: {season_year}）")
+
+        # シーズン成績ピボット表用のリーダーボード（build_pitch_category_band_grid参照）。
+        # 選手ごとのnumeric jsonには埋め込まず、season_year単位で1本だけ別途書き出す
+        # （batter-cards.html側が球種カテゴリ・球速帯の複数選択・組み合わせを選んだ時だけ
+        # 遅延取得する。プレイヤー数×十数セル程度なので全選手分まとめても数MB程度で収まる）。
+        pivot_population_players = {
+            _slugify_name(name): {
+                population: build_pitch_category_band_grid(card["byPitchType"].get(population) or [])
+                for population in ("all", "vsR", "vsL")
+            }
+            for name, card in numeric_cards.items()
+        }
+        pivot_population_path = os.path.join(numeric_json_dir, f"pivot_population_{season_year}.json")
+        with open(pivot_population_path, "w", encoding="utf-8") as f:
+            json.dump({
+                "year": season_year, "minPa": PIVOT_RANK_MIN_PA,
+                "players": pivot_population_players,
+            }, f, ensure_ascii=False)
+        print(f"  ピボット順位用リーダーボード: {pivot_population_path}")
 
     return out_path
 
