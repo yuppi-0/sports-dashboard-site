@@ -96,13 +96,14 @@
   @media (max-width:720px), (orientation: landscape) and (max-height: 500px){
     .app > header{ padding:8px 14px 10px; gap:0; }
     .app > header h1{ display:none; }
-    .app > header .header-controls{ width:100%; display:grid; grid-template-columns:auto 1fr; gap:8px 10px; align-items:center; }
+    .app > header .header-controls{ width:100%; display:grid; grid-template-columns:auto auto 1fr; gap:8px 10px; align-items:center; }
     .app > header .mode-switch{ order:1; grid-column:1 / -1; margin:0; display:grid; grid-template-columns:1fr 1fr; gap:3px; padding:3px; border-radius:10px; }
     .app > header .mode-switch button{ padding:8px 0; font-size:14px; border-radius:8px; }
     .app > header .league-toggle{ order:2; gap:2px; padding:2px; justify-self:start; }
     .app > header .league-toggle button{ padding:6px 12px; font-size:12px; }
-    .app > header .header-change-player-btn{ order:3; justify-self:end; }
-    .app > header .nav-back-btn{ order:4; grid-column:1 / -1; }
+    .app > header .year-select{ order:3; justify-self:start; padding:6px 8px; }
+    .app > header .header-change-player-btn{ order:4; justify-self:end; }
+    .app > header .nav-back-btn{ order:5; grid-column:1 / -1; }
     .app .sidebar-summary{ display:none !important; }   /* 旧：打者側の浮きボタン置き場。ヘッダー内のボタンに統一 */
     body.has-selection .header-change-player-btn,
     .app:has(.body-layout.has-selection) .header-change-player-btn{ display:inline-flex; }
@@ -120,6 +121,9 @@
   /* 投手/打者（主）は実線ブルー、プロ野球/MLB（従）は薄いブルー＋枠、で2つの階層を見分けやすくする */
   .league-toggle button.active{ background:rgba(59,130,246,0.18); color:var(--blue-text); box-shadow:inset 0 0 0 1px rgba(96,165,250,0.55); }
   .league-toggle button{ transition:background .15s, color .15s; }
+  .year-select{ background:var(--panel); color:var(--text-bright, #fff); border:1px solid rgba(148,163,184,0.28); border-radius:8px;
+    padding:6px 8px; font-size:12px; font-weight:700; cursor:pointer; }
+  .year-select:focus{ outline:none; border-color:rgba(96,165,250,0.6); }
   .header-change-player-btn{ display:none; }
   /* 戻るボタンはヘッダー内で1行を使い、モード/リーグ切替のボタンが縦に潰れないようにする */
   .header-controls{ flex-wrap:wrap; }
@@ -1190,6 +1194,7 @@
         <button data-league="npb" class="active">プロ野球</button>
         <button data-league="mlb">MLB</button>
       </div>
+      <select class="year-select" aria-label="年度"></select>
       <button type="button" class="nav-back-btn" hidden></button>
       <button type="button" id="sidebarToggleBtn" class="header-change-player-btn">選手を変更</button>
     </div>
@@ -1270,6 +1275,7 @@
         <button data-league="npb" class="active">プロ野球</button>
         <button data-league="mlb">MLB</button>
       </div>
+      <select class="year-select" aria-label="年度"></select>
       <button type="button" id="sidebarToggleBtn" class="header-change-player-btn">選手を変更</button>
       <button type="button" class="nav-back-btn" hidden></button>
     </div>
@@ -1336,35 +1342,33 @@
 </div>
 
 <script>
-const SHARED_PATHS = {
-  // 年やリーグのフォルダ構成が変わったらここだけ直せばよい。
-  // 各 *.py の --numeric-json-dir の出力先と一致させる。
-  pitcher: {
-    npb: {
-      numeric: "data/プロ野球/2026年/1軍/レギュラーシーズン/pitcher_cards_numeric",
-      batches: "data/プロ野球/2026年/1軍/レギュラーシーズン/pitcher_cards_llm/batches",
-      // run.py --2軍 の出力先。フォルダ名が違う場合はここだけ直す。
-      farmNumeric: "data/プロ野球/2026年/2軍/公式戦/pitcher_cards_numeric",
+// ── 年度 ──
+// 年度ごとにフォルダが分かれている（data/.../{年}年/...）。ページ右上の年度セレクトで切り替える。
+// 新しい年度のデータを作ったら、この一覧に足す（先頭が既定＝最新）。
+// URLは ?year=2025 のように指定できる（例: .../cards.html?year=2025#batter）。
+const AVAILABLE_YEARS = ["2026", "2025"];
+const YEAR = (() => {
+  const q = new URLSearchParams(location.search).get("year");
+  return AVAILABLE_YEARS.includes(q) ? q : AVAILABLE_YEARS[0];
+})();
+
+function buildPaths(y){
+  // 各 *.py の --numeric-json-dir の出力先と一致させる。フォルダ構成が変わったらここだけ直せばよい。
+  const npb1 = `data/プロ野球/${y}年/1軍/レギュラーシーズン`;
+  const npb2 = `data/プロ野球/${y}年/2軍/公式戦`;       // run.py --2軍 の出力先
+  const mlb  = `data/MLB/${y}年/公式戦`;
+  return {
+    pitcher: {
+      npb: { numeric: `${npb1}/pitcher_cards_numeric`, batches: `${npb1}/pitcher_cards_llm/batches`, farmNumeric: `${npb2}/pitcher_cards_numeric` },
+      mlb: { numeric: `${mlb}/pitcher_cards_numeric`,  batches: `${mlb}/pitcher_cards_llm/batches`,  farmNumeric: null /* MLBマイナーは未対応 */ },
     },
-    mlb: {
-      numeric: "data/MLB/2026年/公式戦/pitcher_cards_numeric",
-      batches: "data/MLB/2026年/公式戦/pitcher_cards_llm/batches",
-      farmNumeric: null, // MLBマイナーは未対応
+    batter: {
+      npb: { numeric: `${npb1}/batter_cards_numeric`,  batches: `${npb1}/batter_cards_llm/batches`,  farmNumeric: `${npb2}/batter_cards_numeric` },
+      mlb: { numeric: `${mlb}/batter_cards_numeric`,   batches: `${mlb}/batter_cards_llm/batches`,   farmNumeric: null },
     },
-  },
-  batter: {
-    npb: {
-      numeric: "data/プロ野球/2026年/1軍/レギュラーシーズン/batter_cards_numeric",
-      batches: "data/プロ野球/2026年/1軍/レギュラーシーズン/batter_cards_llm/batches",
-      farmNumeric: "data/プロ野球/2026年/2軍/公式戦/batter_cards_numeric",
-    },
-    mlb: {
-      numeric: "data/MLB/2026年/公式戦/batter_cards_numeric",
-      batches: "data/MLB/2026年/公式戦/batter_cards_llm/batches",
-      farmNumeric: null,
-    },
-  },
-};
+  };
+}
+const SHARED_PATHS = buildPaths(YEAR);
 
 
 // ── 共通ユーティリティ（投手・打者で同一だったもの） ──
@@ -6349,6 +6353,21 @@ for(const k of Object.keys(MODES)){
 }
 let currentMode = null;
 
+// 年度セレクト（両モードのヘッダー）。年度を変えるとページを読み直し、その年度のデータを読む。
+// 選手のハッシュは前の年度のものなので引き継がず、モードだけ残す。
+for(const k of Object.keys(roots)){
+  roots[k].querySelectorAll(".year-select").forEach(sel => {
+    sel.innerHTML = AVAILABLE_YEARS.map(y => `<option value="${y}"${y === YEAR ? " selected" : ""}>${y}年</option>`).join("");
+    sel.style.display = AVAILABLE_YEARS.length > 1 ? "" : "none";
+  });
+}
+document.addEventListener("change", (e) => {
+  const sel = e.target.closest && e.target.closest(".year-select");
+  if(!sel || sel.value === YEAR) return;
+  const q = sel.value === AVAILABLE_YEARS[0] ? "" : `?year=${sel.value}`;
+  location.href = `${location.pathname}${q}#${currentMode || "pitcher"}`;
+});
+
 // ── 選手ページ間の移動（投手の対戦打者 → 打者ページ 等）と「戻る」 ──
 // 各モードが register() で {ready, getState(), openPlayer()} を渡す。URLのハッシュは
 // #{mode}/{league}/{id}[/farm]（例：#batter/npb/細川_成也）。リンクで別モードへ移るときは、
@@ -6424,7 +6443,7 @@ function switchMode(name){
   document.body.classList.toggle("has-selection", m.hasSel);
   currentMode = name;
   if(!m.mounted){ m.mounted = true; m.mount(); observeHeader(roots[name]); }
-  document.title = m.title;
+  document.title = m.title + (YEAR === AVAILABLE_YEARS[0] ? "" : `（${YEAR}年）`);
   try{ localStorage.setItem("cardsMode", name); }catch(e){}
   restoreScroll(name);
   // 各モードのヘッダー高さ変数(--header-h)を測り直させる
