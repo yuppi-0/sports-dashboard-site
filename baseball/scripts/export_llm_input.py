@@ -49,6 +49,8 @@ from collections import defaultdict
 
 import pandas as pd
 
+from jsonio import read_json, write_json, list_json_stems
+
 
 # ==================================================
 # Section 1. 日別JSONの読み込み・appearances構築
@@ -60,8 +62,8 @@ def load_daily_games(games_json_dir: str, verbose: bool = True) -> dict:
     壊れた/想定外の形式のファイルやゲームエントリはスキップし、警告を出して処理を継続する。
     """
     all_data: dict[str, list] = {}
-    paths = sorted(glob.glob(os.path.join(games_json_dir, "*.json")))
-    if not paths:
+    stems = list_json_stems(games_json_dir)
+    if not stems:
         raise FileNotFoundError(f"games json が見つかりません: {games_json_dir}")
 
     def _add_games(date_key: str, games) -> None:
@@ -75,19 +77,19 @@ def load_daily_games(games_json_dir: str, verbose: bool = True) -> dict:
             print(f"  [SKIP] {date_key}: dict以外のgameエントリを{skipped}件スキップ")
         all_data.setdefault(date_key, []).extend(valid_games)
 
-    for path in paths:
-        date = os.path.splitext(os.path.basename(path))[0]
+    for stem in stems:
+        date = os.path.splitext(stem)[0]
+        path = os.path.join(games_json_dir, stem)
         try:
-            with open(path, "r", encoding="utf-8") as f:
-                payload = json.load(f)
+            payload = read_json(path)
         except (json.JSONDecodeError, OSError) as e:
             if verbose:
-                print(f"  [SKIP] {os.path.basename(path)}: 読み込み失敗({e})")
+                print(f"  [SKIP] {stem}: 読み込み失敗({e})")
             continue
 
         if not isinstance(payload, dict):
             if verbose:
-                print(f"  [SKIP] {os.path.basename(path)}: 想定外のトップレベル型({type(payload).__name__})")
+                print(f"  [SKIP] {stem}: 想定外のトップレベル型({type(payload).__name__})")
             continue
 
         if date in payload:
@@ -1717,8 +1719,7 @@ def export_llm_input_xlsx(games_json_dir: str, out_path: str, min_ip: float = 0.
             card["rankings_by_hand"] = rankings_by_hand.get(name, {})
             card["categories"] = classify_pitcher_categories(card)
             player_id = _slugify_name(name)
-            with open(os.path.join(numeric_json_dir, f"{player_id}.json"), "w", encoding="utf-8") as f:
-                json.dump(card, f, ensure_ascii=False)
+            write_json(os.path.join(numeric_json_dir, f"{player_id}.json"), card)
             ip_float = _ip_to_outs(card.get("innings")) / 3
             index_players.append({
                 "id": player_id, "name": name, "team": card.get("team"), "role": card.get("role"),

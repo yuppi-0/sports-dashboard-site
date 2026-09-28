@@ -60,6 +60,7 @@ except ImportError:
 
 # LLM入力用xlsx生成（選手詳細カード用のシーズン集計・球種別・コース分布・カウント別パターン）
 from export_llm_input import export_llm_input_xlsx
+from jsonio import write_json, remove_json, list_json_stems
 # 打者版（シーズン集計・対左右投手別・試合ログ。球種別・コース別は打者側データに無いため対象外）
 from export_llm_input_batter import (
     export_llm_input_batter_xlsx, PITCH_VELO_BANDS, velo_band_label,
@@ -405,13 +406,14 @@ def remove_stale_date_outputs(date: str) -> None:
     （games/datamart/{date}.xlsx と games/json/{date}.json）を消し、index.jsonを作り直す。
     残っているとシーズン集計・ダッシュボードに別種別の試合が入り続けるため。RAWは消さない。"""
     removed = []
-    for p in (os.path.join(GAMES_DM_DIR, f"{date}.xlsx"), os.path.join(GAMES_JSON_DIR, f"{date}.json")):
-        if os.path.exists(p):
-            os.remove(p)
-            removed.append(p)
+    _dm = os.path.join(GAMES_DM_DIR, f"{date}.xlsx")
+    if os.path.exists(_dm):
+        os.remove(_dm)
+        removed.append(_dm)
+    if remove_json(os.path.join(GAMES_JSON_DIR, f"{date}.json")):
+        removed.append(os.path.join(GAMES_JSON_DIR, f"{date}.json.gz"))
     if removed:
-        files = sorted(f for f in os.listdir(GAMES_JSON_DIR)
-                       if f != "index.json" and f.endswith(".json") and not f.startswith("season_"))
+        files = list_json_stems(GAMES_JSON_DIR)
         with open(os.path.join(GAMES_JSON_DIR, "index.json"), "w", encoding="utf-8") as f:
             json.dump({"files": files}, f, ensure_ascii=False, indent=2)
         print(f"  [除外] {date} は{_current_game_type}の試合なし → 既存の日別出力を削除: "
@@ -3775,18 +3777,12 @@ def run_dashboard(datamart_path: str, html_template: str | None = None,
     print(f"  日付: {dates}  試合数: {total}")
 
     # JSON 出力（games/json/{TARGET_DATE}.json）
-    json_path = os.path.join(GAMES_JSON_DIR, f"{TARGET_DATE}.json")
-    with open(json_path, "w", encoding="utf-8") as f:
-        json.dump(DATA, f, ensure_ascii=False, indent=2)
+    json_path = write_json(os.path.join(GAMES_JSON_DIR, f"{TARGET_DATE}.json"), DATA)  # → .json.gz（indent無し・圧縮）
     print(f"  JSON出力: {json_path}  ({os.path.getsize(json_path) // 1024} KB)")
 
     # index.json を更新（games/json/ 内の全 YYYY-MM-DD.json を列挙）
     index_path = os.path.join(GAMES_JSON_DIR, "index.json")
-    existing = sorted(
-        f for f in os.listdir(GAMES_JSON_DIR)
-        if f != "index.json" and f.endswith(".json")
-        and not f.startswith("season_")
-    )
+    existing = list_json_stems(GAMES_JSON_DIR)
     with open(index_path, "w", encoding="utf-8") as f:
         json.dump({"files": existing}, f, ensure_ascii=False, indent=2)
     print(f"  index.json 更新: {len(existing)}件")

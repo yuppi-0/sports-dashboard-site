@@ -63,6 +63,7 @@ import pandas as pd
 
 # 日別JSONの読み込みロジックは投手版と完全に共通のため使い回す
 from export_llm_input import load_daily_games
+from jsonio import read_json, write_json, exists_json
 
 
 # ==================================================
@@ -1541,10 +1542,9 @@ def export_llm_input_batter_xlsx(games_json_dir: str, out_path: str, min_pa: flo
             # 既存ファイルがあれば読み込み、seasons辞書の該当年だけ更新する
             # （他の年のデータ・MLBの過去シーズン分などを上書きしないため）
             existing: dict = {}
-            if os.path.exists(path):
+            if exists_json(path):
                 try:
-                    with open(path, "r", encoding="utf-8") as f:
-                        existing = json.load(f)
+                    existing = read_json(path)
                 except Exception as e:
                     print(f"  [WARN] {player_id}.json の既存データ読み込みに失敗（新規として扱います）: {e}")
                     existing = {}
@@ -1584,8 +1584,7 @@ def export_llm_input_batter_xlsx(games_json_dir: str, out_path: str, min_pa: flo
                 "categories": categories,
                 "seasons": seasons,
             }
-            with open(path, "w", encoding="utf-8") as f:
-                json.dump(full_card, f, ensure_ascii=False)
+            write_json(path, full_card)
 
             index_players.append({
                 "id": player_id, "name": name, "team": full_card.get("team"), "pos": full_card.get("pos"),
@@ -1612,11 +1611,10 @@ def export_llm_input_batter_xlsx(games_json_dir: str, out_path: str, min_pa: flo
             for name, card in numeric_cards.items()
         }
         pivot_population_path = os.path.join(numeric_json_dir, f"pivot_population_{season_year}.json")
-        with open(pivot_population_path, "w", encoding="utf-8") as f:
-            json.dump({
-                "year": season_year, "minPa": PIVOT_RANK_MIN_PA,
-                "players": pivot_population_players,
-            }, f, ensure_ascii=False)
+        write_json(pivot_population_path, {
+            "year": season_year, "minPa": PIVOT_RANK_MIN_PA,
+            "players": pivot_population_players,
+        })
         print(f"  ピボット順位用リーダーボード: {pivot_population_path}")
 
     return out_path

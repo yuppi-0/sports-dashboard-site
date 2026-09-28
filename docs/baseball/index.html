@@ -7290,6 +7290,40 @@ function pitchRowClick(idx, force) {
     hideBgLoadIndicator();
   }
 
+  // ── .json.gz / .json 両対応fetch（docs容量対策）──
+  // 日別JSON（games/json/{date}.json）は .json.gz で保存されるようになったため、先に .json.gz を取り、
+  // 404なら従来の .json へフォールバックする（移行途中でも表示が壊れない）。
+  // 戻り値は {ok,status,json()}。GitHub Pagesは.gzをContent-Encoding無しで返すので自前で展開する。
+  // ブラウザが既に展開済みで返した場合も、先頭2バイトのgzipマジック(1f 8b)で判定するので壊れない。
+  async function gunzipToJson(buf){
+    const u8 = new Uint8Array(buf);
+    if(!(u8.length > 2 && u8[0] === 0x1f && u8[1] === 0x8b)){
+      return JSON.parse(new TextDecoder().decode(u8));
+    }
+    if(typeof DecompressionStream !== 'undefined'){
+      const ds = new Blob([u8]).stream().pipeThrough(new DecompressionStream('gzip'));
+      return JSON.parse(await new Response(ds).text());
+    }
+    if(typeof pako === 'undefined'){   // Safari 16.4未満などのフォールバック
+      await new Promise((ok, ng) => {
+        const sc = document.createElement('script');
+        sc.src = 'https://cdn.jsdelivr.net/npm/pako@2.1.0/dist/pako_inflate.min.js';
+        sc.onload = ok; sc.onerror = () => ng(new Error('pako読み込み失敗'));
+        document.head.appendChild(sc);
+      });
+    }
+    return JSON.parse(pako.ungzip(u8, { to: 'string' }));
+  }
+  async function fetchJsonZ(jsonUrl){
+    const t = '?t=' + Date.now();
+    const gzRes = await fetch(jsonUrl.replace(/\.json$/, '.json.gz') + t, { cache: 'no-store' });
+    if(gzRes.ok){
+      const data = await gunzipToJson(await gzRes.arrayBuffer());
+      return { ok: true, status: gzRes.status, json: async () => data };
+    }
+    return await fetch(jsonUrl + t, { cache: 'no-store' });   // 旧形式(.json)
+  }
+
   function init(wasRanking){
     const year = new Date().getFullYear();
     const indexPath = _getIndexPath(currentLeague, currentGameType);
@@ -7314,7 +7348,7 @@ function pitchRowClick(idx, force) {
         const firstFile  = files[files.length - 1];
         const restFiles  = files.slice(0, files.length - 1);
 
-        fetch(firstFile + cacheBuster, { cache: 'no-store' })
+        fetchJsonZ(firstFile)
           .then(r => { if(!r.ok) throw new Error(firstFile); return r.json(); })
           .catch(() => { console.warn('読み込み失敗:', firstFile); return null; })
           .then(firstJson => {
@@ -7349,7 +7383,7 @@ function pitchRowClick(idx, force) {
               if(bgDone >= bgTotal) finalizeBackgroundLoad();
             }
             restFiles.forEach(path => {
-              fetch(path + cacheBuster, { cache: 'no-store' })
+              fetchJsonZ(path)
                 .then(r => { if(!r.ok) throw new Error(path); return r.json(); })
                 .catch(() => { console.warn('読み込み失敗:', path); return null; })
                 .then(json => { mergeGamesJson(json, DATA); bgTick(); });

@@ -1376,6 +1376,37 @@ const el = (sel) => document.querySelector(sel);
 function bust(url){
   return `${url}${url.includes("?") ? "&" : "?"}_=${Date.now()}`;
 }
+// ── .json.gz / .json 両対応fetch（docs容量対策）──
+// 先に .json.gz を取り、404なら従来の .json へフォールバックする（移行途中でも表示が壊れない）。
+// 戻り値は {ok,status,json()}。GitHub Pagesは.gzをContent-Encoding無しで返すので自前で展開する。
+async function gunzipToJson(buf){
+  const u8 = new Uint8Array(buf);
+  if(!(u8.length > 2 && u8[0] === 0x1f && u8[1] === 0x8b)){
+    return JSON.parse(new TextDecoder().decode(u8));
+  }
+  if(typeof DecompressionStream !== 'undefined'){
+    const ds = new Blob([u8]).stream().pipeThrough(new DecompressionStream('gzip'));
+    return JSON.parse(await new Response(ds).text());
+  }
+  if(typeof pako === 'undefined'){
+    await new Promise((ok, ng) => {
+      const sc = document.createElement('script');
+      sc.src = 'https://cdn.jsdelivr.net/npm/pako@2.1.0/dist/pako_inflate.min.js';
+      sc.onload = ok; sc.onerror = () => ng(new Error('pako読み込み失敗'));
+      document.head.appendChild(sc);
+    });
+  }
+  return JSON.parse(pako.ungzip(u8, { to: 'string' }));
+}
+async function fetchJsonZ(jsonUrl){
+  const t = '?t=' + Date.now();
+  const gzRes = await fetch(jsonUrl.replace(/\.json$/, '.json.gz') + t, { cache: 'no-store' });
+  if(gzRes.ok){
+    const data = await gunzipToJson(await gzRes.arrayBuffer());
+    return { ok: true, status: gzRes.status, json: async () => data };
+  }
+  return await fetch(jsonUrl + t, { cache: 'no-store' });
+}
 function escapeHtml(s){
   return String(s ?? "").replace(/[&<>"']/g, c => ({
     "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;"
@@ -1431,7 +1462,7 @@ function getPitcherLookup(league, preferFarm){
   const key = `${league}|${preferFarm ? 1 : 0}`;
   if(!pitcherLookupCache[key]){
     const load = (base) => base
-      ? fetch(bust(`${base}/index.json`), { cache: "no-store" }).then(r => r.ok ? r.json() : null).then(j => (j && j.players) || []).catch(() => [])
+      ? fetchJsonZ(`${base}/index.json`).then(r => r.ok ? r.json() : null).then(j => (j && j.players) || []).catch(() => [])
       : Promise.resolve([]);
     pitcherLookupCache[key] = Promise.all([load(paths.numeric), load(paths.farmNumeric)]).then(([first, farm]) => {
       const map = new Map();
@@ -1607,7 +1638,7 @@ async function loadPlayerIndex(league){
   updateSidebarSummary("選手を選択してください", "");
   try{
     // 選手一覧は「数値データ」側のindex.jsonを正とする（LLM解釈がまだない選手も一覧には出す）
-    const res = await fetch(bust(`${LEAGUE_PATHS[league].numeric}/index.json`), { cache: "no-store" });
+    const res = await fetchJsonZ(`${LEAGUE_PATHS[league].numeric}/index.json`);
     if(!res.ok) throw new Error(`index.json の取得に失敗しました (${res.status})`);
     const data = await res.json();
     if(myToken !== playerIndexLoadToken) return; // 割り込まれていたらここで打ち切る
@@ -1728,7 +1759,7 @@ function normalizeBatchEntries(batch){
 }
 
 async function fetchBatchFile(file){
-  const res = await fetch(bust(`${LEAGUE_PATHS[currentLeague].batches}/${encodeURIComponent(file)}`), { cache: "no-store" });
+  const res = await fetchJsonZ(`${LEAGUE_PATHS[currentLeague].batches}/${encodeURIComponent(file)}`);
   if(!res.ok) return null;
   return await res.json();
 }
@@ -1869,7 +1900,7 @@ async function getFarmIndex(league){
   const farmNumeric = LEAGUE_PATHS[league] && LEAGUE_PATHS[league].farmNumeric;
   if(!farmNumeric){ farmIndexCache[league] = null; return null; }
   try{
-    const idxRes = await fetch(bust(`${farmNumeric}/index.json`), { cache: "no-store" });
+    const idxRes = await fetchJsonZ(`${farmNumeric}/index.json`);
     const idx = idxRes.ok ? await idxRes.json() : null;
     farmIndexCache[league] = idx;
     return idx;
@@ -1886,7 +1917,7 @@ async function fetchFarmData(league, playerName){
     if(!idx) return null;
     const hit = (idx.players || []).find(p => p.name === playerName);
     if(!hit) return null;
-    const res = await fetch(bust(`${farmNumeric}/${hit.id}.json`), { cache: "no-store" });
+    const res = await fetchJsonZ(`${farmNumeric}/${hit.id}.json`);
     if(!res.ok) return null;
     const numeric = await res.json();
     return mergeCardData(numeric, {});
@@ -1922,7 +1953,7 @@ async function selectPlayer(id, name){
     if(id.startsWith("farm:") && !firstCounterpart){
       const farmId = id.slice("farm:".length);
       const farmNumeric = LEAGUE_PATHS[currentLeague] && LEAGUE_PATHS[currentLeague].farmNumeric;
-      const res = await fetch(bust(`${farmNumeric}/${farmId}.json`), { cache: "no-store" });
+      const res = await fetchJsonZ(`${farmNumeric}/${farmId}.json`);
       if(!res.ok) throw new Error(`選手データの取得に失敗しました (${res.status})`);
       const numeric = await res.json();
       if(myToken !== selectPlayerToken) return;
@@ -1935,7 +1966,7 @@ async function selectPlayer(id, name){
       return;
     }
     const firstId = firstCounterpart ? firstCounterpart.id : id;
-    const res = await fetch(bust(`${LEAGUE_PATHS[currentLeague].numeric}/${firstId}.json`), { cache: "no-store" });
+    const res = await fetchJsonZ(`${LEAGUE_PATHS[currentLeague].numeric}/${firstId}.json`);
     if(!res.ok) throw new Error(`選手データの取得に失敗しました (${res.status})`);
     const numeric = await res.json();
     const { data: llm, debugLog } = await findLlmDataForPlayer(name || numeric.name, numeric.team, numeric.role);
@@ -2053,13 +2084,13 @@ async function loadAllLlmPlayerNames(token, league){
   const nextWithLlmData = new Set();
   const nextByName = new Map();
   try{
-    const idxRes = await fetch(bust(`${LEAGUE_PATHS[league].batches}/index.json`), { cache: "no-store" });
+    const idxRes = await fetchJsonZ(`${LEAGUE_PATHS[league].batches}/index.json`);
     if(idxRes.ok){
       const idx = await idxRes.json();
       const files = idx.batches || [];
       await Promise.all(files.map(async file => {
         try{
-          const res = await fetch(bust(`${LEAGUE_PATHS[league].batches}/${file}`), { cache: "no-store" });
+          const res = await fetchJsonZ(`${LEAGUE_PATHS[league].batches}/${file}`);
           if(!res.ok) return;
           const batch = await res.json();
           normalizeBatchEntries(batch).forEach(e => {
@@ -2989,7 +3020,7 @@ function getBatterIdSet(league, farm){
   if(!base) return Promise.resolve(null);
   const key = `${league}|${farm ? 1 : 0}`;
   if(!batterIdSetCache[key]){
-    batterIdSetCache[key] = fetch(bust(`${base}/index.json`), { cache: "no-store" })
+    batterIdSetCache[key] = fetchJsonZ(`${base}/index.json`)
       .then(r => r.ok ? r.json() : null)
       .then(j => j && Array.isArray(j.players) ? new Set(j.players.map(p => p.id)) : null)
       .catch(() => null);
@@ -4084,13 +4115,13 @@ function relativeTier(value, allValues, higherIsBetter){
 
 async function loadAllLlmPlayerNames(){
   try{
-    const idxRes = await fetch(bust(`${LEAGUE_PATHS[currentLeague].batches}/index.json`), { cache: "no-store" });
+    const idxRes = await fetchJsonZ(`${LEAGUE_PATHS[currentLeague].batches}/index.json`);
     if(!idxRes.ok){ llmDataLoaded = true; return; }
     const idx = await idxRes.json();
     const files = idx.files || [];
     for(const file of files){
       try{
-        const res = await fetch(bust(`${LEAGUE_PATHS[currentLeague].batches}/${file}`), { cache: "no-store" });
+        const res = await fetchJsonZ(`${LEAGUE_PATHS[currentLeague].batches}/${file}`);
         if(!res.ok) continue;
         const batch = await res.json();
         (batch.players || []).forEach(p => {
@@ -4115,7 +4146,7 @@ async function getFarmIndex(league){
   const farmNumeric = LEAGUE_PATHS[league].farmNumeric;
   if(!farmNumeric) return null;
   try{
-    const idxRes = await fetch(bust(`${farmNumeric}/index.json`), { cache: "no-store" });
+    const idxRes = await fetchJsonZ(`${farmNumeric}/index.json`);
     if(!idxRes.ok) return null;
     return await idxRes.json();
   }catch(e){ return null; }
@@ -4127,7 +4158,7 @@ async function fetchFarmData(league, playerName){
   const hit = farmIdx.players.find(p => p.name === playerName);
   if(!hit) return null;
   try{
-    const res = await fetch(bust(`${LEAGUE_PATHS[league].farmNumeric}/${hit.id}.json`), { cache: "no-store" });
+    const res = await fetchJsonZ(`${LEAGUE_PATHS[league].farmNumeric}/${hit.id}.json`);
     if(!res.ok) return null;
     return stripNonPitchTypes(await res.json());
   }catch(e){ return null; }
@@ -4256,7 +4287,7 @@ async function loadPlayerListForCurrentFarmLevel(){
     return;
   }
   try{
-    const res = await fetch(bust(`${basePath}/index.json`), { cache: "no-store" });
+    const res = await fetchJsonZ(`${basePath}/index.json`);
     if(!res.ok) throw new Error(`index.json の取得に失敗しました (${res.status})`);
     const data = await res.json();
     allPlayers = dedupePlayersByName(data.players || []);
@@ -4393,7 +4424,7 @@ async function selectPlayer(id, name){
     // idは常にその時点のレベルのindex.jsonから来たもの。そのレベルの数値JSONを読む。
     const isFarmList = currentFarmLevel === "ni";
     const basePath = isFarmList ? LEAGUE_PATHS[currentLeague].farmNumeric : LEAGUE_PATHS[currentLeague].numeric;
-    const res = await fetch(bust(`${basePath}/${id}.json`), { cache: "no-store" });
+    const res = await fetchJsonZ(`${basePath}/${id}.json`);
     if(!res.ok) throw new Error(`選手データの取得に失敗しました (${res.status})`);
     const card = stripNonPitchTypes(await res.json());
     card._isFarm = isFarmList;
@@ -4404,12 +4435,12 @@ async function selectPlayer(id, name){
     if(otherBasePath){
       const otherCard = isFarmList
         ? await (async () => { // 2軍表示中 → 1軍側にも居るか名前で探す
-            const idxRes = await fetch(bust(`${otherBasePath}/index.json`), { cache: "no-store" }).catch(() => null);
+            const idxRes = await fetchJsonZ(`${otherBasePath}/index.json`).catch(() => null);
             if(!idxRes || !idxRes.ok) return null;
             const idx = await idxRes.json();
             const hit = (idx.players || []).find(p => p.name === card.name);
             if(!hit) return null;
-            const r = await fetch(bust(`${otherBasePath}/${hit.id}.json`), { cache: "no-store" }).catch(() => null);
+            const r = await fetchJsonZ(`${otherBasePath}/${hit.id}.json`).catch(() => null);
             return (r && r.ok) ? stripNonPitchTypes(await r.json()) : null;
           })()
         : await fetchFarmData(currentLeague, card.name);
@@ -5563,7 +5594,7 @@ function ensurePivotPopulation(basePath, year){
     // 不具合があった（population未生成のリーグ/年度で球種カテゴリ・球速帯の組み合わせ
     // フィルターを操作すると発生）。
     entry = { data: null, loaded: false, promise: null };
-    entry.promise = fetch(bust(`${basePath}/pivot_population_${year}.json`), { cache: "no-store" })
+    entry.promise = fetchJsonZ(`${basePath}/pivot_population_${year}.json`)
       .then(res => res.ok ? res.json() : null)
       .then(json => { entry.data = json; entry.loaded = true; return json; })
       .catch(() => { entry.loaded = true; return null; });

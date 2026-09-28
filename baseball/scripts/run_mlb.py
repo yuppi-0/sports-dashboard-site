@@ -53,6 +53,7 @@ import sys
 import os
 import io
 import json
+from jsonio import write_json, remove_json, list_json_stems
 import math
 import logging
 import argparse
@@ -460,10 +461,12 @@ def _remove_stale_outputs(date: str) -> None:
     """現在のフォルダにその日の試合が無いと分かったとき、過去の実行で作られた日別出力を消して
     index.jsonを更新する。（残っているとシーズン集計・ダッシュボードに別種別の試合が入り続ける。RAWは消さない）"""
     removed = []
-    for p in (os.path.join(GAMES_DM_DIR, f"{date}.xlsx"), os.path.join(GAMES_JSON_DIR, f"{date}.json")):
-        if os.path.exists(p):
-            os.remove(p)
-            removed.append(os.path.basename(p))
+    _dm = os.path.join(GAMES_DM_DIR, f"{date}.xlsx")
+    if os.path.exists(_dm):
+        os.remove(_dm)
+        removed.append(os.path.basename(_dm))
+    if remove_json(os.path.join(GAMES_JSON_DIR, f"{date}.json")):
+        removed.append(f"{date}.json(.gz)")
     if removed:
         _update_index_json(GAMES_JSON_DIR)
         print(f"  [除外] {date} はこのフォルダの試合なし → 既存の日別出力を削除: {', '.join(removed)}")
@@ -4046,9 +4049,7 @@ def write_games_json(dm_path: str, date: str,
     data = _build_game_json(dm_path, date, pitch_locs=pitch_locs, cbs_idx=cbs_idx, hand_map=hand_map)
 
     # {date}.json 出力
-    json_path = os.path.join(GAMES_JSON_DIR, f"{date}.json")
-    with open(json_path, "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, separators=(",", ":"))
+    json_path = write_json(os.path.join(GAMES_JSON_DIR, f"{date}.json"), data)  # → {date}.json.gz
     print(f"  ✓ JSON: {os.path.basename(json_path)} ({os.path.getsize(json_path)//1024}KB)")
 
     # index.json 更新
@@ -4058,10 +4059,7 @@ def write_games_json(dm_path: str, date: str,
 
 def _update_index_json(json_dir: str) -> None:
     """json_dir 内の YYYY-MM-DD.json を列挙して index.json を再生成"""
-    files = sorted(
-        f for f in os.listdir(json_dir)
-        if f.endswith(".json") and f != "index.json" and not f.startswith("season_")
-    )
+    files = list_json_stems(json_dir)  # 論理名(YYYY-MM-DD.json)で列挙（.json/.json.gz両対応）
     index_path = os.path.join(json_dir, "index.json")
     with open(index_path, "w", encoding="utf-8") as f:
         json.dump({"files": files}, f, ensure_ascii=False, indent=2)
@@ -4485,6 +4483,7 @@ def main():
                 os.path.dirname(dm).replace("datamart", "json"),
                 f"{date}.json"
             )
+            json_path = json_path if os.path.exists(json_path) else json_path + ".gz"
             json_kb = os.path.getsize(json_path) // 1024 if os.path.exists(json_path) else 0
             print(f"  {date}  datamart: {kb}KB  /  JSON: {json_kb}KB")
     print("=" * 55)
