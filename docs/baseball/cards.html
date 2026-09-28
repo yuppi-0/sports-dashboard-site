@@ -81,10 +81,73 @@
     padding:6px 14px; border-radius:6px; cursor:pointer; -webkit-tap-highlight-color:transparent; }
   .mode-switch button:focus{ outline:none; }
   .mode-switch button.active{ background:var(--blue); color:#fff; }
+  /* 選手ページ間リンク（投手の対戦打者→打者ページ等）で移動したときだけ出る「元のページに戻る」ボタン */
+  .nav-back-btn{ border:1px solid rgba(59,130,246,0.5); background:rgba(59,130,246,0.14); color:var(--blue-text);
+    font-size:12px; font-weight:700; padding:6px 12px; border-radius:8px; cursor:pointer; max-width:100%;
+    -webkit-tap-highlight-color:transparent; text-align:left; }
+  .nav-back-btn[hidden]{ display:none; }
+
+  /* ── スマホ用ヘッダー（投手・打者共通） ──
+     1行目：投手/打者（画面幅いっぱいの大きな切替＝主操作。見出しの代わりになるのでh1は隠す）
+     2行目：プロ野球/MLB（小さめ）と「選手を変更」　　3行目：戻るボタン（対戦打者などから移動したときだけ） */
+  @media (max-width:720px), (orientation: landscape) and (max-height: 500px){
+    .app > header{ padding:8px 14px 10px; gap:0; }
+    .app > header h1{ display:none; }
+    .app > header .header-controls{ width:100%; display:grid; grid-template-columns:auto 1fr; gap:8px 10px; align-items:center; }
+    .app > header .mode-switch{ order:1; grid-column:1 / -1; margin:0; display:grid; grid-template-columns:1fr 1fr; gap:3px; padding:3px; border-radius:10px; }
+    .app > header .mode-switch button{ padding:8px 0; font-size:14px; border-radius:8px; }
+    .app > header .league-toggle{ order:2; gap:2px; padding:2px; justify-self:start; }
+    .app > header .league-toggle button{ padding:6px 12px; font-size:12px; }
+    .app > header .header-change-player-btn{ order:3; justify-self:end; }
+    .app > header .nav-back-btn{ order:4; grid-column:1 / -1; }
+    .app .sidebar-summary{ display:none !important; }   /* 旧：打者側の浮きボタン置き場。ヘッダー内のボタンに統一 */
+    body.has-selection .header-change-player-btn,
+    .app:has(.body-layout.has-selection) .header-change-player-btn{ display:inline-flex; }
+    .app > header .header-change-player-btn{ border:none; background:var(--blue); color:#fff; font-size:12px; font-weight:700;
+      padding:7px 14px; border-radius:20px; cursor:pointer; box-shadow:0 2px 10px rgba(0,0,0,0.4); flex-shrink:0; }
+  }
+  /* 横向きスマホは縦が足りないので、1行に並べる */
+  @media (orientation: landscape) and (max-height: 500px){
+    .app > header{ padding:6px 14px; }
+    .app > header .header-controls{ display:flex; flex-wrap:nowrap; gap:8px; }
+    .app > header .mode-switch{ display:flex; grid-column:auto; }
+    .app > header .mode-switch button{ padding:6px 16px; font-size:12px; }
+    .app > header .nav-back-btn{ flex:0 1 auto; }
+  }
+  /* 投手/打者（主）は実線ブルー、プロ野球/MLB（従）は薄いブルー＋枠、で2つの階層を見分けやすくする */
+  .league-toggle button.active{ background:rgba(59,130,246,0.18); color:var(--blue-text); box-shadow:inset 0 0 0 1px rgba(96,165,250,0.55); }
+  .league-toggle button{ transition:background .15s, color .15s; }
+  .header-change-player-btn{ display:none; }
+  /* 戻るボタンはヘッダー内で1行を使い、モード/リーグ切替のボタンが縦に潰れないようにする */
+  .header-controls{ flex-wrap:wrap; }
+  .nav-back-btn{ flex:0 1 auto; order:10; }
+  .mode-switch button, .league-toggle button{ white-space:nowrap; }
 
 </style>
 <!-- 各モード固有のCSS。表示中のモードだけ media="all"、もう一方は media="not all" で無効化する -->
 <style id="css-pitcher" media="not all">
+  /* ── 対戦打者成績 ── */
+  .section-vsbatter{ background:var(--panel); }
+  .vsb-controls{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:8px; font-size:11px; color:var(--text-dim); }
+  .vsb-controls label{ display:flex; align-items:center; gap:6px; font-weight:700; }
+  .vsb-controls select{ background:var(--panel-alt); color:var(--text-bright); border:1px solid rgba(148,163,184,0.2);
+    border-radius:8px; padding:5px 8px; font-size:11.5px; }
+  .vsb-scroll{ overflow-x:auto; -webkit-overflow-scrolling:touch; }
+  .vsb-table{ border-collapse:separate; border-spacing:0; width:100%; min-width:680px; font-size:12px; }
+  .vsb-table th, .vsb-table td{ padding:6px 8px; text-align:right; white-space:nowrap; border-bottom:1px solid rgba(148,163,184,0.12); }
+  .vsb-table th{ color:var(--text-dim); font-weight:700; font-size:10.5px; cursor:pointer; user-select:none; -webkit-tap-highlight-color:transparent; }
+  .vsb-table th.sorted{ color:var(--text-bright); }
+  .vsb-table th:first-child, .vsb-table td:first-child{ text-align:left; position:sticky; left:0; z-index:1; background:var(--panel);
+    min-width:96px; box-shadow:2px 0 4px rgba(0,0,0,0.25); }
+  .vsb-batter{ color:var(--blue-text); font-weight:700; text-decoration:none; }
+  .vsb-batter::after{ content:" ›"; opacity:0.6; }
+  .vsb-batter.nolink{ color:var(--text-bright); }
+  .vsb-batter.nolink::after{ content:""; }
+  .vsb-more{ display:block; width:100%; margin-top:8px; padding:8px; border:1px solid rgba(148,163,184,0.25); background:transparent;
+    color:var(--text); border-radius:8px; font-size:12px; font-weight:700; cursor:pointer; }
+  .vsb-more[hidden]{ display:none; }
+  .vsb-empty{ font-size:11px; color:var(--text-dim); padding:4px 0 8px; }
+
   
   * { box-sizing: border-box; }
   /* iOS/Androidのモバイルブラウザには、2〜3行に渡る段落だけを「読みやすいように」自動的に
@@ -1009,8 +1072,15 @@
        （width:100%）まで均等幅で引き伸ばす方式にする。これで軸の行もフィルターの行も
        同じ横幅いっぱいに広がるので右端が揃い、他のセクション（カウント別成績等、
        項目数が少ない行）も同じ考え方で常にコンテナいっぱいに広がる。 */
-    .fctrl-group-filter{ flex-wrap:nowrap; gap:6px; width:100%; }
-    .fctrl-group-filter .fctrl-row{ flex:1 1 0; min-width:0; }
+    .fctrl-group-filter{ display:grid; grid-auto-flow:column; grid-auto-columns:minmax(0,1fr); gap:6px; width:100%; }
+    .fctrl-group-filter .fctrl-row{ min-width:0; align-items:stretch; }
+    /* 複数選択(.msel)は.fctrl-rowの中で内容幅に縮んでしまい、球種カテゴリ等だけが軸・年度より
+       狭くなっていたため、ラッパー自体を列幅いっぱいに広げる（ボタンのwidth:100%が効くようにする）。 */
+    .fctrl-group-filter .fctrl-row > .msel{ width:100%; min-width:0; }
+    /* 軸（4列）・フィルタ（表示中の項目数ぶん）はどちらも列幅が均等になるので、軸kとk番目の
+       フィルタは同じ幅・同じ位置に揃う。項目が2個しかない行（対左右・年度など）も他セクションと
+       同じ「4列グリッドの左から2列」の幅にそろえる（右端が空くだけで、各項目の幅は4項目の行と同じ）。 */
+    .fctrl-group-filter.fctrl-group-quad{ grid-auto-flow:row; grid-template-columns:repeat(4,minmax(0,1fr)); }
     .fctrl-group-filter .fctrl-label{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-size:10px; }
     .fctrl-group-filter .fctrl-select, .fctrl-group-filter .msel-btn{ width:100%; min-width:0; max-width:none;
       padding-left:4px; padding-right:4px; font-size:10px; }
@@ -1117,6 +1187,7 @@
         <button data-league="npb" class="active">プロ野球</button>
         <button data-league="mlb">MLB</button>
       </div>
+      <button type="button" class="nav-back-btn" hidden></button>
       <button type="button" id="sidebarToggleBtn" class="header-change-player-btn">選手を変更</button>
     </div>
   </header>
@@ -1196,6 +1267,8 @@
         <button data-league="npb" class="active">プロ野球</button>
         <button data-league="mlb">MLB</button>
       </div>
+      <button type="button" id="sidebarToggleBtn" class="header-change-player-btn">選手を変更</button>
+      <button type="button" class="nav-back-btn" hidden></button>
     </div>
   </header>
 
@@ -1206,7 +1279,6 @@
           <div class="sidebar-summary-name" id="sidebarSummaryName">選手を選択してください</div>
           <div class="sidebar-summary-team" id="sidebarSummaryTeam"></div>
         </div>
-        <button type="button" id="sidebarToggleBtn">選手を変更</button>
       </div>
       <div class="filter-panel">
         <input id="searchInput" type="text" class="search-input" placeholder="選手名で検索">
@@ -1314,6 +1386,28 @@ function tierFromRank(rk){
   if(pos <= 0.85) return "bot70";
   return "bot85";
 }
+// 球種ではない投球（キャッチャー主導のピッチアウト、敬遠の球など）は、投手の持ち球の分析に
+// 混ざると「投球数1でスライダーより下位」のようなノイズになるため、読み込んだカードJSONから
+// 取り除く（元データ・Python側は変更しない）。配列の要素（name/pitchType等が該当）と、
+// 球種名をキーにしたオブジェクト（コース分布など）の両方を対象にする。
+const NON_PITCH_TYPES = new Set(["ピッチアウト", "申告敬遠"]);
+const PITCH_NAME_KEYS = ["name", "pitchType", "pitch", "球種名", "t"];
+function stripNonPitchTypes(node){
+  if(Array.isArray(node)){
+    for(let i = node.length - 1; i >= 0; i--){
+      const e = node[i];
+      if(e && typeof e === "object" && !Array.isArray(e) && PITCH_NAME_KEYS.some(k => NON_PITCH_TYPES.has(e[k]))) node.splice(i, 1);
+      else stripNonPitchTypes(e);
+    }
+  }else if(node && typeof node === "object"){
+    for(const k of Object.keys(node)){
+      if(NON_PITCH_TYPES.has(k)) delete node[k];
+      else stripNonPitchTypes(node[k]);
+    }
+  }
+  return node;
+}
+
 // スマホ用レイアウトの判定はCSSの @media (max-width:720px), (orientation: landscape) and
 // (max-height: 500px) と完全に一致させる（幅だけだと横向きスマホでJSだけ「PC」と誤判定するため）。
 const MOBILE_LAYOUT_MQ = window.matchMedia("(max-width:720px), (orientation: landscape) and (max-height: 500px)");
@@ -1663,6 +1757,7 @@ function normalizePlayerType(pt){
 
 function mergeCardData(numeric, llm){
   llm = llm || {};
+  stripNonPitchTypes(numeric); stripNonPitchTypes(llm);
   const pitchEvalsNumeric = numeric.pitch_evaluations_numeric || [];
   const llmPitchByName = {};
   (llm.pitch_evaluations || []).forEach(pe => { llmPitchByName[pe.name] = pe; });
@@ -1721,6 +1816,8 @@ function mergeCardData(numeric, llm){
     weaknesses: llm.weaknesses || [],
     pitch_evaluations,
     game_log: numeric.game_log || [],
+    // 対戦打者成績（古いJSONには無いのでundefinedのまま渡し、セクション側で「データ未生成」表示にする）
+    vs_batters: numeric.vs_batters,
   };
 }
 
@@ -2109,6 +2206,9 @@ function renderCard(d){
     </div>
   ` : "";
 
+  // 対戦打者成績（カウント別配球の下）
+  const vsBattersHtml = vsBattersSectionHtml(d);
+
   // 選手特徴・強み・弱み を1つの枠にまとめる（区切り線つき）
   const profileHtml = `
     <div class="section section-profile">
@@ -2190,6 +2290,8 @@ function renderCard(d){
 
       ${countPitchSectionHtml}
 
+      ${vsBattersHtml}
+
       ${profileHtml}
 
       ${gameLogHtml}
@@ -2247,6 +2349,8 @@ function renderCard(d){
       }
     });
   }
+
+  wireVsBatters(d);
 
   // 1軍/2軍 切り替え：同じ選手のもう一方のデータでカードを丸ごと再描画する
   // （renderCard自体は毎回mainContentEl全体を作り直す設計なので、両データに互いへの
@@ -2752,15 +2856,187 @@ function wireCountPatternBlock(blockEl, pitchRows){
   COUNT_KEYS.forEach(ck => {
     countTotals[ck] = rows.reduce((s,p) => s + ((p.cbs[ck] && p.cbs[ck].c) || 0), 0);
   });
+  // スマホでは各表が横スクロールになるため、上の「カウント別球種割合」と下の「球種別指標」が
+  // 別々に動くと、同じカウント列を見比べられなくなる。2つの表の横スクロール位置を連動させる。
+  // 行クリックで下の表のHTMLが差し替わると新しいスクロール要素になるので、その都度つなぎ直し、
+  // 直前のスクロール位置も引き継ぐ。
+  const pitchScroll = blockEl.querySelector(".count-pmix-table")?.closest(".pmix-scroll");
+  const rateScrollEl = () => blockEl.querySelector("[data-count-rate-block] .pmix-scroll");
+  let syncing = false;
+  const mirror = (from, to) => {
+    if(!from || !to || syncing || Math.abs(to.scrollLeft - from.scrollLeft) < 1) return;
+    syncing = true;
+    to.scrollLeft = from.scrollLeft;
+    requestAnimationFrame(() => { syncing = false; });
+  };
+  const bindRateScroll = () => {
+    const rs = rateScrollEl();
+    if(!rs || !pitchScroll) return;
+    rs.scrollLeft = pitchScroll.scrollLeft;
+    rs.addEventListener("scroll", () => mirror(rs, pitchScroll), { passive: true });
+  };
+  if(pitchScroll) pitchScroll.addEventListener("scroll", () => mirror(pitchScroll, rateScrollEl()), { passive: true });
+  bindRateScroll();
+
   blockEl.querySelectorAll(".count-pmix-row").forEach(tr => {
     tr.addEventListener("click", () => {
       const idx = parseInt(tr.dataset.groupIdx, 10);
       const rateWrap = blockEl.querySelector("[data-count-rate-block]");
       if(rateWrap) rateWrap.innerHTML = countRateBlockHtml(rows, countTotals, idx);
+      bindRateScroll();
       blockEl.querySelectorAll(".count-pmix-row").forEach(r => r.classList.remove("active"));
       tr.classList.add("active");
     });
   });
+}
+
+
+// ── 対戦打者成績 ──
+// d.vs_batters: export_llm_input.py の build_vs_batter_breakdown() が作る、打者ごとのシーズン通算成績
+// （投手から見た被打率など）。打者名は打者カード（batter_cards_numeric/{batterId}.json）へのリンク。
+// 表は最小打席数で絞り込み、見出しクリックで並べ替え。上位VSB_INITIAL_ROWS件だけ出し「もっと見る」で全件。
+const VSB_COLS = [
+  { key:"pa",  label:"打席",   fmt:"int" }, { key:"ab", label:"打数", fmt:"int" },
+  { key:"h",   label:"被安打", fmt:"int" }, { key:"hr", label:"被本塁打", fmt:"int" },
+  { key:"k",   label:"三振",   fmt:"int" }, { key:"bb", label:"四球", fmt:"int" },
+  { key:"avg", label:"被打率", fmt:"avg", good:"low" }, { key:"obp", label:"被出塁率", fmt:"avg", good:"low" },
+  { key:"slg", label:"被長打率", fmt:"avg", good:"low" }, { key:"ops", label:"被OPS", fmt:"ops", good:"low" },
+  { key:"k_pct", label:"K%", fmt:"pct", good:"high" }, { key:"bb_pct", label:"BB%", fmt:"pct", good:"low" },
+  { key:"whiff_pct", label:"空振り率", fmt:"pct", good:"high" },
+];
+const VSB_MIN_PA_OPTIONS = [[1, "全員"], [3, "3打席以上"], [5, "5打席以上"], [10, "10打席以上"]];
+const VSB_INITIAL_ROWS = 15;
+function vsbFmt(v, kind){
+  if(v === null || v === undefined || Number.isNaN(v)) return "-";
+  if(kind === "int") return String(v);
+  if(kind === "avg") return v.toFixed(3).replace(/^0(?=\.)/, "");
+  if(kind === "ops") return v.toFixed(3);
+  if(kind === "pct") return v.toFixed(1) + "%";
+  return String(v);
+}
+
+function vsBattersSectionHtml(d){
+  const list = d.vs_batters;
+  const header = sectionHeader({ bar:"var(--green)", label:"対戦打者成績", labelColor:"var(--text-bright)", sub:"打者名をタップで打者ページへ" });
+  if(list === undefined){
+    // run.py / export_llm_input.py の再実行前に作られた古いJSON
+    return `<div class="section section-vsbatter">${header}<div class="section-body">
+      <div class="vsb-empty">対戦打者のデータがまだありません（run.py / export_llm_input.py の再実行後に表示されます）</div></div></div>`;
+  }
+  if(!Array.isArray(list) || !list.length){
+    return `<div class="section section-vsbatter">${header}<div class="section-body">
+      <div class="vsb-empty">対戦打者のデータがありません</div></div></div>`;
+  }
+  return `
+    <div class="section section-vsbatter">
+      ${header}
+      <div class="section-body">
+        <div class="vsb-controls">
+          <label>最小打席
+            <select class="vsb-minpa-select">${VSB_MIN_PA_OPTIONS.map(([v, l]) => `<option value="${v}">${l}</option>`).join("")}</select>
+          </label>
+          <span class="vsb-summary"></span>
+        </div>
+        <div class="vsb-scroll" data-vsb-table></div>
+        <button type="button" class="vsb-more" hidden></button>
+      </div>
+    </div>`;
+}
+
+// 打者カードが存在するかを、打者のindex.jsonで一度だけ調べて使い回す（無い打者は名前をリンクにしない）。
+const batterIdSetCache = {};
+function getBatterIdSet(league, farm){
+  const paths = SHARED_PATHS.batter[league];
+  const base = paths && (farm ? paths.farmNumeric : paths.numeric);
+  if(!base) return Promise.resolve(null);
+  const key = `${league}|${farm ? 1 : 0}`;
+  if(!batterIdSetCache[key]){
+    batterIdSetCache[key] = fetch(bust(`${base}/index.json`), { cache: "no-store" })
+      .then(r => r.ok ? r.json() : null)
+      .then(j => j && Array.isArray(j.players) ? new Set(j.players.map(p => p.id)) : null)
+      .catch(() => null);
+  }
+  return batterIdSetCache[key];
+}
+
+function wireVsBatters(d){
+  const sec = mainContentEl.querySelector(".section-vsbatter");
+  const list = d.vs_batters;
+  if(!sec || !Array.isArray(list) || !list.length) return;
+  const tableWrap = sec.querySelector("[data-vsb-table]");
+  const minPaSel = sec.querySelector(".vsb-minpa-select");
+  const summaryEl = sec.querySelector(".vsb-summary");
+  const moreBtn = sec.querySelector(".vsb-more");
+  const league = currentLeague, farm = !!d._isFarm;
+  // 既定は3打席以上。3打席以上の打者が1人もいないシーズン序盤等は全員表示にする。
+  const maxPa = Math.max(...list.map(r => r.pa || 0));
+  const st = { minPa: maxPa >= 3 ? 3 : 1, key: "pa", dir: "desc", expanded: false };
+  minPaSel.value = String(st.minPa);
+  let batterIds = null;  // Set | null（null＝未取得/取得失敗→全員リンクにする）
+
+  const shade = (rows, col, v) => {
+    if(!col.good || v == null) return "";
+    const vals = rows.map(r => r[col.key]).filter(x => x != null);
+    if(vals.length < 3) return "";
+    const lo = Math.min(...vals), hi = Math.max(...vals);
+    if(hi === lo) return "";
+    let sc = ((v - lo) / (hi - lo) - 0.5) * 2;       // -1(低い)〜+1(高い)
+    if(col.good === "high") sc = -sc;                   // 高い方が投手に良い指標は符号を反転
+    const a = (Math.abs(sc) * 0.28).toFixed(2);         // sc>0＝投手に悪い（赤）／sc<0＝良い（緑）
+    return ` style="background:${sc > 0 ? `rgba(248,113,113,${a})` : `rgba(52,211,153,${a})`}"`;
+  };
+
+  const render = () => {
+    const filtered = list.filter(r => (r.pa || 0) >= st.minPa);
+    const sorted = filtered.slice().sort((a, b) => {
+      const av = a[st.key], bv = b[st.key];
+      if(av == null && bv == null) return 0;
+      if(av == null) return 1;
+      if(bv == null) return -1;                        // 値なしは並び順に関わらず末尾
+      return (st.dir === "desc" ? bv - av : av - bv) || (b.pa || 0) - (a.pa || 0);
+    });
+    const shown = st.expanded ? sorted : sorted.slice(0, VSB_INITIAL_ROWS);
+    summaryEl.textContent = `${filtered.length}人／対戦${list.length}人中`;
+    if(!filtered.length){
+      tableWrap.innerHTML = `<div class="vsb-empty">${st.minPa}打席以上対戦した打者はいません</div>`;
+      moreBtn.hidden = true;
+      return;
+    }
+    const arrow = (k) => st.key === k ? (st.dir === "desc" ? " ▼" : " ▲") : "";
+    const head = `<tr><th data-sort="batter" style="cursor:default">打者</th>${VSB_COLS.map(c =>
+      `<th data-sort="${c.key}" class="${st.key === c.key ? "sorted" : ""}">${c.label}${arrow(c.key)}</th>`).join("")}</tr>`;
+    const body = shown.map(r => {
+      const linked = !batterIds || batterIds.has(r.batterId);
+      const nameHtml = linked
+        ? `<a class="vsb-batter" href="#batter/${league}/${encodeURIComponent(r.batterId)}${farm ? "/farm" : ""}" data-batter-id="${escapeHtml(r.batterId)}" data-batter-name="${escapeHtml(r.batter)}">${escapeHtml(r.batter)}</a>`
+        : `<span class="vsb-batter nolink" title="打者カードがありません">${escapeHtml(r.batter)}</span>`;
+      return `<tr><td>${nameHtml}</td>${VSB_COLS.map(c => `<td${shade(filtered, c, r[c.key])}>${vsbFmt(r[c.key], c.fmt)}</td>`).join("")}</tr>`;
+    }).join("");
+    tableWrap.innerHTML = `<table class="vsb-table"><thead>${head}</thead><tbody>${body}</tbody></table>`;
+    const hidden = sorted.length - VSB_INITIAL_ROWS;
+    moreBtn.hidden = hidden <= 0;
+    moreBtn.textContent = st.expanded ? "上位のみ表示に戻す" : `残り${hidden}人を表示`;
+  };
+
+  minPaSel.addEventListener("change", () => { st.minPa = Number(minPaSel.value); st.expanded = false; render(); });
+  moreBtn.addEventListener("click", () => { st.expanded = !st.expanded; render(); });
+  tableWrap.addEventListener("click", (e) => {
+    const th = e.target.closest("th[data-sort]");
+    if(th && th.dataset.sort !== "batter"){
+      const k = th.dataset.sort;
+      if(st.key === k) st.dir = st.dir === "desc" ? "asc" : "desc"; else { st.key = k; st.dir = "desc"; }
+      render();
+      return;
+    }
+    const a = e.target.closest("a.vsb-batter[data-batter-id]");
+    if(a){
+      e.preventDefault();
+      cardsShell.goto("batter", { league, id: a.dataset.batterId, name: a.dataset.batterName, farm });
+    }
+  });
+  render();
+  // 打者カードが無い打者はリンクにしない（打者のindex.jsonが取れたときだけ絞る）
+  getBatterIdSet(league, farm).then(set => { if(set && sec.isConnected){ batterIds = set; render(); } });
 }
 
 // 日本語（全角）と英数字（半角）が混ざった短い文言のセル幅を見積もる。
@@ -3629,7 +3905,25 @@ function wireComparePanelEvents(d){
 }
 
 // 初期ロード
-loadPlayerIndex(currentLeague);
+const initialLoad = loadPlayerIndex(currentLeague);
+
+// 共通ローダー(cardsShell)から、外部リンク・戻るボタン経由でこのモードの選手ページを開くための窓口
+cardsShell.register("pitcher", {
+  ready: initialLoad,
+  getState: () => ({ league: currentLeague, id: activePlayerId,
+    name: activeCardData ? activeCardData.name : null, farm: !!(activeCardData && activeCardData._isFarm) }),
+  async openPlayer({ league, id, name }){
+    if(league && league !== currentLeague && LEAGUE_PATHS[league]){
+      leagueStateCache[currentLeague] = snapshotLeagueState();
+      // リーグ切替時に「前回選んでいた選手」の自動選択が走ると、これから開く選手を上書きしうるので消しておく
+      if(leagueStateCache[league]) leagueStateCache[league].activePlayerId = null;
+      document.querySelectorAll(".league-toggle button").forEach(b => b.classList.toggle("active", b.dataset.league === league));
+      currentLeague = league;
+      await loadPlayerIndex(league);
+    }
+    await selectPlayer(id, name || id);
+  },
+});
 
 }
 
@@ -3797,7 +4091,7 @@ async function fetchFarmData(league, playerName){
   try{
     const res = await fetch(bust(`${LEAGUE_PATHS[league].farmNumeric}/${hit.id}.json`), { cache: "no-store" });
     if(!res.ok) return null;
-    return await res.json();
+    return stripNonPitchTypes(await res.json());
   }catch(e){ return null; }
 }
 
@@ -4063,7 +4357,7 @@ async function selectPlayer(id, name){
     const basePath = isFarmList ? LEAGUE_PATHS[currentLeague].farmNumeric : LEAGUE_PATHS[currentLeague].numeric;
     const res = await fetch(bust(`${basePath}/${id}.json`), { cache: "no-store" });
     if(!res.ok) throw new Error(`選手データの取得に失敗しました (${res.status})`);
-    const card = await res.json();
+    const card = stripNonPitchTypes(await res.json());
     card._isFarm = isFarmList;
 
     // 選手詳細内の「1軍/2軍」切り替えボタン用に、もう一方のレベルのデータも裏で探しておく
@@ -4078,7 +4372,7 @@ async function selectPlayer(id, name){
             const hit = (idx.players || []).find(p => p.name === card.name);
             if(!hit) return null;
             const r = await fetch(bust(`${otherBasePath}/${hit.id}.json`), { cache: "no-store" }).catch(() => null);
-            return (r && r.ok) ? await r.json() : null;
+            return (r && r.ok) ? stripNonPitchTypes(await r.json()) : null;
           })()
         : await fetchFarmData(currentLeague, card.name);
       if(otherCard){
@@ -4706,7 +5000,10 @@ const KEYED_STAT_METRICS_FULL = [
 function keyedStatMetricsFor(excludeKBB){
   let metrics = currentLeague !== "npb" ? KEYED_STAT_METRICS_FULL
     : KEYED_STAT_METRICS_FULL.filter(([k]) => !MLB_ONLY_METRIC_KEYS.has(k) && k !== "rbi");
-  if(excludeKBB) metrics = metrics.filter(([k]) => k !== "k_pct" && k !== "bb_pct");
+  // カウント別成績では出塁率(obp)も除外する。カウントは「打席を終えた球を受けたときのカウント」
+  // なので、0-0〜2-1のように四球・三振が構造上起きないカウントでは出塁率＝(安打+死球)/(打数+死球)、
+  // つまり打率とほぼ同じ値になり、独立した情報にならないため（エラー出塁は出塁率上はアウト扱い）。
+  if(excludeKBB) metrics = metrics.filter(([k]) => k !== "k_pct" && k !== "bb_pct" && k !== "obp");
   return metrics;
 }
 // contact_pct（実体はZ-Swing%として計算済み）等、旧フィールド名で来るデータを新フィールド名に
@@ -4846,7 +5143,7 @@ function renderSituationSection(seasonsMap, years, currentYear){
   return `
     <div class="fctrl-block">
       <div class="fctrl-group-title">フィルタ</div>
-      <div class="fctrl-group fctrl-group-filter">
+      <div class="fctrl-group fctrl-group-filter fctrl-group-quad">
         <div class="fctrl-row">
           <span class="fctrl-label">対左右</span>
           <select class="fctrl-select st-hand-select">
@@ -4890,7 +5187,7 @@ function renderCountSection(years, currentYear){
   return `
     <div class="fctrl-block">
       <div class="fctrl-group-title">フィルタ</div>
-      <div class="fctrl-group fctrl-group-filter">
+      <div class="fctrl-group fctrl-group-filter fctrl-group-quad">
         <div class="fctrl-row">
           <span class="fctrl-label">対左右</span>
           <select class="fctrl-select ct-hand-select">
@@ -5957,7 +6254,31 @@ function renderPlayerCard(card, llm){
   }
 }
 
-loadPlayerIndex(currentLeague);
+const initialLoad = loadPlayerIndex(currentLeague);
+
+cardsShell.register("batter", {
+  ready: initialLoad,
+  getState: () => ({ league: currentLeague, id: activePlayerId,
+    name: activeCardData ? activeCardData.name : null, farm: currentFarmLevel === "ni" }),
+  async openPlayer({ league, id, name, farm }){
+    if(league && league !== currentLeague && LEAGUE_PATHS[league]){
+      leagueStateCache[currentLeague] = snapshotLeagueState();
+      if(leagueStateCache[league]) leagueStateCache[league].activePlayerId = null;
+      document.querySelectorAll(".league-toggle button").forEach(b => b.classList.toggle("active", b.dataset.league === league));
+      currentLeague = league;
+      await loadPlayerIndex(league);
+    }
+    const wantLevel = farm ? "ni" : "ichi";
+    if(LEAGUE_PATHS[currentLeague].farmNumeric && currentFarmLevel !== wantLevel){
+      currentFarmLevel = wantLevel;
+      updateFarmLevelToggleUI();
+      playerListEl.innerHTML = '<div class="empty-list">読み込み中…</div>';
+      await loadPlayerListForCurrentFarmLevel();
+      renderPlayerList();
+    }
+    await selectPlayer(id, name || id);
+  },
+});
 
 }
 
@@ -5966,8 +6287,8 @@ loadPlayerIndex(currentLeague);
 // 外して/戻すだけで切り替える（検索条件・並び順・選択中の選手がモードごとに残る）。
 // 同時にDOMへ載るのは片方だけなので、両者に共通のid（#searchInput 等）は衝突しない。
 const MODES = {
-  pitcher: { title: "投手 AI解釈カード", rootId: "root-pitcher", styleId: "css-pitcher", mount: mountPitcher, mounted: false, hasSel: false },
-  batter:  { title: "打者 AI解釈カード", rootId: "root-batter",  styleId: "css-batter",  mount: mountBatter,  mounted: false, hasSel: false },
+  pitcher: { title: "投手 AI解釈カード", label: "投手", rootId: "root-pitcher", styleId: "css-pitcher", mount: mountPitcher, mounted: false, hasSel: false },
+  batter:  { title: "打者 AI解釈カード", label: "打者", rootId: "root-batter",  styleId: "css-batter",  mount: mountBatter,  mounted: false, hasSel: false },
 };
 const host = document.getElementById("host");
 const roots = {};
@@ -5977,17 +6298,71 @@ for(const k of Object.keys(MODES)){
 }
 let currentMode = null;
 
+// ── 選手ページ間の移動（投手の対戦打者 → 打者ページ 等）と「戻る」 ──
+// 各モードが register() で {ready, getState(), openPlayer()} を渡す。URLのハッシュは
+// #{mode}/{league}/{id}[/farm]（例：#batter/npb/細川_成也）。リンクで別モードへ移るときは、
+// 移動前のページを backOrigin に控えて、移動先のヘッダーに「戻る」ボタンを出す。
+// ブラウザの戻る操作もハッシュの変化として同じ処理（applyHash）に流す。
+const controllers = {};
+const scrollPos = {};
+let backOrigin = null;   // { mode, hash, name }
+const cardsShell = {
+  register(mode, ctrl){ controllers[mode] = ctrl; },
+  goto(mode, target){ return gotoPlayer(mode, target); },
+};
+
+function makeHash(mode, st){
+  if(!st || !st.id) return "#" + mode;
+  return "#" + [mode, st.league, encodeURIComponent(st.id), st.farm ? "farm" : ""].filter(Boolean).join("/");
+}
+function parseHash(){
+  const parts = (location.hash || "").replace(/^#\/?/, "").split("/");
+  if(!MODES[parts[0]]) return null;
+  let id = null;
+  try{ id = parts[2] ? decodeURIComponent(parts[2]) : null; }catch(e){}
+  return { mode: parts[0], league: parts[1] || null, id, farm: parts[3] === "farm" };
+}
 function readInitialMode(){
-  const h = (location.hash || "").replace(/^#\/?/, "").split("/")[0];
-  if(MODES[h]) return h;
+  const h = parseHash();
+  if(h) return h.mode;
   try{ const s = localStorage.getItem("cardsMode"); if(MODES[s]) return s; }catch(e){}
   return "pitcher";
+}
+
+const mainScrollEl = () => document.querySelector("main");
+function saveScroll(mode){
+  const m = mainScrollEl();
+  scrollPos[mode] = { main: m ? m.scrollTop : 0, win: window.scrollY };
+}
+function restoreScroll(mode){
+  const sp = scrollPos[mode];
+  if(!sp) return;
+  requestAnimationFrame(() => {
+    const m = mainScrollEl();
+    if(m) m.scrollTop = sp.main;
+    window.scrollTo(0, sp.win);
+  });
+}
+
+function updateBackButtons(){
+  for(const k of Object.keys(roots)){
+    const btn = roots[k].querySelector(".nav-back-btn");
+    if(!btn) continue;
+    if(backOrigin && k !== backOrigin.mode){
+      btn.hidden = false;
+      btn.textContent = `← ${MODES[backOrigin.mode].label}ページに戻る${backOrigin.name ? "（" + backOrigin.name + "）" : ""}`;
+    }else{
+      btn.hidden = true;
+    }
+  }
+  window.dispatchEvent(new Event("resize"));   // ヘッダーの高さが変わるので測り直させる
 }
 
 function switchMode(name){
   if(!MODES[name] || name === currentMode) return;
   if(currentMode){
     const prev = MODES[currentMode];
+    saveScroll(currentMode);
     prev.hasSel = document.body.classList.contains("has-selection");
     roots[currentMode].remove();
     document.getElementById(prev.styleId).media = "not all";
@@ -6000,20 +6375,74 @@ function switchMode(name){
   if(!m.mounted){ m.mounted = true; m.mount(); observeHeader(roots[name]); }
   document.title = m.title;
   try{ localStorage.setItem("cardsMode", name); }catch(e){}
-  if(location.hash !== "#" + name) history.replaceState(null, "", "#" + name);
+  restoreScroll(name);
   // 各モードのヘッダー高さ変数(--header-h)を測り直させる
   window.dispatchEvent(new Event("resize"));
 }
 
+// 指定の選手が、すでにそのモードで表示中ならtrue（再読み込みを避ける）
+function isShowing(mode, t){
+  const c = controllers[mode];
+  const cur = c && c.getState();
+  return !!cur && cur.id === t.id && cur.league === t.league && !!cur.farm === !!t.farm;
+}
+async function openInMode(mode, t){
+  const c = controllers[mode];
+  if(!c) return;
+  await c.ready;                 // 初回のindex読み込みが終わってから
+  if(isShowing(mode, t)) return;
+  await c.openPlayer(t);
+}
+
+async function gotoPlayer(mode, target){
+  const from = currentMode, st = controllers[from] && controllers[from].getState();
+  if(st && st.id){
+    const originHash = makeHash(from, st);
+    history.replaceState(null, "", originHash);         // 今のページを履歴に確定させてから
+    backOrigin = { mode: from, hash: originHash, name: st.name || "" };
+  }
+  history.pushState(null, "", makeHash(mode, target));  // 移動先を新しい履歴として積む
+  delete scrollPos[mode];                                // 移動先は新しい選手なので先頭から表示
+  switchMode(mode);
+  updateBackButtons();
+  await openInMode(mode, target);
+  const m = mainScrollEl(); if(m) m.scrollTop = 0;
+}
+
+async function applyHash(){
+  const h = parseHash();
+  if(!h) return;
+  switchMode(h.mode);
+  if(backOrigin && h.mode === backOrigin.mode) backOrigin = null;   // 元のページに戻ってきた
+  updateBackButtons();
+  if(h.id && h.league) await openInMode(h.mode, h);
+}
+
 document.addEventListener("click", (e) => {
-  const b = e.target.closest && e.target.closest(".mode-switch button");
-  if(b) switchMode(b.dataset.mode);
+  const mb = e.target.closest && e.target.closest(".mode-switch button");
+  if(mb){
+    backOrigin = null;                       // 手動でモードを切り替えたら「戻る」は出さない
+    switchMode(mb.dataset.mode);
+    const c = controllers[mb.dataset.mode];
+    history.replaceState(null, "", makeHash(mb.dataset.mode, c && c.getState()));
+    updateBackButtons();
+    return;
+  }
+  const bb = e.target.closest && e.target.closest(".nav-back-btn");
+  if(bb && backOrigin){
+    const hash = backOrigin.hash;
+    backOrigin = null;
+    location.hash = hash;                    // hashchange → applyHash が元のページへ戻す
+  }
 });
-window.addEventListener("hashchange", () => {
-  const h = (location.hash || "").replace(/^#\/?/, "").split("/")[0];
-  if(MODES[h]) switchMode(h);
-});
-switchMode(readInitialMode());
+window.addEventListener("hashchange", applyHash);
+
+(function init(){
+  const h = parseHash();
+  switchMode(readInitialMode());
+  if(!h) history.replaceState(null, "", "#" + currentMode);
+  else if(h.id && h.league) openInMode(h.mode, h);
+})();
 
 </script>
 </body>
