@@ -75,33 +75,40 @@ TARGET_DATE = "2026-04-19"
 
 BASE_URL      = "https://baseball.yahoo.co.jp/npb"
 SCHEDULE_URL  = f"{BASE_URL}/schedule/first/all?date={TARGET_DATE}"
+SCHEDULE_URLS = [SCHEDULE_URL]   # 種別によっては複数ページ（ポストシーズン=CS+日本シリーズ）
 FARM_URL      = f"{BASE_URL}/schedule/farm/all?date={TARGET_DATE}"
 HEADERS       = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
 
 # ── 試合種別マップ ──
 # 1軍
+# Yahoo!スポーツナビ（1軍）の日程ページの絞り込み（実際のメニュー）:
+#   すべて=all / リーグ戦=league / 交流戦=inter / オールスター=allstar / CS=cs / 日本シリーズ=nippons / オープン戦=open
+#   URL: https://baseball.yahoo.co.jp/npb/schedule/first/{slug}?date=YYYY-MM-DD
+# 「すべて(all)」はリーグ戦だけでなく他の種別も含みうる（オールスターが混ざるのを確認済み）ため、
+# 公式戦の取得では all を使いつつ、下の各ページに載っている試合は種別フォルダへ振り分ける。
 ICHI_GAME_TYPES = {
-    "レギュラーシーズン": "all",        # リーグ戦＋交流戦をまとめて "all" で取得
-    "オープン戦":         "open",
-    "ポストシーズン":     "climax",     # CS・日本シリーズ
+    "レギュラーシーズン": ["all"],
+    "オープン戦":         ["open"],
+    "ポストシーズン":     ["cs", "nippons"],   # CSと日本シリーズは別ページ
+    "オールスター":       ["allstar"],
 }
 # 2軍
 NI_GAME_TYPES = {
-    "公式戦":             "official",
-    "春季教育リーグ":     "spring",
-    "フレッシュオールスター": "fresh_allstar",
-    "日本選手権":         "nippon",
-    "フェニックスリーグ": "phoenix",
+    "公式戦":             ["official"],
+    "春季教育リーグ":     ["spring"],
+    "フレッシュオールスター": ["fresh_allstar"],
+    "日本選手権":         ["nippon"],
+    "フェニックスリーグ": ["phoenix"],
 }
 
-def _game_type_schedule_path(league: str, game_type: str) -> str:
-    """league + game_type → Yahoo Baseball スケジュールパス（first/all 等）"""
+def _game_type_schedule_paths(league: str, game_type: str) -> list:
+    """league + game_type → Yahoo Baseball スケジュールパスのリスト（first/all 等。ポストシーズンは2ページ）"""
     if league == "ichi":
-        slug = ICHI_GAME_TYPES.get(game_type, "all")
-        return f"first/{slug}"
-    else:
-        slug = NI_GAME_TYPES.get(game_type, "official")
-        return f"farm/{slug}"
+        return [f"first/{slug}" for slug in ICHI_GAME_TYPES.get(game_type, ["all"])]
+    return [f"farm/{slug}" for slug in NI_GAME_TYPES.get(game_type, ["official"])]
+
+def _game_type_schedule_path(league: str, game_type: str) -> str:
+    return _game_type_schedule_paths(league, game_type)[0]
 
 # フォルダ構成:
 #   data/プロ野球/{YYYY}年/1軍|2軍/{試合種別}/   ← raw/datamartなど非公開の作業データ（gitでバックアップ管理はするが、Pagesでは公開しない）
@@ -141,7 +148,7 @@ def set_league_dirs(league: str, date: str = TARGET_DATE, game_type: str | None 
                2軍→"公式戦"/"春季教育リーグ"/"フレッシュオールスター"/"日本選手権"/"フェニックスリーグ"
     """
     global RAW_DIR, GAMES_DM_DIR, GAMES_JSON_DIR, SEASON_DIR, DATAMART_DIR, JSON_DIR, \
-           SCHEDULE_URL, TARGET_DATE, _current_league, _current_game_type
+           SCHEDULE_URL, SCHEDULE_URLS, TARGET_DATE, _current_league, _current_game_type
     _current_league = league
     league_label = "1軍" if league == "ichi" else "2軍"
     TARGET_DATE  = date
@@ -151,8 +158,9 @@ def set_league_dirs(league: str, date: str = TARGET_DATE, game_type: str | None 
         game_type = "レギュラーシーズン" if league == "ichi" else "公式戦"
     _current_game_type = game_type
 
-    sched_path = _game_type_schedule_path(league, game_type)
-    SCHEDULE_URL = f"{BASE_URL}/schedule/{sched_path}?date={date}"
+    sched_paths = _game_type_schedule_paths(league, game_type)
+    SCHEDULE_URLS = [f"{BASE_URL}/schedule/{sp}?date={date}" for sp in sched_paths]
+    SCHEDULE_URL = SCHEDULE_URLS[0]
 
     # data/プロ野球/{YYYY}年/1軍|2軍/{試合種別}/       ← 非公開（raw/datamart）
     # docs/data/プロ野球/{YYYY}年/1軍|2軍/{試合種別}/  ← 公開（games/json・season、Pagesの公開元）
@@ -168,6 +176,7 @@ def set_league_dirs(league: str, date: str = TARGET_DATE, game_type: str | None 
     import sys as _sys
     _mod = _sys.modules[__name__]
     _mod.SCHEDULE_URL            = SCHEDULE_URL
+    _mod.SCHEDULE_URLS           = SCHEDULE_URLS
     _mod.TARGET_DATE             = TARGET_DATE
     _mod.RAW_DIR                 = RAW_DIR
     _mod.GAMES_DM_DIR            = GAMES_DM_DIR
@@ -205,6 +214,168 @@ NI_TEAM_NAMES = {
 }
 # 統合（チームID解決用、スクレイピング時に参照）
 TEAM_NAMES = {**ICHI_TEAM_NAMES, **NI_TEAM_NAMES}
+
+# ── 試合種別（公式戦／ポストシーズン／オープン戦／オールスター）の振り分け ──
+# 試合は「試合種別ごとのフォルダ」に分けて保存する。ダッシュボード・シーズン成績（選手カード）が
+# 読むのは公式戦フォルダだけなので、他の種別は集計にもダッシュボードにも入らない。
+#   1軍: レギュラーシーズン / ポストシーズン / オープン戦 / オールスター
+#   2軍: 公式戦           / ポストシーズン / オープン戦 / オールスター
+# どのフォルダも同じ構成（raw/{日付}/、games/datamart/、games/json/）。
+FOLDER_POSTSEASON = "ポストシーズン"
+FOLDER_PRESEASON  = "オープン戦"
+FOLDER_ALLSTAR    = "オールスター"
+NON_REGULAR_FOLDERS = (FOLDER_POSTSEASON, FOLDER_PRESEASON, FOLDER_ALLSTAR)
+REGULAR_FOLDER_ALIASES = {"レギュラーシーズン", "公式戦"}
+
+# 判定ルール（取得した試合ページの情報から）:
+#  1) ホーム/アウェイのチーム名が全セ・全パ → オールスター
+#  2) 「試合情報」欄（.bb-gameRound）に下のキーワードが含まれる → 対応する種別
+#  3) どちらでもなければ、いま取得しているスケジュールの種別（通常は公式戦。--game-type で指定）
+ALLSTAR_TEAM_NAMES = {"全セ", "全パ", "全セ・リーグ", "全パ・リーグ"}
+GAME_INFO_KEYWORDS = [
+    ("オールスター",       FOLDER_ALLSTAR),
+    ("オープン戦",         FOLDER_PRESEASON),
+    ("クライマックス",     FOLDER_POSTSEASON),
+    ("日本シリーズ",       FOLDER_POSTSEASON),
+    ("ファーストステージ", FOLDER_POSTSEASON),
+    ("ファイナルステージ", FOLDER_POSTSEASON),
+]
+
+
+def regular_folder(league: str | None = None) -> str:
+    return "レギュラーシーズン" if (league or _current_league) == "ichi" else "公式戦"
+
+
+def is_regular_folder(folder: str) -> bool:
+    return folder in REGULAR_FOLDER_ALIASES
+
+
+def all_folders(league: str | None = None) -> tuple:
+    return (regular_folder(league),) + NON_REGULAR_FOLDERS
+
+
+def raw_dir_for_folder(folder: str, date: str | None = None, league: str | None = None) -> str:
+    """指定の試合種別フォルダのRAWディレクトリ（現在のフォルダを切り替えずに参照するため）。"""
+    league = league or _current_league
+    date = date or TARGET_DATE
+    label = "1軍" if league == "ichi" else "2軍"
+    return os.path.join(BASE_DATA_DIR, f"{date[:4]}年", label, folder, "raw", date)
+
+
+def classify_game_folder(home, away, round_text, default_folder: str) -> str:
+    """1試合の振り分け先フォルダ名を返す。"""
+    h = "" if pd.isna(home) else str(home).strip()
+    a = "" if pd.isna(away) else str(away).strip()
+    if h in ALLSTAR_TEAM_NAMES or a in ALLSTAR_TEAM_NAMES:
+        return FOLDER_ALLSTAR
+    text = "" if pd.isna(round_text) else str(round_text)
+    for kw, folder in GAME_INFO_KEYWORDS:
+        if kw in text:
+            return folder
+    return default_folder
+
+
+# Yahoo!の日程ページ別の種別（1軍）。「すべて(all)」の一覧に載った試合のうち、下のページにも載っているものは
+# その種別に振り分ける（Yahoo!自身の分類なので、試合ページの文言に頼るより確実）。
+SPECIAL_SCHEDULES = [
+    ("open",    FOLDER_PRESEASON),
+    ("cs",      FOLDER_POSTSEASON),
+    ("nippons", FOLDER_POSTSEASON),
+    ("allstar", FOLDER_ALLSTAR),
+]
+
+
+def schedule_folder_map(date: str | None = None, league: str | None = None) -> dict:
+    """その日のオープン戦・CS・日本シリーズ・オールスターの日程ページから {試合ID: 種別フォルダ} を作る（1軍のみ）。
+    ネットワークを使う（1日あたり4ページ）。取得できないページは空扱い。"""
+    if (league or _current_league) != "ichi":
+        return {}
+    date = date or TARGET_DATE
+    out: dict = {}
+    for slug, folder in SPECIAL_SCHEDULES:
+        for gid in _game_ids_from_schedule_url(f"{BASE_URL}/schedule/first/{slug}?date={date}"):
+            out[str(gid)] = folder
+    return out
+
+
+def game_folder_map(df_info, default_folder: str, overrides: dict | None = None) -> dict:
+    """試合基本情報のDataFrame → {試合ID: 振り分け先フォルダ}。overrides（日程ページ由来）があれば最優先。"""
+    if df_info is None or df_info.empty or "試合ID" not in df_info.columns:
+        return {}
+    overrides = overrides or {}
+    out = {}
+    for _, r in df_info.iterrows():
+        gid = str(r["試合ID"])
+        out[gid] = overrides.get(gid) or classify_game_folder(
+            r.get("ホームチーム"), r.get("アウェイチーム"), r.get("試合情報"), default_folder)
+    return out
+
+
+def foreign_game_ids(df_info, folder: str, overrides: dict | None = None) -> dict:
+    """このフォルダに属さない試合 → {試合ID: 本来のフォルダ}。"""
+    return {g: f for g, f in game_folder_map(df_info, folder, overrides).items() if f != folder}
+
+
+def known_game_folders(date: str | None = None, league: str | None = None) -> dict:
+    """各フォルダに保存済みのall_games_{date}.xlsxから {試合ID: 種別フォルダ} を集める。
+    投球データ取得（pitchステップ）が、どの試合をどのフォルダへ保存するかを決めるのに使う。
+    フォルダの置き場所ではなく試合の中身で判定する（旧仕様で公式戦フォルダに混ざった分も正しく分類する）。"""
+    date = date or TARGET_DATE
+    out: dict = {}
+    for folder in all_folders(league):
+        p = os.path.join(raw_dir_for_folder(folder, date, league), f"all_games_{date}.xlsx")
+        if not os.path.exists(p):
+            continue
+        try:
+            info = pd.read_excel(p, sheet_name="試合基本情報")
+        except Exception:
+            continue
+        out.update(game_folder_map(info, folder))
+    return out
+
+
+def other_folders_have_raw(date: str | None = None) -> bool:
+    date = date or TARGET_DATE
+    return any(os.path.exists(os.path.join(raw_dir_for_folder(f, date), f"all_games_{date}.xlsx"))
+               for f in NON_REGULAR_FOLDERS)
+
+
+def drop_game_ids(df, ids: set):
+    if df is None or df.empty or not ids or "試合ID" not in df.columns:
+        return df
+    return df[~df["試合ID"].astype(str).isin(ids)].reset_index(drop=True)
+
+
+from contextlib import contextmanager
+
+
+@contextmanager
+def use_folder(folder: str):
+    """一時的に、保存先（RAW・datamart・json）を指定の試合種別フォルダへ切り替える。抜けると元に戻す。"""
+    lg, gt, dt = _current_league, _current_game_type, TARGET_DATE
+    set_league_dirs(lg, dt, folder)
+    try:
+        yield
+    finally:
+        set_league_dirs(lg, dt, gt)
+
+
+def remove_stale_date_outputs(date: str) -> None:
+    """この試合種別のフォルダにその日の試合が1つも無いと分かったとき、過去の実行で作られた日別出力
+    （games/datamart/{date}.xlsx と games/json/{date}.json）を消し、index.jsonを作り直す。
+    残っているとシーズン集計・ダッシュボードに別種別の試合が入り続けるため。RAWは消さない。"""
+    removed = []
+    for p in (os.path.join(GAMES_DM_DIR, f"{date}.xlsx"), os.path.join(GAMES_JSON_DIR, f"{date}.json")):
+        if os.path.exists(p):
+            os.remove(p)
+            removed.append(p)
+    if removed:
+        files = sorted(f for f in os.listdir(GAMES_JSON_DIR)
+                       if f != "index.json" and f.endswith(".json") and not f.startswith("season_"))
+        with open(os.path.join(GAMES_JSON_DIR, "index.json"), "w", encoding="utf-8") as f:
+            json.dump({"files": files}, f, ensure_ascii=False, indent=2)
+        print(f"  [除外] {date} は{_current_game_type}の試合なし → 既存の日別出力を削除: "
+              f"{', '.join(os.path.basename(p) for p in removed)}")
 
 # ランナー状態辞書
 RUNNER_DICT = {
@@ -319,9 +490,9 @@ def get_side(game_id, team, home_team_map: dict) -> str:
         return "home"
     return "away"
 
-def get_game_ids() -> list[str]:
-    print(f"[{TARGET_DATE}] のスケジュールから試合IDを抽出中...")
-    soup = get_soup(SCHEDULE_URL)
+def _game_ids_from_schedule_url(url: str) -> list:
+    """日程ページ1枚から、その日の試合IDを取り出す。"""
+    soup = get_soup(url)
     if not soup: return []
     gm_card = soup.select_one("#gm_card")
     if not gm_card: return []
@@ -330,6 +501,14 @@ def get_game_ids() -> list[str]:
         m = re.search(r'/npb/game/(\d+)/', a["href"])
         if m: game_ids.append(m.group(1))
     return list(dict.fromkeys(game_ids))
+
+
+def get_game_ids() -> list[str]:
+    print(f"[{TARGET_DATE}] のスケジュールから試合IDを抽出中...")
+    ids: list = []
+    for url in SCHEDULE_URLS:
+        ids.extend(_game_ids_from_schedule_url(url))
+    return list(dict.fromkeys(ids))
 
 # %%
 # ==================================================
@@ -571,7 +750,8 @@ def scrape_game_data(game_id: str) -> dict | None:
 
 
 def run_game_scraper() -> str:
-    """試合データを取得して all_games_{TARGET_DATE}.xlsx に保存。パスを返す。"""
+    """試合データを取得し、試合種別ごとのフォルダの all_games_{TARGET_DATE}.xlsx に保存する。
+    現在のフォルダ（通常は公式戦）のパスを返す（そのフォルダに試合が無ければ空文字）。"""
     game_ids = get_game_ids()
     if not game_ids:
         print(f"[{TARGET_DATE}] の試合は見つかりませんでした。")
@@ -580,25 +760,51 @@ def run_game_scraper() -> str:
     print(f"合計 {len(game_ids)} 試合のIDを取得しました: {game_ids}")
     print("-" * 40)
 
-    all_data = {sheet: pd.DataFrame() for sheet in
-                ["試合基本情報", "スコアボード", "スコアプレー詳細", "スタメン", "打撃成績", "投手成績"]}
+    sheets = ["試合基本情報", "スコアボード", "スコアプレー詳細", "スタメン", "打撃成績", "投手成績"]
+    default_folder = _current_game_type
+    by_folder: dict = {}
+    # 公式戦の取得（すべて=all）のときは、オープン戦・CS・日本シリーズ・オールスターの日程ページに載っている試合を
+    # その種別へ振り分ける（Yahoo!自身の分類）。--game-type で種別を指定した取得では不要。
+    sched = schedule_folder_map() if is_regular_folder(default_folder) else {}
 
     for gid in game_ids:
         single = scrape_game_data(gid)
         if single:
+            info = single.get("試合基本情報")
+            folder = default_folder
+            via = ""
+            if str(gid) in sched:
+                folder, via = sched[str(gid)], "（Yahoo!の日程ページの分類）"
+            elif info is not None and not info.empty:
+                r = info.iloc[0]
+                folder = classify_game_folder(r.get("ホームチーム"), r.get("アウェイチーム"),
+                                              r.get("試合情報"), default_folder)
+                via = "（チーム名/試合情報からの判定）"
+            if folder != default_folder:
+                print(f"  [振分] {gid}: {folder}フォルダへ保存 {via}")
+            bucket = by_folder.setdefault(folder, {sh: pd.DataFrame() for sh in sheets})
             for sheet_name, df in single.items():
-                all_data[sheet_name] = pd.concat([all_data[sheet_name], df], ignore_index=True)
+                bucket[sheet_name] = pd.concat([bucket.get(sheet_name, pd.DataFrame()), df], ignore_index=True)
         time.sleep(2)
 
-    make_output_dir()
-    output_path = os.path.join(RAW_DIR, f"all_games_{TARGET_DATE}.xlsx")
-    with pd.ExcelWriter(output_path, engine="openpyxl") as writer:
-        for sheet_name, df in all_data.items():
-            if not df.empty:
-                df.to_excel(writer, sheet_name=sheet_name, index=False)
+    written: dict = {}
+    for folder, data in by_folder.items():
+        if data["試合基本情報"].empty:
+            continue
+        with use_folder(folder):
+            make_output_dir()
+            output_path = os.path.join(RAW_DIR, f"all_games_{TARGET_DATE}.xlsx")
+            with pd.ExcelWriter(output_path, engine="openpyxl") as writer:
+                for sheet_name, df in data.items():
+                    if not df.empty:
+                        df.to_excel(writer, sheet_name=sheet_name, index=False)
+            written[folder] = output_path
+            print(f"完了[{folder}]: '{output_path}'")
 
-    print(f"完了: '{output_path}'")
-    return output_path
+    if default_folder not in written:
+        print(f"[{TARGET_DATE}] {default_folder}の試合はありませんでした。")
+        return ""
+    return written[default_folder]
 
 
 # ファーム用の関数は league 切り替えで統合済み
@@ -761,29 +967,54 @@ def scrape_all_pitches_of_game(game_id: str) -> list[dict]:
 
 def run_pitch_scraper(target_game_ids: list[str] | None = None) -> str:
     """
-    投球データを取得して daily_pitch_data_{TARGET_DATE}.xlsx に保存。
+    投球データを取得し、試合種別ごとのフォルダの daily_pitch_data_{TARGET_DATE}.xlsx に保存する。
+    現在のフォルダ（通常は公式戦）のパスを返す。
+
+    どの試合をどのフォルダへ入れるかは、保存済みの all_games（試合基本情報）の中身で決める
+    （先に games ステップを実行しておくこと）。all_games が無い試合は現在のフォルダ扱い。
 
     Args:
         target_game_ids: 取得対象の試合IDリスト。
                          None の場合はスケジュールから全試合を取得。
                          指定した場合は既存 xlsx にマージ（再取得モード）。
     """
-    output_path = os.path.join(RAW_DIR, f"daily_pitch_data_{TARGET_DATE}.xlsx")
-
+    default_folder = _current_game_type
     if target_game_ids:
-        # 再取得モード: 指定した試合IDのみ取得して既存データにマージ
-        game_ids   = target_game_ids
+        ids = list(target_game_ids)
         retry_mode = True
-        print(f"\n再取得モード: {len(game_ids)} 試合の投球データを再取得します。")
-        print(f"  対象試合ID: {game_ids}")
+        print(f"\n再取得モード: {len(ids)} 試合の投球データを再取得します。")
+        print(f"  対象試合ID: {ids}")
     else:
-        # 通常モード: スケジュールから全試合を取得
-        game_ids = get_game_ids()
-        if not game_ids:
+        ids = get_game_ids()
+        if not ids:
             print("試合が見つかりませんでした。")
             return ""
         retry_mode = False
-        print(f"本日（{TARGET_DATE}）の全 {len(game_ids)} 試合の投球データを取得します。")
+
+    known = known_game_folders()
+    sched = schedule_folder_map() if is_regular_folder(default_folder) else {}
+    groups: dict = {}
+    for g in ids:
+        groups.setdefault(known.get(str(g)) or sched.get(str(g)) or default_folder, []).append(g)
+    if len(groups) > 1 or default_folder not in groups:
+        print("  [振分] 試合種別ごとに保存します: " + ", ".join(f"{f}={len(v)}試合" for f, v in groups.items()))
+
+    result = ""
+    for folder, gids in groups.items():
+        if folder == default_folder:
+            p = _run_pitch_scraper_impl(gids, retry_mode)
+            result = p
+        else:
+            with use_folder(folder):
+                _run_pitch_scraper_impl(gids, retry_mode)
+    return result
+
+
+def _run_pitch_scraper_impl(game_ids: list[str], retry_mode: bool) -> str:
+    """現在のフォルダ（RAW_DIR）へ、指定の試合の投球データを取得して保存する。"""
+    output_path = os.path.join(RAW_DIR, f"daily_pitch_data_{TARGET_DATE}.xlsx")
+    if not retry_mode:
+        print(f"[{_current_game_type}] 本日（{TARGET_DATE}）の {len(game_ids)} 試合の投球データを取得します。")
         print("※完了まで長時間かかります。そのままお待ちください。")
 
     new_pitches = []
@@ -1643,9 +1874,27 @@ def run_datamart(
         if not df.empty and "試合ID" in df.columns:
             df["試合ID"] = df["試合ID"].astype(str)
 
+    # 別の試合種別（オールスター等）の試合が保存済みRAWに混ざっていても、このフォルダのデータマートには入れない
+    _foreign = foreign_game_ids(df_game_info, _current_game_type)
+    _ex = set(_foreign)
+    if _ex:
+        print(f"  [除外] {_current_game_type}以外の試合を除外します: "
+              + ", ".join(f"{g}→{f}" for g, f in sorted(_foreign.items())))
+        print("        （--migrate-non-regular --apply で、該当RAWを専用フォルダへ移動できます）")
+        df_game_info  = drop_game_ids(df_game_info,  _ex)
+        df_scoreboard = drop_game_ids(df_scoreboard, _ex)
+        df_batters    = drop_game_ids(df_batters,    _ex)
+        df_pitchers   = drop_game_ids(df_pitchers,   _ex)
+        df_stamen     = drop_game_ids(df_stamen,     _ex)
+        if df_game_info.empty:
+            print(f"  [{TARGET_DATE}] {_current_game_type}の試合が無いため、データマートは作成しません。")
+            remove_stale_date_outputs(TARGET_DATE)
+            return ""
+
     df_pitch = preprocess_pitch(pd.read_excel(path_pitch))
     if "試合ID" in df_pitch.columns:
         df_pitch["試合ID"] = df_pitch["試合ID"].astype(str)
+        df_pitch = drop_game_ids(df_pitch, _ex)
 
     home_team_map     = dict(zip(df_game_info["試合ID"], df_game_info["ホームチーム"]))
     last_pitch_per_ab = df_pitch.groupby("打席番号").last().reset_index()
@@ -3850,6 +4099,39 @@ def parse_args():
         help="ダッシュボードHTML埋め込み先テンプレート（例: game_dashboard_v111.html）",
     )
     parser.add_argument(
+        "--game-type",
+        default=None,
+        choices=["公式戦", "レギュラーシーズン", "ポストシーズン", "オープン戦"],
+        help=(
+            "取得する試合種別（省略時は公式戦）。試合は種別ごとのフォルダに分けて保存され、\n"
+            "選手カード・シーズン成績の対象は公式戦フォルダだけ。\n"
+            "  オープン戦 / ポストシーズン : そのYahoo!日程ページ（open / cs+nippons）を取得して専用フォルダへ保存（1軍のみ）\n"
+            "  ※オールスターは指定不要。公式戦の取得中に混ざった分（全セ vs 全パ）を自動で専用フォルダへ振り分ける"
+        ),
+    )
+    parser.add_argument(
+        "--check-schedules",
+        action="store_true",
+        help=(
+            "Yahoo!の日程ページ（すべて/リーグ戦/交流戦/オープン戦/CS/日本シリーズ/オールスター。2軍は farm 側）を\n"
+            "--date の日について取得し、構造・試合ID・「すべて」との重なりを表示する（何も保存しない）。\n"
+            "種別の振り分けが想定どおり動くかの確認用。例: --check-schedules --date 2026-03-04,2026-07-28"
+        ),
+    )
+    parser.add_argument(
+        "--migrate-non-regular",
+        action="store_true",
+        help=(
+            "公式戦フォルダのRAWに混ざっている別種別の試合（オールスター等）を専用フォルダへ移す。\n"
+            "--date と --1軍/--2軍 で対象を指定。既定は確認のみ（何も書き換えない）。"
+        ),
+    )
+    parser.add_argument(
+        "--apply",
+        action="store_true",
+        help="--migrate-non-regular で実際に移動する（付けなければ確認のみ）",
+    )
+    parser.add_argument(
         "--skip-llm-input",
         action="store_true",
         help=(
@@ -3957,9 +4239,166 @@ def _check_datamart_quality(datamart_path: str) -> None:
         print(f"\n[WARN] データ品質チェック中にエラー: {e}")
 
 
+def check_schedules(date: str, league: str = "ichi") -> None:
+    """Yahoo!の日程ページを種別ごとに取得し、構造と試合IDの重なりを表示する（--check-schedules）。
+    確認できること:
+      ・各ページが取得できるか / 試合一覧(#gm_card)があるか（構造が想定と違えばここで分かる）
+      ・「すべて(all)」の一覧に、オープン戦/CS/日本シリーズ/オールスターの試合が含まれるか
+      ・ページ内メニューに載っている実際のslug一覧（未確認のslugを見つけるため。2軍はここで確認する）
+    """
+    tag = "first" if league == "ichi" else "farm"
+    slugs = ["all", "league", "inter", "open", "cs", "nippons", "allstar"] if league == "ichi" else ["all", "official"]
+    label = "1軍" if league == "ichi" else "2軍"
+    print("\n" + "=" * 60)
+    print(f"日程ページの確認: {date}（{label}）")
+    print("=" * 60)
+    got: dict = {}
+    menu: set = set()
+    for slug in slugs:
+        url = f"{BASE_URL}/schedule/{tag}/{slug}?date={date}"
+        soup = get_soup(url)
+        if soup is None:
+            print(f"  {slug:9s} 取得失敗（404など）  {url}")
+            continue
+        for a in soup.find_all("a", href=True):
+            m = re.search(r"/npb/schedule/(first|farm)/([A-Za-z_]+)", a["href"])
+            if m:
+                menu.add(f"{m.group(1)}/{m.group(2)}")
+        card = soup.select_one("#gm_card")
+        if card is None:
+            print(f"  {slug:9s} 取得OK / #gm_card なし（その日に試合が無い、またはページ構造が違う）")
+            got[slug] = []
+            continue
+        ids = list(dict.fromkeys(
+            m.group(1) for a in card.find_all("a", href=True)
+            for m in [re.search(r"/npb/game/(\d+)/", a["href"])] if m))
+        got[slug] = ids
+        print(f"  {slug:9s} 取得OK / 試合{len(ids)}件 {ids[:6]}{' ...' if len(ids) > 6 else ''}")
+    if "all" in got:
+        all_ids = set(got["all"])
+        for slug in slugs:
+            if slug in ("all", "league", "inter") or slug not in got or not got[slug]:
+                continue
+            inter = all_ids & set(got[slug])
+            print(f"  → all に含まれる {slug} の試合: {len(inter)}/{len(got[slug])}"
+                  + ("（allは他の種別も含む）" if inter else "（allには含まれない）"))
+        if "league" in got and "inter" in got:
+            reg = set(got["league"]) | set(got["inter"])
+            extra = all_ids - reg
+            print(f"  → all のうち リーグ戦・交流戦 以外: {len(extra)}件 {sorted(extra)[:6]}")
+    if menu:
+        print(f"  ページ内メニューにあるslug: {', '.join(sorted(menu))}")
+
+
+def run_datamart_for_folder(folder: str) -> str:
+    """指定の試合種別フォルダにRAW（all_games + daily_pitch_data）があれば、そのフォルダでデータマート&JSONを作る。"""
+    with use_folder(folder):
+        pg = os.path.join(RAW_DIR, f"all_games_{TARGET_DATE}.xlsx")
+        pp = os.path.join(RAW_DIR, f"daily_pitch_data_{TARGET_DATE}.xlsx")
+        if not os.path.exists(pg):
+            return ""
+        print(f"\n--- [{folder}] データマート&JSON作成 ---")
+        if not os.path.exists(pp):
+            print(f"[WARN] [{folder}] daily_pitch_data が見つかりません。スキップします。")
+            return ""
+        path = run_datamart(pg, pp, None)
+        if path and os.path.exists(path):
+            run_dashboard(path, path_pitch=pp)
+        return path or ""
+
+
+def _write_sheets(path: str, sheets: dict) -> None:
+    with pd.ExcelWriter(path, engine="openpyxl") as writer:
+        for name, df in sheets.items():
+            if df is not None and not df.empty:
+                df.to_excel(writer, sheet_name=name, index=False)
+
+
+def _merge_by_game_id(existing: pd.DataFrame | None, new: pd.DataFrame, ids: set) -> pd.DataFrame:
+    """existing から ids の行を除いた上で new を足す（同じ試合の重複を作らない）。"""
+    if existing is None or existing.empty:
+        return new.reset_index(drop=True)
+    existing = existing.copy()
+    existing["試合ID"] = existing["試合ID"].astype(str)
+    return pd.concat([existing[~existing["試合ID"].isin(ids)], new], ignore_index=True)
+
+
+def migrate_non_regular_raw(date: str, apply: bool = False) -> None:
+    """公式戦フォルダのRAW（all_games / daily_pitch_data）に混ざっている別種別の試合
+    （オールスター・オープン戦・ポストシーズン）を、それぞれの専用フォルダへ移す。
+    apply=False は確認のみ（何も書き換えない）。移した後、公式戦側のRAWからはその試合を取り除く。
+    日別のデータマート/JSONは作り直しが必要（--steps datamart --date ... を実行する）。"""
+    src = _current_game_type
+    if not is_regular_folder(src):
+        return
+    p_games = os.path.join(RAW_DIR, f"all_games_{date}.xlsx")
+    p_pitch = os.path.join(RAW_DIR, f"daily_pitch_data_{date}.xlsx")
+    if not os.path.exists(p_games):
+        return
+    sheets = pd.read_excel(p_games, sheet_name=None)
+    for df in sheets.values():
+        if "試合ID" in df.columns:
+            df["試合ID"] = df["試合ID"].astype(str)
+    # 文言/チーム名だけでは見つからないオープン戦・CS・日本シリーズは、Yahoo!の日程ページ（種別ごとの一覧）と突き合わせる
+    fmap = foreign_game_ids(sheets.get("試合基本情報"), src, overrides=schedule_folder_map(date))
+    if not fmap:
+        return
+    league_label = "1軍" if _current_league == "ichi" else "2軍"
+    print(f"[{date}] {league_label}: 公式戦フォルダに混ざった{len(fmap)}試合を移動{'' if apply else '（確認のみ）'}: "
+          + ", ".join(f"{g}→{f}" for g, f in sorted(fmap.items())))
+    if not apply:
+        return
+
+    pitch = None
+    if os.path.exists(p_pitch):
+        pitch = pd.read_excel(p_pitch)
+        pitch["試合ID"] = pitch["試合ID"].astype(str)
+
+    by_folder: dict = {}
+    for g, f in fmap.items():
+        by_folder.setdefault(f, set()).add(g)
+
+    for folder, ids in by_folder.items():
+        with use_folder(folder):
+            make_output_dir()
+            dst_g = os.path.join(RAW_DIR, f"all_games_{date}.xlsx")
+            existing = pd.read_excel(dst_g, sheet_name=None) if os.path.exists(dst_g) else {}
+            merged = {}
+            for name, df in sheets.items():
+                if "試合ID" not in df.columns:
+                    continue
+                merged[name] = _merge_by_game_id(existing.get(name), df[df["試合ID"].isin(ids)], ids)
+            _write_sheets(dst_g, merged)
+            if pitch is not None:
+                dst_p = os.path.join(RAW_DIR, f"daily_pitch_data_{date}.xlsx")
+                ex_p = pd.read_excel(dst_p) if os.path.exists(dst_p) else None
+                _merge_by_game_id(ex_p, pitch[pitch["試合ID"].isin(ids)], ids).to_excel(
+                    dst_p, index=False, engine="openpyxl")
+            print(f"  → [{folder}] に保存: {dst_g}")
+
+    # 公式戦側のRAWから取り除く（残る試合が無ければファイルごと削除）
+    moved = set(fmap)
+    kept = {name: (df[~df["試合ID"].isin(moved)].reset_index(drop=True) if "試合ID" in df.columns else df)
+            for name, df in sheets.items()}
+    if kept["試合基本情報"].empty:
+        os.remove(p_games)
+        if os.path.exists(p_pitch):
+            os.remove(p_pitch)
+        print(f"  公式戦フォルダ: {date} は公式戦なし → RAWを削除しました")
+    else:
+        _write_sheets(p_games, kept)
+        if pitch is not None:
+            pitch[~pitch["試合ID"].isin(moved)].reset_index(drop=True).to_excel(p_pitch, index=False, engine="openpyxl")
+        print(f"  公式戦フォルダのRAWから{len(moved)}試合を取り除きました")
+    print(f"  ※ {date} の日別データマート/JSONは作り直してください: "
+          f"python run.py --{'1' if _current_league == 'ichi' else '2'}軍 --steps datamart --date {date} "
+          f"--skip-llm-input --skip-batter-llm-input")
+
+
 def run_steps(steps: list[str], target_game_ids: list[str] | None = None,
               league: str = "ichi", date: str | None = None,
-              skip_llm_input: bool = False, skip_batter_llm_input: bool = False):
+              skip_llm_input: bool = False, skip_batter_llm_input: bool = False,
+              game_type: str | None = None):
     """
     ステップ順:
       Step1: games     → raw/all_games_{date}.xlsx
@@ -3981,12 +4420,21 @@ def run_steps(steps: list[str], target_game_ids: list[str] | None = None,
     完了した後、--steps llm_input batter_llm_input を単独で1回実行してシーズンデータを最終的に揃えること。
     """
     _run_date = date if date else TARGET_DATE
-    set_league_dirs(league, _run_date)
+    # game_type: None/公式戦/レギュラーシーズン → そのリーグの公式戦フォルダ。それ以外は指定の種別フォルダ
+    #   （オープン戦・ポストシーズンは、そのYahoo!スケジュールを取得して専用フォルダへ保存する）
+    _gt = None if (game_type is None or game_type in REGULAR_FOLDER_ALIASES) else game_type
+    if league == "ni" and _gt in (FOLDER_PRESEASON, FOLDER_POSTSEASON):
+        # 2軍は専用スケジュールの取得に未対応（公式戦の取得中に混ざった分の振り分けだけ対応）
+        print(f"[SKIP] 2軍は「{_gt}」のスケジュール取得に未対応です（2軍は公式戦のみ）。")
+        return
+    set_league_dirs(league, _run_date, _gt)
     league_label = "1軍" if league == "ichi" else "2軍"
     type_label   = _current_game_type
 
     # FULL_ORDER（新しいステップ順）
     FULL_ORDER = ["games", "pitch", "highlights", "datamart", "llm_input", "batter_llm_input"]
+
+    explicit_steps = set(steps)
 
     # "all" → 全ステップ
     if "all" in steps:
@@ -4009,6 +4457,12 @@ def run_steps(steps: list[str], target_game_ids: list[str] | None = None,
     if "datamart" in steps and "batter_llm_input" not in steps:
         if not skip_batter_llm_input:
             steps.append("batter_llm_input")
+    # 公式戦以外のフォルダを直接指定して実行するとき、活躍選手選出（Gemini）と選手カード（シーズン集計）は
+    # 対象外（明示的に --steps で指定した場合だけ実行する）
+    if not is_regular_folder(_current_game_type):
+        for _s in ("highlights", "llm_input", "batter_llm_input"):
+            if _s not in explicit_steps and _s in steps:
+                steps.remove(_s)
     # 並び替え
     steps = [s for s in FULL_ORDER if s in set(steps)]
 
@@ -4070,6 +4524,10 @@ def run_steps(steps: list[str], target_game_ids: list[str] | None = None,
 
             if not path_games or not os.path.exists(path_games):
                 print(f"[WARN] all_games ファイルが見つかりません。datamartをスキップします。")
+                # 公式戦フォルダにその日の試合が無く、別種別（オールスター等）だけがある日:
+                # 過去に作られた公式戦側の日別出力が残っていれば消す
+                if is_regular_folder(_current_game_type) and other_folders_have_raw():
+                    remove_stale_date_outputs(TARGET_DATE)
             elif not path_pitch or not os.path.exists(path_pitch):
                 print(f"[WARN] daily_pitch_data ファイルが見つかりません。datamartをスキップします。")
             else:
@@ -4085,6 +4543,11 @@ def run_steps(steps: list[str], target_game_ids: list[str] | None = None,
                 if path and os.path.exists(path):
                     path_json = run_dashboard(path, path_pitch=path_pitch)
                     results["json"] = path_json
+
+            # 同じ日に別の試合種別（オールスター等）のRAWがあれば、それぞれの専用フォルダでもデータマート&JSONを作る
+            if is_regular_folder(_current_game_type):
+                for _f in NON_REGULAR_FOLDERS:
+                    run_datamart_for_folder(_f)
 
         elif step == "llm_input":
             try:
@@ -4228,6 +4691,24 @@ if __name__ == "__main__":
         print(f"[ERROR] --date の指定が正しくありません: {e}")
         _sys.exit(1)
 
+    # 日程ページの確認（保存なし）
+    if args.check_schedules:
+        for _date in _date_list:
+            for _lg in ([_league_flag] if _league_flag else ["ichi", "ni"]):
+                set_league_dirs(_lg, _date)
+                check_schedules(_date, _lg)
+        _sys.exit(0)
+
+    # 既存RAWの移行（公式戦フォルダに混ざった別種別の試合を専用フォルダへ）
+    if args.migrate_non_regular:
+        for _date in _date_list:
+            for _lg in ([_league_flag] if _league_flag else ["ichi", "ni"]):
+                set_league_dirs(_lg, _date)
+                migrate_non_regular_raw(_date, apply=args.apply)
+        if not args.apply:
+            print("\n（確認のみ。実際に移動するには --apply を付けて再実行してください）")
+        _sys.exit(0)
+
     # 複数日の場合はサマリー表示
     if len(_date_list) > 1:
         print("=" * 50)
@@ -4248,13 +4729,16 @@ if __name__ == "__main__":
             print("=" * 50)
             print()
             run_steps(_steps, target_game_ids=_target_game_ids, league="ichi", date=_date,
-                      skip_llm_input=args.skip_llm_input, skip_batter_llm_input=args.skip_batter_llm_input)
+                      skip_llm_input=args.skip_llm_input, skip_batter_llm_input=args.skip_batter_llm_input,
+                      game_type=args.game_type)
             print()
             run_steps(_steps, target_game_ids=_target_game_ids, league="ni",   date=_date,
-                      skip_llm_input=args.skip_llm_input, skip_batter_llm_input=args.skip_batter_llm_input)
+                      skip_llm_input=args.skip_llm_input, skip_batter_llm_input=args.skip_batter_llm_input,
+                      game_type=args.game_type)
         else:
             run_steps(_steps, target_game_ids=_target_game_ids, league=_league_flag, date=_date,
-                      skip_llm_input=args.skip_llm_input, skip_batter_llm_input=args.skip_batter_llm_input)
+                      skip_llm_input=args.skip_llm_input, skip_batter_llm_input=args.skip_batter_llm_input,
+                      game_type=args.game_type)
 
     if len(_date_list) > 1:
         print(f"\n{'=' * 50}")

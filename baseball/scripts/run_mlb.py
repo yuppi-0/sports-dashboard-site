@@ -316,106 +316,281 @@ def event_to_jp(e, bb_type="") -> str:
 # Section 5. Statcastデータ取得・前処理
 # ==================================================
 
+# ── 試合種別（公式戦／ポストシーズン／オープン戦／オールスター）の振り分け ──
+# Statcast/statsapiは、1日分に複数の試合種別が混在しうる。試合ごとの game_type で種別を判定し、
+# 種別ごとのフォルダに分けて保存・処理する。ダッシュボード・シーズン成績（選手カード）が読むのは
+# 公式戦フォルダだけなので、他の種別は集計にもダッシュボードにも入らない。
+#   data/MLB/{YYYY}年/公式戦/  ・ ポストシーズン/ ・ オープン戦/ ・ オールスター/
+#   （どのフォルダも同じ構成: raw/{日付}/、games/datamart/、games/json/）
+#
+# game_type: R=公式戦 / F,D,L,W=ポストシーズン(WC・DS・LCS・WS) / S,E,I=オープン戦(春季キャンプ・
+#            エキシビション・チーム内紅白戦) / A=オールスター
+# statsapi速報の旧キャッシュには game_type 列が無い → チームが NL/AL ならオールスター、それ以外は公式戦とみなす。
+# 上記以外のコード（想定外の種別）は捨てずに「その他」フォルダへ保存する（game_type列はそのまま残るので後から確認できる）。
+REGULAR_FOLDER = "公式戦"
+FOLDER_POSTSEASON = "ポストシーズン"
+FOLDER_PRESEASON = "オープン戦"
+FOLDER_ALLSTAR = "オールスター"
+FOLDER_OTHER = "その他"          # 上記のどれにも当てはまらないgame_type
+NON_REGULAR_FOLDERS = (FOLDER_POSTSEASON, FOLDER_PRESEASON, FOLDER_ALLSTAR, FOLDER_OTHER)
+ALL_FOLDERS = (REGULAR_FOLDER,) + NON_REGULAR_FOLDERS
+GAME_TYPE_FOLDER = {
+    "R": REGULAR_FOLDER,
+    "F": FOLDER_POSTSEASON, "D": FOLDER_POSTSEASON, "L": FOLDER_POSTSEASON, "W": FOLDER_POSTSEASON,
+    "S": FOLDER_PRESEASON, "E": FOLDER_PRESEASON, "I": FOLDER_PRESEASON,
+    "A": FOLDER_ALLSTAR,
+}
+ALLSTAR_TEAM_ABBRS = {"NL", "AL"}
+
+
+def categorize_rows(df: pd.DataFrame) -> list:
+    """各行の振り分け先フォルダ名を、行の並びどおりのリストで返す（想定外のgame_typeは「その他」）。"""
+    n = len(df)
+    gts = df["game_type"].tolist() if "game_type" in df.columns else [None] * n
+    homes = df["home_team"].tolist() if "home_team" in df.columns else [None] * n
+    aways = df["away_team"].tolist() if "away_team" in df.columns else [None] * n
+    out = []
+    for gt, h, a in zip(gts, homes, aways):
+        code = "" if (gt is None or (isinstance(gt, float) and math.isnan(gt)) or pd.isna(gt)) else str(gt).strip().upper()
+        if code:
+            out.append(GAME_TYPE_FOLDER.get(code, FOLDER_OTHER))
+        elif str(h).strip() in ALLSTAR_TEAM_ABBRS or str(a).strip() in ALLSTAR_TEAM_ABBRS:
+            out.append(FOLDER_ALLSTAR)
+        else:
+            out.append(REGULAR_FOLDER)
+    return out
+
+
+def split_by_folder(df: pd.DataFrame) -> dict:
+    """{フォルダ名: そのフォルダの行だけのDataFrame}。想定外のgame_typeの試合は「その他」に入れる。"""
+    if df is None or df.empty:
+        return {}
+    cats = pd.Series(categorize_rows(df), index=df.index, dtype="object")
+    other = df[cats == FOLDER_OTHER]
+    if not other.empty:
+        codes = sorted(set(str(x) for x in other["game_type"].tolist())) if "game_type" in other.columns else ["?"]
+        n = other["game_pk"].nunique() if "game_pk" in other.columns else "?"
+        print(f"  [INFO] 想定外のgame_type={codes}（{n}試合）→ 「{FOLDER_OTHER}」フォルダへ保存します")
+    out = {}
+    for folder in ALL_FOLDERS:
+        part = df[cats == folder]
+        if not part.empty:
+            out[folder] = part.reset_index(drop=True)
+    return out
+
+
+def raw_dir_for(date: str, folder: str) -> str:
+    """指定フォルダのRAWディレクトリ（現在のフォルダを切り替えずに参照するため）。"""
+    return os.path.join(BASE_DATA_DIR, f"{date[:4]}年", folder, "raw", date)
+
+
+def _raw_file(date: str, folder: str, kind: str) -> str:
+    return os.path.join(raw_dir_for(date, folder), f"{kind}_{date}.xlsx")
+
+
+def _save_raw(date: str, folder: str, df: pd.DataFrame, kind: str) -> None:
+    Path(raw_dir_for(date, folder)).mkdir(parents=True, exist_ok=True)
+    path = _raw_file(date, folder, kind)
+    df.to_excel(path, index=False, engine="openpyxl")
+    print(f"  保存: {folder}/{os.path.basename(path)} ({len(df)}行)")
+
+
+def load_cached_raw(date: str) -> dict:
+    """各フォルダのRAWキャッシュ（statcast優先→statsapi）を読み、{フォルダ: DataFrame} を返す。
+    旧仕様（公式戦フォルダに全種別が混在）のキャッシュも、中身の game_type で分けて扱う。
+    フォルダ自身のキャッシュを優先し、そのフォルダにキャッシュが無い種別だけ他フォルダの混在分で補う。"""
+    own: dict = {}
+    foreign: dict = {}
+    for folder in ALL_FOLDERS:
+        sc, sa = _raw_file(date, folder, "statcast"), _raw_file(date, folder, "statsapi")
+        path = sc if os.path.exists(sc) else (sa if os.path.exists(sa) else None)
+        if not path:
+            continue
+        note = "" if path == sc else " (statsapi速報版)"
+        print(f"  キャッシュ: {folder}/{os.path.basename(path)}{note}")
+        for f, part in split_by_folder(pd.read_excel(path, engine="openpyxl")).items():
+            if f == folder:
+                own[f] = part
+            else:
+                foreign.setdefault(f, []).append(part)
+    out = dict(own)
+    for f, parts in foreign.items():
+        if f not in out:
+            out[f] = pd.concat(parts, ignore_index=True)
+            print(f"  [INFO] {f}の試合が他フォルダのRAWに混在していました（--migrate-non-regular で専用フォルダへ移せます）")
+    return out
+
+
 def _maybe_upgrade_statsapi_cache(date: str) -> None:
     """
     statsapi速報版(statsapi_{date}.xlsx)が存在し翌日以降の場合、
-    pybaseball(Statcast)で完全版(statcast_{date}.xlsx)に差し替える。
+    pybaseball(Statcast)で完全版(statcast_{date}.xlsx)に差し替える（種別フォルダごと）。
     """
-    today  = datetime.date.today()
+    today = datetime.date.today()
     target = datetime.date.fromisoformat(date)
     if (today - target).days <= 1:
         return
-
-    statsapi_path = os.path.join(RAW_DIR, f"statsapi_{date}.xlsx")
-    statcast_path = os.path.join(RAW_DIR, f"statcast_{date}.xlsx")
-
-    if not os.path.exists(statsapi_path):
-        return  # statsapi速報版なし
-    if os.path.exists(statcast_path):
-        return  # すでにStatcast完全版あり
+    need = [f for f in ALL_FOLDERS
+            if os.path.exists(_raw_file(date, f, "statsapi")) and not os.path.exists(_raw_file(date, f, "statcast"))]
+    if not need:
+        return
 
     statcast_date = (target - datetime.timedelta(days=1)).isoformat()
     print(f"  自動差し替え中: statsapi速報 → Statcast ({statcast_date})")
     try:
-        df = statcast(start_dt=statcast_date, end_dt=statcast_date)
-        if df is not None and not df.empty:
-            df["game_date"] = date
-            df.to_excel(statcast_path, index=False, engine="openpyxl")
-            print(f"  ✓ Statcast差し替え完了: {len(df)}行")
+        df = _try_fetch_statcast(statcast_date, date)
+        if df is None or df.empty:
+            logger.warning("  Statcastにデータなし → statsapi版を継続使用")
+            return
+        parts = split_by_folder(df)
+        done = 0
+        for f in need:
+            if f in parts:
+                _save_raw(date, f, parts[f], "statcast")
+                done += 1
+        if done:
+            print(f"  ✓ Statcast差し替え完了: {done}フォルダ")
         else:
-            logger.warning("  データなし → statsapi版を継続使用")
+            logger.warning("  対象の試合がStatcastに無い → statsapi版を継続使用")
     except Exception as e:
         logger.warning(f"  取得失敗 → statsapi版を継続使用: {e}")
 
 
+def _remove_stale_outputs(date: str) -> None:
+    """現在のフォルダにその日の試合が無いと分かったとき、過去の実行で作られた日別出力を消して
+    index.jsonを更新する。（残っているとシーズン集計・ダッシュボードに別種別の試合が入り続ける。RAWは消さない）"""
+    removed = []
+    for p in (os.path.join(GAMES_DM_DIR, f"{date}.xlsx"), os.path.join(GAMES_JSON_DIR, f"{date}.json")):
+        if os.path.exists(p):
+            os.remove(p)
+            removed.append(os.path.basename(p))
+    if removed:
+        _update_index_json(GAMES_JSON_DIR)
+        print(f"  [除外] {date} はこのフォルダの試合なし → 既存の日別出力を削除: {', '.join(removed)}")
 
-def fetch_statcast(date: str) -> pd.DataFrame:
+
+def fetch_statcast(date: str, refetch: bool = False) -> dict:
     """
-    データ取得戦略（時差考慮・xlsx対応版）:
+    データ取得戦略（時差考慮・xlsx対応版）。戻り値は {フォルダ名: 生データDataFrame}（種別ごとに分割済み）。
 
-    ファイル命名規則:
+    ファイル命名規則（種別フォルダごと。raw/{date}/ に保存）:
       statcast_{date}.xlsx  : pybaseball(Statcast)完全版
       statsapi_{date}.xlsx  : statsapi速報版（当日/翌日）
 
     優先順位:
-      1. statcast_{date}.xlsx が存在 → 読み込む
-      2. statsapi_{date}.xlsx が存在 → 読み込む
-      3. pybaseball で date-1日 のStatcastを取得 → statcast_{date}.xlsx に保存
-      4. statsapi フォールバック → statsapi_{date}.xlsx に保存
+      1. 各フォルダのキャッシュ（statcast → statsapi）があれば読み込む
+      2. pybaseball で date-1日 のStatcastを取得 → 種別ごとに statcast_{date}.xlsx へ保存
+      3. statsapi フォールバック → 種別ごとに statsapi_{date}.xlsx へ保存
+         （オールスターはStatcast検索に出ないため、この経路で取得される）
     """
-    statcast_path = os.path.join(RAW_DIR, f"statcast_{date}.xlsx")
-    statsapi_path = os.path.join(RAW_DIR, f"statsapi_{date}.xlsx")
+    if refetch:
+        # キャッシュ（statsapi速報版・古いStatcast）を使わず、Statcastを取り直して上書き保存する。
+        # Statcastに無い日は、既存のキャッシュをそのまま使う（statsapiで上書きはしない）。
+        statcast_date = (datetime.date.fromisoformat(date) - datetime.timedelta(days=1)).isoformat()
+        print(f"  Statcast再取得: {statcast_date}")
+        sdf = _try_fetch_statcast(statcast_date, date)
+        if sdf is not None and not sdf.empty:
+            parts = split_by_folder(sdf)
+            for f, part in parts.items():
+                _save_raw(date, f, part, "statcast")
+            return parts
+        print("  [INFO] Statcastから取得できなかったため、既存のキャッシュを使います")
+        return load_cached_raw(date)
+
+    cached = load_cached_raw(date)
+    if cached:
+        return cached
+
     statcast_date = (
         datetime.date.fromisoformat(date) - datetime.timedelta(days=1)
     ).isoformat()
-
-    if os.path.exists(statcast_path):
-        print(f"  キャッシュ: {os.path.basename(statcast_path)}")
-        return pd.read_excel(statcast_path, engine="openpyxl")
-
-    if os.path.exists(statsapi_path):
-        print(f"  キャッシュ: {os.path.basename(statsapi_path)} (statsapi速報版)")
-        return pd.read_excel(statsapi_path, engine="openpyxl")
-
     print(f"  Statcast取得: {statcast_date}")
     sdf = _try_fetch_statcast(statcast_date, date)
     if sdf is not None and not sdf.empty:
-        Path(RAW_DIR).mkdir(parents=True, exist_ok=True)
-        sdf.to_excel(statcast_path, index=False, engine="openpyxl")
-        print(f"  保存: {os.path.basename(statcast_path)} ({len(sdf)}行)")
-        return sdf
+        parts = split_by_folder(sdf)
+        for f, part in parts.items():
+            _save_raw(date, f, part, "statcast")
+        return parts
 
     if not _STATSAPI_AVAILABLE:
         logger.warning("MLB-StatsAPI未インストール: pip install MLB-StatsAPI")
-        return pd.DataFrame()
+        return {}
 
     print(f"  statsapi速報取得: {date}")
     df = _fetch_statsapi(date)
     if df is not None and not df.empty:
         df["_statsapi_source"] = True
-        Path(RAW_DIR).mkdir(parents=True, exist_ok=True)
-        df.to_excel(statsapi_path, index=False, engine="openpyxl")
-        print(f"  保存: {os.path.basename(statsapi_path)} ({len(df)}行)")
-        return df
+        parts = split_by_folder(df)
+        for f, part in parts.items():
+            _save_raw(date, f, part, "statsapi")
+        return parts
 
     print(f"  [WARN] データ取得失敗: {date}")
-    return pd.DataFrame()
+    return {}
+
+
+# pybaseball.statcast() は Baseball Savant の検索を「game type = R|PO|S（公式戦・ポストシーズン・春季）」で
+# 固定して呼ぶため、オールスター（A）とエキシビション（E）は返ってこない。これらはSavantのCSV検索を
+# game typeを指定して直接呼んで補う（返る列は pybaseball と同じ）。
+SAVANT_EXTRA_GAME_TYPES = "A|E|"
+SAVANT_SEARCH_URL = (
+    "https://baseballsavant.mlb.com/statcast_search/csv?all=true&hfPT=&hfAB=&hfBBT=&hfPR=&hfZ=&stadium=&hfBBL="
+    "&hfNewZones=&hfGT={gt}&hfSea=&hfSit=&player_type=pitcher&hfOuts=&opponent=&pitcher_throws=&batter_stands=&hfSA="
+    "&game_date_gt={d}&game_date_lt={d}&team=&position=&hfRO=&home_road=&hfFlag=&metric_1=&hfInn=&min_pitches=0"
+    "&min_results=0&group_by=name&sort_col=pitches&player_event_sort=h_launch_speed&sort_order=desc&min_abs=0&type=details&"
+)
+
+
+def _fetch_savant_csv(day: str, game_types: str):
+    """Baseball SavantのCSV検索を、指定のgame type（例 "A|E|"）で1日分だけ直接呼ぶ。
+    データが無い/取得できない場合は None。"""
+    from urllib.parse import quote
+    url = SAVANT_SEARCH_URL.format(gt=quote(game_types, safe=""), d=day)
+    try:
+        print(f"  Savant直接取得: {day} (game_type={game_types})")
+        res = requests.get(url, headers={"User-Agent": "Mozilla/5.0"}, timeout=90)
+        if res.status_code != 200:
+            print(f"  [WARN] Savant応答 {res.status_code}")
+            return None
+        text = res.content.decode("utf-8-sig", errors="replace")
+        if not text.strip() or "game_pk" not in text.split("\n", 1)[0]:
+            print("  [INFO] Savant: データなし（CSVのヘッダー行が返らない）")
+            return None
+        df = pd.read_csv(io.StringIO(text), low_memory=False)
+        if df.empty:
+            print("  [INFO] Savant: データなし（0行）")
+            return None
+        types = sorted(set(str(x) for x in df.get("game_type", pd.Series(["?"])).dropna().unique()))
+        print(f"  Savant: {len(df)}投球 / {df['game_pk'].nunique()}試合 (game_type={types})")
+        return df
+    except Exception as e:
+        print(f"  [WARN] Savant直接取得失敗: {e}")
+        return None
+
 
 def _try_fetch_statcast(statcast_date: str, store_date: str):
-    """pybaseballでstatcast_dateを取得しgame_dateをstore_dateに書き換えて返す"""
+    """Statcastを取得し、game_dateをstore_dateに書き換えて返す。
+    pybaseball（公式戦・ポストシーズン・春季）に、Savant直接取得（オールスター・エキシビション）を足す。"""
+    frames = []
     try:
         print(f"  pybaseball: {statcast_date} 取得中...")
         df = statcast(start_dt=statcast_date, end_dt=statcast_date)
-        if df is None or df.empty:
-            print(f"  [WARN] データなし: {statcast_date}")
-            return None
-        df["game_date"] = store_date
-        print(f"  取得完了: {len(df)}投球")
-        return df
+        if df is not None and not df.empty:
+            frames.append(df)
+        else:
+            print(f"  [INFO] pybaseball: データなし（{statcast_date}。取得対象は公式戦・ポストシーズン・春季のみ）")
     except Exception as e:
         print(f"  [WARN] pybaseball取得失敗: {e}")
+    extra = _fetch_savant_csv(statcast_date, SAVANT_EXTRA_GAME_TYPES)
+    if extra is not None and not extra.empty:
+        frames.append(extra)
+    if not frames:
+        print(f"  [WARN] データなし: {statcast_date}")
         return None
-
+    out = pd.concat(frames, ignore_index=True) if len(frames) > 1 else frames[0]
+    out["game_date"] = store_date
+    print(f"  取得完了: {len(out)}投球")
+    return out
 
 
 # ── statsapi description → Statcast description マッピング ──────────
@@ -528,6 +703,8 @@ def _fetch_statsapi(date: str) -> pd.DataFrame:
                      game.get("home_name", ""))
         away_abbr  = teams_info.get("away", {}).get("abbreviation",
                      game.get("away_name", ""))
+        # 試合種別（R/A/S/F/D/L/W等）。種別ごとのフォルダへ振り分けるため、行に持たせる
+        gtype = str(gamedata.get("game", {}).get("type") or game.get("game_type") or "").strip().upper()
         home_score_final = int(game.get("home_score", 0) or 0)
         away_score_final = int(game.get("away_score", 0) or 0)
 
@@ -704,6 +881,7 @@ def _fetch_statsapi(date: str) -> pd.DataFrame:
                     # 基本情報
                     "game_pk":        game_pk,
                     "game_date":      date,
+                    "game_type":      gtype,
                     "home_team":      home_abbr,
                     "away_team":      away_abbr,
                     "inning":         inning,
@@ -3953,6 +4131,46 @@ def _parse_date_arg(date_str: str) -> list:
     return [date_str.strip()]
 
 
+def migrate_non_regular_raw(date: str, apply: bool = False) -> None:
+    """公式戦フォルダのRAW（statcast_/statsapi_{date}.xlsx）に混ざっている別種別の試合
+    （オールスター・オープン戦・ポストシーズン）を、それぞれの専用フォルダへ移す。
+    apply=False は確認のみ（何も書き換えない）。移した後、公式戦側のRAWからはその試合を取り除く
+    （残る試合が無ければファイルごと削除）。日別のデータマート/JSONは作り直しが必要。"""
+    moved_any = False
+    for kind in ("statcast", "statsapi"):
+        src = _raw_file(date, REGULAR_FOLDER, kind)
+        if not os.path.exists(src):
+            continue
+        df = pd.read_excel(src, engine="openpyxl")
+        parts = split_by_folder(df)
+        foreign = {f: p for f, p in parts.items() if f != REGULAR_FOLDER}
+        if not foreign:
+            continue
+        moved_any = True
+        desc = ", ".join(f"{f}={p['game_pk'].nunique()}試合" for f, p in foreign.items())
+        print(f"[{date}] {kind}: 公式戦フォルダに混ざった試合を移動{'' if apply else '（確認のみ）'}: {desc}")
+        if not apply:
+            continue
+        for f, part in foreign.items():
+            dst = _raw_file(date, f, kind)
+            if os.path.exists(dst):
+                ex = pd.read_excel(dst, engine="openpyxl")
+                if "game_pk" in ex.columns:
+                    ex = ex[~ex["game_pk"].isin(part["game_pk"].unique())]
+                part = pd.concat([ex, part], ignore_index=True)
+            _save_raw(date, f, part, kind)
+        keep = parts.get(REGULAR_FOLDER)
+        if keep is None or keep.empty:
+            os.remove(src)
+            print(f"  公式戦フォルダ: {kind}_{date}.xlsx は公式戦なし → 削除しました")
+        else:
+            keep.to_excel(src, index=False, engine="openpyxl")
+            print(f"  公式戦フォルダ: {kind}_{date}.xlsx から別種別の試合を取り除きました")
+    if moved_any and apply:
+        print(f"  ※ {date} の日別データマート/JSONは作り直してください: "
+              f"python run_mlb.py --steps datamart --date {date} --skip-llm-input --skip-batter-llm-input")
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="MLB Statcast データマート生成 v2",
@@ -3996,6 +4214,28 @@ def main():
         ),
     )
     parser.add_argument(
+        "--refetch",
+        action="store_true",
+        help=(
+            "RAWキャッシュ（statsapi速報版など）を使わず、Statcastを取り直して上書き保存する。\n"
+            "Statcastに無い日は既存のキャッシュをそのまま使う。オールスターも含めて取得する。\n"
+            "日付は日本時間基準（米国の7/14の試合は --date 2026-07-15）。例: --steps games --date 2026-07-15 --refetch"
+        ),
+    )
+    parser.add_argument(
+        "--migrate-non-regular",
+        action="store_true",
+        help=(
+            "公式戦フォルダのRAWに混ざっている別種別の試合（オールスター・オープン戦・ポストシーズン）を\n"
+            "専用フォルダへ移す。--date で対象の日付を指定。既定は確認のみ（何も書き換えない）。"
+        ),
+    )
+    parser.add_argument(
+        "--apply",
+        action="store_true",
+        help="--migrate-non-regular で実際に移動する（付けなければ確認のみ）",
+    )
+    parser.add_argument(
         "--skip-batter-llm-input",
         action="store_true",
         help=(
@@ -4023,6 +4263,15 @@ def main():
         date_list = _parse_date_arg(args.date)
     except ValueError as e:
         logger.error(f"--date の形式エラー: {e}"); return
+
+    # ── 既存RAWの移行（公式戦フォルダに混ざった別種別の試合を専用フォルダへ） ──
+    if args.migrate_non_regular:
+        for d in date_list:
+            set_dirs(d, args.game_type)
+            migrate_non_regular_raw(d, apply=args.apply)
+        if not args.apply:
+            print("\n（確認のみ。実際に移動するには --apply を付けて再実行してください）")
+        return
 
     # ── ステップ解析 ──
     raw_steps = [s.strip().lower() for s in args.steps]
@@ -4101,50 +4350,70 @@ def main():
             print(f"\n▶ {date}")
 
         set_dirs(date, args.game_type)
-        make_output_dirs()
 
         needs_raw = run_games or run_datamart or run_highlights
+        if not needs_raw:
+            make_output_dirs()
 
         # statsapi速報キャッシュ → Statcast自動差し替えチェック
         _maybe_upgrade_statsapi_cache(date)
 
-        # RAW読み込み / Statcast取得
-        df = pd.DataFrame()
+        # RAW読み込み / Statcast取得（試合種別ごとに分割される）
+        frames: dict = {}
         if needs_raw:
             print(f"\n--- RAWデータ取得 ---")
-            raw_df = fetch_statcast(date)
-            if raw_df.empty:
+            frames = fetch_statcast(date, refetch=args.refetch)
+            if not frames:
                 print(f"  [WARN] データなし → スキップ")
                 continue
-            df = preprocess(raw_df)
-            n_games = df["game_pk"].nunique()
-            print(f"  取得完了: {len(df)}投球 / {n_games}試合")
 
-        # ── Step games ──
-        if run_games:
-            print(f"\n--- {STEP_NAMES['games']} ---")
-            path = run_games_datamart(df, date,
-                                      prompts_path=args.prompts_path,
-                                      with_highlights=False)
-            if path:
-                results.setdefault(date, {})["datamart"] = path
-                print(f"  完了: {os.path.basename(path)}")
+            # 公式戦 → ポストシーズン → オープン戦 → オールスター の順に、それぞれのフォルダで処理する。
+            # 活躍選手選出（AI）は公式戦のみ。選手カード・シーズン成績は公式戦フォルダだけから作られる。
+            for folder in ALL_FOLDERS:
+                is_regular = (folder == REGULAR_FOLDER)
+                set_dirs(date, args.game_type if is_regular else folder)
+                raw_df = frames.get(folder)
+                if raw_df is None or raw_df.empty:
+                    if is_regular:
+                        # この日は公式戦なし（オールスター等だけ）。過去に作った公式戦側の日別出力が残っていれば消す
+                        _remove_stale_outputs(date)
+                    continue
+                make_output_dirs()   # データのあるフォルダだけ作る（試合の無い種別の空フォルダを作らない）
+                df = preprocess(raw_df)
+                n_games = df["game_pk"].nunique()
+                label_f = "" if is_regular else f"[{folder}] "
+                print(f"\n  {label_f}取得完了: {len(df)}投球 / {n_games}試合")
 
-        # ── Step highlights ──
-        if run_highlights:
-            print(f"\n--- {STEP_NAMES['highlights']} ---")
-            run_highlights_only(df, date, prompts_path=args.prompts_path)
-            print(f"  完了")
+                # ── Step games ──
+                if run_games:
+                    print(f"\n--- {label_f}{STEP_NAMES['games']} ---")
+                    path = run_games_datamart(df, date,
+                                              prompts_path=args.prompts_path,
+                                              with_highlights=False)
+                    if path and is_regular:
+                        results.setdefault(date, {})["datamart"] = path
+                    if path:
+                        print(f"  完了: {os.path.basename(path)}")
 
-        # ── Step datamart ──
-        if run_datamart:
-            print(f"\n--- {STEP_NAMES['datamart']} ---")
-            path = run_games_datamart(df, date,
-                                      prompts_path=args.prompts_path,
-                                      with_highlights=False)
-            if path:
-                results.setdefault(date, {})["datamart"] = path
-                print(f"  完了: {os.path.basename(path)}")
+                # ── Step highlights（公式戦のみ）──
+                if run_highlights and is_regular:
+                    print(f"\n--- {STEP_NAMES['highlights']} ---")
+                    run_highlights_only(df, date, prompts_path=args.prompts_path)
+                    print(f"  完了")
+
+                # ── Step datamart ──
+                if run_datamart:
+                    print(f"\n--- {label_f}{STEP_NAMES['datamart']} ---")
+                    path = run_games_datamart(df, date,
+                                              prompts_path=args.prompts_path,
+                                              with_highlights=False)
+                    if path and is_regular:
+                        results.setdefault(date, {})["datamart"] = path
+                    if path:
+                        print(f"  完了: {os.path.basename(path)}")
+
+            # 後続（LLM入力用xlsx・選手カード）は公式戦フォルダから作るので、保存先を公式戦に戻す
+            set_dirs(date, args.game_type)
 
     # ── LLM入力用xlsx生成 ──
     # games_json_dir はループ内の年・game_typeが変わらない限り日付共通のフォルダなので、
