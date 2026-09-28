@@ -1,0 +1,38 @@
+name: 容量チェック（一時用・確認したら削除してOK）
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check-size:
+    runs-on: ubuntu-latest
+    steps:
+      - name: サイト側リポジトリを取得（このリポジトリ自身）
+        uses: actions/checkout@v4
+
+      - name: データ側リポジトリを取得（非公開のsports-dashboard-data。data/配下に展開）
+        uses: actions/checkout@v4
+        with:
+          repository: yuppi-0/sports-dashboard-data
+          token: ${{ secrets.DATA_REPO_TOKEN }}
+          path: data
+
+      - name: 容量を表示
+        run: |
+          echo "=== サイト側 docs/ （GitHub Pagesで公開される部分。上限は1GB）==="
+          du -sh docs
+          echo
+          echo "--- docs/baseball/data の内訳（リーグ/年度/種別ごと。大きい順に下から）---"
+          du -h --max-depth=4 docs/baseball/data | sort -h | tail -40
+          echo
+          echo "=== データ側（非公開）のファイル合計（.gitを除く）==="
+          du -sh --exclude=.git data
+          echo
+          echo "--- data/baseball の内訳 ---"
+          du -h --max-depth=4 data/baseball | sort -h | tail -40
+          echo
+          echo "=== .git（履歴を含むリポジトリの実サイズ）==="
+          du -sh .git data/.git
