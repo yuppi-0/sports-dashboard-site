@@ -2963,6 +2963,21 @@ def _build_dashboard_data(datamart_path: str, pitch_locs: dict | None = None, cb
             "fb":    _iv(r.get("FB")),
         })
 
+    # 試合別打者被投手別成績 → 投手カードのvsBatter（「対戦打者成績」セクション用）。
+    # 打者カードのvsPitcherと同じ元データ（打者×試合×対戦投手）を、投手×試合の側から引き直しただけ
+    # （キーは試合ID×投手名。中身のキー名はvsPitcherと同一で、"p"（投手名）の代わりに"b"（打者名）を持つ）。
+    _VS_KEYS = (("pa", "打席"), ("ab", "打数"), ("h_", "安打"), ("2b", "二塁打"), ("3b", "三塁打"),
+                ("hr", "本塁打"), ("bb", "四球"), ("hbp", "死球"), ("k", "三振"), ("n", "球数"),
+                ("sw", "SW数"), ("ws", "空振り数"), ("z", "ゾーン内投球数"), ("oz", "ゾーン外投球数"),
+                ("zsw", "ゾーン内SW数"), ("ozsw", "ゾーン外SW数"), ("zws", "ゾーン内空振り数"),
+                ("gb", "GB"), ("ld", "LD"), ("fb", "FB"))
+    pit_vs_batter_idx = defaultdict(list)
+    for r in sheets.get("試合別打者被投手別成績", []):
+        e = {"b": r.get("選手名", "")}
+        for k_en, k_jp in _VS_KEYS:
+            e[k_en] = _iv(r.get(k_jp))
+        pit_vs_batter_idx[(str(r.get("試合ID", "")), r.get("投手名", ""))].append(e)
+
     # 試合別打者被投手別成績 → 打者カードのvsPitcher（対戦投手別成績セクション用）
     bat_vs_pitcher_idx = defaultdict(list)
     for r in sheets.get("試合別打者被投手別成績", []):
@@ -3095,6 +3110,7 @@ def _build_dashboard_data(datamart_path: str, pitch_locs: dict | None = None, cb
                 mix_lr_idx[(game_id, name, "左")], key=lambda r: -_iv(r.get("投球数")))],
             "pitStatVsR": _lr_stat(pit_lr_idx.get((game_id, name, "右"))),
             "pitStatVsL": _lr_stat(pit_lr_idx.get((game_id, name, "左"))),
+            "vsBatter":  pit_vs_batter_idx.get((str(game_id), name), []),  # 対戦打者成績（試合×打者）
             "prevGame":  None,
             "tbf":       _iv(pit_row.get("対戦打者数")),
             "kpct":      _fv(pit_row.get("K%")),

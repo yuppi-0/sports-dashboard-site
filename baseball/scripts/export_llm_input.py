@@ -1650,6 +1650,8 @@ def export_llm_input_xlsx(games_json_dir: str, out_path: str, min_ip: float = 0.
                     "season_course_detail": season_course_detail,
                     "season_course_locs": season_course_locs,
                     "game_log": game_log_dicts,
+                    # 対戦打者別のシーズン通算成績（「対戦打者成績」セクション用）
+                    "vs_batters": build_vs_batter_breakdown(appearances),
                     # rankingsはこの後、全選手分揃ってから付与する
                 }
         except Exception as e:
@@ -1755,6 +1757,62 @@ def _slugify_name(name: str) -> str:
     """選手名からファイル名用のIDを作る（英数字以外はアンダースコアに置換）"""
     s = re.sub(r"[^\w]+", "_", name.strip().lower())
     return s.strip("_") or "unknown"
+
+
+# ==================================================
+# 対戦打者成績（投手カードの「対戦打者成績」セクション用）
+# ==================================================
+# 元データは run.py（NPB）・run_mlb.py（MLB）が日別JSONの各投手エントリに付与する"vsBatter"
+# （試合×対戦打者ごとの打席結果・スイング・打球種別の実数。打者カードのvsPitcherと同じ元データを
+# 投手側から引き直したもの）。ここでシーズン通算の打者別に集計し、投手から見た被打率・被出塁率・
+# 被長打率・被OPS・K%・BB%等を出す。batterIdは打者カード（batter_cards_numeric/{id}.json）と
+# 同じ_slugify_name()なので、フロント側でそのまま打者ページへのリンクに使える。
+
+def _agg_vs_batter(name: str, entries: list[dict]) -> dict:
+    def s(k):
+        return sum((e.get(k) or 0) for e in entries)
+    n, pa, ab, h = s("n"), s("pa"), s("ab"), s("h_")
+    d2, d3, hr = s("2b"), s("3b"), s("hr")
+    bb, hbp, k = s("bb"), s("hbp"), s("k")
+    sw, ws, z, oz, zsw, ozsw = s("sw"), s("ws"), s("z"), s("oz"), s("zsw"), s("ozsw")
+    gb, ld, fb = s("gb"), s("ld"), s("fb")
+    singles = max(h - d2 - d3 - hr, 0)
+    tb = singles + d2 * 2 + d3 * 3 + hr * 4
+    obp_den = ab + bb + hbp  # 犠飛は元データに無いため近似（打者側の_agg_pitch_groupと同じ扱い）
+    bip_known = gb + ld + fb
+    avg = round(h / ab, 3) if ab > 0 else None
+    slg = round(tb / ab, 3) if ab > 0 else None
+    obp = round((h + bb + hbp) / obp_den, 3) if obp_den > 0 else None
+    return {
+        "batter": name, "batterId": _slugify_name(name),
+        "pa": pa, "ab": ab, "h": h, "d2": d2, "d3": d3, "hr": hr, "bb": bb, "hbp": hbp, "k": k,
+        "tb": tb, "count": n,
+        "avg": avg, "obp": obp, "slg": slg,
+        "ops": round(slg + obp, 3) if slg is not None and obp is not None else None,
+        "k_pct": round(k / pa * 100, 1) if pa > 0 else None,
+        "bb_pct": round(bb / pa * 100, 1) if pa > 0 else None,
+        "hr_pct": round(hr / pa * 100, 1) if pa > 0 else None,
+        "whiff_pct": round(ws / sw * 100, 1) if sw > 0 else None,        # 空振り率（/スイング）
+        "chase_pct": round(ozsw / oz * 100, 1) if oz > 0 else None,      # ボール球スイング率
+        "gb_pct": round(gb / bip_known * 100, 1) if bip_known > 0 else None,
+    }
+
+
+def build_vs_batter_breakdown(appearances: list[dict]) -> list[dict]:
+    """appearances（登板ごとのplayerエントリ）から、対戦打者ごとのシーズン通算成績を作る。
+    打席数の多い順に並べる（表示側でソート・最小打席数フィルタを切り替える）。"""
+    by_batter: dict[str, list[dict]] = {}
+    for ap in appearances:
+        p = ap.get("player")
+        if not isinstance(p, dict):
+            continue
+        for e in (p.get("vsBatter") or []):
+            name = (e.get("b") or "").strip()
+            if name:
+                by_batter.setdefault(name, []).append(e)
+    result = [_agg_vs_batter(name, entries) for name, entries in by_batter.items()]
+    result.sort(key=lambda r: (-r["pa"], r["batter"]))
+    return result
 
 
 # ==================================================

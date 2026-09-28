@@ -3551,6 +3551,21 @@ def _build_game_json(dm_path: str, date: str,
             "pu":    _iv(r.get("Pull数")), "spn": _iv(r.get("Pull分母")),
         })
 
+    # 試合別打者被投手別成績 → 投手カードのvsBatter（「対戦打者成績」セクション用）。
+    # 打者カードのvsPitcherと同じ元データ（打者×試合×対戦投手）を、投手×試合の側から引き直しただけ
+    # （キーは試合ID×投手名。中身のキー名はvsPitcherと同一で、"p"（投手名）の代わりに"b"（打者名）を持つ）。
+    _VS_KEYS = (("pa", "打席"), ("ab", "打数"), ("h_", "安打"), ("2b", "二塁打"), ("3b", "三塁打"),
+                ("hr", "本塁打"), ("bb", "四球"), ("hbp", "死球"), ("k", "三振"), ("n", "球数"),
+                ("sw", "SW数"), ("ws", "空振り数"), ("z", "ゾーン内投球数"), ("oz", "ゾーン外投球数"),
+                ("zsw", "ゾーン内SW数"), ("ozsw", "ゾーン外SW数"), ("zws", "ゾーン内空振り数"),
+                ("gb", "GB"), ("ld", "LD"), ("fb", "FB"))
+    pit_vs_batter_idx = {}
+    for r in _rows("試合別打者被投手別成績"):
+        e = {"b": r.get("選手名", "")}
+        for k_en, k_jp in _VS_KEYS:
+            e[k_en] = _iv(r.get(k_jp))
+        pit_vs_batter_idx.setdefault((str(r.get("試合ID", "")), r.get("投手名", "")), []).append(e)
+
     # 試合別打者被投手別成績 → 打者カードのvsPitcher（対戦投手別成績セクション用）
     bat_vs_pitcher_idx: dict = {}
     for r in _rows("試合別打者被投手別成績"):
@@ -3707,6 +3722,7 @@ def _build_game_json(dm_path: str, date: str,
                 mix_lr_idx.get((gid, name, "左"), []), key=lambda x: -_iv(x.get("投球数")))],
             "pitStatVsR": _lr_stat(pit_lr_idx.get((gid, name, "右"))),
             "pitStatVsL": _lr_stat(pit_lr_idx.get((gid, name, "左"))),
+            "vsBatter":   pit_vs_batter_idx.get((gid, name), []),  # 対戦打者成績（試合×打者）
             "season": {},
         }
 
