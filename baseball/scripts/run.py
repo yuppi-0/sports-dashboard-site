@@ -218,13 +218,14 @@ TEAM_NAMES = {**ICHI_TEAM_NAMES, **NI_TEAM_NAMES}
 # ── 試合種別（公式戦／ポストシーズン／オープン戦／オールスター）の振り分け ──
 # 試合は「試合種別ごとのフォルダ」に分けて保存する。ダッシュボード・シーズン成績（選手カード）が
 # 読むのは公式戦フォルダだけなので、他の種別は集計にもダッシュボードにも入らない。
-#   1軍: レギュラーシーズン / ポストシーズン / オープン戦 / オールスター
-#   2軍: 公式戦           / ポストシーズン / オープン戦 / オールスター
+#   1軍: レギュラーシーズン / ポストシーズン / オープン戦 / オールスター / 練習試合
+#   2軍: 公式戦           / ポストシーズン / オープン戦 / オールスター / 練習試合
 # どのフォルダも同じ構成（raw/{日付}/、games/datamart/、games/json/）。
 FOLDER_POSTSEASON = "ポストシーズン"
 FOLDER_PRESEASON  = "オープン戦"
 FOLDER_ALLSTAR    = "オールスター"
-NON_REGULAR_FOLDERS = (FOLDER_POSTSEASON, FOLDER_PRESEASON, FOLDER_ALLSTAR)
+FOLDER_PRACTICE   = "練習試合"        # 春季キャンプ中の練習試合（Yahoo!の「すべて」一覧には載るが、専用の日程ページは無い）
+NON_REGULAR_FOLDERS = (FOLDER_POSTSEASON, FOLDER_PRESEASON, FOLDER_ALLSTAR, FOLDER_PRACTICE)
 REGULAR_FOLDER_ALIASES = {"レギュラーシーズン", "公式戦"}
 
 # 判定ルール（取得した試合ページの情報から）:
@@ -235,6 +236,7 @@ ALLSTAR_TEAM_NAMES = {"全セ", "全パ", "全セ・リーグ", "全パ・リー
 GAME_INFO_KEYWORDS = [
     ("オールスター",       FOLDER_ALLSTAR),
     ("オープン戦",         FOLDER_PRESEASON),
+    ("練習試合",           FOLDER_PRACTICE),
     ("クライマックス",     FOLDER_POSTSEASON),
     ("日本シリーズ",       FOLDER_POSTSEASON),
     ("ファーストステージ", FOLDER_POSTSEASON),
@@ -283,19 +285,57 @@ SPECIAL_SCHEDULES = [
     ("nippons", FOLDER_POSTSEASON),
     ("allstar", FOLDER_ALLSTAR),
 ]
+# 公式戦そのもの（リーグ戦＋交流戦）の日程ページ
+REGULAR_SCHEDULES = ["league", "inter"]
 
 
-def schedule_folder_map(date: str | None = None, league: str | None = None) -> dict:
-    """その日のオープン戦・CS・日本シリーズ・オールスターの日程ページから {試合ID: 種別フォルダ} を作る（1軍のみ）。
-    ネットワークを使う（1日あたり4ページ）。取得できないページは空扱い。"""
+def schedule_folder_map(date: str | None = None, league: str | None = None, game_ids=None) -> dict:
+    """その日の日程ページから {試合ID: 種別フォルダ} を作る（1軍のみ。ネットワークを使う）。
+      ・オープン戦 / CS・日本シリーズ / オールスター の各ページに載る試合 → その種別
+      ・game_ids（「すべて」の一覧に載った試合）のうち、上のどれにも、リーグ戦・交流戦にも載らない試合
+        → 練習試合（「すべて」には練習試合が載るが専用ページは無いので、差分で判定する）
+    リーグ戦・交流戦のページを1枚も取得できなかったときは練習試合の判定はしない（誤って公式戦を
+    練習試合にしないため）。その場合は警告を出す。"""
     if (league or _current_league) != "ichi":
         return {}
     date = date or TARGET_DATE
     out: dict = {}
     for slug, folder in SPECIAL_SCHEDULES:
-        for gid in _game_ids_from_schedule_url(f"{BASE_URL}/schedule/first/{slug}?date={date}"):
+        _, ids = _fetch_schedule_ids(f"{BASE_URL}/schedule/first/{slug}?date={date}")
+        for gid in ids:
             out[str(gid)] = folder
+    if game_ids:
+        reg_ids: set = set()
+        reg_ok = False
+        for slug in REGULAR_SCHEDULES:
+            ok, ids = _fetch_schedule_ids(f"{BASE_URL}/schedule/first/{slug}?date={date}")
+            reg_ok = reg_ok or ok
+            reg_ids.update(str(x) for x in ids)
+        if reg_ok:
+            for gid in game_ids:
+                gid = str(gid)
+                if gid not in out and gid not in reg_ids:
+                    out[gid] = FOLDER_PRACTICE
+        else:
+            print("  [WARN] リーグ戦・交流戦の日程ページを取得できなかったため、練習試合の判定をスキップします"
+                  "（公式戦フォルダに練習試合が混ざる可能性があります）")
     return out
+
+
+def resolve_game_folder(sched_folder, content_folder: str, default_folder: str) -> str:
+    """振り分け先の決定。優先順位:
+      1) 日程ページの特別種別（オープン戦・CS・日本シリーズ・オールスター）… Yahoo!自身の分類
+      2) 試合ページの内容（全セ/全パ、試合情報の文言）が既定と違う種別を示すとき
+      3) 日程ページから「公式戦のページに載らない」と判定された練習試合
+      4) 既定（いま取得しているフォルダ）
+    練習試合は「どのページにも載らなかった」という消去法の判定なので、他の手がかりより後にする。"""
+    if sched_folder and sched_folder != FOLDER_PRACTICE:
+        return sched_folder
+    if content_folder != default_folder:
+        return content_folder
+    if sched_folder == FOLDER_PRACTICE:
+        return FOLDER_PRACTICE
+    return default_folder
 
 
 def game_folder_map(df_info, default_folder: str, overrides: dict | None = None) -> dict:
@@ -306,8 +346,8 @@ def game_folder_map(df_info, default_folder: str, overrides: dict | None = None)
     out = {}
     for _, r in df_info.iterrows():
         gid = str(r["試合ID"])
-        out[gid] = overrides.get(gid) or classify_game_folder(
-            r.get("ホームチーム"), r.get("アウェイチーム"), r.get("試合情報"), default_folder)
+        content = classify_game_folder(r.get("ホームチーム"), r.get("アウェイチーム"), r.get("試合情報"), default_folder)
+        out[gid] = resolve_game_folder(overrides.get(gid), content, default_folder)
     return out
 
 
@@ -490,17 +530,62 @@ def get_side(game_id, team, home_team_map: dict) -> str:
         return "home"
     return "away"
 
-def _game_ids_from_schedule_url(url: str) -> list:
-    """日程ページ1枚から、その日の試合IDを取り出す。"""
+def _schedule_page_dates(soup) -> set:
+    """日程ページ内のリンク（前後の日・週・月）に含まれる date=YYYY-MM-DD を集める。
+    ページが実際にどの日付付近を表示しているかの手がかりになる。"""
+    out = set()
+    for a in soup.find_all("a", href=True):
+        for y, mo, d in re.findall(r"date=(\d{4})-(\d{2})-(\d{2})", a["href"]):
+            try:
+                out.add(datetime.date(int(y), int(mo), int(d)))
+            except ValueError:
+                pass
+    return out
+
+
+def schedule_page_shows_date(soup, requested: str, tolerance_days: int = 10):
+    """日程ページが、指定した日付付近を表示しているかを (一致, 最も近いリンク日付) で返す。
+    Yahoo!の日程ページは現在のシーズンしか表示できず、過去年の date= を指定すると
+    今シーズンの既定の日付（例: 2026-02-08）を表示してしまう。その場合は別シーズンの試合を
+    取り違えないよう「不一致」にする。リンクに日付が1つも無ければ判定できないので一致扱い。"""
+    dates = _schedule_page_dates(soup)
+    if not dates:
+        return True, None
+    try:
+        req = datetime.date.fromisoformat(requested)
+    except ValueError:
+        return True, None
+    nearest = min(dates, key=lambda x: abs((x - req).days))
+    return abs((nearest - req).days) <= tolerance_days, nearest
+
+
+def _fetch_schedule_ids(url: str) -> tuple:
+    """日程ページ1枚から (取得できたか, その日の試合IDのリスト) を返す。
+    取得できない、または指定日を表示していない（過去シーズンの日付など）場合は (False, [])。
+    試合が無い日（一覧が空）は (True, [])。"""
     soup = get_soup(url)
-    if not soup: return []
+    if not soup:
+        return False, []
+    m_date = re.search(r"[?&]date=(\d{4}-\d{2}-\d{2})", url)
+    if m_date:
+        ok_date, nearest = schedule_page_shows_date(soup, m_date.group(1))
+        if not ok_date:
+            print(f"  [WARN] 日程ページが指定日({m_date.group(1)})を表示していません（{nearest}付近を表示）。"
+                  f"Yahoo!の日程ページは現在のシーズンしか表示できないため、この日の試合は取得できません: {url}")
+            return False, []
     gm_card = soup.select_one("#gm_card")
-    if not gm_card: return []
+    if not gm_card:
+        return True, []
     game_ids = []
     for a in gm_card.find_all("a", href=True):
         m = re.search(r'/npb/game/(\d+)/', a["href"])
         if m: game_ids.append(m.group(1))
-    return list(dict.fromkeys(game_ids))
+    return True, list(dict.fromkeys(game_ids))
+
+
+def _game_ids_from_schedule_url(url: str) -> list:
+    """日程ページ1枚から、その日の試合IDを取り出す。指定日を表示していないページは空にする。"""
+    return _fetch_schedule_ids(url)[1]
 
 
 def get_game_ids() -> list[str]:
@@ -765,21 +850,27 @@ def run_game_scraper() -> str:
     by_folder: dict = {}
     # 公式戦の取得（すべて=all）のときは、オープン戦・CS・日本シリーズ・オールスターの日程ページに載っている試合を
     # その種別へ振り分ける（Yahoo!自身の分類）。--game-type で種別を指定した取得では不要。
-    sched = schedule_folder_map() if is_regular_folder(default_folder) else {}
+    sched = schedule_folder_map(game_ids=game_ids) if is_regular_folder(default_folder) else {}
 
     for gid in game_ids:
         single = scrape_game_data(gid)
         if single:
             info = single.get("試合基本情報")
-            folder = default_folder
-            via = ""
-            if str(gid) in sched:
-                folder, via = sched[str(gid)], "（Yahoo!の日程ページの分類）"
-            elif info is not None and not info.empty:
+            content = default_folder
+            if info is not None and not info.empty:
                 r = info.iloc[0]
-                folder = classify_game_folder(r.get("ホームチーム"), r.get("アウェイチーム"),
-                                              r.get("試合情報"), default_folder)
-                via = "（チーム名/試合情報からの判定）"
+                content = classify_game_folder(r.get("ホームチーム"), r.get("アウェイチーム"),
+                                               r.get("試合情報"), default_folder)
+            sf = sched.get(str(gid))
+            folder = resolve_game_folder(sf, content, default_folder)
+            via = ""
+            if folder != default_folder:
+                if sf == folder and sf != FOLDER_PRACTICE:
+                    via = "（Yahoo!の日程ページの分類）"
+                elif sf == folder:
+                    via = "（公式戦・特別種別の日程ページのどこにも載っていないため）"
+                else:
+                    via = "（チーム名/試合情報からの判定）"
             if folder != default_folder:
                 print(f"  [振分] {gid}: {folder}フォルダへ保存 {via}")
             bucket = by_folder.setdefault(folder, {sh: pd.DataFrame() for sh in sheets})
@@ -992,7 +1083,7 @@ def run_pitch_scraper(target_game_ids: list[str] | None = None) -> str:
         retry_mode = False
 
     known = known_game_folders()
-    sched = schedule_folder_map() if is_regular_folder(default_folder) else {}
+    sched = schedule_folder_map(game_ids=ids) if is_regular_folder(default_folder) else {}
     groups: dict = {}
     for g in ids:
         groups.setdefault(known.get(str(g)) or sched.get(str(g)) or default_folder, []).append(g)
@@ -4264,6 +4355,10 @@ def check_schedules(date: str, league: str = "ichi") -> None:
             m = re.search(r"/npb/schedule/(first|farm)/([A-Za-z_]+)", a["href"])
             if m:
                 menu.add(f"{m.group(1)}/{m.group(2)}")
+        ok_date, nearest = schedule_page_shows_date(soup, date)
+        if not ok_date:
+            print(f"  {slug:9s} ⚠ 指定日{date}ではなく {nearest} 付近を表示（過去シーズンの日付は表示されない）。試合は取得しません")
+            continue
         card = soup.select_one("#gm_card")
         if card is None:
             print(f"  {slug:9s} 取得OK / #gm_card なし（その日に試合が無い、またはページ構造が違う）")
@@ -4282,10 +4377,16 @@ def check_schedules(date: str, league: str = "ichi") -> None:
             inter = all_ids & set(got[slug])
             print(f"  → all に含まれる {slug} の試合: {len(inter)}/{len(got[slug])}"
                   + ("（allは他の種別も含む）" if inter else "（allには含まれない）"))
-        if "league" in got and "inter" in got:
-            reg = set(got["league"]) | set(got["inter"])
+        if "league" in got or "inter" in got:
+            reg = set(got.get("league", [])) | set(got.get("inter", []))
             extra = all_ids - reg
             print(f"  → all のうち リーグ戦・交流戦 以外: {len(extra)}件 {sorted(extra)[:6]}")
+            special = set()
+            for sl, _f in SPECIAL_SCHEDULES:
+                special |= set(got.get(sl, []))
+            practice = all_ids - reg - special
+            print(f"  → うち、オープン戦/CS/日本シリーズ/オールスターの各ページにも載らない試合（練習試合として扱う）: "
+                  f"{len(practice)}件 {sorted(practice)[:6]}")
     if menu:
         print(f"  ページ内メニューにあるslug: {', '.join(sorted(menu))}")
 
@@ -4340,7 +4441,9 @@ def migrate_non_regular_raw(date: str, apply: bool = False) -> None:
         if "試合ID" in df.columns:
             df["試合ID"] = df["試合ID"].astype(str)
     # 文言/チーム名だけでは見つからないオープン戦・CS・日本シリーズは、Yahoo!の日程ページ（種別ごとの一覧）と突き合わせる
-    fmap = foreign_game_ids(sheets.get("試合基本情報"), src, overrides=schedule_folder_map(date))
+    _info = sheets.get("試合基本情報")
+    _ids = list(_info["試合ID"].astype(str)) if _info is not None and "試合ID" in _info.columns else []
+    fmap = foreign_game_ids(_info, src, overrides=schedule_folder_map(date, game_ids=_ids))
     if not fmap:
         return
     league_label = "1軍" if _current_league == "ichi" else "2軍"
