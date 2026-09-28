@@ -86,6 +86,9 @@
     font-size:12px; font-weight:700; padding:6px 12px; border-radius:8px; cursor:pointer; max-width:100%;
     -webkit-tap-highlight-color:transparent; text-align:left; }
   .nav-back-btn[hidden]{ display:none; }
+  /* 表の中の選手名リンク（打者→対戦投手など、別モードの選手ページへ飛ぶもの） */
+  .kst-key-cell .xlink, a.xlink{ color:var(--blue-text); font-weight:700; text-decoration:none; cursor:pointer; }
+  .kst-key-cell .xlink::after, a.xlink::after{ content:" ›"; opacity:0.6; }
 
   /* ── スマホ用ヘッダー（投手・打者共通） ──
      1行目：投手/打者（画面幅いっぱいの大きな切替＝主操作。見出しの代わりになるのでh1は隠す）
@@ -1406,6 +1409,37 @@ function stripNonPitchTypes(node){
     }
   }
   return node;
+}
+
+// 別モードの選手一覧(index.json)から「名前→id」を引くための照合キー。表記ゆれ（空白・大小文字・
+// "Last, First" 形式）を吸収する。Pythonの_slugify_name()に頼らず、一覧に実在する名前と突き合わせる。
+function nameKey(n){
+  let t = String(n || "").trim();
+  if(t.includes(",")){ const [a, ...b] = t.split(","); t = b.join(",").trim() + " " + a.trim(); }
+  return t.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, "");
+}
+// 投手一覧（1軍・2軍）を読み、nameKey → {id, name, farm} のMapを返す（リーグ×優先レベルごとに1回だけ取得）。
+// preferFarm=true（打者が2軍表示中）なら2軍の一覧を優先し、idには投手側の規約どおり "farm:" を付ける。
+const pitcherLookupCache = {};
+function getPitcherLookup(league, preferFarm){
+  const paths = SHARED_PATHS.pitcher[league];
+  if(!paths) return Promise.resolve(null);
+  const key = `${league}|${preferFarm ? 1 : 0}`;
+  if(!pitcherLookupCache[key]){
+    const load = (base) => base
+      ? fetch(bust(`${base}/index.json`), { cache: "no-store" }).then(r => r.ok ? r.json() : null).then(j => (j && j.players) || []).catch(() => [])
+      : Promise.resolve([]);
+    pitcherLookupCache[key] = Promise.all([load(paths.numeric), load(paths.farmNumeric)]).then(([first, farm]) => {
+      const map = new Map();
+      const add = (list, isFarm) => list.forEach(p => {
+        const k = nameKey(p.name);
+        if(k && !map.has(k)) map.set(k, { id: isFarm ? `farm:${p.id}` : p.id, name: p.name, farm: isFarm });
+      });
+      if(preferFarm){ add(farm, true); add(first, false); } else { add(first, false); add(farm, true); }
+      return map;
+    });
+  }
+  return pitcherLookupCache[key];
 }
 
 // スマホ用レイアウトの判定はCSSの @media (max-width:720px), (orientation: landscape) and
@@ -4749,7 +4783,7 @@ function renderVsPitcherSection(years, currentYear){
         </select>
       </div>
     </div>
-    <div class="vp-note">${VS_PITCHER_MIN_PA}打席以上対戦した投手のみが対象です。サンプルが少ない投手は参考値程度に見てください。</div>
+    <div class="vp-note">${VS_PITCHER_MIN_PA}打席以上対戦した投手のみが対象です。サンプルが少ない投手は参考値程度に見てください。投手名をタップすると、その投手のページへ移動できます。</div>
     <div data-vp-table></div>
   `;
 }
@@ -4764,13 +4798,20 @@ function wireVsPitcherSection(scope, seasonsMap, years, currentYear){
   // デフォルトはOPS降順（要望）。集計切り替え・年度切り替え時もこのデフォルトに戻す。
   const DEFAULT_SORT = { key: "ops", dir: "desc" };
   let sortState = { ...DEFAULT_SORT };
+  let pitcherLookup = null;   // Map | null（取得できるまで／取得失敗時はリンク無し）
   function redraw(){
     const isCareer = currentScope() === "career";
     if(yearRow) yearRow.style.display = isCareer ? "none" : "";
     const raw = isCareer ? vsPitcherMerged(seasonsMap, years) : ((seasonsMap[yearSel?.value] || {}).vsPitcher || []);
     const qualified = raw.filter(e => (e.pa || 0) >= VS_PITCHER_MIN_PA);
+    // 投手一覧に実在する投手だけ、名前を投手ページへのリンクにする（一覧を読み込むまでは通常の文字）
+    const linkCell = (s) => {
+      const hit = pitcherLookup && pitcherLookup.get(nameKey(s.pitcher));
+      if(!hit) return escapeHtml(s.pitcher ?? "-");
+      return `<a class="xlink" href="#pitcher/${currentLeague}/${encodeURIComponent(hit.id)}${hit.farm ? "/farm" : ""}" data-pitcher-id="${escapeHtml(hit.id)}" data-pitcher-name="${escapeHtml(hit.name)}" data-pitcher-farm="${hit.farm ? 1 : 0}">${escapeHtml(s.pitcher)}</a>`;
+    };
     table.innerHTML = renderKeyedStatTable(qualified, "投手", "pitcher", vpMetricsFor(),
-      `対象データがありません（${VS_PITCHER_MIN_PA}打席以上の対戦がまだありません）。`, undefined, true, sortState);
+      `対象データがありません（${VS_PITCHER_MIN_PA}打席以上の対戦がまだありません）。`, undefined, true, sortState, linkCell);
   }
   scopeGroup.addEventListener("click", (e) => {
     const btn = e.target.closest(".pill-btn");
@@ -4782,7 +4823,17 @@ function wireVsPitcherSection(scope, seasonsMap, years, currentYear){
   });
   if(yearSel) yearSel.addEventListener("change", () => { sortState = { ...DEFAULT_SORT }; redraw(); });
   wireSortHeaders(table, (key) => { sortState = cycleSortState(sortState, key); redraw(); });
+  table.addEventListener("click", (e) => {
+    const a = e.target.closest("a.xlink[data-pitcher-id]");
+    if(!a) return;
+    e.preventDefault();
+    cardsShell.goto("pitcher", { league: currentLeague, id: a.dataset.pitcherId, name: a.dataset.pitcherName, farm: a.dataset.pitcherFarm === "1" });
+  });
   redraw();
+  const leagueAtWire = currentLeague;
+  getPitcherLookup(leagueAtWire, currentFarmLevel === "ni").then(map => {
+    if(map && scope.isConnected && leagueAtWire === currentLeague){ pitcherLookup = map; redraw(); }
+  });
 }
 
 function renderCourseZoneSection(seasonsMap, years, currentYear){
@@ -5088,7 +5139,7 @@ function magnitudeBg(value, allValues, hueRgb, higherIsBetter){
 // sortState={key,dir}|null: キーは"__key"(keyLabel列)/"__group"(グループ列)/"pa"/"count"/各指標キー。
 // ソートを適用すると、グループ列（カウント区分等）のrowspan結合は隣接する行同士でのみ有効になる
 // （並び替えで同じグループの行が離れた場合は、各行に単独でラベルが表示される＝壊れずに縮退する）。
-function renderKeyedStatTable(list, keyLabel, keyField, metrics, emptyNote, groupSpec, showCount, sortState){
+function renderKeyedStatTable(list, keyLabel, keyField, metrics, emptyNote, groupSpec, showCount, sortState, keyCellFn){
   if(!list || list.length === 0){
     return `<div class="defense-note">${escapeHtml(emptyNote || "この条件に該当するデータがありません。")}</div>`;
   }
@@ -5125,7 +5176,7 @@ function renderKeyedStatTable(list, keyLabel, keyField, metrics, emptyNote, grou
       return `<td${bg ? ` style="background:${bg}"` : ""}>${text}</td>`;
     }).join("");
     const countCell = showCount ? `<td>${s.count ?? "-"}</td>` : "";
-    return `<tr>${groupCell}<td class="kst-key-cell"${groupSpec ? ` style="left:90px"` : ""}>${escapeHtml(s[keyField] ?? "-")}</td><td>${s.pa ?? "-"}</td>${countCell}${cells}</tr>`;
+    return `<tr>${groupCell}<td class="kst-key-cell"${groupSpec ? ` style="left:90px"` : ""}>${keyCellFn ? keyCellFn(s) : escapeHtml(s[keyField] ?? "-")}</td><td>${s.pa ?? "-"}</td>${countCell}${cells}</tr>`;
   }).join("");
   const groupHeadTh = groupSpec ? sortTh(groupSpec.header, "__group", sortState, undefined, "kst-group-cell") : "";
   const countHeadTh = showCount ? sortTh("球数", "count", sortState) : "";
