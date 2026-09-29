@@ -48,9 +48,9 @@
   .p-avatar{ width:44px; height:44px; border-radius:10px; background:#1E3A5F; color:#93C5FD; display:flex; align-items:center; justify-content:center; font-size:17px; font-weight:700; flex-shrink:0; }
   .p-name{ font-size:18px; font-weight:700; color:var(--text-bright); line-height:1.25; }
   .p-meta-row{ display:flex; align-items:center; flex-wrap:wrap; gap:8px; margin-top:3px; }
-  .farm-toggle{ display:flex; gap:3px; background:var(--panel); border-radius:6px; padding:2px; }
-  .farm-toggle-btn{ border:none; background:transparent; color:var(--text-dim); font-size:10px; font-weight:700; padding:3px 9px; border-radius:5px; cursor:pointer; }
-  .farm-toggle-btn.active{ background:var(--panel-alt); color:var(--text-bright); }
+  .farm-toggle, .year-toggle{ display:flex; gap:3px; background:var(--panel); border-radius:6px; padding:2px; }
+  .farm-toggle-btn, .year-toggle-btn{ border:none; background:transparent; color:var(--text-dim); font-size:10px; font-weight:700; padding:3px 9px; border-radius:5px; cursor:pointer; }
+  .farm-toggle-btn.active, .year-toggle-btn.active{ background:var(--panel-alt); color:var(--text-bright); }
   .no-llm-note{ font-size:11px; color:var(--text-dim); margin:0 0 12px; padding:2px 0; }
   .farm-only-badge{ display:inline-block; font-size:9px; font-weight:700; color:var(--amber-text); background:rgba(245,158,11,0.15); border-radius:4px; padding:1px 5px; margin-left:5px; vertical-align:middle; }
   .p-meta{ font-size:12px; color:var(--text-dim); }
@@ -1194,7 +1194,6 @@
         <button data-league="npb" class="active">プロ野球</button>
         <button data-league="mlb">MLB</button>
       </div>
-      <select class="year-select" aria-label="年度"></select>
       <button type="button" class="nav-back-btn" hidden></button>
       <button type="button" id="sidebarToggleBtn" class="header-change-player-btn">選手を変更</button>
     </div>
@@ -1275,7 +1274,6 @@
         <button data-league="npb" class="active">プロ野球</button>
         <button data-league="mlb">MLB</button>
       </div>
-      <select class="year-select" aria-label="年度"></select>
       <button type="button" id="sidebarToggleBtn" class="header-change-player-btn">選手を変更</button>
       <button type="button" class="nav-back-btn" hidden></button>
     </div>
@@ -1369,6 +1367,36 @@ function buildPaths(y){
   };
 }
 const SHARED_PATHS = buildPaths(YEAR);
+// 年度ごとのパス（複数年対応：選手一覧の和集合・選手カードの年度切り替えで使う）。
+// AVAILABLE_YEARSは先頭が最新年度の前提。
+const PATHS_BY_YEAR = {};
+AVAILABLE_YEARS.forEach(y => { PATHS_BY_YEAR[y] = buildPaths(y); });
+
+// 選手一覧を年度ごとに取得し、id（選手スラッグ）で和集合にする。
+// AVAILABLE_YEARSは先頭が最新年度なので、表示用フィールド（チーム・成績等）は
+// その選手が登場する最新年度のものを採用する。_years に登場した年度を新しい順で持たせ、
+// カードを開いたときの年度切り替えUIに使う。
+async function fetchUnionedPlayerIndex(playerTypeKey, league){
+  const results = await Promise.all(AVAILABLE_YEARS.map(async y => {
+    const paths = PATHS_BY_YEAR[y] && PATHS_BY_YEAR[y][playerTypeKey] && PATHS_BY_YEAR[y][playerTypeKey][league];
+    if(!paths) return { year: y, players: [] };
+    try{
+      const res = await fetchJsonZ(`${paths.numeric}/index.json`);
+      if(!res.ok) return { year: y, players: [] };
+      const data = await res.json();
+      return { year: y, players: data.players || [] };
+    }catch(e){ return { year: y, players: [] }; }
+  }));
+  const byId = new Map();
+  for(const { year, players } of results){ // resultsはAVAILABLE_YEARSの順（新しい年度が先）
+    for(const p of players){
+      if(!byId.has(p.id)) byId.set(p.id, { ...p, _years: [year] });
+      else byId.get(p.id)._years.push(year);
+    }
+  }
+  if(byId.size === 0) throw new Error("index.json の取得に失敗しました");
+  return Array.from(byId.values());
+}
 
 
 // ── 共通ユーティリティ（投手・打者で同一だったもの） ──
@@ -1637,12 +1665,10 @@ async function loadPlayerIndex(league){
   document.body.classList.remove("has-selection");
   updateSidebarSummary("選手を選択してください", "");
   try{
-    // 選手一覧は「数値データ」側のindex.jsonを正とする（LLM解釈がまだない選手も一覧には出す）
-    const res = await fetchJsonZ(`${LEAGUE_PATHS[league].numeric}/index.json`);
-    if(!res.ok) throw new Error(`index.json の取得に失敗しました (${res.status})`);
-    const data = await res.json();
+    // 選手一覧は「数値データ」側のindex.jsonを正とする（LLM解釈がまだない選手も一覧には出す）。
+    // 全年度の和集合にする（過去の年度にしか登板が無い選手も検索できるように）。
+    firstPlayers = await fetchUnionedPlayerIndex("pitcher", league);
     if(myToken !== playerIndexLoadToken) return; // 割り込まれていたらここで打ち切る
-    firstPlayers = data.players || [];
     // 2軍の一覧は1軍と混ぜず別に持ち、サイドバーの「1軍/2軍」切り替えでどちらを出すか選ぶ
     // （以前は2軍にしか登板が無い選手を1軍一覧に混ぜていたため、並び替えで1軍と2軍の成績が
     // 同じ列に並んでいた）。2軍側は全員 id に "farm:" を付け、selectPlayer側でこのprefixを見て
@@ -1665,6 +1691,9 @@ async function loadPlayerIndex(league){
       if(myToken === playerIndexLoadToken) aiOnlyFilterEl.disabled = false;
     }
     if(myToken !== playerIndexLoadToken) return; // 割り込まれていたら描画しない（古い結果で上書きしない）
+    // このリーグ・年度にAI解釈がまだ1件も無い場合、チェックが入ったままだと
+    // 一覧が常に0件になってしまうため、自動で外す（選手一覧を読み込めない不具合の原因だった）
+    if(aiOnlyFilterEl.checked && playersWithLlmData.size === 0) aiOnlyFilterEl.checked = false;
     renderPlayerList(applyFilters());
     // 前回このタブで選手を選んでいた場合は、一覧を出すだけでなくその選手のカードまで復元する
     if(saved && saved.activePlayerId){
@@ -1890,6 +1919,29 @@ function mergeCardData(numeric, llm){
   };
 }
 
+// 複数年ぶんの投手カード（年度→numeric json）から、試合ログを全年度ぶん連結する。
+// yearsは新しい年度が先頭の前提（試合ログの「年フォルダ」の既定開閉に使われる）。
+function mergeGameLogsAcrossYears(allYearCards, years){
+  const merged = [];
+  years.forEach(y => {
+    const c = allYearCards[y];
+    if(c && Array.isArray(c.game_log)) merged.push(...c.game_log);
+  });
+  return merged;
+}
+
+// 複数年ぶんの投手カードから、年度別「シーズン成績」行（試合ログのシーズン別タブ・
+// 比較パネルで使う球種別成績・コース分布）を年度ごとに作る。AI解釈は最新年度分にしか
+// 無いことが多いのでここでは付けない（数値データのみ）。
+function buildSeasonEntriesByYear(allYearCards, years){
+  const map = {};
+  years.forEach(y => {
+    const c = allYearCards[y];
+    if(c) map[y] = mergeCardData(c, {});
+  });
+  return map;
+}
+
 // 2軍のindex.jsonは選手を切り替えるたびに読みに行くと無駄が大きい（内容はほぼ変わらないため）ので、
 // リーグごとに一度だけ取得してキャッシュする。取得できなかった場合はnullをキャッシュして
 // リトライし続けないようにする（2軍データが元々無いリーグ・パス未設定のときに毎回失敗fetchが
@@ -1966,12 +2018,33 @@ async function selectPlayer(id, name){
       return;
     }
     const firstId = firstCounterpart ? firstCounterpart.id : id;
-    const res = await fetchJsonZ(`${LEAGUE_PATHS[currentLeague].numeric}/${firstId}.json`);
-    if(!res.ok) throw new Error(`選手データの取得に失敗しました (${res.status})`);
-    const numeric = await res.json();
+    // この選手が登場する年度ぶん、それぞれのフォルダから並行取得する（年度切り替えUI用にキャッシュしておく）
+    const listEntry = firstCounterpart || firstPlayers.find(p => p.id === firstId);
+    const years = (listEntry && listEntry._years && listEntry._years.length) ? listEntry._years : [YEAR];
+    const allYearCards = {};
+    await Promise.all(years.map(async y => {
+      const paths = PATHS_BY_YEAR[y] && PATHS_BY_YEAR[y].pitcher && PATHS_BY_YEAR[y].pitcher[currentLeague];
+      if(!paths) return;
+      try{
+        const r = await fetchJsonZ(`${paths.numeric}/${firstId}.json`);
+        if(r.ok) allYearCards[y] = await r.json();
+      }catch(e){ /* この年度はスキップ */ }
+    }));
+    if(myToken !== selectPlayerToken) return;
+    const availableYears = years.filter(y => allYearCards[y]);
+    const activeYear = availableYears[0];
+    const numeric = allYearCards[activeYear];
+    if(!numeric) throw new Error(`選手データの取得に失敗しました`);
     const { data: llm, debugLog } = await findLlmDataForPlayer(name || numeric.name, numeric.team, numeric.role);
     if(myToken !== selectPlayerToken) return;
     const merged = mergeCardData(numeric, llm);
+    merged._allYearCards = allYearCards;
+    merged._availableYears = availableYears;
+    merged._activeYear = activeYear;
+    merged._llmRaw = llm;
+    merged._llmYear = activeYear;
+    merged._seasonEntriesByYear = buildSeasonEntriesByYear(allYearCards, availableYears);
+    merged.game_log = mergeGameLogsAcrossYears(allYearCards, availableYears);
     // 1軍カードを表示中の裏で2軍データも並行して探しておく（見つかった場合だけ
     // カード側に「1軍/2軍」の切り替えボタンが出る）
     const farmMerged = await fetchFarmData(currentLeague, numeric.name);
@@ -1992,6 +2065,32 @@ async function selectPlayer(id, name){
     if(myToken !== selectPlayerToken) return;
     mainContentEl.innerHTML = `<div class="error">カードを読み込めませんでした。<br>(${escapeHtml(e.message)})</div>`;
   }
+}
+
+// 選手ヘッダー横の年度ボタンで年度を切り替える。取得済みキャッシュ（_allYearCards）から
+// 組み立て直すだけなので、通信は発生しない。
+function switchCardYear(year){
+  if(!activeCardData || !activeCardData._allYearCards || !activeCardData._allYearCards[year]) return;
+  if(activeCardData._activeYear === year) return;
+  const numeric = activeCardData._allYearCards[year];
+  // AI解釈は最初に見つかった年度分しか持っていないので、その年度を選んだ時だけ表示する
+  const llm = (year === activeCardData._llmYear) ? (activeCardData._llmRaw || {}) : {};
+  const merged = mergeCardData(numeric, llm);
+  merged._allYearCards = activeCardData._allYearCards;
+  merged._availableYears = activeCardData._availableYears;
+  merged._activeYear = year;
+  merged._llmRaw = activeCardData._llmRaw;
+  merged._llmYear = activeCardData._llmYear;
+  merged._seasonEntriesByYear = activeCardData._seasonEntriesByYear;
+  merged.game_log = mergeGameLogsAcrossYears(activeCardData._allYearCards, activeCardData._availableYears);
+  merged._noLlm = !(year === activeCardData._llmYear && activeCardData._llmRaw);
+  merged._isFarm = activeCardData._isFarm;
+  if(activeCardData._farmData){
+    merged._farmData = activeCardData._farmData;
+    activeCardData._farmData._farmData = merged;
+  }
+  activeCardData = merged;
+  renderCard(merged);
 }
 
 function applyFilters(){
@@ -2326,6 +2425,10 @@ function renderCard(d){
                 <button type="button" class="farm-toggle-btn ${!d._isFarm ? "active" : ""}" data-farm="0">1軍</button>
                 <button type="button" class="farm-toggle-btn ${d._isFarm ? "active" : ""}" data-farm="1">2軍</button>
               </div>` : ""}
+              ${d._availableYears && d._availableYears.length > 1 ? `
+              <div class="year-toggle">
+                ${d._availableYears.map(y => `<button type="button" class="year-toggle-btn ${y === d._activeYear ? "active" : ""}" data-year="${escapeHtml(y)}">${escapeHtml(y)}年</button>`).join("")}
+              </div>` : ""}
             </div>
           </div>
         </div>
@@ -2435,6 +2538,15 @@ function renderCard(d){
       if(!target) return;
       activeCardData = target;
       renderCard(target);
+    });
+  }
+
+  const yearToggle = mainContentEl.querySelector(".year-toggle");
+  if(yearToggle){
+    yearToggle.addEventListener("click", (e) => {
+      const btn = e.target.closest(".year-toggle-btn");
+      if(!btn) return;
+      switchCardYear(btn.dataset.year);
     });
   }
 
@@ -3616,17 +3728,17 @@ function buildGameLogTable(d){
     </tr>
   `;
 
-  // ── シーズン別：現状はJSONにシーズン単位の集計が1つしか無いため1行だけになるが、
-  // 「今後複数シーズンぶんのデータを追加していく」想定に合わせて、配列をmapする形にしてある。
-  // 将来的にd.past_seasonsのような複数シーズン分のデータがJSONに追加されたら、
-  // このseasonEntries配列にその分を足すだけで表に反映される。
-  const latestYear = d.game_log.reduce((y, g) => {
-    const gy = dateYear(g.date);
-    return gy && (!y || gy > y) ? gy : y;
-  }, null);
-  const seasonEntries = [
-    { year: latestYear || (d.season_label || "シーズン"), data: d, gidx: "season" },
-  ];
+  // ── シーズン別：この選手が持つ年度ぶん（d._availableYears）を1行ずつ並べる。
+  // 複数年対応前のデータ（2軍カード等）ではd._availableYearsが無いので、従来どおり1行だけになる。
+  const seasonEntries = (d._availableYears && d._seasonEntriesByYear)
+    ? d._availableYears.map(y => ({ year: y, data: d._seasonEntriesByYear[y], gidx: `season:${y}` }))
+    : (() => {
+        const latestYear = d.game_log.reduce((y, g) => {
+          const gy = dateYear(g.date);
+          return gy && (!y || gy > y) ? gy : y;
+        }, null);
+        return [{ year: latestYear || (d.season_label || "シーズン"), data: d, gidx: "season" }];
+      })();
   const seasonRowHtml = (entry) => `
     <tr class="row-game" data-gidx="${entry.gidx}">
       <td>${chk(entry.gidx)}</td>
@@ -3734,6 +3846,14 @@ function colgroupHtml(cols){
 function getRowDataFor(d, gidx){
   if(gidx === "season"){
     return { label: "シーズン", pitchDetail: d.season_pitch_detail, courseLocs: d.season_course_locs, summary: formatSeasonResult(d), seasonTotals: d.season_totals || null, totalsRanksFor: d._totalsRanksFor || null };
+  }
+  if(typeof gidx === "string" && gidx.startsWith("season:")){
+    const y = gidx.slice("season:".length);
+    const sd = d._seasonEntriesByYear && d._seasonEntriesByYear[y];
+    if(!sd) return null;
+    // アクティブな年度は順位計算済み（d._totalsRanksFor）をそのまま使う。他年度は順位無し表示。
+    const totalsRanksFor = (y === d._activeYear) ? (d._totalsRanksFor || null) : null;
+    return { label: `${y}年`, pitchDetail: sd.season_pitch_detail, courseLocs: sd.season_course_locs, summary: formatSeasonResult(sd), seasonTotals: sd.season_totals || null, totalsRanksFor };
   }
   const g = d.game_log[parseInt(gidx,10)];
   if(!g) return null;
@@ -4236,6 +4356,9 @@ async function loadPlayerIndex(league){
     await loadAllLlmPlayerNames();
     aiOnlyFilterEl.disabled = false;
   }
+  // このリーグ・年度にAI解釈がまだ1件も無い場合、チェックが入ったままだと
+  // 一覧が常に0件になってしまうため、自動で外す
+  if(aiOnlyFilterEl.checked && playersWithLlmData.size === 0) aiOnlyFilterEl.checked = false;
   renderPlayerList();
   if(saved && saved.activePlayerId){
     selectPlayer(saved.activePlayerId, saved.activePlayerName);
@@ -4276,10 +4399,8 @@ function dedupePlayersByName(players){
 // currentLeague・currentFarmLevelに応じたindex.jsonを取得してallPlayersに入れる
 // （1軍/2軍リストを完全に差し替える。選手詳細内のfarm-toggleとは別軸）
 async function loadPlayerListForCurrentFarmLevel(){
-  const basePath = currentFarmLevel === "ni"
-    ? LEAGUE_PATHS[currentLeague].farmNumeric
-    : LEAGUE_PATHS[currentLeague].numeric;
-  if(!basePath){
+  const isFarm = currentFarmLevel === "ni";
+  if(isFarm && !LEAGUE_PATHS[currentLeague].farmNumeric){
     allPlayers = [];
     populateTeamSelect(allPlayers);
     populatePosSelect(allPlayers);
@@ -4287,10 +4408,16 @@ async function loadPlayerListForCurrentFarmLevel(){
     return;
   }
   try{
-    const res = await fetchJsonZ(`${basePath}/index.json`);
-    if(!res.ok) throw new Error(`index.json の取得に失敗しました (${res.status})`);
-    const data = await res.json();
-    allPlayers = dedupePlayersByName(data.players || []);
+    // 1軍は全年度の和集合、2軍は現状(最新年度)のみ
+    const players = isFarm
+      ? (await (async () => {
+          const res = await fetchJsonZ(`${LEAGUE_PATHS[currentLeague].farmNumeric}/index.json`);
+          if(!res.ok) throw new Error(`index.json の取得に失敗しました (${res.status})`);
+          const data = await res.json();
+          return data.players || [];
+        })())
+      : await fetchUnionedPlayerIndex("batter", currentLeague);
+    allPlayers = dedupePlayersByName(players);
     populateTeamSelect(allPlayers);
     populatePosSelect(allPlayers);
   }catch(e){
@@ -4423,10 +4550,35 @@ async function selectPlayer(id, name){
     // 一覧は currentFarmLevel（1軍/2軍）ごとに完全に差し替わっているので、
     // idは常にその時点のレベルのindex.jsonから来たもの。そのレベルの数値JSONを読む。
     const isFarmList = currentFarmLevel === "ni";
-    const basePath = isFarmList ? LEAGUE_PATHS[currentLeague].farmNumeric : LEAGUE_PATHS[currentLeague].numeric;
-    const res = await fetchJsonZ(`${basePath}/${id}.json`);
-    if(!res.ok) throw new Error(`選手データの取得に失敗しました (${res.status})`);
-    const card = stripNonPitchTypes(await res.json());
+    let card;
+    if(isFarmList){
+      // 2軍は現状年度のみ（複数年対応は1軍のみ）
+      const basePath = LEAGUE_PATHS[currentLeague].farmNumeric;
+      const res = await fetchJsonZ(`${basePath}/${id}.json`);
+      if(!res.ok) throw new Error(`選手データの取得に失敗しました (${res.status})`);
+      card = stripNonPitchTypes(await res.json());
+    }else{
+      // 選手一覧（全年度和集合）からこの選手が登場する年度を調べ、各年度のフォルダから
+      // 個別に取得して card.seasons へ合成する（年度ごとにファイルが分かれているため）。
+      const listEntry = allPlayers.find(p => p.id === id);
+      const years = (listEntry && listEntry._years && listEntry._years.length) ? listEntry._years : [YEAR];
+      const fetchedByYear = {};
+      await Promise.all(years.map(async y => {
+        const paths = PATHS_BY_YEAR[y] && PATHS_BY_YEAR[y].batter && PATHS_BY_YEAR[y].batter[currentLeague];
+        if(!paths) return;
+        try{
+          const r = await fetchJsonZ(`${paths.numeric}/${id}.json`);
+          if(r.ok) fetchedByYear[y] = stripNonPitchTypes(await r.json());
+        }catch(e){ /* この年度はスキップ */ }
+      }));
+      const base = fetchedByYear[years[0]]; // 最新年度をプロフィール等のベースにする
+      if(!base) throw new Error(`選手データの取得に失敗しました`);
+      const combinedSeasons = {};
+      years.forEach(y => {
+        if(fetchedByYear[y]) Object.assign(combinedSeasons, getSeasonsMap(fetchedByYear[y]));
+      });
+      card = { ...base, seasons: combinedSeasons };
+    }
     card._isFarm = isFarmList;
 
     // 選手詳細内の「1軍/2軍」切り替えボタン用に、もう一方のレベルのデータも裏で探しておく
@@ -5348,12 +5500,11 @@ function renderSeasonSummaryTable(seasonsMap, years, sortState){
   </table></div>`;
 }
 
-// 試合別タブは「YYYY年（N試合） ⌄」の開閉ヘッダー付きグループとして表示する。
-// 現状は表示中のシーズン（currentSeasonYear）1年分だけだが、年をまたいだ表示に
-// 拡張しても崩れないよう、年ごとのグループ単位で組み立てておく。
-function renderGameLogYearGroup(year, gameLog){
+// 試合別タブは「YYYY年（N試合） ⌄」の開閉ヘッダー付きグループとして、選手が持つ全年度ぶん並べる
+// （選手ヘッダー横の年度フィルターの選択に関わらず、常に全年度を表示する）。
+function renderGameLogYearGroup(year, gameLog, isOpen){
   return `
-    <div class="gl-year-group" data-gl-year="${escapeHtml(year)}">
+    <div class="gl-year-group${isOpen ? "" : " collapsed"}" data-gl-year="${escapeHtml(year)}">
       <div class="gl-year-header"><span class="gl-caret">▾</span>${escapeHtml(year)}年（${(gameLog || []).length}試合）</div>
       <div data-gl-table-wrap>${renderGameLogTable(gameLog)}</div>
     </div>
@@ -5380,7 +5531,7 @@ function renderGameLogSection(seasonsMap, years, seasonObj){
       <button type="button" class="hand-btn" data-tab="game">試合別</button>
     </div>
     <div data-gamelog-tab="season"></div>
-    <div data-gamelog-tab="game" style="display:none">${renderGameLogYearGroup(currentSeasonYear, seasonObj.game_log)}</div>
+    <div data-gamelog-tab="game" style="display:none">${years.map((y, i) => renderGameLogYearGroup(y, (seasonsMap[y] || {}).game_log, i === 0)).join("")}</div>
   `;
 }
 
@@ -6383,21 +6534,6 @@ for(const k of Object.keys(MODES)){
   roots[k].remove();  // 使うときだけ host に載せる
 }
 let currentMode = null;
-
-// 年度セレクト（両モードのヘッダー）。年度を変えるとページを読み直し、その年度のデータを読む。
-// 選手のハッシュは前の年度のものなので引き継がず、モードだけ残す。
-for(const k of Object.keys(roots)){
-  roots[k].querySelectorAll(".year-select").forEach(sel => {
-    sel.innerHTML = AVAILABLE_YEARS.map(y => `<option value="${y}"${y === YEAR ? " selected" : ""}>${y}年</option>`).join("");
-    sel.style.display = AVAILABLE_YEARS.length > 1 ? "" : "none";
-  });
-}
-document.addEventListener("change", (e) => {
-  const sel = e.target.closest && e.target.closest(".year-select");
-  if(!sel || sel.value === YEAR) return;
-  const q = sel.value === AVAILABLE_YEARS[0] ? "" : `?year=${sel.value}`;
-  location.href = `${location.pathname}${q}#${currentMode || "pitcher"}`;
-});
 
 // ── 選手ページ間の移動（投手の対戦打者 → 打者ページ 等）と「戻る」 ──
 // 各モードが register() で {ready, getState(), openPlayer()} を渡す。URLのハッシュは
