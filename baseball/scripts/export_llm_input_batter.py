@@ -811,8 +811,15 @@ _RANK_SPECS_EN = [
 ]
 
 
+# 年度ごとのシーズン成績表（overallにだけ入る指標）の順位。WAR・守備OAA合計・守備防止点合計・盗塁・
+# 盗塁成功率・スプリントスピードは、球種別などの細かい内訳には無いので、対左右なしのoverall系統
+# （compute_split_rankings(..., with_extra=True)）でだけ順位付けする（JSONを無駄に増やさないため）。
+_RANK_SPECS_EXTRA = [("war", True), ("oaa", True), ("frp", True), ("sb", True), ("sb_pct", True), ("sprint_speed", True)]
+
+
 def _compute_group_rankings(pools: dict[str, list[tuple[str, dict]]],
-                             rank_min_pa: float = PIVOT_RANK_MIN_PA) -> dict[str, dict]:
+                             rank_min_pa: float = PIVOT_RANK_MIN_PA,
+                             specs: list | None = None) -> dict[str, dict]:
     """任意のグループ分け（球種名・カテゴリ名・"球種|球速帯"キーなど）について、
     グループごとに独立した母集団で_RANK_SPECS_ENの各指標を順位付けする共通ロジック。
     資格打席（rank_min_pa）未満の選手にも、その指標の順位算出自体は行われたが対象外
@@ -826,7 +833,7 @@ def _compute_group_rankings(pools: dict[str, list[tuple[str, dict]]],
         qualified = [(name, stat) for name, stat in entries if (stat.get("pa") or 0) >= rank_min_pa]
         unqualified_names = [name for name, stat in entries if (stat.get("pa") or 0) < rank_min_pa]
         group_result: dict[str, dict] = {}
-        for metric, higher_is_better in _RANK_SPECS_EN:
+        for metric, higher_is_better in (specs or _RANK_SPECS_EN):
             valid = [(name, stat[metric]) for name, stat in qualified if stat.get(metric) is not None]
             valid.sort(key=lambda x: -x[1] if higher_is_better else x[1])
             total = len(valid)
@@ -838,14 +845,16 @@ def _compute_group_rankings(pools: dict[str, list[tuple[str, dict]]],
     return result
 
 
-def compute_split_rankings(stat_by_player: dict[str, dict], rank_min_pa: float = PIVOT_RANK_MIN_PA) -> dict:
+def compute_split_rankings(stat_by_player: dict[str, dict], rank_min_pa: float = PIVOT_RANK_MIN_PA,
+                           with_extra: bool = False) -> dict:
     """対左右のみ（球種の絞り込み無し）の1系統ぶん（overall/vsR/vsLのいずれか）について、
     全打者を1つの母集団として順位付けする。
     stat_by_player: {選手名: 統計オブジェクト(英語キー、season.overallやsplits[hand]と同じ形)}
     戻り値: {選手名: {metric: {"rank","total"}}}
     """
     pools = {"_": list(stat_by_player.items())}
-    return _compute_group_rankings(pools, rank_min_pa).get("_", {})
+    specs = (_RANK_SPECS_EN + _RANK_SPECS_EXTRA) if with_extra else None
+    return _compute_group_rankings(pools, rank_min_pa, specs).get("_", {})
 
 
 def compute_pitch_type_rankings(pt_lists_by_player: dict[str, list[dict]],
@@ -1158,7 +1167,7 @@ def load_mlb_defense_cache(path: str) -> dict:
     def _entry(name):
         key = _normalize_name(name).lower()
         return result.setdefault(key, {
-            "oaa": [], "sprint_speed": None, "framing": None, "poptime": None,
+            "oaa": [], "sprint_speed": None, "framing": None, "poptime": None, "war": None,
         })
 
     if "OAA" in wb.sheet_names:
@@ -1172,6 +1181,13 @@ def load_mlb_defense_cache(path: str) -> dict:
                 "fielding_runs_prevented": None if pd.isna(r.get("fielding_runs_prevented")) else int(r.get("fielding_runs_prevented")),
                 "actual_success_rate": None if pd.isna(r.get("actual_success_rate")) else float(r.get("actual_success_rate")),
             })
+
+    if "WAR" in wb.sheet_names:
+        for _, r in wb.parse("WAR").iterrows():
+            name = r.get("name")
+            if not name or (isinstance(name, float) and pd.isna(name)) or pd.isna(r.get("war")):
+                continue
+            _entry(name)["war"] = float(r.get("war"))
 
     if "SprintSpeed" in wb.sheet_names:
         for _, r in wb.parse("SprintSpeed").iterrows():
@@ -1375,6 +1391,15 @@ def export_llm_input_batter_xlsx(games_json_dir: str, out_path: str, min_pa: flo
                     "overall": {
                         **_fill_swing_rates_fallback(_to_stat_obj(season), pt_breakdown.get("all") or []),
                         **build_season_batted_quality_extra_mlb(appearances),
+                        # 年度ごとのシーズン成績表用（MLBのみ。守備キャッシュが無ければNone）。
+                        # OAA・守備防止点は複数ポジションでプレーした場合、ポジション別の値を合計する。
+                        "war": defense_entry.get("war"),
+                        "oaa": (sum((o.get("outs_above_average") or 0) for o in defense_entry["oaa"])
+                                if defense_entry.get("oaa") else None),
+                        "frp": (sum((o.get("fielding_runs_prevented") or 0) for o in defense_entry["oaa"])
+                                if defense_entry.get("oaa") else None),
+                        "sb_pct": sb_success_pct,
+                        "sprint_speed": defense_entry.get("sprint_speed"),
                     },
                     "splits": {
                         "vsR": {
@@ -1451,11 +1476,12 @@ def export_llm_input_batter_xlsx(games_json_dir: str, out_path: str, min_pa: flo
             name: (card["overall"] if stat_key == "overall" else card["splits"][stat_key])
             for name, card in numeric_cards.items()
         }
-        split_rk_all30 = compute_split_rankings(stat_by_player, rank_min_pa=30)
+        with_extra = (population == "all")
+        split_rk_all30 = compute_split_rankings(stat_by_player, rank_min_pa=30, with_extra=with_extra)
         stat_by_player_qualified = {
             name: s for name, s in stat_by_player.items() if numeric_cards[name].get("qualifiedPA")
         }
-        split_rk_qualified = compute_split_rankings(stat_by_player_qualified, rank_min_pa=0)
+        split_rk_qualified = compute_split_rankings(stat_by_player_qualified, rank_min_pa=0, with_extra=with_extra)
         for name, card in numeric_cards.items():
             card.setdefault("splitRankings", {}).setdefault("all30", {})[population] = split_rk_all30.get(name, {})
             card.setdefault("splitRankings", {}).setdefault("qualified", {})[population] = split_rk_qualified.get(name, {})
@@ -1519,6 +1545,37 @@ def export_llm_input_batter_xlsx(games_json_dir: str, out_path: str, min_pa: flo
     for name, card in numeric_cards.items():
         for entry in card["defense"].get("oaa", []):
             entry["rank"] = defense_rankings.get(name, {}).get(entry.get("pos"), {})
+
+    # 守備防止点・成功率（同じポジション同士）と、スプリントスピード・捕手指標（該当者同士）の順位
+    def _rank_pool(values: list[tuple[str, float]], higher_is_better: bool) -> dict[str, dict]:
+        valid = sorted(values, key=lambda x: -x[1] if higher_is_better else x[1])
+        return {n: {"rank": i, "total": len(valid)} for i, (n, _) in enumerate(valid, start=1)}
+
+    for field, out_key in (("fielding_runs_prevented", "frp_rank"), ("actual_success_rate", "success_rank")):
+        by_pos: dict[str, list[tuple[str, float]]] = {}
+        for name, card in numeric_cards.items():
+            for e in card["defense"].get("oaa", []):
+                if e.get("pos") and e.get(field) is not None:
+                    by_pos.setdefault(e["pos"], []).append((name, e[field]))
+        ranks = {pos: _rank_pool(v, True) for pos, v in by_pos.items()}
+        for name, card in numeric_cards.items():
+            for e in card["defense"].get("oaa", []):
+                e[out_key] = (ranks.get(e.get("pos")) or {}).get(name, {})
+    for src, sub, out_key, hib in (
+        ("sprint_speed", None, "sprint_rank", True),
+        ("catcher_framing", "framing_runs", "framing_rank", True),
+        ("catcher_poptime", "pop_2b", "pop_rank", False),      # Pop Timeは短いほど良い
+        ("catcher_poptime", "arm_strength", "arm_rank", True),
+    ):
+        vals = []
+        for name, card in numeric_cards.items():
+            v = card["defense"].get(src)
+            v = v.get(sub) if (sub and isinstance(v, dict)) else (None if sub else v)
+            if v is not None:
+                vals.append((name, v))
+        ranks = _rank_pool(vals, hib)
+        for name, card in numeric_cards.items():
+            card["defense"][out_key] = ranks.get(name)
 
     out_dir = os.path.dirname(out_path)
     if out_dir:
