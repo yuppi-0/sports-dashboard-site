@@ -1362,7 +1362,7 @@
 // 年度ごとにフォルダが分かれている（data/.../{年}年/...）。ページ右上の年度セレクトで切り替える。
 // 新しい年度のデータを作ったら、この一覧に足す（先頭が既定＝最新）。
 // URLは ?year=2025 のように指定できる（例: .../cards.html?year=2025#batter）。
-const AVAILABLE_YEARS = ["2026", "2025"];   // MLBは2025年分のカードJSONを生成済み。NPBの2025年はまだ無いため、NPB側で選ぶと0件表示になる
+const AVAILABLE_YEARS = ["2026", "2025", "2024"];   // MLBは2025年分のカードJSONを生成済み。NPBの2025年はまだ無いため、NPB側で選ぶと0件表示になる
 const YEAR = (() => {
   const q = new URLSearchParams(location.search).get("year");
   return AVAILABLE_YEARS.includes(q) ? q : AVAILABLE_YEARS[0];
