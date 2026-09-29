@@ -14,6 +14,10 @@ on:
         description: '実行ステップ（games/highlights/datamart/llm_input/batter_llm_input/defense/all。スペース区切りで複数可。defenseは守備OAA・スプリントスピード・捕手フレーミング/PopTimeを取得するシーズン単位のステップで、allには含まれない）'
         required: false
         default: 'all'
+      years:
+        description: 'defenseステップ専用：対象年をスペース区切りで複数指定（例: 2024 2025 2026。並列取得する）。空欄なら日付の年'
+        required: false
+        default: ''
       source:
         description: 'cron-job.org専用。空欄のままでOK'
         required: false
@@ -93,7 +97,9 @@ jobs:
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
-          python baseball/scripts/run_mlb.py --date ${{ steps.date.outputs.date }} --steps ${{ steps.steps.outputs.steps }} ${{ steps.steps.outputs.skip_flags }}
+          YEARS_ARG=""
+          if [ -n "${{ inputs.years }}" ]; then YEARS_ARG="--year ${{ inputs.years }}"; fi
+          python baseball/scripts/run_mlb.py --date ${{ steps.date.outputs.date }} --steps ${{ steps.steps.outputs.steps }} ${{ steps.steps.outputs.skip_flags }} $YEARS_ARG
 
       - name: 活躍選手0件の日付がないか確認
         if: steps.check.outputs.skip != 'true'
@@ -154,14 +160,8 @@ jobs:
             echo "更新なし（データ変化なし）"
           else
             git commit -m "MLB自動更新: ${{ steps.date.outputs.date }} (steps: ${{ inputs.steps || 'all' }})"
-            for i in 1 2 3 4 5; do
-              if git push; then
-                break
-              fi
-              echo "push失敗。リモートの変更を取り込んでリトライします (試行 $i/5)"
-              git pull --rebase origin main
-              sleep 5
-            done
+            # 並列ジョブの同時pushでも取りこぼさないよう、競合解消・再試行つきのヘルパーでpushする（失敗時はステップも失敗）
+            bash "$GITHUB_WORKSPACE/baseball/scripts/push_with_retry.sh"
           fi
 
       - name: サイト側（docs/）をコミット&push（このリポジトリ自身）
@@ -174,12 +174,6 @@ jobs:
             echo "更新なし（docs変化なし）"
           else
             git commit -m "MLB自動更新: ${{ steps.date.outputs.date }} (steps: ${{ inputs.steps || 'all' }})"
-            for i in 1 2 3 4 5; do
-              if git push; then
-                break
-              fi
-              echo "push失敗。リモートの変更を取り込んでリトライします (試行 $i/5)"
-              git pull --rebase origin main
-              sleep 5
-            done
+            # index.jsonは並列ジョブ同士で競合しやすいので、競合解消後に実在ファイルから再生成する
+            ADD_PATHS=docs bash baseball/scripts/push_with_retry.sh "python baseball/scripts/rebuild_index.py"
           fi

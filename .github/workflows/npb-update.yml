@@ -225,14 +225,8 @@ jobs:
             echo "更新なし（データ変化なし）"
           else
             git commit -m "NPB自動更新: ${{ steps.date.outputs.date }} (steps: ${{ inputs.steps || 'all' }})"
-            for i in 1 2 3 4 5; do
-              if git push; then
-                break
-              fi
-              echo "push失敗。リモートの変更を取り込んでリトライします (試行 $i/5)"
-              git pull --rebase origin main
-              sleep 5
-            done
+            # 並列ジョブの同時pushでも取りこぼさないよう、競合解消・再試行つきのヘルパーでpushする（失敗時はステップも失敗）
+            bash "$GITHUB_WORKSPACE/baseball/scripts/push_with_retry.sh"
           fi
 
       - name: サイト側（docs/）をコミット&push（このリポジトリ自身）
@@ -245,12 +239,6 @@ jobs:
             echo "更新なし（docs変化なし）"
           else
             git commit -m "NPB自動更新: ${{ steps.date.outputs.date }} (steps: ${{ inputs.steps || 'all' }})"
-            for i in 1 2 3 4 5; do
-              if git push; then
-                break
-              fi
-              echo "push失敗。リモートの変更を取り込んでリトライします (試行 $i/5)"
-              git pull --rebase origin main
-              sleep 5
-            done
+            # index.jsonは並列ジョブ同士で競合しやすいので、競合解消後に実在ファイルから再生成する
+            ADD_PATHS=docs bash baseball/scripts/push_with_retry.sh "python baseball/scripts/rebuild_index.py"
           fi
