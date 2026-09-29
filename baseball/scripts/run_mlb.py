@@ -2442,6 +2442,40 @@ def fetch_mlb_defense_season(year: int) -> tuple[pd.DataFrame, pd.DataFrame]:
     return oaa_df, sprint_df
 
 
+_BWAR_DF = None
+_BWAR_LOCK = None
+
+
+def fetch_bwar(year: int) -> pd.DataFrame:
+    """Baseball-Reference の bWAR（野手）を取得する。戻り値の列: name("last, first"小文字), player_id(MLBAM), war。
+    複数年を並列取得しても1回しかダウンロードしないよう、全年ぶんの表をプロセス内でキャッシュする。
+    取得に失敗しても他の守備・走塁データの保存は止めない（WARNを出して空を返す）。"""
+    import threading
+    global _BWAR_DF, _BWAR_LOCK
+    if _BWAR_LOCK is None:
+        _BWAR_LOCK = threading.Lock()
+    cols = ["name", "player_id", "war"]
+    try:
+        with _BWAR_LOCK:
+            if _BWAR_DF is None:
+                from pybaseball import bwar_bat
+                _BWAR_DF = bwar_bat(return_all=False)
+        df = _BWAR_DF
+        d = df[(df["year_ID"] == int(year)) & (df["pitcher"].astype(str).str.upper() != "Y")].copy()
+        d["WAR"] = pd.to_numeric(d["WAR"], errors="coerce")
+        d["mlb_ID"] = pd.to_numeric(d["mlb_ID"], errors="coerce")
+        d = d.dropna(subset=["mlb_ID", "WAR"])
+        g = d.groupby("mlb_ID", as_index=False)["WAR"].sum()   # 移籍した選手は所属ごとの行を合算
+        ids = [int(x) for x in g["mlb_ID"]]
+        names = resolve_names(ids, os.path.join(BASE_DATA_DIR, "_cache", "player_names.json"))
+        rows = [{"name": names[i], "player_id": i, "war": round(float(w), 2)}
+                for i, w in zip(ids, g["WAR"]) if i in names]
+        return pd.DataFrame(rows, columns=cols)
+    except Exception as e:
+        print(f"  [WARN] bWAR取得失敗（WARは表示されません）: {e}")
+        return pd.DataFrame(columns=cols)
+
+
 def defense_cache_path(year, game_type: str) -> str:
     """OAA/スプリントスピードの中間キャッシュxlsxのパス（年・試合種別ごとに1ファイル）"""
     return os.path.join(BASE_DATA_DIR, f"{year}年", game_type, "defense", f"{year}_defense.xlsx")
@@ -2455,6 +2489,9 @@ def run_defense_season(year, game_type: str) -> str:
     print(f"  捕手Pop Time取得: {year}年")
     poptime_df = fetch_catcher_poptime(int(year))
 
+    print(f"  bWAR取得: {year}年")
+    war_df = fetch_bwar(int(year))
+
     out_path = defense_cache_path(year, game_type)
     os.makedirs(os.path.dirname(out_path), exist_ok=True)
     # 書きかけを読まれないよう一時ファイル→置換（pandasは拡張子で書き込みエンジンを判定するため、末尾は.xlsxにする）
@@ -2464,6 +2501,7 @@ def run_defense_season(year, game_type: str) -> str:
         (sprint_df if not sprint_df.empty else pd.DataFrame(columns=sprint_df.columns)).to_excel(writer, sheet_name="SprintSpeed", index=False)
         (framing_df if not framing_df.empty else pd.DataFrame(columns=framing_df.columns)).to_excel(writer, sheet_name="CatcherFraming", index=False)
         (poptime_df if not poptime_df.empty else pd.DataFrame(columns=poptime_df.columns)).to_excel(writer, sheet_name="CatcherPoptime", index=False)
+        war_df.to_excel(writer, sheet_name="WAR", index=False)
     os.replace(tmp_path, out_path)
     print(
         f"  ✓ 守備・走塁キャッシュ: {out_path} "
