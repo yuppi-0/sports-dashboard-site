@@ -54,9 +54,16 @@ import os
 import io
 import json
 from jsonio import write_json, remove_json, list_json_stems
+from player_names import resolve_names
 import math
 import logging
 import argparse
+import concurrent.futures
+import contextlib
+try:
+    import fcntl
+except ImportError:  # Windows等: ロック無し（単独実行前提）
+    fcntl = None
 from pathlib import Path
 
 # スクリプト自身の場所を基準にしたルートディレクトリ
@@ -1119,14 +1126,9 @@ def _add_batter_names(df: pd.DataFrame) -> pd.DataFrame:
     if batter_ids:
         try:
             print(f"  打者名解決: {len(batter_ids)}名")
-            lookup = playerid_reverse_lookup(batter_ids, key_type="mlbam")
-            for _, row in lookup.iterrows():
-                mlbam_id = row.get("key_mlbam")
-                first = str(row.get("name_first", "")).strip()
-                last  = str(row.get("name_last",  "")).strip()
-                if mlbam_id and (first or last):
-                    # "Last, First" 形式（Statcastの表示に合わせる）
-                    name_map[int(mlbam_id)] = f"{last}, {first}" if first else last
+            # 並列実行でも壊れないよう、ローカルキャッシュ＋ロック付きの自前リゾルバを使う（player_names.py）
+            name_map = resolve_names(
+                batter_ids, os.path.join(BASE_DATA_DIR, "_cache", "player_names.json"))
         except Exception as e:
             print(f"  [WARN] 打者名取得失敗: {e}")
 
@@ -2455,11 +2457,13 @@ def run_defense_season(year, game_type: str) -> str:
 
     out_path = defense_cache_path(year, game_type)
     os.makedirs(os.path.dirname(out_path), exist_ok=True)
-    with pd.ExcelWriter(out_path, engine="openpyxl") as writer:
+    tmp_path = f"{out_path}.{os.getpid()}.tmp"   # 書きかけを読まれないよう一時ファイル→置換
+    with pd.ExcelWriter(tmp_path, engine="openpyxl") as writer:
         (oaa_df if not oaa_df.empty else pd.DataFrame(columns=oaa_df.columns)).to_excel(writer, sheet_name="OAA", index=False)
         (sprint_df if not sprint_df.empty else pd.DataFrame(columns=sprint_df.columns)).to_excel(writer, sheet_name="SprintSpeed", index=False)
         (framing_df if not framing_df.empty else pd.DataFrame(columns=framing_df.columns)).to_excel(writer, sheet_name="CatcherFraming", index=False)
         (poptime_df if not poptime_df.empty else pd.DataFrame(columns=poptime_df.columns)).to_excel(writer, sheet_name="CatcherPoptime", index=False)
+    os.replace(tmp_path, out_path)
     print(
         f"  ✓ 守備・走塁キャッシュ: {out_path} "
         f"(OAA {len(oaa_df)}行 / SprintSpeed {len(sprint_df)}行 / "
@@ -2646,7 +2650,9 @@ def build_batter_pitch_splits_mlb(df: pd.DataFrame) -> pd.DataFrame:
     cols = ["試合ID", "選手名", "球種", "球速帯", "対戦投手利き腕",
             "球数", "打席", "打数", "安打", "二塁打", "三塁打", "本塁打", "四球", "死球", "三振", "打点",
             "SW数", "空振り数", "ゾーン内投球数", "ゾーン外投球数",
-            "ゾーン内SW数", "ゾーン外SW数", "ゾーン内空振り数", "GB", "LD", "FB"]
+            "ゾーン内SW数", "ゾーン外SW数", "ゾーン内空振り数", "GB", "LD", "FB",
+            "EV合計", "EV件数", "Hard-Hit数2", "LA件数", "Sweet Spot数",
+            "xwOBA合計", "xwOBA件数", "Pull数", "Pull分母"]
     if df is None or df.empty or "batter_name" not in df.columns or "pitch_type" not in df.columns:
         return pd.DataFrame(columns=cols)
 
@@ -2709,6 +2715,7 @@ def build_batter_pitch_splits_mlb(df: pd.DataFrame) -> pd.DataFrame:
         gb_n2 = int(bb_type_last.eq("ground_ball").sum())
         ld_n2 = int(bb_type_last.eq("line_drive").sum())
         fb_n2 = int(bb_type_last.eq("fly_ball").sum())
+        extra = _batter_batted_extra_mlb(last)
         rows.append({
             "試合ID": str(gid), "選手名": bname, "球種": get_pitch_type_jp(pitch_code),
             "球速帯": band, "対戦投手利き腕": hand,
@@ -2721,6 +2728,12 @@ def build_batter_pitch_splits_mlb(df: pd.DataFrame) -> pd.DataFrame:
             # Z-Contact%用（ゾーン内スイングのうち空振りだった数）
             "ゾーン内空振り数": int((swing & g["_in_zone"] & g["_is_swstr"]).sum()),
             "GB": gb_n2, "LD": ld_n2, "FB": fb_n2,
+            # 打球質指標（Hard-Hit%・平均EV・Sweet Spot%・xwOBA・Pull%）の生集計値。
+            # 球種別/球種カテゴリ別/球速帯別の成績表でこれらが「-」になっていたため追加。
+            "EV合計": extra["ev_sum"], "EV件数": extra["ev_n"], "Hard-Hit数2": extra["hardhit_n"],
+            "LA件数": extra["la_n"], "Sweet Spot数": extra["sweetspot_n"],
+            "xwOBA合計": extra["xwoba_sum"], "xwOBA件数": extra["xwoba_n"],
+            "Pull数": extra["pull_n"], "Pull分母": extra["spray_n"],
         })
     return pd.DataFrame(rows, columns=cols) if rows else pd.DataFrame(columns=cols)
 
@@ -3579,6 +3592,12 @@ def _build_game_json(dm_path: str, date: str,
             "gb":   _iv(r.get("GB")),
             "ld":   _iv(r.get("LD")),
             "fb":   _iv(r.get("FB")),
+            # 打球質指標の生集計値（courseSplitsと同じキー。export_llm_input_batter側で積み上げ）
+            "evsum": _fv(r.get("EV合計")), "evn": _iv(r.get("EV件数")),
+            "hh":    _iv(r.get("Hard-Hit数2")),
+            "lan":   _iv(r.get("LA件数")), "ss": _iv(r.get("Sweet Spot数")),
+            "xwsum": _fv(r.get("xwOBA合計"), d=3), "xwn": _iv(r.get("xwOBA件数")),
+            "pu":    _iv(r.get("Pull数")), "spn": _iv(r.get("Pull分母")),
         })
 
     # 試合別打者被コース別成績 → 打者カードのcourseSplits（コースゾーン×対戦投手利き腕）
@@ -4058,13 +4077,32 @@ def write_games_json(dm_path: str, date: str,
 
 
 def _update_index_json(json_dir: str) -> None:
-    """json_dir 内の YYYY-MM-DD.json を列挙して index.json を再生成"""
-    files = list_json_stems(json_dir)  # 論理名(YYYY-MM-DD.json)で列挙（.json/.json.gz両対応）
+    """json_dir 内の YYYY-MM-DD.json を列挙して index.json を再生成。
+
+    並列実行（日付範囲を分割した複数プロセス）でも壊れないよう、
+      - ロック内で列挙→書き込みまで行う（後勝ちのプロセスが必ず全ファイルを見る）
+      - 一時ファイル→os.replace で原子的に差し替える（読み手が書きかけを見ない）
+    """
     index_path = os.path.join(json_dir, "index.json")
-    with open(index_path, "w", encoding="utf-8") as f:
-        json.dump({"files": files}, f, ensure_ascii=False, indent=2)
+    with _index_lock(json_dir):
+        files = list_json_stems(json_dir)  # 論理名(YYYY-MM-DD.json)で列挙（.json/.json.gz両対応）
+        tmp = f"{index_path}.{os.getpid()}.tmp"
+        with open(tmp, "w", encoding="utf-8") as f:
+            json.dump({"files": files}, f, ensure_ascii=False, indent=2)
+        os.replace(tmp, index_path)
     print(f"  ✓ index.json: {len(files)}件")
 
+
+@contextlib.contextmanager
+def _index_lock(json_dir: str):
+    os.makedirs(json_dir, exist_ok=True)
+    f = open(os.path.join(json_dir, ".index.lock"), "w")
+    try:
+        if fcntl is not None:
+            fcntl.flock(f, fcntl.LOCK_EX)
+        yield
+    finally:
+        f.close()   # close でロック解放
 
 
 # %%
@@ -4184,6 +4222,8 @@ def main():
         ),
     )
     parser.add_argument("--game-type",    default="公式戦",     help="試合種別")
+    parser.add_argument("--year", nargs="+", type=int, default=None,
+                        help="--steps defense 用の対象年（複数指定可・並列取得）。省略時は --date の年。例) --year 2024 2025 2026")
     parser.add_argument("--season-start", default=None,        help="シーズン集計開始日 YYYY-MM-DD")
     parser.add_argument("--prompts-path",  default=str(_SCRIPT_DIR / "prompts" / "活躍選手_MLB.txt"),
                         help="活躍選手プロンプトファイルパス")
@@ -4328,15 +4368,23 @@ def main():
 
     # ── defense（守備OAA・走塁スプリントスピード）: シーズン単位のため日付ループの外で1回だけ ──
     if run_defense:
-        year = date_list[0][:4]
-        print(f"\n--- {STEP_NAMES['defense']} ({year}年) ---")
-        try:
-            defense_path = run_defense_season(year, args.game_type)
-            results["defense"] = defense_path
-        except Exception as e:
-            import traceback
-            print(f"  [WARN] 守備・走塁データ取得失敗: {e}")
-            traceback.print_exc()
+        years = [str(y) for y in (args.year or [date_list[0][:4]])]
+        print(f"\n--- {STEP_NAMES['defense']} ({', '.join(years)}年) ---")
+
+        def _one_year(y):
+            try:
+                return y, run_defense_season(y, args.game_type), None
+            except Exception as e:
+                import traceback
+                return y, None, traceback.format_exc() + f"\n{e}"
+
+        # 年ごとに出力ファイル（defense/{year}_defense.xlsx）が別なので、複数年は並列取得できる
+        with concurrent.futures.ThreadPoolExecutor(max_workers=min(len(years), 4)) as ex:
+            for y, path, err in ex.map(_one_year, years):
+                if err:
+                    print(f"  [WARN] {y}年 守備・走塁データ取得失敗:\n{err}")
+                else:
+                    results[f"defense_{y}"] = path
 
     # ── 日付ループ ──
     for date in date_list:
@@ -4476,6 +4524,8 @@ def main():
     if path_batter_llm_input:
         print(f"  打者版LLM入力用xlsx: {path_batter_llm_input}")
     for date, r in results.items():
+        if not isinstance(r, dict):
+            continue
         dm = r.get("datamart", "")
         if dm:
             kb = os.path.getsize(dm) // 1024 if os.path.exists(dm) else 0

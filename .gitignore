@@ -5,3 +5,8 @@
 .DS_Store
 __pycache__/
 *.pyc
+
+# 並列実行用ロック/一時ファイル
+*.lock
+*.tmp
+.parallel_*.log

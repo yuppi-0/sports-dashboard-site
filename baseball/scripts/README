@@ -23,3 +23,15 @@ python scripts/run.py --2軍 --steps pitch --date 2026-06-09
 python -m http.server 8088
 # 起動後に開くURL
 http://localhost:8088/野球ダッシュボード/scripts/dashboard.html
+
+# ── MLB: 並列実行（run_mlb_parallel.py） ──
+# 日付範囲を -j 個に分けて run_mlb.py を同時実行。シーズン共有の llm_input/batter_llm_input は
+# 全チャンク完了後に1回だけ実行される（--no-finalize で省略）
+python scripts/run_mlb_parallel.py --date 2024-02-24:2024-10-31 --steps datamart -j 4
+python scripts/run_mlb_parallel.py --date 2023-03-30:2023-11-05 --steps games -j 4
+
+# 守備OAA・スプリントスピード・捕手フレーミング/PopTimeを複数年まとめて並列取得
+python scripts/run_mlb.py --steps defense --year 2024 2025 2026
+
+# 並列ジョブがindex.jsonで競合した後の復旧（実在するJSONから全index.jsonを作り直す）
+python scripts/rebuild_index.py
