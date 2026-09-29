@@ -2457,7 +2457,8 @@ def run_defense_season(year, game_type: str) -> str:
 
     out_path = defense_cache_path(year, game_type)
     os.makedirs(os.path.dirname(out_path), exist_ok=True)
-    tmp_path = f"{out_path}.{os.getpid()}.tmp"   # 書きかけを読まれないよう一時ファイル→置換
+    # 書きかけを読まれないよう一時ファイル→置換（pandasは拡張子で書き込みエンジンを判定するため、末尾は.xlsxにする）
+    tmp_path = f"{out_path[:-5]}.{os.getpid()}.tmp.xlsx"
     with pd.ExcelWriter(tmp_path, engine="openpyxl") as writer:
         (oaa_df if not oaa_df.empty else pd.DataFrame(columns=oaa_df.columns)).to_excel(writer, sheet_name="OAA", index=False)
         (sprint_df if not sprint_df.empty else pd.DataFrame(columns=sprint_df.columns)).to_excel(writer, sheet_name="SprintSpeed", index=False)
@@ -4379,12 +4380,18 @@ def main():
                 return y, None, traceback.format_exc() + f"\n{e}"
 
         # 年ごとに出力ファイル（defense/{year}_defense.xlsx）が別なので、複数年は並列取得できる
+        defense_failed = []
         with concurrent.futures.ThreadPoolExecutor(max_workers=min(len(years), 4)) as ex:
             for y, path, err in ex.map(_one_year, years):
                 if err:
-                    print(f"  [WARN] {y}年 守備・走塁データ取得失敗:\n{err}")
+                    print(f"  [ERROR] {y}年 守備・走塁データ取得失敗:\n{err}")
+                    defense_failed.append(y)
                 else:
                     results[f"defense_{y}"] = path
+        if defense_failed:
+            # 以前は警告だけで正常終了していたため、保存失敗に気づけなかった。失敗した年があればジョブを失敗させる
+            print(f"  ❌ 守備・走塁データを保存できなかった年: {', '.join(defense_failed)}")
+            sys.exit(1)
 
     # ── 日付ループ ──
     for date in date_list:
