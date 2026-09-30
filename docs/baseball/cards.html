@@ -205,13 +205,23 @@
   [data-yr="2023"], .yr-dot[data-yrc="2023"]{ --yc:#C084FC; }
   
   .yr-dot{ flex:none; display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--yc, #64748B); margin-right:5px; vertical-align:middle; }
-  /* 年度選択チップ（選手名の右）：単年は年度をタップ、「比較」をオンにすると複数の年度にチェックを付けて比較 */
-  .year-chips{ display:flex; flex-wrap:wrap; gap:6px; align-items:center; }
-  .ychip{ border:1px solid rgba(148,163,184,0.28); background:var(--panel-alt); color:var(--text-dim); padding:5px 10px;
-    border-radius:7px; font-size:11.5px; font-weight:700; cursor:pointer; white-space:nowrap; }
-  .ychip.active{ background:rgba(59,130,246,0.2); border-color:rgba(59,130,246,0.75); color:var(--text-bright); }
-  .ychip-cmp{ margin-left:4px; border-style:dashed; }
-  .ychip-cmp.active{ border-style:solid; background:rgba(251,191,36,0.16); border-color:rgba(251,191,36,0.7); }
+  /* 年度フィルタ（選手名の右）：「2026年 ▾」ボタンを押すと、年度を縦に並べたメニューを開く。
+     単年：年度をタップするとその年度だけを表示。「年度を比較」をオンにすると、チェックで複数年度を選んで比較。 */
+  .year-chips{ position:relative; display:inline-block; }
+  .ychip-toggle{ display:inline-flex; align-items:center; gap:4px; border:1px solid rgba(148,163,184,0.28); background:var(--panel-alt);
+    color:var(--text-bright); padding:5px 11px; border-radius:7px; font-size:12px; font-weight:700; cursor:pointer; white-space:nowrap; }
+  .year-chips.open .ychip-toggle{ border-color:rgba(59,130,246,0.75); }
+  .ychip-menu{ display:none; position:absolute; left:0; top:calc(100% + 4px); z-index:60; min-width:150px; flex-direction:column; gap:1px;
+    background:var(--panel); border:1px solid rgba(148,163,184,0.3); border-radius:9px; padding:4px; box-shadow:0 8px 24px rgba(0,0,0,0.5); }
+  .year-chips.open .ychip-menu{ display:flex; }
+  .ychip{ display:flex; align-items:center; gap:6px; border:none; background:transparent; color:var(--text); padding:8px 10px; border-radius:6px;
+    font-size:12.5px; font-weight:700; cursor:pointer; white-space:nowrap; text-align:left; }
+  .ychip:hover{ background:rgba(148,163,184,0.12); }
+  .ychip.active{ color:var(--text-bright); background:rgba(59,130,246,0.16); }
+  .ychip .yc-mark{ display:inline-block; width:14px; text-align:center; font-size:11px; }
+  .ychip-sep{ height:1px; background:rgba(148,163,184,0.2); margin:3px 4px; }
+  .ychip-cmp{ color:var(--text-dim); }
+  .ychip-cmp.active{ color:#FBBF24; background:rgba(251,191,36,0.12); }
   /* 結合セル（rowspan）の行ハイライト：結合セルが含まれる行のどれにカーソルを当てても光らせる */
 
   /* 投手・打者共通：KPIボックスの順位ティア色、表セルの値/順位表示、選手名行、シーズン成績表 */
@@ -260,15 +270,7 @@
   .pmix-val.t-bot60{ color:#E9B8C4; } .pmix-val.t-bot70{ color:#F59AB1; } .pmix-val.t-bot85{ color:#FFA6BD; font-weight:800; }
   .pmix-table.ss-table td.ss-name-cell{ font-weight:400; font-size:11.5px; color:var(--text); line-height:1.35; }
 
-  /* 年度フィルタ：スマホでは「2026年 ▾」の1ボタンに畳み、タップで年度チップを開く */
-  .ychip-toggle{ display:none; }
   @media (max-width:720px), (orientation: landscape) and (max-height: 500px){
-    .year-chips{ gap:5px; }
-    .ychip-toggle{ display:inline-flex; align-items:center; gap:4px; border:1px solid rgba(148,163,184,0.28); background:var(--panel-alt);
-      color:var(--text-bright); padding:4px 10px; border-radius:7px; font-size:12px; font-weight:700; cursor:pointer; white-space:nowrap; }
-    .year-chips:not(.open) .ychip{ display:none; }
-    .year-chips.open{ flex-basis:100%; }
-    .ychip{ padding:4px 8px; font-size:11.5px; }
     /* 表の固定列・余白を詰める（スマホ） */
     .split-table td.kst-group-cell, .split-table th.kst-group-cell{ width:54px !important; min-width:0 !important; padding:4px 3px !important; font-size:10px !important; }
     .split-table td.kst-key-cell, .split-table th.kst-key-cell{ padding:4px 5px !important; font-size:12px !important; }
@@ -1719,8 +1721,11 @@ function yearMselHtml(years, selected){
   const label = sel.length > 1 ? `${on ? "比較 " : ""}${sel.map(y => y.slice(2)).join("・")}年` : `${sel[0] || years[0]}年`;
   return `<div class="year-chips${yearChipsOpen ? " open" : ""}" role="group" aria-label="年度">
     <button type="button" class="ychip-toggle" aria-label="年度を選ぶ">${escapeHtml(label)} ▾</button>
-    ${years.map(y => `<button type="button" class="ychip${sel.includes(y) ? " active" : ""}" data-y="${escapeHtml(y)}">${on && sel.includes(y) ? "✓ " : ""}<span class="yr-dot" data-yrc="${escapeHtml(y)}"></span>${escapeHtml(y)}年</button>`).join("")}
-    <button type="button" class="ychip ychip-cmp${on ? " active" : ""}" data-cmp="1" title="年度を複数選んで比較します">比較</button>
+    <div class="ychip-menu" role="menu">
+      ${years.map(y => `<button type="button" class="ychip${sel.includes(y) ? " active" : ""}" data-y="${escapeHtml(y)}"><span class="yc-mark">${on ? (sel.includes(y) ? "☑" : "☐") : (sel.includes(y) ? "●" : "")}</span><span class="yr-dot" data-yrc="${escapeHtml(y)}"></span>${escapeHtml(y)}年</button>`).join("")}
+      <div class="ychip-sep"></div>
+      <button type="button" class="ychip ychip-cmp${on ? " active" : ""}" data-cmp="1" title="年度を複数選んで比較します"><span class="yc-mark">${on ? "☑" : "☐"}</span>年度を比較</button>
+    </div>
   </div>`;
 }
 function wireYearMsel(scope, years, onChange){
@@ -1739,6 +1744,14 @@ function wireYearMsel(scope, years, onChange){
       onChange(desc(sel));
     });
   });
+  if(!window.__ychipOutside){
+    window.__ychipOutside = true;
+    document.addEventListener("click", (e) => {
+      if(e.target.closest && e.target.closest(".year-chips")) return;
+      yearChipsOpen = false;
+      document.querySelectorAll(".year-chips.open").forEach(el => el.classList.remove("open"));
+    });
+  }
   const tog = scope.querySelector(".year-chips .ychip-toggle");
   if(tog) tog.addEventListener("click", () => { yearChipsOpen = !yearChipsOpen; tog.closest(".year-chips").classList.toggle("open", yearChipsOpen); });
   const cmp = scope.querySelector(".year-chips .ychip-cmp");
