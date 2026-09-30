@@ -196,6 +196,23 @@
   .pmix-table.pmix-cmp tbody tr.cnt-pick{ cursor:pointer; }
   .pmix-table.pmix-cmp tr.cnt-sel > td.cnt-name{ box-shadow:inset 3px 0 0 var(--blue) !important; }
   .ss-name-cell{ white-space:normal !important; min-width:170px; font-size:11px; line-height:1.35; text-align:left; }
+  /* 年度ごとの色（年度セル・チップ・ラベルの識別用） */
+  [data-yr="2026"], .yr-dot[data-yrc="2026"]{ --yc:#60A5FA; }
+  [data-yr="2025"], .yr-dot[data-yrc="2025"]{ --yc:#FBBF24; }
+  [data-yr="2024"], .yr-dot[data-yrc="2024"]{ --yc:#34D399; }
+  [data-yr="2023"], .yr-dot[data-yrc="2023"]{ --yc:#C084FC; }
+  td[data-yr], th[data-yr]{ border-left:3px solid var(--yc, transparent) !important; }
+  .yr-dot{ display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--yc, #64748B); margin-right:5px; vertical-align:middle; }
+  /* 年度選択チップ（選手名の右）：単年は年度をタップ、「比較」をオンにすると複数の年度にチェックを付けて比較 */
+  .year-chips{ display:flex; flex-wrap:wrap; gap:6px; align-items:center; }
+  .ychip{ border:1px solid rgba(148,163,184,0.28); background:var(--panel-alt); color:var(--text-dim); padding:5px 10px;
+    border-radius:7px; font-size:11.5px; font-weight:700; cursor:pointer; white-space:nowrap; }
+  .ychip.active{ background:rgba(59,130,246,0.2); border-color:rgba(59,130,246,0.75); color:var(--text-bright); }
+  .ychip-cmp{ margin-left:4px; border-style:dashed; }
+  .ychip-cmp.active{ border-style:solid; background:rgba(251,191,36,0.16); border-color:rgba(251,191,36,0.7); }
+  /* 結合セル（rowspan）の行ハイライト：結合セルが含まれる行のどれにカーソルを当てても光らせる */
+  td.rs-hl{ background-image:linear-gradient(rgba(255,255,255,0.09), rgba(255,255,255,0.09)) !important; }
+  .ctitle, .hm-canvas-title{ min-height:12px; line-height:12px !important; margin-bottom:5px !important; }
 </style>
 <!-- 各モード固有のCSS。表示中のモードだけ media="all"、もう一方は media="not all" で無効化する -->
 <style id="css-pitcher" media="not all">
@@ -1604,32 +1621,49 @@ if(document.fonts && document.fonts.ready){
 // options: [[value, label], ...]。デフォルトは全選択（＝絞り込み無し）で使う想定。
 // 検索欄・全選択/全解除ボタン付き。renderMultiSelectInnerは既存の要素（class="msel"を
 // あらかじめ持つコンテナ、例：チーム/ポジションのフィルタ）に流し込む中身だけを返す版。
-// 年度選択（選手名の隣）：「単年」のプルダウン（選ぶとその年度だけ表示）と、「年度比較」の複数選択
-// ドロップダウン（フィルタと同じ操作。2つ以上選ぶと年度比較）の2つに分ける。
-// 比較側は選択のたびにカードを描画し直すので、続けて選べるよう描画後にパネルを開き直す（yearMselKeepOpen）。
-let yearMselKeepOpen = false;
+// 年度選択（選手名の右）：年度のチップを並べる。
+//  ・通常（単年）：年度をタップすると、その年度だけを表示する。
+//  ・「比較」をオンにすると、年度のチップが複数選択（✓付き）になり、タップで追加/解除して年度比較できる。
+//    オンにした時点で、最新の他の年度を1つ自動で加える。もう一度押すと単年に戻る（選択中の最新年度）。
+let yearCompareOn = false;
+function yrOf(label){ const m = /(\d{4})/.exec(String(label == null ? "" : label)); return m ? m[1] : null; }
+function yrAttr(label){ const y = yrOf(label); return y ? ` data-yr="${y}"` : ""; }
+function yrDot(label){ const y = yrOf(label); return y ? `<span class="yr-dot" data-yrc="${y}"></span>` : ""; }
 function yearMselHtml(years, selected){
-  const single = [...selected].sort((a, b) => b.localeCompare(a))[0];
-  return `<div class="year-ctrl">
-    <select class="year-single-select" title="表示する年度">${years.map(y => `<option value="${escapeHtml(y)}"${y === single ? " selected" : ""}>${escapeHtml(y)}年</option>`).join("")}</select>
-    <div class="year-msel-wrap" title="2つ以上選ぶと年度比較になります">${renderMultiSelect("year-msel", years.map(y => [y, `${y}年`]), selected)}</div>
+  const sel = years.filter(y => selected.includes(y));
+  const on = yearCompareOn || sel.length > 1;
+  return `<div class="year-chips" role="group" aria-label="年度">
+    ${years.map(y => `<button type="button" class="ychip${sel.includes(y) ? " active" : ""}" data-y="${escapeHtml(y)}">${on && sel.includes(y) ? "✓ " : ""}<span class="yr-dot" data-yrc="${escapeHtml(y)}"></span>${escapeHtml(y)}年</button>`).join("")}
+    <button type="button" class="ychip ychip-cmp${on ? " active" : ""}" data-cmp="1" title="年度を複数選んで比較します">比較</button>
   </div>`;
 }
 function wireYearMsel(scope, years, onChange){
-  const wrap = scope.querySelector(".year-msel");
-  const single = scope.querySelector(".year-single-select");
-  if(single) single.addEventListener("change", () => onChange([single.value]));
-  if(!wrap) return;
-  const checked = () => [...wrap.querySelectorAll("input[type=checkbox]")].filter(cb => cb.checked).map(cb => cb.value);
-  const cur = checked();
-  const btn = wrap.querySelector("[data-msel-toggle]");
-  if(btn){ btn.textContent = cur.length > 1 ? `比較：${cur.map(y => y + "年").join("、")}` : "年度比較"; }
-  if(yearMselKeepOpen){ wrap.classList.add("open"); yearMselKeepOpen = false; }
-  wireOneMultiSelect(wrap, () => {
-    let sel = checked();
-    if(!sel.length) sel = [years[0]];            // 全部外した場合は最新年度に戻す
-    yearMselKeepOpen = wrap.classList.contains("open");
-    onChange(sel.sort((a, b) => b.localeCompare(a)));
+  const cur = () => [...scope.querySelectorAll(".year-chips .ychip[data-y].active")].map(b => b.dataset.y);
+  const desc = (a) => [...a].sort((x, y) => y.localeCompare(x));
+  scope.querySelectorAll(".year-chips .ychip[data-y]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const y = btn.dataset.y, c = cur();
+      const on = yearCompareOn || c.length > 1;
+      let sel;
+      if(!on) sel = [y];
+      else{
+        sel = c.includes(y) ? c.filter(v => v !== y) : [...c, y];
+        if(!sel.length) sel = [y];               // 最後の1つは外せない
+      }
+      onChange(desc(sel));
+    });
+  });
+  const cmp = scope.querySelector(".year-chips .ychip-cmp");
+  if(cmp) cmp.addEventListener("click", () => {
+    const c = desc(cur()), on = yearCompareOn || c.length > 1;
+    let sel;
+    if(on){ yearCompareOn = false; sel = [c[0] || years[0]]; }
+    else{
+      yearCompareOn = true;
+      const other = desc(years).find(y => !c.includes(y));   // 最新の他の年度を1つ自動で加える
+      sel = other ? [...c, other] : c;
+    }
+    onChange(desc(sel));
   });
 }
 
@@ -3143,7 +3177,7 @@ function pitchDetailTableHtml(pitches, trueTotal, metricsOverride, tagsByName, t
     return `
     <tr>
       ${nameCell}
-      ${hasYear ? `<td style="width:${CY}px;text-align:center;font-weight:700;${stk(C1)}">${escapeHtml(p._year ?? "-")}</td>` : ""}
+      ${hasYear ? `<td${yrAttr(p._year)} style="width:${CY}px;text-align:center;font-weight:700;${stk(C1)}">${escapeHtml(p._year ?? "-")}</td>` : ""}
       <td style="width:${C2}px;${hasYear ? stk(C1 + CY) : `left:${C1}px`}">${countCellHtml(p.count, p.pct)}</td>
       ${compact ? "" : `<td style="width:${C3}px"><span class="pmix-val">${p.pct != null ? p.pct + "%" : "—"}</span></td>`}
       ${metrics.map(m => {
@@ -3330,7 +3364,7 @@ function countPatternTableHtml(pitchRows, label){
               }).join("")}
             </tr>
           `).join("")}
-          <tr class="count-total-row count-pmix-row" data-group-idx="-1">
+          <tr class="count-total-row count-pmix-row active" data-group-idx="-1">
             <td>投球数</td>
             ${COUNT_KEYS.map(ck => `<td>${countTotals[ck] || "-"}</td>`).join("")}
           </tr>
@@ -3367,7 +3401,7 @@ function countPatternCompareHtml(entries, pick){
   const colgroup = `<colgroup><col style="width:${LW}px"><col style="width:${YW}px">${COUNT_KEYS.map(() => `<col style="width:${COUNT_TABLE_COL_W}px">`).join("")}</colgroup>`;
   const stk = (left) => `position:sticky;left:${left}px;z-index:1;background:var(--panel);`;
   const stkH = (left) => `position:sticky;left:${left}px;z-index:4;background:var(--panel-alt);`;
-  const yTd = (label) => `<td style="${stk(LW)}text-align:center;font-weight:700">${escapeHtml(label)}</td>`;
+  const yTd = (label) => `<td${yrAttr(label)} style="${stk(LW)}text-align:center;font-weight:700">${escapeHtml(label)}</td>`;
   const thead = (first) => `<thead>
     <tr class="count-grp-row"><th style="${stkH(0)}"></th><th style="${stkH(LW)}"></th>${COUNT_STRIKE_GROUPS.map(g => `<th colspan="${perGroup}" class="${g.cls}">${g.label}</th>`).join("")}</tr>
     <tr class="count-key-row"><th style="${stkH(0)}">${first}</th><th style="${stkH(LW)}">年度</th>${COUNT_KEYS.map((ck, i) => `<th class="${COUNT_STRIKE_GROUPS[Math.floor(i / perGroup)].cls}">${ck}</th>`).join("")}</tr>
@@ -3453,13 +3487,13 @@ function wireCountPatternBlock(blockEl, pitchRows){
 // （投手から見た被打率など）。打者名は打者カード（batter_cards_numeric/{batterId}.json）へのリンク。
 // 表は最小打席数で絞り込み、見出しクリックで並べ替え。上位VSB_INITIAL_ROWS件だけ出し「もっと見る」で全件。
 const VSB_COLS = [
-  { key:"pa",  label:"打席",   fmt:"int" }, { key:"ab", label:"打数", fmt:"int" },
-  { key:"h",   label:"被安打", fmt:"int" }, { key:"hr", label:"被本塁打", fmt:"int" },
-  { key:"k",   label:"三振",   fmt:"int" }, { key:"bb", label:"四球", fmt:"int" },
-  { key:"avg", label:"被打率", fmt:"avg", good:"low" }, { key:"obp", label:"被出塁率", fmt:"avg", good:"low" },
-  { key:"slg", label:"被長打率", fmt:"avg", good:"low" }, { key:"ops", label:"被OPS", fmt:"ops", good:"low" },
-  { key:"k_pct", label:"K%", fmt:"pct", good:"high" }, { key:"bb_pct", label:"BB%", fmt:"pct", good:"low" },
-  { key:"whiff_pct", label:"空振り率", fmt:"pct", good:"high" },
+  { key:"pa",  label:"打席",   fmt:"int", w:64 }, { key:"ab", label:"打数", fmt:"int", w:60 },
+  { key:"h",   label:"被安打", fmt:"int", good:"low", w:72 }, { key:"hr", label:"被本塁打", fmt:"int", good:"low", w:84 },
+  { key:"k",   label:"三振",   fmt:"int", good:"high", w:64 }, { key:"bb", label:"四球", fmt:"int", good:"low", w:64 },
+  { key:"avg", label:"被打率", fmt:"avg", good:"low", w:74 }, { key:"obp", label:"被出塁率", fmt:"avg", good:"low", w:84 },
+  { key:"slg", label:"被長打率", fmt:"avg", good:"low", w:84 }, { key:"ops", label:"被OPS", fmt:"ops", good:"low", w:74 },
+  { key:"k_pct", label:"K%", fmt:"pct", good:"high", w:70 }, { key:"bb_pct", label:"BB%", fmt:"pct", good:"low", w:70 },
+  { key:"whiff_pct", label:"空振り率", fmt:"pct", good:"high", w:86 },
 ];
 const VSB_MIN_PA_OPTIONS = [[1, "全員"], [3, "3打席以上"], [5, "5打席以上"], [10, "10打席以上"]];
 const VSB_INITIAL_ROWS = 10;
@@ -3567,22 +3601,23 @@ function wireVsBatters(d){
   };
   const getList = () => currentScope() === "season" ? seasonList : careerList;
   // 既定は3打席以上。3打席以上の打者が1人もいないシーズン序盤等は全員表示にする。
-  const st = { minPa: 3, key: "pa", dir: "desc", expanded: false };
+  const st = { minPa: 3, key: "ops", dir: "desc", expanded: false };   // 既定は被OPSの降順
   const pickDefaultMinPa = () => (Math.max(...getList().map(r => r.pa || 0), 0) >= 3 ? 3 : 1);
   st.minPa = pickDefaultMinPa();
   minPaSel.value = String(st.minPa);
   let batterIds = null;  // Set | null（null＝未取得/取得失敗→全員リンクにする）
 
+  // 被安打以降は、対戦投手別成績（打者）と同じ青のカラースケール：列内の最小〜最大で正規化し、
+  // 投手にとって良い方向（被打率は低い、三振・空振りは高い、など）ほど濃くする
   const shade = (rows, col, v) => {
     if(!col.good || v == null) return "";
     const vals = rows.map(r => r[col.key]).filter(x => x != null);
-    if(vals.length < 3) return "";
+    if(vals.length < 2) return "";
     const lo = Math.min(...vals), hi = Math.max(...vals);
     if(hi === lo) return "";
-    let sc = ((v - lo) / (hi - lo) - 0.5) * 2;       // -1(低い)〜+1(高い)
-    if(col.good === "high") sc = -sc;                   // 高い方が投手に良い指標は符号を反転
-    const a = (Math.abs(sc) * 0.28).toFixed(2);         // sc>0＝投手に悪い（赤）／sc<0＝良い（緑）
-    return ` style="background:${sc > 0 ? `rgba(248,113,113,${a})` : `rgba(52,211,153,${a})`}"`;
+    let t = (v - lo) / (hi - lo);
+    if(col.good === "low") t = 1 - t;
+    return ` style="background:rgba(59,130,246,${(0.06 + t * 0.34).toFixed(2)})"`;
   };
 
   const render = () => {
@@ -3607,7 +3642,7 @@ function wireVsBatters(d){
       return;
     }
     const arrow = (k) => st.key === k ? (st.dir === "desc" ? " ▼" : " ▲") : "";
-    const yearTh = isSeason ? `<th data-sort="_year" class="${st.key === "_year" ? "sorted" : ""}">年度${arrow("_year")}</th>` : "";
+    const yearTh = isSeason ? `<th data-sort="_year" class="${st.key === "_year" ? "sorted" : ""}" style="text-align:center">年度${arrow("_year")}</th>` : "";
     const head = `<tr><th data-sort="batter" style="cursor:default">打者</th>${yearTh}${VSB_COLS.map(c =>
       `<th data-sort="${c.key}" class="${st.key === c.key ? "sorted" : ""}">${c.label}${arrow(c.key)}</th>`).join("")}</tr>`;
     const body = shown.map(r => {
@@ -3615,10 +3650,12 @@ function wireVsBatters(d){
       const nameHtml = linked
         ? `<a class="vsb-batter" href="#batter/${league}/${encodeURIComponent(r.batterId)}${farm ? "/farm" : ""}" data-batter-id="${escapeHtml(r.batterId)}" data-batter-name="${escapeHtml(r.batter)}">${escapeHtml(r.batter)}</a>`
         : `<span class="vsb-batter nolink" title="打者カードがありません">${escapeHtml(r.batter)}</span>`;
-      const yearTd = isSeason ? `<td>${escapeHtml(r._year ?? "-")}</td>` : "";
+      const yearTd = isSeason ? `<td${yrAttr(r._year)} style="text-align:center;font-weight:700">${escapeHtml(r._year ?? "-")}年</td>` : "";
       return `<tr><td>${nameHtml}</td>${yearTd}${VSB_COLS.map(c => `<td${shade(filtered, c, r[c.key])}>${vsbFmt(r[c.key], c.fmt)}</td>`).join("")}</tr>`;
     }).join("");
-    tableWrap.innerHTML = `<table class="vsb-table"><thead>${head}</thead><tbody>${body}</tbody></table>`;
+    const colW = [190, ...(isSeason ? [62] : []), ...VSB_COLS.map(c => c.w)];
+    const tW = colW.reduce((a, w) => a + w, 0);
+    tableWrap.innerHTML = `<table class="vsb-table" style="table-layout:fixed;width:${tW}px;min-width:0"><colgroup>${colW.map(w => `<col style="width:${w}px">`).join("")}</colgroup><thead>${head}</thead><tbody>${body}</tbody></table>`;
     const hidden = sorted.length - VSB_INITIAL_ROWS;
     moreBtn.hidden = hidden <= 0;
     moreBtn.textContent = st.expanded ? "上位のみ表示に戻す" : `残り${hidden}人を表示`;
@@ -3630,7 +3667,7 @@ function wireVsBatters(d){
       if(!btn) return;
       scopeToggle.querySelectorAll(".hand-btn").forEach(b => b.classList.remove("active"));
       btn.classList.add("active");
-      st.key = "pa"; st.dir = "desc"; st.expanded = false;
+      st.key = "ops"; st.dir = "desc"; st.expanded = false;
       st.minPa = pickDefaultMinPa();
       minPaSel.value = String(st.minPa);
       render();
@@ -3814,7 +3851,7 @@ function renderSeasonCourseSection(d){
     return `<div class="course-pair">
       ${hmBuildGridHtml(label, locs, isR ? flipR : flipL, allLocs, seasonHmState._hmSplitMode, true)}
       <div class="hm-canvas-block">
-        <div class="hm-canvas-title">${escapeHtml(label)} 配球</div>
+        <div class="hm-canvas-title">${yrDot(label)}${escapeHtml(label)} 配球</div>
         <canvas id="${idOf(y)}-${isR ? "R" : "L"}" width="200" height="210"></canvas>
       </div>
     </div>`;
@@ -3825,33 +3862,12 @@ function renderSeasonCourseSection(d){
     <div class="hand-group">${entries.map(({ y, card }) => pairHtml(card, y, true, `${y}年 対右打者`)).join("")}</div>
     <div class="hand-group">${entries.map(({ y, card }) => pairHtml(card, y, false, `${y}年 対左打者`)).join("")}</div>
   </div>` : "";
-  const entriesHtml = compare ? multiHtml : entries.map(({ y, card }) => {
-    const courseLocs = card.season_course_locs || {};
-    const locsR = hmCombinedLocs(courseLocs, true, undefined, seasonHmState);
-    const locsL = hmCombinedLocs(courseLocs, false, undefined, seasonHmState);
-    const allLocsR = isAllFilter ? null : hmCombinedLocs(courseLocs, true, denomFilter, seasonHmState);
-    const allLocsL = isAllFilter ? null : hmCombinedLocs(courseLocs, false, denomFilter, seasonHmState);
-    return `
-      <div class="course-entry">
-        ${compare ? `<div class="compare-block-title">${escapeHtml(y)}年</div><div class="compare-block-summary">${escapeHtml(formatSeasonResult(card))}</div>` : ""}
-        <div class="course-row">
-          <div class="course-pair">
-            ${hmBuildGridHtml("対右打者", locsR, flipR, allLocsR, seasonHmState._hmSplitMode)}
-            <div class="hm-canvas-block">
-              <div class="hm-canvas-title">対右打者 配球</div>
-              <canvas id="${idOf(y)}-R" width="200" height="210"></canvas>
-            </div>
-          </div>
-          <div class="course-pair">
-            ${hmBuildGridHtml("対左打者", locsL, flipL, allLocsL, seasonHmState._hmSplitMode)}
-            <div class="hm-canvas-block">
-              <div class="hm-canvas-title">対左打者 配球</div>
-              <canvas id="${idOf(y)}-L" width="200" height="210"></canvas>
-            </div>
-          </div>
-        </div>
-      </div>`;
-  }).join("");
+  const singleY = entries[0] ? entries[0].y : null;
+  const singleLabel = (hand) => `${d._activeYear}年 対${hand}打者`;
+  const entriesHtml = compare ? multiHtml : `<div class="course-row">
+    ${pairHtml(d, singleY, true, singleLabel("右"))}
+    ${pairHtml(d, singleY, false, singleLabel("左"))}
+  </div>`;
   container.innerHTML = `${hmControlsHtml(sortedPitchKeysMap, seasonHmState)}${entriesHtml}`;
 
   container.querySelectorAll(".hm-filter-btn--result").forEach(btn => {
@@ -3987,7 +4003,7 @@ function hmBuildGridHtml(label, locs, flipX, allLocs, splitModeOverride, resultT
   }
 
   let html = `<div class="course-block">
-    <div class="ctitle">${resultTitle ? `${escapeHtml(label)} 結果（${mode==='9' ? denom+'球 ゾーン内' : locs.length+'球'}）` : `${escapeHtml(label)}（${mode==='9' ? denom+'球 ゾーン内' : locs.length+'球'}）— 投手視点`}</div>
+    <div class="ctitle">${resultTitle ? `${yrDot(label)}${escapeHtml(label)} 結果（${mode==='9' ? denom+'球 ゾーン内' : locs.length+'球'}）` : `${escapeHtml(label)}（${mode==='9' ? denom+'球 ゾーン内' : locs.length+'球'}）— 投手視点`}</div>
     <table class="hm-grid-table"><tbody>`;
   for(let r=0;r<N;r++){
     html += "<tr>";
@@ -4228,8 +4244,8 @@ function buildGameLogTable(d){
     const rkAll = (entry.year === d._activeYear && !d._isFarm) ? (d._liveRk || {}) : ((entry.data && entry.data.rankings) || {});
     return `
     <tr>
-      <td style="${ssStk}text-align:center;font-weight:700">${escapeHtml(String(entry.year))}${/^\d{4}$/.test(String(entry.year)) ? "年" : ""}</td>
-      <td class="ss-name-cell">${escapeHtml(formatSeasonResult(entry.data))}</td>
+      <td${yrAttr(entry.year)} style="${ssStk}text-align:center;font-weight:700">${escapeHtml(String(entry.year))}${/^\d{4}$/.test(String(entry.year)) ? "年" : ""}</td>
+      <td class="ss-name-cell" style="position:static;left:auto">${escapeHtml(formatSeasonResult(entry.data))}</td>
       ${ssCols.map(c => {
         const v = entry.data[c.key + "_season"];
         const r = rkAll[RK_KEY[c.key]];
@@ -4240,9 +4256,11 @@ function buildGameLogTable(d){
       }).join("")}
     </tr>
   `;};
+  const ssTotalW = 64 + 190 + ssCols.length * SSW;
   const seasonTabHtml = `
-    <div class="pmix-scroll"><table class="pmix-table pmix-cmp" style="width:${64 + 190 + ssCols.length * SSW}px">
-      <thead><tr><th style="width:64px;${"position:sticky;left:0;z-index:4;background:var(--panel-alt);"}">年度</th><th style="width:190px">結果</th>${ssCols.map(c => `<th style="width:${SSW}px">${c.label}</th>`).join("")}</tr></thead>
+    <div class="pmix-scroll"><table class="pmix-table pmix-cmp" style="width:${ssTotalW}px;table-layout:fixed">
+      <colgroup><col style="width:64px"><col style="width:190px">${ssCols.map(() => `<col style="width:${SSW}px">`).join("")}</colgroup>
+      <thead><tr><th style="position:sticky;left:0;z-index:4;background:var(--panel-alt)">年度</th><th style="text-align:left;position:static;left:auto">結果</th>${ssCols.map(c => `<th>${c.label}</th>`).join("")}</tr></thead>
       <tbody>${seasonEntries.map(seasonRowHtml).join("")}</tbody>
     </table></div>
   `;
@@ -5686,7 +5704,7 @@ function wireCourseZoneSection(scope, seasonsMap, isLeft){
         body.innerHTML = `<div class="defense-note">この条件に該当するコース別データがありません。</div>`;
         return;
       }
-      const col = (hand, label, y) => `<div class="cz-col"><div class="cz-col-label">${escapeHtml(y)}年 ${label}</div><div class="cz-grid-wrap" data-cz-grid="${hand}" data-cz-year="${escapeHtml(y)}"></div></div>`;
+      const col = (hand, label, y) => `<div class="cz-col"><div class="cz-col-label">${yrDot(y)}${escapeHtml(y)}年 ${label}</div><div class="cz-grid-wrap" data-cz-grid="${hand}" data-cz-year="${escapeHtml(y)}"></div></div>`;
       body.innerHTML = `<div class="cz-pair cz-pair-multi"><div class="hand-group">${ys.map(y => col("vsR", "対右投手", y)).join("")}</div><div class="hand-group">${ys.map(y => col("vsL", "対左投手", y)).join("")}</div></div>`;
     }else{
       body.innerHTML = renderCourseZoneBody(byZoneOf(ys[0]), ys[0]);
@@ -5872,7 +5890,7 @@ function renderKeyedStatTable(list, keyLabel, keyField, metrics, emptyNote, grou
       return `<td${bg ? ` style="background:${bg}"` : ""}>${text}</td>`;
     }).join("");
     const countCell = showCount ? `<td>${s.count ?? "-"}</td>` : "";
-    const yearCell = hasYearCol ? `<td class="kst-year-cell">${s._year != null ? escapeHtml(s._year) + "年" : "-"}</td>` : "";
+    const yearCell = hasYearCol ? `<td class="kst-year-cell"${yrAttr(s._year)}>${s._year != null ? escapeHtml(s._year) + "年" : "-"}</td>` : "";
     // 年度比較（年度列あり）では、同じキーが続く行のキー列を1つに結合して表示する
     let keyCell = "";
     const sameKeyAsPrev = hasYearCol && idx > 0 && sortedList[idx - 1][keyField] === s[keyField];
@@ -6471,7 +6489,7 @@ function renderPivotTable(rows0, activeAxes, sortState, ext){
         while(ri + span < rows.length && prefixSame(rows[ri + span], r, i)) span++;
         return `<td${axisColStyle(i)}${span > 1 ? ` rowspan="${span}"` : ""}>${escapeHtml(r[`_label${i + 1}`] ?? "-")}</td>`;
       }
-      return `<td${axisColStyle(i)}>${escapeHtml(r[`_label${i + 1}`] ?? "-")}</td>`;
+      return `<td${axisColStyle(i)}${activeAxes[i] === "year" ? yrAttr(r[`_label${i + 1}`]) : ""}>${escapeHtml(r[`_label${i + 1}`] ?? "-")}</td>`;
     });
     const statCells = cols.map(([key]) => {
       if(key === "pa" || key === "count") return `<td>${r[key] ?? "-"}</td>`;  // 打席・球数は順位・カラースケール対象外
@@ -6663,7 +6681,7 @@ function renderGameLogTable(gameLog, sortState){
 // 年度比較中は選択中の年度を行として並べる（順位の色は各年度のもの）。データが無い項目は表示しない。
 function renderDefenseSection(seasonsMap, ys){
   const multi = ys.length > 1;
-  const yCell = (y) => multi ? `<td class="kst-year-cell">${escapeHtml(y)}年</td>` : "";
+  const yCell = (y) => multi ? `<td class="kst-year-cell"${yrAttr(y)}>${escapeHtml(y)}年</td>` : "";
   const yHead = multi ? `<th class="kst-year-cell">年度</th>` : "";
   const num = (v, d = 1, sign = false) => v == null ? "-" : `${sign && v > 0 ? "+" : ""}${Number(v).toFixed(d)}`;
   // 値を、順位（{rank,total}）に応じた色と「n位/m人中」付きのセルにする。順位が無い指標は値だけ
@@ -6964,6 +6982,29 @@ cardsShell.register("batter", {
 });
 
 }
+
+// 結合セル（rowspan）を持つ表：どの行にカーソルを当てても、その行にかかる結合セル（球種名・軸の値など）まで光らせる
+(function(){
+  let lit = [];
+  const clear = () => { lit.forEach(c => c.classList.remove("rs-hl")); lit = []; };
+  document.addEventListener("mouseover", (e) => {
+    const tr = e.target && e.target.closest ? e.target.closest("tbody tr") : null;
+    clear();
+    if(!tr) return;
+    const tbl = tr.closest("table");
+    if(!tbl || !/split-table|pmix-table|gamelog-table|vsb-table/.test(tbl.className)) return;
+    const idx = tr.rowIndex, rows = tbl.rows;
+    for(let i = idx - 1; i >= Math.max(0, idx - 60); i--){
+      Array.from(rows[i].cells).forEach(c => {
+        if(c.rowSpan > 1 && i + c.rowSpan > idx && !c.classList.contains("kst-group-cell")){ c.classList.add("rs-hl"); lit.push(c); }
+      });
+    }
+  });
+  document.addEventListener("mouseout", (e) => {
+    const to = e.relatedTarget;
+    if(!to || !to.closest || !to.closest("table")) clear();
+  });
+})();
 
 // ── モード切替ローダー ──
 // 投手・打者それぞれのアプリは初回表示時に1回だけ mount され、以後は DOM から
