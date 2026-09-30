@@ -1168,6 +1168,7 @@ def load_mlb_defense_cache(path: str) -> dict:
         key = _normalize_name(name).lower()
         return result.setdefault(key, {
             "oaa": [], "sprint_speed": None, "framing": None, "poptime": None, "war": None,
+            "sb": None, "cs": None,
         })
 
     if "OAA" in wb.sheet_names:
@@ -1188,6 +1189,15 @@ def load_mlb_defense_cache(path: str) -> dict:
             if not name or (isinstance(name, float) and pd.isna(name)) or pd.isna(r.get("war")):
                 continue
             _entry(name)["war"] = float(r.get("war"))
+
+    if "Running" in wb.sheet_names:
+        for _, r in wb.parse("Running").iterrows():
+            name = r.get("name")
+            if not name or (isinstance(name, float) and pd.isna(name)) or pd.isna(r.get("sb")):
+                continue
+            e = _entry(name)
+            e["sb"] = int(r.get("sb"))
+            e["cs"] = None if pd.isna(r.get("cs")) else int(r.get("cs"))
 
     if "SprintSpeed" in wb.sheet_names:
         for _, r in wb.parse("SprintSpeed").iterrows():
@@ -1326,6 +1336,12 @@ def export_llm_input_batter_xlsx(games_json_dir: str, out_path: str, min_pa: flo
 
             season = calc_season_batter_stats(appearances)
             season["選手名"] = name
+            # 盗塁・盗塁死のシーズン合計はStatsAPIの公式値を使う（Statcastの投球データには盗塁イベントが
+            # 無く、試合から数えると常に0になるため）。守備キャッシュ(Runningシート)が無ければ従来のまま。
+            _run = defense_cache.get(_normalize_name(name).lower(), {})
+            if _run.get("sb") is not None:
+                season["盗塁"] = _run["sb"]
+                season["盗塁死"] = _run.get("cs")
 
             if (season.get("打席") or 0) < min_pa:
                 continue
