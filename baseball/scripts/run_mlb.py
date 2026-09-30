@@ -2476,6 +2476,42 @@ def fetch_bwar(year: int) -> pd.DataFrame:
         return pd.DataFrame(columns=cols)
 
 
+def fetch_running_stats(year: int) -> pd.DataFrame:
+    """MLB StatsAPI から、その年の公式戦の盗塁(sb)・盗塁死(cs)を選手ごとに取得する。
+    戻り値の列: name("last, first"小文字), player_id(MLBAM), sb, cs。
+
+    [経緯] Statcastの投球単位データ（pybaseball）には盗塁・盗塁死のイベントが含まれない
+    （eventsは打席の最終球だけに付くため）。そのため試合データから数えた盗塁は全選手0になっていた。
+    シーズン合計はStatsAPIの公式値を使う。取得に失敗してもWARNだけで他の保存は止めない。"""
+    cols = ["name", "player_id", "sb", "cs"]
+    try:
+        url = "https://statsapi.mlb.com/api/v1/stats"
+        res = requests.get(url, params={"stats": "season", "group": "hitting", "season": int(year),
+                                        "gameType": "R", "playerPool": "ALL", "sportIds": 1, "limit": 5000},
+                           timeout=60)
+        res.raise_for_status()
+        splits = (res.json().get("stats") or [{}])[0].get("splits") or []
+        by_id: dict = {}
+        for sp in splits:
+            pid = (sp.get("player") or {}).get("id")
+            st = sp.get("stat") or {}
+            if pid is None:
+                continue
+            by_id.setdefault(int(pid), []).append((sp, st))
+        rows_raw = {}
+        for pid, lst in by_id.items():
+            totals = [st for sp, st in lst if not sp.get("team")]   # 移籍した選手の「合計」行があればそれを使う
+            use = totals if totals else [st for _, st in lst]
+            rows_raw[pid] = (sum(int(x.get("stolenBases") or 0) for x in use),
+                             sum(int(x.get("caughtStealing") or 0) for x in use))
+        names = resolve_names(list(rows_raw), os.path.join(BASE_DATA_DIR, "_cache", "player_names.json"))
+        rows = [{"name": names[i], "player_id": i, "sb": v[0], "cs": v[1]} for i, v in rows_raw.items() if i in names]
+        return pd.DataFrame(rows, columns=cols)
+    except Exception as e:
+        print(f"  [WARN] 盗塁・盗塁死(StatsAPI)取得失敗（盗塁は表示されません）: {e}")
+        return pd.DataFrame(columns=cols)
+
+
 def defense_cache_path(year, game_type: str) -> str:
     """OAA/スプリントスピードの中間キャッシュxlsxのパス（年・試合種別ごとに1ファイル）"""
     return os.path.join(BASE_DATA_DIR, f"{year}年", game_type, "defense", f"{year}_defense.xlsx")
@@ -2491,6 +2527,8 @@ def run_defense_season(year, game_type: str) -> str:
 
     print(f"  bWAR取得: {year}年")
     war_df = fetch_bwar(int(year))
+    print(f"  盗塁・盗塁死(StatsAPI)取得: {year}年")
+    running_df = fetch_running_stats(int(year))
 
     out_path = defense_cache_path(year, game_type)
     os.makedirs(os.path.dirname(out_path), exist_ok=True)
@@ -2502,6 +2540,7 @@ def run_defense_season(year, game_type: str) -> str:
         (framing_df if not framing_df.empty else pd.DataFrame(columns=framing_df.columns)).to_excel(writer, sheet_name="CatcherFraming", index=False)
         (poptime_df if not poptime_df.empty else pd.DataFrame(columns=poptime_df.columns)).to_excel(writer, sheet_name="CatcherPoptime", index=False)
         war_df.to_excel(writer, sheet_name="WAR", index=False)
+        running_df.to_excel(writer, sheet_name="Running", index=False)
     os.replace(tmp_path, out_path)
     print(
         f"  ✓ 守備・走塁キャッシュ: {out_path} "
