@@ -4891,6 +4891,16 @@ async function loadPlayerIndex(league){
   aiOnlyFilterEl.checked = saved ? saved.aiOnly : false;
   sortField = saved ? saved.sortField : "ops";
   sortDir = saved ? saved.sortDir : "desc";
+  // 並び替えの先頭：MLBは「名前」の代わりにWAR、プロ野球は従来どおり名前
+  {
+    const head = sortFieldEl.querySelector('option[value="name"], option[value="war"]');
+    if(head){
+      if(league === "npb"){ head.value = "name"; head.textContent = "名前"; }
+      else { head.value = "war"; head.textContent = "WAR"; }
+    }
+    if(league === "npb" && sortField === "war") sortField = "ops";
+    if(league !== "npb" && sortField === "name") sortField = "ops";
+  }
   sortFieldEl.value = sortField;
   sortDirBtnEl.dataset.dir = sortDir;
   sortDirBtnEl.textContent = sortDir === "asc" ? "昇順 ↑" : "降順 ↓";
@@ -5029,6 +5039,7 @@ function filteredSortedPlayers(){
 // 並び替え中の指標だけを一覧に表示する（例：OPSで並べているならOPSの値だけ）。
 // 名前順のときは代表指標としてOPSを表示する。
 const PLAYER_LIST_METRIC = {
+  war: { label: "WAR", fmt: p => p.war != null ? Number(p.war).toFixed(1) : "-" },
   ops: { label: "OPS", fmt: p => fmt(p.ops, 3) },
   avg: { label: "打率", fmt: p => fmtAvg(p.avg) },
   obp: { label: "出塁率", fmt: p => fmtAvg(p.obp) },
