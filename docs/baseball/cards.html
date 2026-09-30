@@ -6746,7 +6746,7 @@ function renderDefenseSection(seasonsMap, ys){
   ], "順位は、送球は同じ内外野区分、アームバリュー・外野ジャンプは該当する選手同士での比較です。");
   const catcherHtml = metricTable("捕手", rowsY, [
     { label: "フレーミング(得点)", get: (df) => sub(df.catcher_framing, "framing_runs"), fmt: f1(1, "", true), rk: (df) => df.framing_rank },
-    { label: "二塁Pop Time", get: (df) => sub(df.catcher_poptime, "pop_2b"), fmt: f1(2, "秒"), rk: (df) => df.pop_rank },
+    { label: "二塁Pop Time(秒)", get: (df) => sub(df.catcher_poptime, "pop_2b"), fmt: f1(2), rk: (df) => df.pop_rank },
     { label: "送球速度", get: (df) => sub(df.catcher_poptime, "arm_strength"), fmt: f1(1, " mph"), rk: (df) => df.arm_rank },
     { label: "ブロッキング(得点)", get: (df) => sub(df.catcher_blocking, "runs"), fmt: f1(1, "", true), rk: (df) => mr(df, "blocking") },
     { label: "ブロック数(平均比)", get: (df) => sub(df.catcher_blocking, "blocks_above_avg"), fmt: f1(1, "", true), rk: (df) => mr(df, "blocks_above_avg") },
@@ -6756,11 +6756,11 @@ function renderDefenseSection(seasonsMap, ys){
     { label: "盗塁死", get: (df) => df.cs, fmt: (v) => String(v) },
     { label: "盗塁成功率", get: (df) => df.sb_success_pct, fmt: f1(1, "%") },
     { label: "スプリントスピード", get: (df) => df.sprint_speed, fmt: f1(1, " ft/s"), rk: (df) => df.sprint_rank },
-    { label: "走塁得点(BsR)", get: (df) => sub(df.baserunning, "rbaser"), fmt: f1(1, "", true), rk: (df) => mr(df, "rbaser") },
+    { label: "走塁得点(BsR相当)", get: (df) => sub(df.baserunning, "rbaser"), fmt: f1(1, "", true), rk: (df) => mr(df, "rbaser") },
     { label: "走塁得点(Statcast)", get: (df) => sub(df.baserunning, "runs"), fmt: f1(1, "", true), rk: (df) => mr(df, "br_runs") },
     { label: "追加進塁(XBT)得点", get: (df) => sub(df.baserunning, "xb_runs"), fmt: f1(1, "", true), rk: (df) => mr(df, "xb_runs") },
     { label: "盗塁得点", get: (df) => sub(df.baserunning, "sb_runs"), fmt: f1(1, "", true), rk: (df) => mr(df, "sb_runs") },
-    { label: "一塁到達(秒)", get: (df) => sub(df.baserunning, "home_to_first"), fmt: f1(2, "秒"), rk: (df) => mr(df, "home_to_first") },
+    { label: "一塁到達(秒)", get: (df) => sub(df.baserunning, "home_to_first"), fmt: f1(2), rk: (df) => mr(df, "home_to_first") },
   ]);
   return fieldHtml + armHtml + catcherHtml + runHtml;
 }
