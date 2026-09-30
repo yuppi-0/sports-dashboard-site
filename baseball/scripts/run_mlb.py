@@ -77,6 +77,7 @@ import requests
 from pybaseball import (
     statcast, playerid_reverse_lookup, statcast_outs_above_average,
     statcast_sprint_speed, statcast_catcher_poptime,
+    statcast_outfielder_jump, statcast_running_splits,
 )
 import openpyxl
 
@@ -2512,6 +2513,85 @@ def fetch_running_stats(year: int) -> pd.DataFrame:
         return pd.DataFrame(columns=cols)
 
 
+def _savant_csv(label: str, urls: list[str]) -> pd.DataFrame:
+    """Baseball Savant のリーダーボードCSVを取得する（URL候補を順に試し、最初にCSVが返ったものを使う）。
+    列名はサイト側の仕様変更で変わりうるため、取得した列名をログに出す（xlsxにはそのまま保存し、
+    export側で候補名から拾う）。取得できなければ空のDataFrameを返す（他の保存は止めない）。"""
+    for url in urls:
+        try:
+            res = requests.get(url, headers=_SAVANT_HEADERS, timeout=60)
+            text = res.content.decode("utf-8-sig")
+            if res.status_code != 200 or not text.strip() or text.lstrip().startswith("<"):
+                print(f"  [WARN] {label}: CSVが返りません (status={res.status_code}) {url}")
+                continue
+            df = pd.read_csv(io.StringIO(text), engine="python", on_bad_lines="skip")
+            if df.empty:
+                print(f"  [WARN] {label}: 0行 {url}")
+                continue
+            print(f"  {label}: {len(df)}行 列={list(df.columns)}")
+            return df
+        except Exception as e:  # noqa: BLE001
+            print(f"  [WARN] {label}取得失敗: {e} {url}")
+    return pd.DataFrame()
+
+
+def fetch_extra_defense(year: int) -> dict:
+    """守備・走塁の追加指標（送球（内野・外野）/ アームバリュー / 外野ジャンプ / 捕手ブロッキング /
+    走塁得点・追加進塁 / 一塁到達タイム / Rbaser）の元データを、シートごとのDataFrameで返す。
+    列名は取得元のまま保存する（名前・IDは共通列 name / player_id を先頭に足す）。"""
+    y = int(year)
+    B = "https://baseballsavant.mlb.com"
+    out = {}
+    out["ArmStrength"] = _savant_csv("送球(Arm Strength)", [
+        f"{B}/leaderboard/arm-strength?type=player&year={y}&minThrows=25&pos=&team=&csv=true",
+        f"{B}/leaderboard/arm-strength?type=player&year={y}&minThrows=10&pos=&team=&csv=true"])
+    out["ArmValue"] = _savant_csv("アームバリュー", [
+        f"{B}/leaderboard/arm-value?type=player&year={y}&minThrows=q&pitchHand=&pos=&team=&csv=true",
+        f"{B}/leaderboard/arm-value?type=fielder&year={y}&minThrows=1&pitchHand=&pos=&team=&csv=true"])
+    try:
+        oj = statcast_outfielder_jump(y)
+        print(f"  外野ジャンプ: {len(oj)}行 列={list(oj.columns)}")
+    except Exception as e:  # noqa: BLE001
+        print(f"  [WARN] 外野ジャンプ取得失敗: {e}")
+        oj = pd.DataFrame()
+    out["OFJump"] = oj
+    out["CatcherBlocking"] = _savant_csv("捕手ブロッキング", [
+        f"{B}/leaderboard/catcher-blocking?type=catcher&seasonStart={y}&seasonEnd={y}&team=&min=q&csv=true",
+        f"{B}/leaderboard/catcher-blocking?type=catcher&year={y}&team=&min=1&csv=true"])
+    out["BaseRunRV"] = _savant_csv("走塁得点(Baserunning Run Value)", [
+        f"{B}/leaderboard/baserunning-run-value?game_type=Regular&n=q&pos=&team=&type=Runner&year={y}&csv=true",
+        f"{B}/leaderboard/baserunning-run-value?game_type=Regular&n=1&pos=&team=&type=Runner&year={y}&csv=true"])
+    out["XBT"] = _savant_csv("追加進塁(XBT)", [
+        f"{B}/leaderboard/baserunning?game_type=Regular&n=q&pos=&team=&type=Runner&year={y}&csv=true",
+        f"{B}/leaderboard/extra-bases-taken?type=Runner&year={y}&n=q&csv=true",
+        f"{B}/leaderboard/running_splits?type=xbt&year={y}&csv=true"])
+    try:
+        rs = statcast_running_splits(y, min_opp=1, raw_splits=True)
+        print(f"  ランニングスプリット(一塁到達): {len(rs)}行 列={list(rs.columns)}")
+    except Exception as e:  # noqa: BLE001
+        print(f"  [WARN] ランニングスプリット取得失敗: {e}")
+        rs = pd.DataFrame()
+    out["RunningSplits"] = rs
+    # Baseball-Reference の走塁得点（Rbaser）。FanGraphsのBsRに近い走塁の総合指標
+    try:
+        fetch_bwar(y)   # _BWAR_DF を用意（失敗しても下で握りつぶす）
+        d = _BWAR_DF[(_BWAR_DF["year_ID"] == y) & (_BWAR_DF["pitcher"].astype(str).str.upper() != "Y")].copy()
+        d["mlb_ID"] = pd.to_numeric(d["mlb_ID"], errors="coerce")
+        d["runs_br"] = pd.to_numeric(d["runs_br"], errors="coerce")
+        d = d.dropna(subset=["mlb_ID", "runs_br"])
+        g = d.groupby("mlb_ID", as_index=False)["runs_br"].sum()
+        ids = [int(x) for x in g["mlb_ID"]]
+        names = resolve_names(ids, os.path.join(BASE_DATA_DIR, "_cache", "player_names.json"))
+        out["Rbaser"] = pd.DataFrame([{"name": names[i], "player_id": i, "rbaser": round(float(v), 1)}
+                                      for i, v in zip(ids, g["runs_br"]) if i in names],
+                                     columns=["name", "player_id", "rbaser"])
+        print(f"  Rbaser: {len(out['Rbaser'])}行")
+    except Exception as e:  # noqa: BLE001
+        print(f"  [WARN] Rbaser取得失敗: {e}")
+        out["Rbaser"] = pd.DataFrame(columns=["name", "player_id", "rbaser"])
+    return out
+
+
 def defense_cache_path(year, game_type: str) -> str:
     """OAA/スプリントスピードの中間キャッシュxlsxのパス（年・試合種別ごとに1ファイル）"""
     return os.path.join(BASE_DATA_DIR, f"{year}年", game_type, "defense", f"{year}_defense.xlsx")
@@ -2529,6 +2609,8 @@ def run_defense_season(year, game_type: str) -> str:
     war_df = fetch_bwar(int(year))
     print(f"  盗塁・盗塁死(StatsAPI)取得: {year}年")
     running_df = fetch_running_stats(int(year))
+    print(f"  守備・走塁の追加指標取得: {year}年")
+    extra = fetch_extra_defense(int(year))
 
     out_path = defense_cache_path(year, game_type)
     os.makedirs(os.path.dirname(out_path), exist_ok=True)
@@ -2541,6 +2623,8 @@ def run_defense_season(year, game_type: str) -> str:
         (poptime_df if not poptime_df.empty else pd.DataFrame(columns=poptime_df.columns)).to_excel(writer, sheet_name="CatcherPoptime", index=False)
         war_df.to_excel(writer, sheet_name="WAR", index=False)
         running_df.to_excel(writer, sheet_name="Running", index=False)
+        for sname, sdf in extra.items():
+            (sdf if not sdf.empty else pd.DataFrame({"empty": []})).to_excel(writer, sheet_name=sname, index=False)
     os.replace(tmp_path, out_path)
     print(
         f"  ✓ 守備・走塁キャッシュ: {out_path} "
