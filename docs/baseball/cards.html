@@ -6726,7 +6726,6 @@ function renderDefenseSection(seasonsMap, ys){
   // 列定義：kind "row"＝行ごとの値、"year"＝年度ごとの結合セル。get(行, 年度データ)→{t:表示文字列, r:順位}
   const cols = [
     { label: "OAA", kind: "row", get: (r) => r.o ? { t: num(r.o.outs_above_average, 0, true), r: r.o.rank } : null },
-    { label: "成功率", kind: "row", get: (r) => r.o && r.o.actual_success_rate != null ? { t: num(r.o.actual_success_rate, 0) + "%", r: r.o.success_rank } : null },
     { label: "送球速度", kind: "row", get: (r, Y) => {
         const df = Y.df, a = df.arm || {};
         if(r.catcher) return df.catcher_poptime && df.catcher_poptime.arm_strength != null ? { t: num(df.catcher_poptime.arm_strength, 1) + " mph", r: df.arm_rank } : null;
@@ -6756,8 +6755,8 @@ function renderDefenseSection(seasonsMap, ys){
   const yTd = (y, span) => `<td rowspan="${span}" class="kst-year-cell def-year"${yrAttr(y)} style="background:var(--panel)">${yrDot(y)}${escapeHtml(y)}年</td>`;
   const fieldHtml = yearRows.length ? `
     <div class="fctrl-group-title" style="margin-top:0">守備</div>
-    <div class="table-scroll"><table class="split-table kst-table"><thead><tr><th class="kst-year-cell def-year">年度</th><th>ポジション</th>${usedCols.map(c => `<th>${c.label}</th>`).join("")}</tr></thead><tbody>
-      ${yearRows.map(({ Y, rows }) => rows.map((r, i) => `<tr>${i === 0 ? yTd(Y.y, rows.length) : ""}<td style="text-align:center">${r.catcher ? "捕" : r.o ? escapeHtml(r.o.pos) : "-"}</td>${usedCols.map(c =>
+    <div class="table-scroll"><table class="split-table kst-table"><thead><tr><th class="kst-year-cell def-year">年度</th><th class="def-year">ポジション</th>${usedCols.map(c => `<th>${c.label}</th>`).join("")}</tr></thead><tbody>
+      ${yearRows.map(({ Y, rows }) => rows.map((r, i) => `<tr>${i === 0 ? yTd(Y.y, rows.length) : ""}<td class="def-year" style="text-align:center">${r.catcher ? "捕" : r.o ? escapeHtml(r.o.pos) : "-"}</td>${usedCols.map(c =>
         c.kind === "year" ? (i === 0 ? (() => { const v = c.get(Y); return v ? rankedTd(v.t, rk(v.r)).replace("<td", `<td rowspan="${rows.length}"`) : `<td rowspan="${rows.length}">-</td>`; })() : "") : cell(c.get(r, Y))
       ).join("")}</tr>`).join("")).join("")}
     </tbody></table></div>`
