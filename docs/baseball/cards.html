@@ -249,6 +249,7 @@
   .ss-table td.ss-name-cell{ text-align:left; font-size:13px; font-weight:700; color:var(--text-bright); }
   .ss-table td.ss-year{ text-align:center; font-weight:700; color:var(--text-bright); }
   .ss-table th.ss-year, .ss-table th.ss-name-cell{ text-align:left; }
+  .kst-table .def-year{ width:100px; min-width:100px; max-width:100px; box-sizing:border-box; }
   td.rs-hl{ background-image:linear-gradient(rgba(255,255,255,0.09), rgba(255,255,255,0.09)) !important; }
   .ctitle, .hm-canvas-title{ min-height:12px; line-height:12px !important; margin-bottom:5px !important; }
 </style>
@@ -6752,10 +6753,10 @@ function renderDefenseSection(seasonsMap, ys){
   }).filter(x => x.rows.length);
   const usedCols = cols.filter(c => yearRows.some(({ Y, rows }) => c.kind === "year" ? c.get(Y) : rows.some(r => c.get(r, Y))));
   const cell = (v) => v ? rankedTd(v.t, rk(v.r)) : `<td>-</td>`;
-  const yTd = (y, span) => `<td rowspan="${span}" class="kst-year-cell"${yrAttr(y)} style="background:var(--panel)">${yrDot(y)}${escapeHtml(y)}年</td>`;
+  const yTd = (y, span) => `<td rowspan="${span}" class="kst-year-cell def-year"${yrAttr(y)} style="background:var(--panel)">${yrDot(y)}${escapeHtml(y)}年</td>`;
   const fieldHtml = yearRows.length ? `
     <div class="fctrl-group-title" style="margin-top:0">守備</div>
-    <div class="table-scroll"><table class="split-table kst-table"><thead><tr><th class="kst-year-cell">年度</th><th>ポジション</th>${usedCols.map(c => `<th>${c.label}</th>`).join("")}</tr></thead><tbody>
+    <div class="table-scroll"><table class="split-table kst-table"><thead><tr><th class="kst-year-cell def-year">年度</th><th>ポジション</th>${usedCols.map(c => `<th>${c.label}</th>`).join("")}</tr></thead><tbody>
       ${yearRows.map(({ Y, rows }) => rows.map((r, i) => `<tr>${i === 0 ? yTd(Y.y, rows.length) : ""}<td style="text-align:center">${r.catcher ? "捕" : r.o ? escapeHtml(r.o.pos) : "-"}</td>${usedCols.map(c =>
         c.kind === "year" ? (i === 0 ? (() => { const v = c.get(Y); return v ? rankedTd(v.t, rk(v.r)).replace("<td", `<td rowspan="${rows.length}"`) : `<td rowspan="${rows.length}">-</td>`; })() : "") : cell(c.get(r, Y))
       ).join("")}</tr>`).join("")).join("")}
@@ -6772,8 +6773,8 @@ function renderDefenseSection(seasonsMap, ys){
   ].filter(c => yearData.some(Y => c.get(Y)));
   const runHtml = runCols.length ? `
     <div class="fctrl-group-title" style="margin-top:14px">走塁</div>
-    <div class="table-scroll"><table class="split-table kst-table"><thead><tr><th class="kst-year-cell">年度</th>${runCols.map(c => `<th>${c.label}</th>`).join("")}</tr></thead><tbody>
-      ${yearData.map(Y => `<tr><td class="kst-year-cell"${yrAttr(Y.y)} style="background:var(--panel)">${yrDot(Y.y)}${escapeHtml(Y.y)}年</td>${runCols.map(c => cell(c.get(Y))).join("")}</tr>`).join("")}
+    <div class="table-scroll"><table class="split-table kst-table"><thead><tr><th class="kst-year-cell def-year">年度</th>${runCols.map(c => `<th>${c.label}</th>`).join("")}</tr></thead><tbody>
+      ${yearData.map(Y => `<tr><td class="kst-year-cell def-year"${yrAttr(Y.y)} style="background:var(--panel)">${yrDot(Y.y)}${escapeHtml(Y.y)}年</td>${runCols.map(c => cell(c.get(Y))).join("")}</tr>`).join("")}
     </tbody></table></div>` : "";
   return fieldHtml + runHtml;
 }
