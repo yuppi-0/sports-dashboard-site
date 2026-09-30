@@ -2573,6 +2573,33 @@ def fetch_extra_defense(year: int) -> dict:
         oj = pd.DataFrame()
     out["OFJump"] = oj
     yrs = [f"seasonStart={y}&seasonEnd={y}", f"startYear={y}&endYear={y}", f"year={y}", f"start_year={y}&end_year={y}"]
+    if y == 2025:   # 年指定の探索（どの書き方が効くかを FetchLog に残す）。確定したら消す
+        for ep, extra_q, valcol in (
+            ("catcher-blocking", "type=catcher&team=&min=q", "catcher_blocking_runs"),
+            ("baserunning-run-value", "game_type=Regular&n=q&pos=&team=&type=Runner", "runner_runs_tot"),
+        ):
+            for q in ("year=2024", "season=2024", "seasonStart=2024&seasonEnd=2024", "startYear=2024&endYear=2024",
+                      "start_year=2024&end_year=2024", "year=2024&startYear=2024&endYear=2024",
+                      "seasonStart=2024-03-01&seasonEnd=2024-11-30", "yearStart=2024&yearEnd=2024", "years=2024"):
+                try:
+                    r = requests.get(f"{B}/leaderboard/{ep}?{extra_q}&{q}&csv=true", headers=_SAVANT_HEADERS, timeout=60)
+                    t = r.content.decode("utf-8-sig")
+                    if t.lstrip().startswith("<"):
+                        _slog(f"  [PROBE] {ep} {q}: HTML/{r.status_code}")
+                        continue
+                    d = pd.read_csv(io.StringIO(t), engine="python", on_bad_lines="skip")
+                    nm = d.iloc[:3, 1].tolist() if d.shape[1] > 1 else []
+                    _slog(f"  [PROBE] {ep} {q}: rows={len(d)} sum={pd.to_numeric(d.get(valcol), errors='coerce').sum():.1f} first={nm} start_year={d.get('start_year', pd.Series(dtype=float)).unique()[:3]}")
+                except Exception as e:  # noqa: BLE001
+                    _slog(f"  [PROBE] {ep} {q}: ERR {e}")
+        for ep in ("arm-value", "fielding-run-value", "outfield-arm", "arm-strength-value", "fielding_run_value", "arm_strength_value"):
+            for q in (f"type=player&year={y}&csv=true", f"year={y}&csv=true", f"type=fielder&year={y}&csv=true"):
+                try:
+                    r = requests.get(f"{B}/leaderboard/{ep}?{q}", headers=_SAVANT_HEADERS, timeout=60)
+                    t = r.content.decode("utf-8-sig")
+                    _slog(f"  [PROBE] {ep} {q}: status={r.status_code} html={t.lstrip().startswith('<')} head={t[:120]!r}")
+                except Exception as e:  # noqa: BLE001
+                    _slog(f"  [PROBE] {ep} {q}: ERR {e}")
     out["CatcherBlocking"] = _savant_csv("捕手ブロッキング",
         [f"{B}/leaderboard/catcher-blocking?type=catcher&{q}&team=&min=q&csv=true" for q in yrs], year=y)
     out["BaseRunRV"] = _savant_csv("走塁得点(Baserunning Run Value)",
