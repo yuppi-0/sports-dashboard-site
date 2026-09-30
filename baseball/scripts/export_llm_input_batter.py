@@ -1315,24 +1315,24 @@ def _load_extra_defense_sheets(wb, result: dict, path: str) -> None:
         _entry(k)["arm_value"] = {"runs": _fnum(r, _col(df, "total_runs", "arm_runs", "arm_value", "runs", "arm_run_value"), 1)}
     for df, r, k in _each("OFJump"):
         _entry(k)["of_jump"] = {
-            "jump": _fnum(r, _col(df, "jump_feet_vs_avg", "feet_vs_avg", "jump", "outs_above_average"), 1),
-            "reaction": _fnum(r, _col(df, "reaction_distance", "reaction_feet_vs_avg", "reaction"), 1),
-            "burst": _fnum(r, _col(df, "burst_distance", "burst_feet_vs_avg", "burst"), 1),
-            "route": _fnum(r, _col(df, "routing_distance", "route_feet_vs_avg", "route", "routing"), 1),
+            "jump": _fnum(r, _col(df, "outs_above_average"), 0),
+            "reaction": _fnum(r, _col(df, "rel_league_reaction_distance"), 1),
+            "burst": _fnum(r, _col(df, "rel_league_burst_distance"), 1),
+            "route": _fnum(r, _col(df, "rel_league_routing_distance"), 1),
         }
     for df, r, k in _each("CatcherBlocking"):
         _entry(k)["blocking"] = {
-            "runs": _fnum(r, _col(df, "blocking_runs", "block_runs", "rv_tot", "runs_blocking"), 1),
-            "blocks_above_avg": _fnum(r, _col(df, "blocks_above_average", "blocks_above_avg", "pitches_blocked_above_avg", "diff"), 1),
+            "runs": _fnum(r, _col(df, "catcher_blocking_runs"), 1),
+            "blocks_above_avg": _fnum(r, _col(df, "blocks_above_average"), 1),
         }
     for df, r, k in _each("BaseRunRV"):
-        _entry(k).setdefault("baserunning", {})["runs"] = _fnum(r, _col(df, "runner_runs_tot", "runs_tot", "total_runs", "runs", "rv_tot"), 1)
-    for df, r, k in _each("XBT"):
         b = _entry(k).setdefault("baserunning", {})
-        b["xbt_pct"] = _fnum(r, _col(df, "xbt_pct", "extra_bases_taken_pct", "xbt%", "xbt"), 1)
+        b["runs"] = _fnum(r, _col(df, "runner_runs_tot"), 1)
+        b["xb_runs"] = _fnum(r, _col(df, "runner_runs_XB"), 1)        # 追加進塁（XBT）の得点価値
+        b["sb_runs"] = _fnum(r, _col(df, "runner_runs_SBX"), 1)       # 盗塁の得点価値
     for df, r, k in _each("RunningSplits"):
         b = _entry(k).setdefault("baserunning", {})
-        b["home_to_first"] = _fnum(r, _col(df, "hp_to_1b", "seconds_since_hit_090", "home_to_first"), 2)
+        b["home_to_first"] = _fnum(r, _col(df, "seconds_since_hit_090", "hp_to_1b", "home_to_first"), 2)
     for df, r, k in _each("Rbaser"):
         _entry(k).setdefault("baserunning", {})["rbaser"] = _fnum(r, _col(df, "rbaser"), 1)
 
@@ -1710,7 +1710,7 @@ def export_llm_input_batter_xlsx(games_json_dir: str, out_path: str, min_pa: flo
         ("of_burst", "of_jump", "burst", True), ("of_route", "of_jump", "route", True),
         ("blocking", "catcher_blocking", "runs", True), ("blocks_above_avg", "catcher_blocking", "blocks_above_avg", True),
         ("br_runs", "baserunning", "runs", True), ("rbaser", "baserunning", "rbaser", True),
-        ("xbt_pct", "baserunning", "xbt_pct", True), ("home_to_first", "baserunning", "home_to_first", False),
+        ("xb_runs", "baserunning", "xb_runs", True), ("sb_runs", "baserunning", "sb_runs", True), ("home_to_first", "baserunning", "home_to_first", False),
     ):
         vals = []
         for name, card in numeric_cards.items():

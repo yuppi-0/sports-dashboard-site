@@ -6739,7 +6739,7 @@ function renderDefenseSection(seasonsMap, ys){
     { label: "外野からの送球", get: (df) => sub(df.arm, "arm_of"), fmt: f1(1, " mph"), rk: (df) => mr(df, "arm_of") },
     { label: "最大送球速度", get: (df) => sub(df.arm, "max_arm"), fmt: f1(1, " mph"), rk: (df) => mr(df, "max_arm") },
     { label: "アームバリュー(得点)", get: (df) => sub(df.arm_value, "runs"), fmt: f1(1, "", true), rk: (df) => mr(df, "arm_value") },
-    { label: "外野ジャンプ(ft)", get: (df) => sub(df.of_jump, "jump"), fmt: f1(1, "", true), rk: (df) => mr(df, "of_jump") },
+    { label: "外野ジャンプOAA", get: (df) => sub(df.of_jump, "jump"), fmt: f1(0, "", true), rk: (df) => mr(df, "of_jump") },
     { label: "反応(ft)", get: (df) => sub(df.of_jump, "reaction"), fmt: f1(1, "", true), rk: (df) => mr(df, "of_reaction") },
     { label: "初動(ft)", get: (df) => sub(df.of_jump, "burst"), fmt: f1(1, "", true), rk: (df) => mr(df, "of_burst") },
     { label: "ルート(ft)", get: (df) => sub(df.of_jump, "route"), fmt: f1(1, "", true), rk: (df) => mr(df, "of_route") },
@@ -6758,7 +6758,8 @@ function renderDefenseSection(seasonsMap, ys){
     { label: "スプリントスピード", get: (df) => df.sprint_speed, fmt: f1(1, " ft/s"), rk: (df) => df.sprint_rank },
     { label: "走塁得点(BsR)", get: (df) => sub(df.baserunning, "rbaser"), fmt: f1(1, "", true), rk: (df) => mr(df, "rbaser") },
     { label: "走塁得点(Statcast)", get: (df) => sub(df.baserunning, "runs"), fmt: f1(1, "", true), rk: (df) => mr(df, "br_runs") },
-    { label: "追加進塁率(XBT%)", get: (df) => sub(df.baserunning, "xbt_pct"), fmt: f1(1, "%"), rk: (df) => mr(df, "xbt_pct") },
+    { label: "追加進塁(XBT)得点", get: (df) => sub(df.baserunning, "xb_runs"), fmt: f1(1, "", true), rk: (df) => mr(df, "xb_runs") },
+    { label: "盗塁得点", get: (df) => sub(df.baserunning, "sb_runs"), fmt: f1(1, "", true), rk: (df) => mr(df, "sb_runs") },
     { label: "一塁到達(秒)", get: (df) => sub(df.baserunning, "home_to_first"), fmt: f1(2, "秒"), rk: (df) => mr(df, "home_to_first") },
   ]);
   return fieldHtml + armHtml + catcherHtml + runHtml;
