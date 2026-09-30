@@ -104,9 +104,9 @@
     .app > header{ padding:6px 12px 8px; gap:0; }
     .app > header h1{ display:none; }
     .app > header .header-controls{ width:100%; display:flex; flex-wrap:wrap; gap:6px; align-items:center; }
-    .app > header .mode-switch{ order:1; margin:0; display:flex; gap:2px; padding:2px; border-radius:9px; }
+    .app > header .mode-switch{ order:2; margin:0; display:flex; gap:2px; padding:2px; border-radius:9px; }
     .app > header .mode-switch button{ padding:6px 12px; font-size:13px; border-radius:7px; }
-    .app > header .league-toggle{ order:2; gap:2px; padding:2px; }
+    .app > header .league-toggle{ order:1; gap:2px; padding:2px; }
     .app > header .league-toggle button{ padding:5px 9px; font-size:12px; }
     .app > header .year-select{ order:3; padding:6px 8px; }
     .app > header .header-change-player-btn{ order:4; margin-left:auto; padding:6px 11px !important; font-size:11.5px !important; }
@@ -236,9 +236,9 @@
   .p-name-row{ display:flex; align-items:center; flex-wrap:wrap; gap:6px 12px; }
   .pmix-table.ss-table, .pmix-table.ss-table th, .pmix-table.ss-table td{ font-family:inherit; }
   .pmix-table.ss-table th{ font-size:12px; font-weight:700; color:var(--text-dim); text-align:right; padding:8px 10px; white-space:nowrap; letter-spacing:0; }
-  .pmix-table.ss-table td{ text-align:right; padding:6px 10px; font-size:13px; }
-  .pmix-table.ss-table td .rk-val{ font-size:13px; }
-  .pmix-table.ss-table td.ss-name-cell, .pmix-table.ss-table th.ss-name-cell{ text-align:left; white-space:nowrap !important; min-width:0; font-size:13px; line-height:1.3; }
+  .pmix-table.ss-table td{ text-align:right; padding:6px 10px; font-size:12px; }
+  .pmix-table.ss-table td .rk-val{ font-size:12px; }
+  .pmix-table.ss-table td.ss-name-cell, .pmix-table.ss-table th.ss-name-cell{ text-align:left; white-space:nowrap !important; min-width:0; font-size:12px; line-height:1.3; }
   .pmix-table.ss-table td.ss-name-cell{ font-weight:700; color:var(--text-bright); }
   .pmix-table.ss-table td.ss-year{ text-align:center; font-weight:700; color:var(--text-bright); }
   .pmix-table.ss-table th.ss-year{ text-align:left; }
@@ -253,8 +253,8 @@
 
   /* 球種別成績などpmix表：数値の書体・サイズ・順位色を打者の表に合わせる */
   .pmix-table, .pmix-table th, .pmix-table td{ font-family:inherit; }
-  .pmix-table td .pmix-val{ font-size:13px; font-weight:700; }
-  .pmix-table td .pmix-count-main{ display:block; font-size:13px; font-weight:700; line-height:1.25; }
+  .pmix-table td .pmix-val{ font-size:12px; font-weight:700; }
+  .pmix-table td .pmix-count-main{ display:block; font-size:12px; font-weight:700; line-height:1.25; }
   .pmix-table td .pmix-count-sub{ display:block; font-size:9px; font-weight:400; color:var(--text-dim); line-height:1.1; }
   .pmix-val.t-top15{ color:#5EEAD4; font-weight:800; } .pmix-val.t-top30{ color:#7FD8CD; } .pmix-val.t-top40{ color:#A9DAD5; }
   .pmix-val.t-bot60{ color:#E9B8C4; } .pmix-val.t-bot70{ color:#F59AB1; } .pmix-val.t-bot85{ color:#FFA6BD; font-weight:800; }
@@ -274,6 +274,11 @@
     .split-table td.kst-key-cell, .split-table th.kst-key-cell{ padding:4px 5px !important; font-size:12px !important; }
     .kst-table th, .kst-table td{ padding:4px 6px !important; }
     .split-table.kst-table:has(.def-year){ width:max-content; min-width:0; }
+    /* 表の文字サイズ：シーズン打撃成績の表（10.5px）にそろえる */
+    .split-table th, .split-table td, .kst-table th, .kst-table td, .kst-table .rk-val, .split-table td .rk-val,
+    .vsb-table th, .vsb-table td, .pmix-table th, .pmix-table td, .pmix-table td .pmix-val, .pmix-table td .pmix-count-main,
+    .pmix-table.ss-table th, .pmix-table.ss-table td, .pmix-table.ss-table td .rk-val, .pmix-table.ss-table td.ss-name-cell,
+    .split-table td.kst-key-cell, .split-table th.kst-key-cell{ font-size:10.5px !important; }
     .kst-table .def-year{ width:64px; min-width:64px; max-width:64px; }
     .kst-table .def-pos{ width:42px; min-width:42px; max-width:42px; }
     .pmix-table.ss-table{ min-width:0 !important; }
@@ -1344,7 +1349,7 @@
         <button type="button" data-mode="batter">打者</button>
       </div>
       <div class="league-toggle">
-        <button data-league="npb" class="active">プロ野球</button>
+        <button data-league="npb" class="active">NPB</button>
         <button data-league="mlb">MLB</button>
       </div>
       <button type="button" class="nav-back-btn" hidden></button>
@@ -1424,7 +1429,7 @@
         <button type="button" data-mode="batter" class="active">打者</button>
       </div>
       <div class="league-toggle">
-        <button data-league="npb" class="active">プロ野球</button>
+        <button data-league="npb" class="active">NPB</button>
         <button data-league="mlb">MLB</button>
       </div>
       <button type="button" id="sidebarToggleBtn" class="header-change-player-btn">選手を変更</button>
@@ -2007,6 +2012,7 @@ async function loadPlayerIndex(league){
   const myToken = ++playerIndexLoadToken;
   // このリーグを前回開いていたときの状態が残っていればそれを復元し、初めて開くリーグだけ
   // 従来どおりの既定値（AIコメントがある選手のみ・K-BB%降順）にする。
+  roots.pitcher.querySelectorAll(".league-toggle button").forEach(b => b.classList.toggle("active", b.dataset.league === league));
   const saved = leagueStateCache[league] || null;
   playerListEl.innerHTML = '<div class="empty-list">読み込み中…</div>';
   mainContentEl.innerHTML = '<div class="placeholder">左の一覧から選手を選んでください</div>';
@@ -2584,11 +2590,11 @@ async function loadAllLlmPlayerNames(token, league){
   llmDataLoaded = true;
 }
 
-document.querySelectorAll(".league-toggle button").forEach(btn => {
+roots.pitcher.querySelectorAll(".league-toggle button").forEach(btn => {
   btn.addEventListener("click", () => {
     if(btn.dataset.league === currentLeague) return;
     leagueStateCache[currentLeague] = snapshotLeagueState(); // 今見ていた条件・選手を退避してから切り替える
-    document.querySelectorAll(".league-toggle button").forEach(b => b.classList.remove("active"));
+    roots.pitcher.querySelectorAll(".league-toggle button").forEach(b => b.classList.remove("active"));
     btn.classList.add("active");
     currentLeague = btn.dataset.league;
     loadPlayerIndex(currentLeague);
@@ -4718,7 +4724,7 @@ cardsShell.register("pitcher", {
   async setLeague(league){
     if(!league || league === currentLeague || !LEAGUE_PATHS[league]) return;
     leagueStateCache[currentLeague] = snapshotLeagueState();
-    document.querySelectorAll(".league-toggle button").forEach(b => b.classList.toggle("active", b.dataset.league === league));
+    roots.pitcher.querySelectorAll(".league-toggle button").forEach(b => b.classList.toggle("active", b.dataset.league === league));
     currentLeague = league;
     await loadPlayerIndex(league);
   },
@@ -4727,7 +4733,7 @@ cardsShell.register("pitcher", {
       leagueStateCache[currentLeague] = snapshotLeagueState();
       // リーグ切替時に「前回選んでいた選手」の自動選択が走ると、これから開く選手を上書きしうるので消しておく
       if(leagueStateCache[league]) leagueStateCache[league].activePlayerId = null;
-      document.querySelectorAll(".league-toggle button").forEach(b => b.classList.toggle("active", b.dataset.league === league));
+      roots.pitcher.querySelectorAll(".league-toggle button").forEach(b => b.classList.toggle("active", b.dataset.league === league));
       currentLeague = league;
       await loadPlayerIndex(league);
     }
@@ -4948,6 +4954,7 @@ function restoreMselSelection(wrap, savedValues){
 }
 
 async function loadPlayerIndex(league){
+  roots.batter.querySelectorAll(".league-toggle button").forEach(b => b.classList.toggle("active", b.dataset.league === league));
   const saved = leagueStateCache[league] || null;
   playerListEl.innerHTML = '<div class="empty-list">読み込み中…</div>';
   mainContentEl.innerHTML = '<div class="placeholder">左の一覧から選手を選んでください</div>';
@@ -5161,11 +5168,11 @@ aiOnlyFilterEl.addEventListener("change", async () => {
   renderPlayerList();
 });
 
-document.querySelectorAll(".league-toggle button").forEach(btn => {
+roots.batter.querySelectorAll(".league-toggle button").forEach(btn => {
   btn.addEventListener("click", () => {
     if(btn.dataset.league === currentLeague) return;
     leagueStateCache[currentLeague] = snapshotLeagueState();
-    document.querySelectorAll(".league-toggle button").forEach(b => b.classList.remove("active"));
+    roots.batter.querySelectorAll(".league-toggle button").forEach(b => b.classList.remove("active"));
     btn.classList.add("active");
     currentLeague = btn.dataset.league;
     loadPlayerIndex(currentLeague);
@@ -7086,7 +7093,7 @@ cardsShell.register("batter", {
   async setLeague(league){
     if(!league || league === currentLeague || !LEAGUE_PATHS[league]) return;
     leagueStateCache[currentLeague] = snapshotLeagueState();
-    document.querySelectorAll(".league-toggle button").forEach(b => b.classList.toggle("active", b.dataset.league === league));
+    roots.batter.querySelectorAll(".league-toggle button").forEach(b => b.classList.toggle("active", b.dataset.league === league));
     currentLeague = league;
     await loadPlayerIndex(league);
   },
@@ -7094,7 +7101,7 @@ cardsShell.register("batter", {
     if(league && league !== currentLeague && LEAGUE_PATHS[league]){
       leagueStateCache[currentLeague] = snapshotLeagueState();
       if(leagueStateCache[league]) leagueStateCache[league].activePlayerId = null;
-      document.querySelectorAll(".league-toggle button").forEach(b => b.classList.toggle("active", b.dataset.league === league));
+      roots.batter.querySelectorAll(".league-toggle button").forEach(b => b.classList.toggle("active", b.dataset.league === league));
       currentLeague = league;
       await loadPlayerIndex(league);
     }
@@ -7286,8 +7293,10 @@ document.addEventListener("click", (e) => {
     backOrigin = null;                       // 手動でモードを切り替えたら「戻る」は出さない
     // 投手↔打者を切り替えても、プロ野球/MLBのタブは切替元のまま変えない
     // （各モードは別々にリーグ状態を持つため、そのままだと初期値のプロ野球に戻ってしまう）。
+    // 切替元で実際に選ばれているプロ野球/MLBタブ（画面のハイライト）を引き継ぐ。
     const fromCtrl = currentMode && controllers[currentMode];
-    const keepLeague = fromCtrl ? fromCtrl.getState().league : null;
+    const activeBtn = currentMode && roots[currentMode].querySelector(".league-toggle button.active");
+    const keepLeague = (activeBtn && activeBtn.dataset.league) || (fromCtrl ? fromCtrl.getState().league : null);
     switchMode(mb.dataset.mode);
     const c = controllers[mb.dataset.mode];
     history.replaceState(null, "", makeHash(mb.dataset.mode, c && c.getState()));
