@@ -136,6 +136,8 @@
   .header-controls{ flex-wrap:wrap; }
   .nav-back-btn{ flex:0 1 auto; order:10; }
   .mode-switch button, .league-toggle button{ white-space:nowrap; }
+  /* 左：プロ野球/MLB、右：投手/打者（スマホでは下の専用ルールが優先） */
+  .header-controls .league-toggle{ order:-1; }
 
   .kcmp-table th.kcmp-sep, .kcmp-table td.kcmp-sep{ border-left:1px solid rgba(148,163,184,0.28); }
   .kcmp-table td{ white-space:nowrap; }
@@ -211,6 +213,42 @@
   .ychip-cmp{ margin-left:4px; border-style:dashed; }
   .ychip-cmp.active{ border-style:solid; background:rgba(251,191,36,0.16); border-color:rgba(251,191,36,0.7); }
   /* 結合セル（rowspan）の行ハイライト：結合セルが含まれる行のどれにカーソルを当てても光らせる */
+
+  /* 投手・打者共通：KPIボックスの順位ティア色、表セルの値/順位表示、選手名行、シーズン成績表 */
+  .stat-box.t-top15 .value, .stat-box.t-top15 .rank{ color:#5EEAD4; }
+  .stat-box.t-top30 .value, .stat-box.t-top30 .rank{ color:#7FD8CD; }
+  .stat-box.t-top40 .value, .stat-box.t-top40 .rank{ color:#A9DAD5; }
+  .stat-box.t-bot60 .value, .stat-box.t-bot60 .rank{ color:#E9B8C4; }
+  .stat-box.t-bot70 .value, .stat-box.t-bot70 .rank{ color:#F59AB1; }
+  .stat-box.t-bot85 .value, .stat-box.t-bot85 .rank{ color:#FFA6BD; }
+  .stat-box.t-top15 .value, .stat-box.t-bot85 .value{ font-weight:800; }
+  .rk-val{ font-weight:700; }
+  .rk-val.t-top15{ color:#5EEAD4; font-weight:800; }
+  .rk-val.t-top30{ color:#7FD8CD; }
+  .rk-val.t-top40{ color:#A9DAD5; }
+  .rk-val.t-mid{ color:var(--text); }
+  .rk-val.t-bot60{ color:#E9B8C4; }
+  .rk-val.t-bot70{ color:#F59AB1; }
+  .rk-val.t-bot85{ color:#FFA6BD; font-weight:800; }
+  .rk-sub{ font-size:9px; color:var(--text-dim); margin-top:1px; white-space:nowrap; }
+  .rk-sub.t-top15{ color:#5EEAD4; } .rk-sub.t-top30{ color:#7FD8CD; } .rk-sub.t-top40{ color:#A9DAD5; }
+  .rk-sub.t-mid{ color:var(--text-dim); } .rk-sub.t-bot60{ color:#E9B8C4; } .rk-sub.t-bot70{ color:#F59AB1; } .rk-sub.t-bot85{ color:#FFA6BD; }
+  .p-name-row{ display:flex; align-items:center; flex-wrap:wrap; gap:6px 12px; }
+  .pmix-table.ss-table, .pmix-table.ss-table th, .pmix-table.ss-table td{ font-family:inherit; }
+  .pmix-table.ss-table th{ font-size:12px; font-weight:700; color:var(--text-dim); text-align:right; padding:8px 10px; white-space:nowrap; letter-spacing:0; }
+  .pmix-table.ss-table td{ text-align:right; padding:6px 10px; font-size:13px; }
+  .pmix-table.ss-table td .rk-val{ font-size:13px; }
+  .pmix-table.ss-table td.ss-name-cell, .pmix-table.ss-table th.ss-name-cell{ text-align:left; white-space:nowrap !important; min-width:0; font-size:13px; line-height:1.3; }
+  .pmix-table.ss-table td.ss-name-cell{ font-weight:700; color:var(--text-bright); }
+  .pmix-table.ss-table td.ss-year{ text-align:center; font-weight:700; color:var(--text-bright); }
+  .pmix-table.ss-table th.ss-year{ text-align:left; }
+  .ss-table{ font-family:inherit; }
+  .ss-table th{ font-size:12px; font-weight:700; color:var(--text-dim); text-align:right; padding:8px 10px; white-space:nowrap; }
+  .ss-table td{ text-align:right; padding:6px 10px; font-size:13px; line-height:1.25; }
+  .ss-table td .rk-val{ font-size:13px; }
+  .ss-table td.ss-name-cell{ text-align:left; font-size:13px; font-weight:700; color:var(--text-bright); }
+  .ss-table td.ss-year{ text-align:center; font-weight:700; color:var(--text-bright); }
+  .ss-table th.ss-year, .ss-table th.ss-name-cell{ text-align:left; }
   td.rs-hl{ background-image:linear-gradient(rgba(255,255,255,0.09), rgba(255,255,255,0.09)) !important; }
   .ctitle, .hm-canvas-title{ min-height:12px; line-height:12px !important; margin-bottom:5px !important; }
 </style>
@@ -2724,7 +2762,10 @@ function renderCard(d){
         <div class="p-header">
           <div class="p-avatar">${escapeHtml(initial)}</div>
           <div>
-            <div class="p-name">${escapeHtml(d.name)}</div>
+            <div class="p-name-row">
+              <div class="p-name">${escapeHtml(d.name)}</div>
+              ${d._availableYears && d._availableYears.length > 1 ? yearMselHtml(d._availableYears, selectedYearsOf(d)) : ""}
+            </div>
             <div class="p-meta-row">
               <span class="p-meta">${escapeHtml(d.team || "")}・${escapeHtml(d.throws_bats || "")}・${escapeHtml(d.role || "")}・${escapeHtml(formatSeasonResult(d))}</span>
               ${d._farmData ? `
@@ -2732,8 +2773,6 @@ function renderCard(d){
                 <button type="button" class="farm-toggle-btn ${!d._isFarm ? "active" : ""}" data-farm="0">1軍</button>
                 <button type="button" class="farm-toggle-btn ${d._isFarm ? "active" : ""}" data-farm="1">2軍</button>
               </div>` : ""}
-              ${d._availableYears && d._availableYears.length > 1 ? `
-              ${yearMselHtml(d._availableYears, selectedYearsOf(d))}` : ""}
             </div>
           </div>
         </div>
@@ -2741,8 +2780,8 @@ function renderCard(d){
         <div class="stat-grid">
           ${stats.map(s => {
             const valueHtml = s.valueList
-              ? `<div class="value multi-line" style="color:${s.color}; ${s.small ? 'font-size:13px' : ''}">${s.valueList.map(v => `<span>${escapeHtml(v)}</span>`).join("")}</div>`
-              : `<div class="value" style="color:${s.color}; ${s.small ? 'font-size:13px' : ''}">${escapeHtml(String(s.value))}</div>`;
+              ? `<div class="value multi-line" style="${s.small ? 'font-size:13px' : ''}">${s.valueList.map(v => `<span>${escapeHtml(v)}</span>`).join("")}</div>`
+              : `<div class="value" style="${s.small ? 'font-size:13px' : ''}">${escapeHtml(String(s.value))}</div>`;
             return `
             <div class="stat-box t-${s.tier || "mid"}">
               <div class="label">${s.label}</div>
@@ -2754,7 +2793,6 @@ function renderCard(d){
       </div>
 
       ${d._2gunOnly ? `<div class="no-llm-note">※ この選手は1軍での登板記録が無いため、2軍のデータを表示しています</div>` : ""}
-      ${(d._noLlm && !d._2gunOnly) ? `<div class="no-llm-note">※ この選手のAI解釈テキストはまだ生成されていません（数値データのみ表示中）</div>` : ""}
 
       ${gameLogParts.season}
 
@@ -4241,29 +4279,25 @@ function buildGameLogTable(d){
   const SS_ORDER = ["kbb_pct", "k_pct", "bb_pct", "gb_pct", "swstr_pct", "chase_pct", "strike_pct", "zone_pct"];
   const ssCols = SS_ORDER.map(k => cols.find(c => c.key === k)).filter(Boolean);
   const RK_KEY = { swstr_pct: "swstr_pct", chase_pct: "chase_pct", strike_pct: "strike_pct", zone_pct: "zone_pct", kbb_pct: "k_bb_pct", k_pct: "k_pct", bb_pct: "bb_pct", gb_pct: "gb_pct" };
-  const SSW = 96;
-  const ssStk = "position:sticky;left:0;z-index:1;background:var(--panel);";
   const seasonRowHtml = (entry) => {
     const rkAll = (entry.data && entry.data.rankings) || {};
     return `
     <tr>
-      <td${yrAttr(entry.year)} style="${ssStk}text-align:center;font-weight:700">${yrDot(entry.year)}${escapeHtml(String(entry.year))}${/^\d{4}$/.test(String(entry.year)) ? "年" : ""}</td>
-      <td class="ss-name-cell" style="position:static;left:auto">${formatSeasonResult(entry.data, true).split("<br>").map(escapeHtml).join("<br>")}</td>
+      <td class="ss-year"${yrAttr(entry.year)}>${yrDot(entry.year)}${escapeHtml(String(entry.year))}${/^\d{4}$/.test(String(entry.year)) ? "年" : ""}</td>
+      <td class="ss-name-cell">${formatSeasonResult(entry.data, true).split("<br>").map(escapeHtml).join("<br>")}</td>
       ${ssCols.map(c => {
         const v = entry.data[c.key + "_season"];
         const r = rkAll[RK_KEY[c.key]];
-        const tier = tierFromRank(r);
-        const bg = tier ? (TIER_COLOR[tier] || "") : "";
-        const rt = r && r.rank != null ? `<span class="pmix-val" style="font-size:9px;color:var(--text-dim)">${r.rank}位/${r.total}人中</span>` : "";
-        return `<td style="${bg ? `background:${bg};` : ""}text-align:right"><span class="pmix-val">${v != null ? v + "%" : "-"}</span>${rt}</td>`;
+        const rr = r && r.rank != null ? r : null, tier = rr ? tierFromRank(rr) : null;
+        const bg = tier ? (TIER_COLOR[tier] || "") : "", tc = tier ? ` t-${tier}` : "";
+        const txt = v != null ? v + "%" : "-";
+        return `<td${bg ? ` style="background:${bg}"` : ""}>${rr ? `<div class="rk-val${tc}">${txt}</div><div class="rk-sub${tc}">${rr.rank}位 / ${rr.total}人中</div>` : txt}</td>`;
       }).join("")}
     </tr>
   `;};
-  const ssTotalW = 86 + 150 + ssCols.length * SSW;
   const seasonTabHtml = `
-    <div class="pmix-scroll"><table class="pmix-table pmix-cmp" style="width:${ssTotalW}px;table-layout:fixed">
-      <colgroup><col style="width:86px"><col style="width:150px">${ssCols.map(() => `<col style="width:${SSW}px">`).join("")}</colgroup>
-      <thead><tr><th style="position:sticky;left:0;z-index:4;background:var(--panel-alt)">年度</th><th style="text-align:left;position:static;left:auto">結果</th>${ssCols.map(c => `<th>${c.label}</th>`).join("")}</tr></thead>
+    <div class="pmix-scroll"><table class="pmix-table pmix-cmp ss-table" style="width:max-content;min-width:100%">
+      <thead><tr><th class="ss-year">年度</th><th class="ss-name-cell">結果</th>${ssCols.map(c => `<th>${c.label}</th>`).join("")}</tr></thead>
       <tbody>${seasonEntries.map(seasonRowHtml).join("")}</tbody>
     </table></div>
   `;
@@ -6139,7 +6173,7 @@ const PV_FULL_COLUMNS = [
 // 「-」になってしまうため）。MLBはpitchSplits側でも打点を算出できるため常に表示する。
 // 年度ごとのシーズン成績表（最上部）だけに足す列：WAR（打席の右）と、Pull%の後ろの守備・走塁指標
 const PV_EXT_WAR = ["war", "WAR"];
-const PV_EXT_TAIL = [["oaa", "OAA"], ["frp", "守備防止点"], ["sb", "盗塁"], ["sb_pct", "盗塁成功率"], ["sprint_speed", "スプリントスピード"]];
+const PV_EXT_TAIL = [];   // OAA以降（守備・走塁）は「シーズン守備・走塁成績」に移した
 function pvFullColumnsFor(activeAxes, ext){
   let cols = currentLeague === "npb" ? PV_FULL_COLUMNS.filter(([k]) => !MLB_ONLY_METRIC_KEYS.has(k)) : PV_FULL_COLUMNS;
   if(ext && currentLeague !== "npb") cols = [cols[0], PV_EXT_WAR, ...cols.slice(1), ...PV_EXT_TAIL];
@@ -6680,89 +6714,68 @@ function renderGameLogTable(gameLog, sortState){
   </table></div>`;
 }
 
-// 守備・走塁：OAA（ポジション別）・スプリントスピード・捕手（フレーミング/Pop Time）・盗塁。
-// 年度比較中は選択中の年度を行として並べる（順位の色は各年度のもの）。データが無い項目は表示しない。
+// シーズン守備・走塁成績：「守備」（年度×ポジションごとの行）と「走塁」（年度ごとの行）の2つの表。
+// 同じ年度に複数ポジションを守った場合は、年度セルを結合して行を並べる。順位・色は各年度のもの。
+// 選手単位（ポジションに紐づかない）の指標は、その年度の全行にまたがる結合セルで1回だけ表示する。データが無い列は出さない。
 function renderDefenseSection(seasonsMap, ys){
-  const multi = ys.length > 1;
-  const yCell = (y) => multi ? `<td class="kst-year-cell"${yrAttr(y)}>${yrDot(y)}${escapeHtml(y)}年</td>` : "";
-  const yHead = multi ? `<th class="kst-year-cell">年度</th>` : "";
-  const num = (v, d = 1, sign = false) => v == null ? "-" : `${sign && v > 0 ? "+" : ""}${Number(v).toFixed(d)}`;
-  // 値を、順位（{rank,total}）に応じた色と「n位/m人中」付きのセルにする。順位が無い指標は値だけ
-  const rtd = (text, rk) => rankedTd(text, rk && rk.total ? rk : null);
-  const dash = `<td>-</td>`;
-  const fieldRows = [], runRows = [];
-  ys.forEach(y => {
-    const se = seasonsMap[y] || {}, df = se.defense || {}, ov = se.overall || {};
-    (df.oaa || []).forEach(o => fieldRows.push({ y, kind: "pos", o }));
-    // 捕手のフレーミング・Pop Time・送球速度は、守備の表に「捕」の行として含める
-    if(df.catcher_framing || df.catcher_poptime) fieldRows.push({ y, kind: "catcher", fr: df.catcher_framing, pt: df.catcher_poptime,
-      rk: { fr: df.framing_rank, pop: df.pop_rank, arm: df.arm_rank } });
-    runRows.push({ y, sb: ov.sb, cs: df.cs, sbPct: df.sb_success_pct, sprint: df.sprint_speed,
-      rk: { sprint: df.sprint_rank, sb: (se.splitRankings && se.splitRankings.all30 && se.splitRankings.all30.all || {}).sb } });
-  });
-  // 守備（ポジション別）：OAAと成功率。守備防止点はOAAとほぼ同じ情報のため表示しない
-  const fieldHtml = fieldRows.some(r => r.kind === "pos") ? `
-    <div class="fctrl-group-title" style="margin-top:0">守備（ポジション別）</div>
-    <div class="table-scroll"><table class="split-table kst-table"><thead><tr>${yHead}<th>ポジション</th><th>OAA</th><th>成功率</th></tr></thead><tbody>
-      ${fieldRows.filter(r => r.kind === "pos").map(r => {
-        const o = r.o;
-        return `<tr>${yCell(r.y)}<td style="text-align:center">${escapeHtml(o.pos)}</td>
-          ${rtd(num(o.outs_above_average, 0, true), o.rank)}
-          ${rtd(o.actual_success_rate != null ? num(o.actual_success_rate, 0) + "%" : "-", o.success_rank)}</tr>`;
-      }).join("")}
-    </tbody></table></div>
-    <div class="defense-note" style="margin-top:4px">順位は、同じポジションを守った選手同士での比較です。</div>`
-    : `<div class="defense-note">守備のデータはありません（規定の守備機会に届いていない、または指名打者などのため）。</div>`;
-
-  // 指標ごとの列定義から、データのある年度が1つでもある列だけを表にする（汎用テーブル）。
-  // get(df, ov)：値、rk(df)：順位{rank,total}（高いほど良い順位の付け方は出力側で済み）
-  const metricTable = (title, rowsY, specs, note) => {
-    const cols = specs.filter(sp => rowsY.some(y => sp.get(y.df, y.ov) != null));
-    if(!cols.length) return "";
-    return `
-    <div class="fctrl-group-title" style="margin-top:14px">${title}</div>
-    <div class="table-scroll"><table class="split-table kst-table"><thead><tr>${yHead}${cols.map(c => `<th>${c.label}</th>`).join("")}</tr></thead><tbody>
-      ${rowsY.map(y => `<tr>${yCell(y.y)}${cols.map(c => {
-        const v = c.get(y.df, y.ov);
-        const txt = v == null ? "-" : c.fmt(v);
-        return c.rk ? rtd(txt, c.rk(y.df, y.se)) : `<td>${txt}</td>`;
-      }).join("")}</tr>`).join("")}
-    </tbody></table></div>${note ? `<div class="defense-note" style="margin-top:4px">${note}</div>` : ""}`;
-  };
-  const rowsY = ys.map(y => { const se = seasonsMap[y] || {}; return { y, se, df: se.defense || {}, ov: se.overall || {} }; });
+  const num = (v, d = 1, sign = false) => v == null ? null : `${sign && v > 0 ? "+" : ""}${Number(v).toFixed(d)}`;
   const mr = (df, k) => (df.metric_ranks || {})[k] || null;
-  const f1 = (d = 1, unit = "", sign = false) => (v) => `${sign && v > 0 ? "+" : ""}${Number(v).toFixed(d)}${unit}`;
-  const sub = (o, k) => (o && o[k] != null ? o[k] : null);
-  const armHtml = metricTable("送球・外野守備", rowsY, [
-    { label: "送球速度(平均)", get: (df) => sub(df.arm, "arm_overall"), fmt: f1(1, " mph"), rk: (df) => mr(df, "arm_overall") },
-    { label: "内野からの送球", get: (df) => sub(df.arm, "arm_inf"), fmt: f1(1, " mph"), rk: (df) => mr(df, "arm_inf") },
-    { label: "外野からの送球", get: (df) => sub(df.arm, "arm_of"), fmt: f1(1, " mph"), rk: (df) => mr(df, "arm_of") },
-    { label: "最大送球速度", get: (df) => sub(df.arm, "max_arm"), fmt: f1(1, " mph"), rk: (df) => mr(df, "max_arm") },
-    { label: "アームバリュー(得点)", get: (df) => sub(df.arm_value, "runs"), fmt: f1(1, "", true), rk: (df) => mr(df, "arm_value") },
-    { label: "外野ジャンプOAA", get: (df) => sub(df.of_jump, "jump"), fmt: f1(0, "", true), rk: (df) => mr(df, "of_jump") },
-    { label: "反応(ft)", get: (df) => sub(df.of_jump, "reaction"), fmt: f1(1, "", true), rk: (df) => mr(df, "of_reaction") },
-    { label: "初動(ft)", get: (df) => sub(df.of_jump, "burst"), fmt: f1(1, "", true), rk: (df) => mr(df, "of_burst") },
-    { label: "ルート(ft)", get: (df) => sub(df.of_jump, "route"), fmt: f1(1, "", true), rk: (df) => mr(df, "of_route") },
-  ], "順位は、送球は同じ内外野区分、アームバリュー・外野ジャンプは該当する選手同士での比較です。");
-  const catcherHtml = metricTable("捕手", rowsY, [
-    { label: "フレーミング(得点)", get: (df) => sub(df.catcher_framing, "framing_runs"), fmt: f1(1, "", true), rk: (df) => df.framing_rank },
-    { label: "二塁Pop Time(秒)", get: (df) => sub(df.catcher_poptime, "pop_2b"), fmt: f1(2), rk: (df) => df.pop_rank },
-    { label: "送球速度", get: (df) => sub(df.catcher_poptime, "arm_strength"), fmt: f1(1, " mph"), rk: (df) => df.arm_rank },
-    { label: "ブロッキング(得点)", get: (df) => sub(df.catcher_blocking, "runs"), fmt: f1(1, "", true), rk: (df) => mr(df, "blocking") },
-    { label: "ブロック数(平均比)", get: (df) => sub(df.catcher_blocking, "blocks_above_avg"), fmt: f1(1, "", true), rk: (df) => mr(df, "blocks_above_avg") },
-  ], "順位は捕手同士での比較です。");
-  const runHtml = metricTable("走塁", rowsY, [
-    { label: "盗塁", get: (df, ov) => ov.sb, fmt: (v) => String(v), rk: (df, se) => (se.splitRankings && se.splitRankings.all30 && se.splitRankings.all30.all || {}).sb },
-    { label: "盗塁死", get: (df) => df.cs, fmt: (v) => String(v) },
-    { label: "盗塁成功率", get: (df) => df.sb_success_pct, fmt: f1(1, "%") },
-    { label: "スプリントスピード", get: (df) => df.sprint_speed, fmt: f1(1, " ft/s"), rk: (df) => df.sprint_rank },
-    { label: "走塁得点(BsR相当)", get: (df) => sub(df.baserunning, "rbaser"), fmt: f1(1, "", true), rk: (df) => mr(df, "rbaser") },
-    { label: "走塁得点(Statcast)", get: (df) => sub(df.baserunning, "runs"), fmt: f1(1, "", true), rk: (df) => mr(df, "br_runs") },
-    { label: "追加進塁(XBT)得点", get: (df) => sub(df.baserunning, "xb_runs"), fmt: f1(1, "", true), rk: (df) => mr(df, "xb_runs") },
-    { label: "盗塁得点", get: (df) => sub(df.baserunning, "sb_runs"), fmt: f1(1, "", true), rk: (df) => mr(df, "sb_runs") },
-    { label: "一塁到達(秒)", get: (df) => sub(df.baserunning, "home_to_first"), fmt: f1(2), rk: (df) => mr(df, "home_to_first") },
-  ]);
-  return fieldHtml + armHtml + catcherHtml + runHtml;
+  const rk = (r) => (r && r.total ? r : null);
+  const IF = new Set(["1B", "2B", "3B", "SS"]), OFP = new Set(["LF", "CF", "RF"]);
+  // 列定義：kind "row"＝行ごとの値、"year"＝年度ごとの結合セル。get(行, 年度データ)→{t:表示文字列, r:順位}
+  const cols = [
+    { label: "OAA", kind: "row", get: (r) => r.o ? { t: num(r.o.outs_above_average, 0, true), r: r.o.rank } : null },
+    { label: "成功率", kind: "row", get: (r) => r.o && r.o.actual_success_rate != null ? { t: num(r.o.actual_success_rate, 0) + "%", r: r.o.success_rank } : null },
+    { label: "送球速度", kind: "row", get: (r, Y) => {
+        const df = Y.df, a = df.arm || {};
+        if(r.catcher) return df.catcher_poptime && df.catcher_poptime.arm_strength != null ? { t: num(df.catcher_poptime.arm_strength, 1) + " mph", r: df.arm_rank } : null;
+        if(r.o && OFP.has(r.o.pos)) return a.arm_of != null ? { t: num(a.arm_of, 1) + " mph", r: mr(df, "arm_of") } : null;
+        if(r.o && IF.has(r.o.pos)) return a.arm_inf != null ? { t: num(a.arm_inf, 1) + " mph", r: mr(df, "arm_inf") } : null;
+        return a.arm_overall != null ? { t: num(a.arm_overall, 1) + " mph", r: mr(df, "arm_overall") } : null;
+      } },
+    { label: "最大送球速度", kind: "year", get: (Y) => Y.df.arm && Y.df.arm.max_arm != null ? { t: num(Y.df.arm.max_arm, 1) + " mph", r: mr(Y.df, "max_arm") } : null },
+    { label: "外野ジャンプOAA", kind: "year", get: (Y) => Y.df.of_jump && Y.df.of_jump.jump != null ? { t: num(Y.df.of_jump.jump, 0, true), r: mr(Y.df, "of_jump") } : null },
+    { label: "反応(ft)", kind: "year", get: (Y) => Y.df.of_jump && Y.df.of_jump.reaction != null ? { t: num(Y.df.of_jump.reaction, 1, true), r: mr(Y.df, "of_reaction") } : null },
+    { label: "初動(ft)", kind: "year", get: (Y) => Y.df.of_jump && Y.df.of_jump.burst != null ? { t: num(Y.df.of_jump.burst, 1, true), r: mr(Y.df, "of_burst") } : null },
+    { label: "ルート(ft)", kind: "year", get: (Y) => Y.df.of_jump && Y.df.of_jump.route != null ? { t: num(Y.df.of_jump.route, 1, true), r: mr(Y.df, "of_route") } : null },
+    { label: "フレーミング(得点)", kind: "row", get: (r, Y) => r.catcher && Y.df.catcher_framing && Y.df.catcher_framing.framing_runs != null ? { t: num(Y.df.catcher_framing.framing_runs, 1, true), r: Y.df.framing_rank } : null },
+    { label: "二塁Pop Time(秒)", kind: "row", get: (r, Y) => r.catcher && Y.df.catcher_poptime && Y.df.catcher_poptime.pop_2b != null ? { t: num(Y.df.catcher_poptime.pop_2b, 2), r: Y.df.pop_rank } : null },
+    { label: "ブロッキング(得点)", kind: "row", get: (r, Y) => r.catcher && Y.df.catcher_blocking && Y.df.catcher_blocking.runs != null ? { t: num(Y.df.catcher_blocking.runs, 1, true), r: mr(Y.df, "blocking") } : null },
+  ];
+  const yearData = ys.map(y => { const se = seasonsMap[y] || {}; return { y, se, df: se.defense || {}, ov: se.overall || {} }; });
+  // 年度ごとの行（守備位置ごと＋捕手）。守備の指標が何も無い年度でも、送球などがあれば「-」ポジションの行を1つ作る
+  const yearRows = yearData.map(Y => {
+    const rows = (Y.df.oaa || []).map(o => ({ o }));
+    if(Y.df.catcher_framing || Y.df.catcher_poptime || Y.df.catcher_blocking) rows.push({ catcher: true });
+    if(!rows.length && (Y.df.arm || Y.df.of_jump)) rows.push({});
+    return { Y, rows };
+  }).filter(x => x.rows.length);
+  const usedCols = cols.filter(c => yearRows.some(({ Y, rows }) => c.kind === "year" ? c.get(Y) : rows.some(r => c.get(r, Y))));
+  const cell = (v) => v ? rankedTd(v.t, rk(v.r)) : `<td>-</td>`;
+  const yTd = (y, span) => `<td rowspan="${span}" class="kst-year-cell"${yrAttr(y)} style="background:var(--panel)">${yrDot(y)}${escapeHtml(y)}年</td>`;
+  const fieldHtml = yearRows.length ? `
+    <div class="fctrl-group-title" style="margin-top:0">守備</div>
+    <div class="table-scroll"><table class="split-table kst-table"><thead><tr><th class="kst-year-cell">年度</th><th>ポジション</th>${usedCols.map(c => `<th>${c.label}</th>`).join("")}</tr></thead><tbody>
+      ${yearRows.map(({ Y, rows }) => rows.map((r, i) => `<tr>${i === 0 ? yTd(Y.y, rows.length) : ""}<td style="text-align:center">${r.catcher ? "捕" : r.o ? escapeHtml(r.o.pos) : "-"}</td>${usedCols.map(c =>
+        c.kind === "year" ? (i === 0 ? (() => { const v = c.get(Y); return v ? rankedTd(v.t, rk(v.r)).replace("<td", `<td rowspan="${rows.length}"`) : `<td rowspan="${rows.length}">-</td>`; })() : "") : cell(c.get(r, Y))
+      ).join("")}</tr>`).join("")).join("")}
+    </tbody></table></div>`
+    : `<div class="fctrl-group-title" style="margin-top:0">守備</div><div class="defense-note">守備のデータはありません（規定の守備機会に届いていない、または指名打者などのため）。</div>`;
+
+  const runCols = [
+    { label: "盗塁", get: (Y) => Y.ov.sb != null ? { t: String(Y.ov.sb), r: (Y.se.splitRankings && Y.se.splitRankings.all30 && Y.se.splitRankings.all30.all || {}).sb } : null },
+    { label: "盗塁成功率", get: (Y) => Y.df.sb_success_pct != null ? { t: num(Y.df.sb_success_pct, 1) + "%" } : null },
+    { label: "スプリントスピード", get: (Y) => Y.df.sprint_speed != null ? { t: num(Y.df.sprint_speed, 1) + " ft/s", r: Y.df.sprint_rank } : null },
+    { label: "走塁得点(BsR相当)", get: (Y) => Y.df.baserunning && Y.df.baserunning.rbaser != null ? { t: num(Y.df.baserunning.rbaser, 1, true), r: mr(Y.df, "rbaser") } : null },
+    { label: "追加進塁(XBT)得点", get: (Y) => Y.df.baserunning && Y.df.baserunning.xb_runs != null ? { t: num(Y.df.baserunning.xb_runs, 1, true), r: mr(Y.df, "xb_runs") } : null },
+    { label: "一塁到達(秒)", get: (Y) => Y.df.baserunning && Y.df.baserunning.home_to_first != null ? { t: num(Y.df.baserunning.home_to_first, 2), r: mr(Y.df, "home_to_first") } : null },
+  ].filter(c => yearData.some(Y => c.get(Y)));
+  const runHtml = runCols.length ? `
+    <div class="fctrl-group-title" style="margin-top:14px">走塁</div>
+    <div class="table-scroll"><table class="split-table kst-table"><thead><tr><th class="kst-year-cell">年度</th>${runCols.map(c => `<th>${c.label}</th>`).join("")}</tr></thead><tbody>
+      ${yearData.map(Y => `<tr><td class="kst-year-cell"${yrAttr(Y.y)} style="background:var(--panel)">${yrDot(Y.y)}${escapeHtml(Y.y)}年</td>${runCols.map(c => cell(c.get(Y))).join("")}</tr>`).join("")}
+    </tbody></table></div>` : "";
+  return fieldHtml + runHtml;
 }
 
 function renderPlayerCard(card, llm){
@@ -6798,7 +6811,9 @@ function renderPlayerCard(card, llm){
     const dv = (best && best.outs_above_average != null) ? `${best.outs_above_average > 0 ? "+" : ""}${best.outs_above_average}` : "-";
     const dr = (best && best.rank && best.rank.total) ? best.rank : null;
     return [
-      ["OPS", fmt(ov.ops, 3), r.ops], ["出塁率", fmtAvg(ov.obp), r.obp], ["長打率", fmtAvg(ov.slg), r.slg],
+      ...(currentLeague === "npb" ? [] : [["WAR", ov.war != null ? Number(ov.war).toFixed(1) : "-", (se.splitRankings && se.splitRankings[pool] && se.splitRankings[pool].all && se.splitRankings[pool].all.war) || null]]),
+      ["OPS", fmt(ov.ops, 3), r.ops], ["出塁率", fmtAvg(ov.obp), r.obp],
+      ...(currentLeague === "npb" ? [["長打率", fmtAvg(ov.slg), r.slg]] : []),
       ["K%", fmt(ov.k_pct, 1, "%"), r.k_pct], ["BB%", fmt(ov.bb_pct, 1, "%"), r.bb_pct], ["守備指標", dv, dr],
     ];
   };
@@ -6834,7 +6849,7 @@ function renderPlayerCard(card, llm){
         <div class="bullets tone-negative">${(llm.weaknesses || []).map(b => `<div><span class="dot">▸</span><div>${escapeHtml(b)}</div></div>`).join("")}</div>
       </div>`;
   }else{
-    llmHtml = `<div class="no-llm-note">この選手のAI解釈コメントはまだ生成されていません（数値データのみ表示しています）。</div>`;
+    llmHtml = "";
   }
 
   mainContentEl.classList.remove("placeholder");
@@ -6870,8 +6885,13 @@ function renderPlayerCard(card, llm){
       ${llmHtml}
 
       <div class="section" data-season-summary-section>
-        <div class="section-title"><span class="bar"></span><span class="label">シーズン成績</span><span class="sub">年度ごとの成績と順位</span></div>
+        <div class="section-title"><span class="bar"></span><span class="label">シーズン打撃成績</span><span class="sub">年度ごとの成績と順位</span></div>
         <div data-season-summary></div>
+      </div>
+
+      <div class="section section-note">
+        <div class="section-title"><span class="bar" style="background:var(--amber)"></span><span class="label">シーズン守備・走塁成績</span></div>
+        ${renderDefenseSection(seasonsMap, Object.keys(seasonsMap).filter(y => seasonsMap[y]).sort((a, b) => b.localeCompare(a)))}
       </div>
 
       <div class="section" data-pv-section>
@@ -6897,11 +6917,6 @@ function renderPlayerCard(card, llm){
       <div class="section" data-vp-section>
         <div class="section-title"><span class="bar"></span><span class="label">対戦投手別成績</span></div>
         ${renderVsPitcherSection(years, currentSeasonYear)}
-      </div>
-
-      <div class="section section-note">
-        <div class="section-title"><span class="bar" style="background:var(--amber)"></span><span class="label">守備・走塁</span></div>
-        ${renderDefenseSection(seasonsMap, Object.keys(seasonsMap).filter(y => seasonsMap[y]).sort((a, b) => b.localeCompare(a)))}
       </div>
 
       <div class="section" data-gamelog-section>
