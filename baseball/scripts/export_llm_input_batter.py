@@ -1233,7 +1233,108 @@ def load_mlb_defense_cache(path: str) -> dict:
                 "pop_3b": None if pd.isna(r.get("pop_3b")) else float(r.get("pop_3b")),
             }
 
+    _load_extra_defense_sheets(wb, result, path)
     return result
+
+
+def _col(df, *cands):
+    """DataFrameから候補名（大文字小文字を無視）に最初に一致する列名を返す。無ければNone。"""
+    low = {str(c).strip().lower(): c for c in df.columns}
+    for c in cands:
+        if c.lower() in low:
+            return low[c.lower()]
+    return None
+
+
+def _fnum(r, col, nd=None):
+    if col is None:
+        return None
+    v = pd.to_numeric(r.get(col), errors="coerce")
+    if pd.isna(v):
+        return None
+    return round(float(v), nd) if nd is not None else float(v)
+
+
+def _load_extra_defense_sheets(wb, result: dict, path: str) -> None:
+    """守備・走塁の追加指標（送球・アームバリュー・外野ジャンプ・捕手ブロッキング・走塁得点・XBT・
+    一塁到達・Rbaser）をキャッシュxlsxから読み、result（正規化した選手名→dict）に足す。
+    追加シートはSavantの列名のまま保存されているので、候補名の中から存在する列を使う。
+    選手の特定はMLBAM ID（他シートの name/player_id 対応 → 無ければ選手名キャッシュ）で行う。
+    どのシートも無い・読めない場合は何もしない（追加指標がnullのまま）。"""
+    id_to_key: dict[int, str] = {}
+    for sname in ("OAA", "Running", "WAR", "SprintSpeed", "CatcherFraming", "CatcherPoptime", "Rbaser"):
+        if sname not in wb.sheet_names:
+            continue
+        df = wb.parse(sname)
+        if "player_id" not in df.columns or "name" not in df.columns:
+            continue
+        for pid, nm in zip(df["player_id"], df["name"]):
+            if pd.notna(pid) and isinstance(nm, str) and nm:
+                id_to_key[int(pid)] = _normalize_name(nm).lower()
+
+    def _key(pid):
+        if pd.isna(pid):
+            return None
+        pid = int(pid)
+        if pid not in id_to_key:
+            try:   # 守備シートに居ない選手（投手の送球など）は選手名キャッシュで補う
+                from player_names import resolve_names
+                base = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(path))))
+                nm = resolve_names([pid], os.path.join(base, "_cache", "player_names.json")).get(pid)
+                id_to_key[pid] = _normalize_name(nm).lower() if nm else None
+            except Exception:  # noqa: BLE001
+                id_to_key[pid] = None
+        return id_to_key[pid]
+
+    def _entry(k):
+        return result.setdefault(k, {
+            "oaa": [], "sprint_speed": None, "framing": None, "poptime": None, "war": None, "sb": None, "cs": None,
+        })
+
+    def _each(sname):
+        """シートの (行, 選手キー) を返す。IDが無い・シートが無ければ何も返さない。"""
+        if sname not in wb.sheet_names:
+            return
+        df = wb.parse(sname)
+        idc = _col(df, "player_id", "entity_id", "fielder_id", "runner_id", "id", "mlb_id")
+        if idc is None:
+            return
+        for _, r in df.iterrows():
+            k = _key(r.get(idc))
+            if k:
+                yield df, r, k
+
+    for df, r, k in _each("ArmStrength"):
+        _entry(k)["arm"] = {
+            "arm_overall": _fnum(r, _col(df, "arm_overall", "avg_arm_strength", "arm_strength"), 1),
+            "arm_inf": _fnum(r, _col(df, "arm_inf", "arm_infield"), 1),
+            "arm_of": _fnum(r, _col(df, "arm_of", "arm_outfield"), 1),
+            "max_arm": _fnum(r, _col(df, "max_arm_strength", "max_arm", "maxeff_arm"), 1),
+        }
+    for df, r, k in _each("ArmValue"):
+        _entry(k)["arm_value"] = {"runs": _fnum(r, _col(df, "total_runs", "arm_runs", "arm_value", "runs", "arm_run_value"), 1)}
+    for df, r, k in _each("OFJump"):
+        _entry(k)["of_jump"] = {
+            "jump": _fnum(r, _col(df, "outs_above_average"), 0),
+            "reaction": _fnum(r, _col(df, "rel_league_reaction_distance"), 1),
+            "burst": _fnum(r, _col(df, "rel_league_burst_distance"), 1),
+            "route": _fnum(r, _col(df, "rel_league_routing_distance"), 1),
+        }
+    for df, r, k in _each("CatcherBlocking"):
+        _entry(k)["blocking"] = {
+            "runs": _fnum(r, _col(df, "catcher_blocking_runs"), 1),
+            "blocks_above_avg": _fnum(r, _col(df, "blocks_above_average"), 1),
+        }
+    for df, r, k in _each("BaseRunRV"):
+        b = _entry(k).setdefault("baserunning", {})
+        b["runs"] = _fnum(r, _col(df, "runner_runs_tot"), 1)
+        b["xb_runs"] = _fnum(r, _col(df, "runner_runs_XB"), 1)        # 追加進塁（XBT）の得点価値
+        b["sb_runs"] = _fnum(r, _col(df, "runner_runs_SBX"), 1)       # 盗塁の得点価値
+    for df, r, k in _each("RunningSplits"):
+        b = _entry(k).setdefault("baserunning", {})
+        b["home_to_first"] = _fnum(r, _col(df, "seconds_since_hit_090", "hp_to_1b", "home_to_first"), 2)
+    for df, r, k in _each("Rbaser"):
+        _entry(k).setdefault("baserunning", {})["rbaser"] = _fnum(r, _col(df, "rbaser"), 1)
 
 
 # 規定打席（＝チーム消化試合数×3.1、NPB/MLB共通の慣例式）の判定に使う係数。
@@ -1461,6 +1562,12 @@ def export_llm_input_batter_xlsx(games_json_dir: str, out_path: str, min_pa: flo
                         "sprint_speed": defense_entry.get("sprint_speed"),
                         "catcher_framing": defense_entry.get("framing"),
                         "catcher_poptime": defense_entry.get("poptime"),
+                        # 送球・アームバリュー・外野ジャンプ・捕手ブロッキング・走塁（BsR/XBT/一塁到達）
+                        "arm": defense_entry.get("arm"),
+                        "arm_value": defense_entry.get("arm_value"),
+                        "of_jump": defense_entry.get("of_jump"),
+                        "catcher_blocking": defense_entry.get("blocking"),
+                        "baserunning": defense_entry.get("baserunning"),
                     },
                     # rankingsはこの後、全選手分揃ってから付与する
                 }
@@ -1592,6 +1699,28 @@ def export_llm_input_batter_xlsx(games_json_dir: str, out_path: str, min_pa: flo
         ranks = _rank_pool(vals, hib)
         for name, card in numeric_cards.items():
             card["defense"][out_key] = ranks.get(name)
+
+    # 追加指標の順位（該当する選手同士で比較。送球速度は内野/外野の区分ごとではなく全体で比較）。
+    # defense.metric_ranks[指標キー] = {rank,total}。値が高いほど良い順位（一塁到達タイムだけ短いほど良い）
+    for key, src, sub, hib in (
+        ("arm_overall", "arm", "arm_overall", True), ("arm_inf", "arm", "arm_inf", True),
+        ("arm_of", "arm", "arm_of", True), ("max_arm", "arm", "max_arm", True),
+        ("arm_value", "arm_value", "runs", True),
+        ("of_jump", "of_jump", "jump", True), ("of_reaction", "of_jump", "reaction", True),
+        ("of_burst", "of_jump", "burst", True), ("of_route", "of_jump", "route", True),
+        ("blocking", "catcher_blocking", "runs", True), ("blocks_above_avg", "catcher_blocking", "blocks_above_avg", True),
+        ("br_runs", "baserunning", "runs", True), ("rbaser", "baserunning", "rbaser", True),
+        ("xb_runs", "baserunning", "xb_runs", True), ("sb_runs", "baserunning", "sb_runs", True), ("home_to_first", "baserunning", "home_to_first", False),
+    ):
+        vals = []
+        for name, card in numeric_cards.items():
+            v = (card["defense"].get(src) or {}).get(sub)
+            if v is not None:
+                vals.append((name, v))
+        ranks = _rank_pool(vals, hib)
+        for name, card in numeric_cards.items():
+            if name in ranks:
+                card["defense"].setdefault("metric_ranks", {})[key] = ranks[name]
 
     out_dir = os.path.dirname(out_path)
     if out_dir:

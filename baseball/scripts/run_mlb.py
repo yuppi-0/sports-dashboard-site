@@ -77,6 +77,7 @@ import requests
 from pybaseball import (
     statcast, playerid_reverse_lookup, statcast_outs_above_average,
     statcast_sprint_speed, statcast_catcher_poptime,
+    statcast_outfielder_jump, statcast_running_splits,
 )
 import openpyxl
 
@@ -2443,6 +2444,7 @@ def fetch_mlb_defense_season(year: int) -> tuple[pd.DataFrame, pd.DataFrame]:
 
 
 _BWAR_DF = None
+_BWAR_ALL = None
 _BWAR_LOCK = None
 
 
@@ -2512,6 +2514,101 @@ def fetch_running_stats(year: int) -> pd.DataFrame:
         return pd.DataFrame(columns=cols)
 
 
+_SAVANT_LOG: list = []
+
+
+def _slog(msg: str) -> None:
+    print(msg)
+    _SAVANT_LOG.append(msg[:500])
+
+
+def _savant_csv(label: str, urls: list[str], year: int | None = None) -> pd.DataFrame:
+    """Baseball Savant のリーダーボードCSVを取得する（URL候補を順に試し、最初にCSVが返ったものを使う）。
+    列名はサイト側の仕様変更で変わりうるため、取得した列名をログに出す（xlsxにはそのまま保存し、
+    export側で候補名から拾う）。取得できなければ空のDataFrameを返す（他の保存は止めない）。"""
+    for url in urls:
+        try:
+            res = requests.get(url, headers=_SAVANT_HEADERS, timeout=60)
+            text = res.content.decode("utf-8-sig")
+            if res.status_code != 200 or not text.strip() or text.lstrip().startswith("<"):
+                _slog(f"  [WARN] {label}: CSVが返りません (status={res.status_code}) {url}")
+                continue
+            df = pd.read_csv(io.StringIO(text), engine="python", on_bad_lines="skip")
+            if df.empty:
+                _slog(f"  [WARN] {label}: 0行 {url}")
+                continue
+            if year is not None and "start_year" in df.columns and not (pd.to_numeric(df["start_year"], errors="coerce") == year).any():
+                # 年の指定がサイト側で無視され、別の年（既定の最新年）が返ってきた場合は採用しない
+                _slog(f"  [WARN] {label}: 年が一致しません start_year={sorted(set(df['start_year'].dropna().astype(int)))[:3]} {url}")
+                continue
+            _slog(f"  {label}: {len(df)}行 列={list(df.columns)} ({url})")
+            return df
+        except Exception as e:  # noqa: BLE001
+            _slog(f"  [WARN] {label}取得失敗: {e} {url}")
+    return pd.DataFrame()
+
+
+def fetch_extra_defense(year: int) -> dict:
+    """守備・走塁の追加指標（送球（内野・外野）/ アームバリュー / 外野ジャンプ / 捕手ブロッキング /
+    走塁得点・追加進塁 / 一塁到達タイム / Rbaser）の元データを、シートごとのDataFrameで返す。
+    列名は取得元のまま保存する（名前・IDは共通列 name / player_id を先頭に足す）。"""
+    y = int(year)
+    B = "https://baseballsavant.mlb.com"
+    out = {}
+    out["ArmStrength"] = _savant_csv("送球(Arm Strength)", [
+        f"{B}/leaderboard/arm-strength?type=player&year={y}&minThrows=25&pos=&team=&csv=true",
+        f"{B}/leaderboard/arm-strength?type=player&year={y}&minThrows=10&pos=&team=&csv=true"])
+    out["ArmValue"] = _savant_csv("アームバリュー", [
+        f"{B}/leaderboard/arm-value?type=player&year={y}&min=q&csv=true",
+        f"{B}/leaderboard/arm_value?type=player&year={y}&min=q&csv=true",
+        f"{B}/leaderboard/outfield-arm-value?type=player&year={y}&min=q&csv=true",
+        f"{B}/leaderboard/outfield_arm?type=player&year={y}&min=q&csv=true",
+        f"{B}/leaderboard/fielding-run-value?type=player&year={y}&min=q&csv=true",
+        f"{B}/leaderboard/fielding-run-value?year={y}&csv=true"], year=y)
+    try:
+        oj = statcast_outfielder_jump(y)
+        print(f"  外野ジャンプ: {len(oj)}行 列={list(oj.columns)}")
+    except Exception as e:  # noqa: BLE001
+        print(f"  [WARN] 外野ジャンプ取得失敗: {e}")
+        oj = pd.DataFrame()
+    out["OFJump"] = oj
+    yrs = [f"seasonStart={y}&seasonEnd={y}", f"startYear={y}&endYear={y}", f"year={y}", f"start_year={y}&end_year={y}"]
+    # 注意：ブロッキングと走塁得点(Baserunning Run Value)のCSVは年の指定が効かず、常に最新シーズンの値が返る
+    # （start_yearで検証し、対象年と一致しない年は採用しない＝過去年は空）。アームバリューは公開CSVが見つからず未対応。
+    out["CatcherBlocking"] = _savant_csv("捕手ブロッキング",
+        [f"{B}/leaderboard/catcher-blocking?type=catcher&{q}&team=&min=q&csv=true" for q in yrs], year=y)
+    out["BaseRunRV"] = _savant_csv("走塁得点(Baserunning Run Value)",
+        [f"{B}/leaderboard/baserunning-run-value?game_type=Regular&n=q&pos=&team=&type=Runner&{q}&csv=true" for q in yrs], year=y)
+    try:
+        rs = statcast_running_splits(y, min_opp=1, raw_splits=True)
+        print(f"  ランニングスプリット(一塁到達): {len(rs)}行 列={list(rs.columns)}")
+    except Exception as e:  # noqa: BLE001
+        print(f"  [WARN] ランニングスプリット取得失敗: {e}")
+        rs = pd.DataFrame()
+    out["RunningSplits"] = rs
+    # Baseball-Reference の走塁得点（Rbaser）。FanGraphsのBsRに近い走塁の総合指標
+    try:
+        global _BWAR_ALL
+        if _BWAR_ALL is None:   # 走塁得点(runs_br)などは return_all=True でしか付かない
+            from pybaseball import bwar_bat
+            _BWAR_ALL = bwar_bat(return_all=True)
+        d = _BWAR_ALL[(_BWAR_ALL["year_ID"] == y) & (_BWAR_ALL["pitcher"].astype(str).str.upper() != "Y")].copy()
+        d["mlb_ID"] = pd.to_numeric(d["mlb_ID"], errors="coerce")
+        d["runs_br"] = pd.to_numeric(d["runs_br"], errors="coerce")
+        d = d.dropna(subset=["mlb_ID", "runs_br"])
+        g = d.groupby("mlb_ID", as_index=False)["runs_br"].sum()
+        ids = [int(x) for x in g["mlb_ID"]]
+        names = resolve_names(ids, os.path.join(BASE_DATA_DIR, "_cache", "player_names.json"))
+        out["Rbaser"] = pd.DataFrame([{"name": names[i], "player_id": i, "rbaser": round(float(v), 1)}
+                                      for i, v in zip(ids, g["runs_br"]) if i in names],
+                                     columns=["name", "player_id", "rbaser"])
+        print(f"  Rbaser: {len(out['Rbaser'])}行")
+    except Exception as e:  # noqa: BLE001
+        print(f"  [WARN] Rbaser取得失敗: {e}")
+        out["Rbaser"] = pd.DataFrame(columns=["name", "player_id", "rbaser"])
+    return out
+
+
 def defense_cache_path(year, game_type: str) -> str:
     """OAA/スプリントスピードの中間キャッシュxlsxのパス（年・試合種別ごとに1ファイル）"""
     return os.path.join(BASE_DATA_DIR, f"{year}年", game_type, "defense", f"{year}_defense.xlsx")
@@ -2529,6 +2626,8 @@ def run_defense_season(year, game_type: str) -> str:
     war_df = fetch_bwar(int(year))
     print(f"  盗塁・盗塁死(StatsAPI)取得: {year}年")
     running_df = fetch_running_stats(int(year))
+    print(f"  守備・走塁の追加指標取得: {year}年")
+    extra = fetch_extra_defense(int(year))
 
     out_path = defense_cache_path(year, game_type)
     os.makedirs(os.path.dirname(out_path), exist_ok=True)
@@ -2541,6 +2640,9 @@ def run_defense_season(year, game_type: str) -> str:
         (poptime_df if not poptime_df.empty else pd.DataFrame(columns=poptime_df.columns)).to_excel(writer, sheet_name="CatcherPoptime", index=False)
         war_df.to_excel(writer, sheet_name="WAR", index=False)
         running_df.to_excel(writer, sheet_name="Running", index=False)
+        pd.DataFrame({"log": list(_SAVANT_LOG)}).to_excel(writer, sheet_name="FetchLog", index=False)
+        for sname, sdf in extra.items():
+            (sdf if not sdf.empty else pd.DataFrame({"empty": []})).to_excel(writer, sheet_name=sname, index=False)
     os.replace(tmp_path, out_path)
     print(
         f"  ✓ 守備・走塁キャッシュ: {out_path} "
