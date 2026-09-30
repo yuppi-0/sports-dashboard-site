@@ -1796,6 +1796,7 @@ def export_llm_input_batter_xlsx(games_json_dir: str, out_path: str, min_pa: flo
                 "ops": full_card.get("ops"),
                 "hr": full_card.get("hr"), "rbi": full_card.get("rbi"), "sb": full_card.get("sb"),
                 "k_pct": full_card.get("k_pct_season"), "bb_pct": full_card.get("bb_pct_season"),
+                "war": latest_overall.get("war"),
             })
         with open(os.path.join(numeric_json_dir, "index.json"), "w", encoding="utf-8") as f:
             json.dump({"players": index_players}, f, ensure_ascii=False, indent=2)

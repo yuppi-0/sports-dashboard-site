@@ -16,7 +16,8 @@
       "rbi": 5,
       "sb": 0,
       "k_pct": 36.5,
-      "bb_pct": 9.5
+      "bb_pct": 9.5,
+      "war": -0.68
     },
     {
       "id": "aaron_judge",
@@ -37,7 +38,8 @@
       "rbi": 147,
       "sb": 10,
       "k_pct": 24.3,
-      "bb_pct": 18.9
+      "bb_pct": 18.9,
+      "war": 10.9
     },
     {
       "id": "aaron_schunk",
@@ -55,7 +57,8 @@
       "rbi": 7,
       "sb": 0,
       "k_pct": 31.6,
-      "bb_pct": 4.1
+      "bb_pct": 4.1,
+      "war": 0.2
     },
     {
       "id": "abraham_toro",
@@ -73,7 +76,8 @@
       "rbi": 27,
       "sb": 4,
       "k_pct": 17.0,
-      "bb_pct": 5.5
+      "bb_pct": 5.5,
+      "war": 0.61
     },
     {
       "id": "adael_amador",
@@ -91,7 +95,8 @@
       "rbi": 1,
       "sb": 1,
       "k_pct": 16.7,
-      "bb_pct": 2.8
+      "bb_pct": 2.8,
+      "war": -0.43
     },
     {
       "id": "adam_duvall",
@@ -109,7 +114,8 @@
       "rbi": 33,
       "sb": 0,
       "k_pct": 30.0,
-      "bb_pct": 6.4
+      "bb_pct": 6.4,
+      "war": -1.36
     },
     {
       "id": "adam_frazier",
@@ -127,7 +133,8 @@
       "rbi": 22,
       "sb": 3,
       "k_pct": 20.1,
-      "bb_pct": 7.5
+      "bb_pct": 7.5,
+      "war": 0.42
     },
     {
       "id": "addison_barger",
@@ -145,7 +152,8 @@
       "rbi": 28,
       "sb": 2,
       "k_pct": 26.7,
-      "bb_pct": 6.2
+      "bb_pct": 6.2,
+      "war": 0.34
     },
     {
       "id": "adley_rutschman",
@@ -163,7 +171,8 @@
       "rbi": 80,
       "sb": 1,
       "k_pct": 16.1,
-      "bb_pct": 9.1
+      "bb_pct": 9.1,
+      "war": 3.14
     },
     {
       "id": "adolis_garcía",
@@ -183,7 +192,8 @@
       "rbi": 86,
       "sb": 11,
       "k_pct": 27.8,
-      "bb_pct": 7.1
+      "bb_pct": 7.1,
+      "war": 0.67
     },
     {
       "id": "adrian_del_castillo",
@@ -201,7 +211,8 @@
       "rbi": 19,
       "sb": 1,
       "k_pct": 31.8,
-      "bb_pct": 8.0
+      "bb_pct": 8.0,
+      "war": 0.46
     },
     {
       "id": "akil_baddoo",
@@ -219,7 +230,8 @@
       "rbi": 5,
       "sb": 1,
       "k_pct": 32.9,
-      "bb_pct": 9.8
+      "bb_pct": 9.8,
+      "war": -0.49
     },
     {
       "id": "alan_trejo",
@@ -237,7 +249,8 @@
       "rbi": 1,
       "sb": 0,
       "k_pct": 22.4,
-      "bb_pct": 3.0
+      "bb_pct": 3.0,
+      "war": -0.77
     },
     {
       "id": "alec_bohm",
@@ -257,7 +270,8 @@
       "rbi": 98,
       "sb": 5,
       "k_pct": 14.2,
-      "bb_pct": 6.6
+      "bb_pct": 6.6,
+      "war": 2.76
     },
     {
       "id": "alec_burleson",
@@ -278,7 +292,8 @@
       "rbi": 80,
       "sb": 9,
       "k_pct": 12.8,
-      "bb_pct": 5.9
+      "bb_pct": 5.9,
+      "war": 1.38
     },
     {
       "id": "aledmys_díaz",
@@ -296,7 +311,8 @@
       "rbi": 1,
       "sb": 0,
       "k_pct": 26.5,
-      "bb_pct": 2.9
+      "bb_pct": 2.9,
+      "war": -0.59
     },
     {
       "id": "alejandro_kirk",
@@ -316,7 +332,8 @@
       "rbi": 56,
       "sb": 0,
       "k_pct": 13.2,
-      "bb_pct": 9.1
+      "bb_pct": 9.1,
+      "war": 1.91
     },
     {
       "id": "alek_thomas",
@@ -334,7 +351,8 @@
       "rbi": 17,
       "sb": 4,
       "k_pct": 16.3,
-      "bb_pct": 6.7
+      "bb_pct": 6.7,
+      "war": -0.04
     },
     {
       "id": "alex_bregman",
@@ -355,7 +373,8 @@
       "rbi": 78,
       "sb": 3,
       "k_pct": 13.5,
-      "bb_pct": 6.9
+      "bb_pct": 6.9,
+      "war": 3.98
     },
     {
       "id": "alex_call",
@@ -373,7 +392,8 @@
       "rbi": 14,
       "sb": 5,
       "k_pct": 16.7,
-      "bb_pct": 10.5
+      "bb_pct": 10.5,
+      "war": 1.5
     },
     {
       "id": "alex_jackson",
@@ -391,7 +411,8 @@
       "rbi": 12,
       "sb": 1,
       "k_pct": 33.5,
-      "bb_pct": 7.6
+      "bb_pct": 7.6,
+      "war": -0.44
     },
     {
       "id": "alex_kirilloff",
@@ -409,7 +430,8 @@
       "rbi": 23,
       "sb": 0,
       "k_pct": 26.3,
-      "bb_pct": 8.4
+      "bb_pct": 8.4,
+      "war": -0.56
     },
     {
       "id": "alex_verdugo",
@@ -429,7 +451,8 @@
       "rbi": 61,
       "sb": 2,
       "k_pct": 15.0,
-      "bb_pct": 7.9
+      "bb_pct": 7.9,
+      "war": 0.87
     },
     {
       "id": "alexander_canario",
@@ -447,7 +470,8 @@
       "rbi": 2,
       "sb": 1,
       "k_pct": 39.3,
-      "bb_pct": 7.1
+      "bb_pct": 7.1,
+      "war": 0.29
     },
     {
       "id": "ali_sánchez",
@@ -465,7 +489,8 @@
       "rbi": 4,
       "sb": 2,
       "k_pct": 24.7,
-      "bb_pct": 4.1
+      "bb_pct": 4.1,
+      "war": -0.57
     },
     {
       "id": "alika_williams",
@@ -483,7 +508,8 @@
       "rbi": 5,
       "sb": 1,
       "k_pct": 22.7,
-      "bb_pct": 3.1
+      "bb_pct": 3.1,
+      "war": -0.13
     },
     {
       "id": "amed_rosario",
@@ -501,7 +527,8 @@
       "rbi": 35,
       "sb": 13,
       "k_pct": 21.0,
-      "bb_pct": 2.6
+      "bb_pct": 2.6,
+      "war": -0.05
     },
     {
       "id": "andrew_benintendi",
@@ -521,7 +548,8 @@
       "rbi": 64,
       "sb": 3,
       "k_pct": 18.3,
-      "bb_pct": 7.8
+      "bb_pct": 7.8,
+      "war": -0.84
     },
     {
       "id": "andrew_knapp",
@@ -539,7 +567,8 @@
       "rbi": 0,
       "sb": 0,
       "k_pct": 33.3,
-      "bb_pct": 0.0
+      "bb_pct": 0.0,
+      "war": -0.06
     },
     {
       "id": "andrew_knizner",
@@ -557,7 +586,8 @@
       "rbi": 9,
       "sb": 0,
       "k_pct": 23.7,
-      "bb_pct": 1.1
+      "bb_pct": 1.1,
+      "war": -0.84
     },
     {
       "id": "andrew_mccutchen",
@@ -577,7 +607,8 @@
       "rbi": 50,
       "sb": 3,
       "k_pct": 25.8,
-      "bb_pct": 11.2
+      "bb_pct": 11.2,
+      "war": 0.9
     },
     {
       "id": "andrew_vaughn",
@@ -595,7 +626,8 @@
       "rbi": 70,
       "sb": 2,
       "k_pct": 21.3,
-      "bb_pct": 6.1
+      "bb_pct": 6.1,
+      "war": 0.09
     },
     {
       "id": "andruw_monasterio",
@@ -613,7 +645,8 @@
       "rbi": 16,
       "sb": 6,
       "k_pct": 28.2,
-      "bb_pct": 11.3
+      "bb_pct": 11.3,
+      "war": -0.14
     },
     {
       "id": "andrés_chaparro",
@@ -631,7 +664,8 @@
       "rbi": 16,
       "sb": 1,
       "k_pct": 17.9,
-      "bb_pct": 5.2
+      "bb_pct": 5.2,
+      "war": -0.07
     },
     {
       "id": "andrés_giménez",
@@ -651,7 +685,8 @@
       "rbi": 63,
       "sb": 30,
       "k_pct": 15.3,
-      "bb_pct": 4.1
+      "bb_pct": 4.1,
+      "war": 3.99
     },
     {
       "id": "andy_ibáñez",
@@ -669,7 +704,8 @@
       "rbi": 32,
       "sb": 2,
       "k_pct": 25.8,
-      "bb_pct": 6.1
+      "bb_pct": 6.1,
+      "war": 1.33
     },
     {
       "id": "andy_pages",
@@ -687,7 +723,8 @@
       "rbi": 46,
       "sb": 1,
       "k_pct": 24.3,
-      "bb_pct": 6.5
+      "bb_pct": 6.5,
+      "war": 1.2
     },
     {
       "id": "angel_martínez",
@@ -705,7 +742,8 @@
       "rbi": 11,
       "sb": 3,
       "k_pct": 19.5,
-      "bb_pct": 8.9
+      "bb_pct": 8.9,
+      "war": 0.06
     },
     {
       "id": "anthony_rendon",
@@ -725,7 +763,8 @@
       "rbi": 16,
       "sb": 6,
       "k_pct": 14.6,
-      "bb_pct": 9.6
+      "bb_pct": 9.6,
+      "war": 0.55
     },
     {
       "id": "anthony_rizzo",
@@ -743,7 +782,8 @@
       "rbi": 36,
       "sb": 0,
       "k_pct": 17.2,
-      "bb_pct": 7.2
+      "bb_pct": 7.2,
+      "war": 0.24
     },
     {
       "id": "anthony_santander",
@@ -763,7 +803,8 @@
       "rbi": 104,
       "sb": 2,
       "k_pct": 19.4,
-      "bb_pct": 8.7
+      "bb_pct": 8.7,
+      "war": 2.7
     },
     {
       "id": "anthony_volpe",
@@ -783,7 +824,8 @@
       "rbi": 62,
       "sb": 28,
       "k_pct": 22.5,
-      "bb_pct": 6.1
+      "bb_pct": 6.1,
+      "war": 3.49
     },
     {
       "id": "aramis_garcia",
@@ -801,7 +843,8 @@
       "rbi": 0,
       "sb": 0,
       "k_pct": 42.9,
-      "bb_pct": 0.0
+      "bb_pct": 0.0,
+      "war": -0.05
     },
     {
       "id": "armando_alvarez",
@@ -819,7 +862,8 @@
       "rbi": 2,
       "sb": 1,
       "k_pct": 20.5,
-      "bb_pct": 5.1
+      "bb_pct": 5.1,
+      "war": -0.38
     },
     {
       "id": "austin_barnes",
@@ -837,7 +881,8 @@
       "rbi": 11,
       "sb": 3,
       "k_pct": 23.1,
-      "bb_pct": 9.0
+      "bb_pct": 9.0,
+      "war": 0.65
     },
     {
       "id": "austin_hays",
@@ -855,7 +900,8 @@
       "rbi": 20,
       "sb": 2,
       "k_pct": 23.1,
-      "bb_pct": 3.5
+      "bb_pct": 3.5,
+      "war": -0.19
     },
     {
       "id": "austin_hedges",
@@ -873,7 +919,8 @@
       "rbi": 16,
       "sb": 2,
       "k_pct": 34.0,
-      "bb_pct": 4.1
+      "bb_pct": 4.1,
+      "war": -0.61
     },
     {
       "id": "austin_martin",
@@ -891,7 +938,8 @@
       "rbi": 18,
       "sb": 7,
       "k_pct": 18.3,
-      "bb_pct": 7.8
+      "bb_pct": 7.8,
+      "war": -0.98
     },
     {
       "id": "austin_riley",
@@ -909,7 +957,8 @@
       "rbi": 59,
       "sb": 0,
       "k_pct": 25.1,
-      "bb_pct": 7.9
+      "bb_pct": 7.9,
+      "war": 2.89
     },
     {
       "id": "austin_shenton",
@@ -929,7 +978,8 @@
       "rbi": 3,
       "sb": 0,
       "k_pct": 28.0,
-      "bb_pct": 16.0
+      "bb_pct": 16.0,
+      "war": 0.1
     },
     {
       "id": "austin_slater",
@@ -949,7 +999,8 @@
       "rbi": 18,
       "sb": 3,
       "k_pct": 28.3,
-      "bb_pct": 12.3
+      "bb_pct": 12.3,
+      "war": -0.25
     },
     {
       "id": "austin_wells",
@@ -967,7 +1018,8 @@
       "rbi": 58,
       "sb": 1,
       "k_pct": 21.0,
-      "bb_pct": 11.3
+      "bb_pct": 11.3,
+      "war": 2.56
     },
     {
       "id": "austin_wynns",
@@ -985,7 +1037,8 @@
       "rbi": 2,
       "sb": 0,
       "k_pct": 25.0,
-      "bb_pct": 0.0
+      "bb_pct": 0.0,
+      "war": 0.43
     },
     {
       "id": "avisaíl_garcía",
@@ -1003,7 +1056,8 @@
       "rbi": 2,
       "sb": 0,
       "k_pct": 25.5,
-      "bb_pct": 2.0
+      "bb_pct": 2.0,
+      "war": -0.18
     },
     {
       "id": "ben_gamel",
@@ -1023,7 +1077,8 @@
       "rbi": 4,
       "sb": 1,
       "k_pct": 24.2,
-      "bb_pct": 18.2
+      "bb_pct": 18.2,
+      "war": 0.19
     },
     {
       "id": "ben_rice",
@@ -1041,7 +1096,8 @@
       "rbi": 23,
       "sb": 0,
       "k_pct": 27.0,
-      "bb_pct": 11.2
+      "bb_pct": 11.2,
+      "war": -0.41
     },
     {
       "id": "ben_rortvedt",
@@ -1059,7 +1115,8 @@
       "rbi": 32,
       "sb": 1,
       "k_pct": 26.7,
-      "bb_pct": 10.3
+      "bb_pct": 10.3,
+      "war": 0.89
     },
     {
       "id": "billy_cook",
@@ -1077,7 +1134,8 @@
       "rbi": 8,
       "sb": 1,
       "k_pct": 38.8,
-      "bb_pct": 0.0
+      "bb_pct": 0.0,
+      "war": 0.63
     },
     {
       "id": "billy_mckinney",
@@ -1095,7 +1153,8 @@
       "rbi": 2,
       "sb": 0,
       "k_pct": 46.4,
-      "bb_pct": 7.1
+      "bb_pct": 7.1,
+      "war": -0.04
     },
     {
       "id": "blake_dunn",
@@ -1113,7 +1172,8 @@
       "rbi": 1,
       "sb": 2,
       "k_pct": 37.9,
-      "bb_pct": 6.9
+      "bb_pct": 6.9,
+      "war": -0.17
     },
     {
       "id": "blake_perkins",
@@ -1133,7 +1193,8 @@
       "rbi": 44,
       "sb": 23,
       "k_pct": 24.9,
-      "bb_pct": 9.7
+      "bb_pct": 9.7,
+      "war": 1.91
     },
     {
       "id": "blake_sabol",
@@ -1153,7 +1214,8 @@
       "rbi": 2,
       "sb": 0,
       "k_pct": 23.7,
-      "bb_pct": 13.2
+      "bb_pct": 13.2,
+      "war": 0.25
     },
     {
       "id": "blaze_alexander",
@@ -1171,7 +1233,8 @@
       "rbi": 21,
       "sb": 3,
       "k_pct": 26.5,
-      "bb_pct": 8.1
+      "bb_pct": 8.1,
+      "war": 0.02
     },
     {
       "id": "bligh_madris",
@@ -1189,7 +1252,8 @@
       "rbi": 6,
       "sb": 0,
       "k_pct": 26.7,
-      "bb_pct": 8.0
+      "bb_pct": 8.0,
+      "war": 0.21
     },
     {
       "id": "bo_bichette",
@@ -1207,7 +1271,8 @@
       "rbi": 32,
       "sb": 5,
       "k_pct": 19.0,
-      "bb_pct": 6.0
+      "bb_pct": 6.0,
+      "war": -0.34
     },
     {
       "id": "bo_naylor",
@@ -1225,7 +1290,8 @@
       "rbi": 41,
       "sb": 6,
       "k_pct": 31.0,
-      "bb_pct": 7.4
+      "bb_pct": 7.4,
+      "war": 0.67
     },
     {
       "id": "bobby_dalbec",
@@ -1243,7 +1309,8 @@
       "rbi": 8,
       "sb": 3,
       "k_pct": 46.2,
-      "bb_pct": 8.6
+      "bb_pct": 8.6,
+      "war": -0.71
     },
     {
       "id": "bobby_witt",
@@ -1265,7 +1332,8 @@
       "rbi": 110,
       "sb": 31,
       "k_pct": 14.9,
-      "bb_pct": 8.0
+      "bb_pct": 8.0,
+      "war": 9.62
     },
     {
       "id": "braden_shewmake",
@@ -1285,7 +1353,8 @@
       "rbi": 4,
       "sb": 5,
       "k_pct": 14.9,
-      "bb_pct": 1.5
+      "bb_pct": 1.5,
+      "war": -0.59
     },
     {
       "id": "brandon_crawford",
@@ -1303,7 +1372,8 @@
       "rbi": 4,
       "sb": 0,
       "k_pct": 32.1,
-      "bb_pct": 9.9
+      "bb_pct": 9.9,
+      "war": -0.21
     },
     {
       "id": "brandon_drury",
@@ -1321,7 +1391,8 @@
       "rbi": 18,
       "sb": 1,
       "k_pct": 22.4,
-      "bb_pct": 7.5
+      "bb_pct": 7.5,
+      "war": -2.06
     },
     {
       "id": "brandon_lockridge",
@@ -1339,7 +1410,8 @@
       "rbi": 1,
       "sb": 2,
       "k_pct": 33.3,
-      "bb_pct": 0.0
+      "bb_pct": 0.0,
+      "war": -0.03
     },
     {
       "id": "brandon_lowe",
@@ -1359,7 +1431,8 @@
       "rbi": 60,
       "sb": 5,
       "k_pct": 26.4,
-      "bb_pct": 7.8
+      "bb_pct": 7.8,
+      "war": 2.35
     },
     {
       "id": "brandon_marsh",
@@ -1379,7 +1452,8 @@
       "rbi": 60,
       "sb": 19,
       "k_pct": 32.2,
-      "bb_pct": 10.4
+      "bb_pct": 10.4,
+      "war": 2.98
     },
     {
       "id": "brandon_nimmo",
@@ -1400,7 +1474,8 @@
       "rbi": 91,
       "sb": 15,
       "k_pct": 23.7,
-      "bb_pct": 11.6
+      "bb_pct": 11.6,
+      "war": 2.18
     },
     {
       "id": "brayan_rocchio",
@@ -1418,7 +1493,8 @@
       "rbi": 39,
       "sb": 10,
       "k_pct": 20.3,
-      "bb_pct": 9.9
+      "bb_pct": 9.9,
+      "war": 1.94
     },
     {
       "id": "brendan_donovan",
@@ -1438,7 +1514,8 @@
       "rbi": 77,
       "sb": 5,
       "k_pct": 12.4,
-      "bb_pct": 7.2
+      "bb_pct": 7.2,
+      "war": 2.76
     },
     {
       "id": "brendan_rodgers",
@@ -1456,7 +1533,8 @@
       "rbi": 58,
       "sb": 1,
       "k_pct": 24.4,
-      "bb_pct": 5.7
+      "bb_pct": 5.7,
+      "war": 0.95
     },
     {
       "id": "brent_rooker",
@@ -1476,7 +1554,8 @@
       "rbi": 113,
       "sb": 11,
       "k_pct": 28.8,
-      "bb_pct": 9.6
+      "bb_pct": 9.6,
+      "war": 5.55
     },
     {
       "id": "brenton_doyle",
@@ -1497,7 +1576,8 @@
       "rbi": 72,
       "sb": 30,
       "k_pct": 25.3,
-      "bb_pct": 7.6
+      "bb_pct": 7.6,
+      "war": 3.86
     },
     {
       "id": "brett_baty",
@@ -1515,7 +1595,8 @@
       "rbi": 16,
       "sb": 0,
       "k_pct": 24.6,
-      "bb_pct": 9.4
+      "bb_pct": 9.4,
+      "war": 0.32
     },
     {
       "id": "brett_harris",
@@ -1535,7 +1616,8 @@
       "rbi": 12,
       "sb": 0,
       "k_pct": 20.3,
-      "bb_pct": 13.8
+      "bb_pct": 13.8,
+      "war": -0.49
     },
     {
       "id": "brett_sullivan",
@@ -1553,7 +1635,8 @@
       "rbi": 2,
       "sb": 0,
       "k_pct": 23.5,
-      "bb_pct": 5.9
+      "bb_pct": 5.9,
+      "war": -0.03
     },
     {
       "id": "brett_wisely",
@@ -1571,7 +1654,8 @@
       "rbi": 32,
       "sb": 2,
       "k_pct": 23.8,
-      "bb_pct": 4.8
+      "bb_pct": 4.8,
+      "war": 0.42
     },
     {
       "id": "brewer_hicklen",
@@ -1589,7 +1673,8 @@
       "rbi": 0,
       "sb": 1,
       "k_pct": 80.0,
-      "bb_pct": 0.0
+      "bb_pct": 0.0,
+      "war": -0.16
     },
     {
       "id": "brian_anderson",
@@ -1607,7 +1692,8 @@
       "rbi": 0,
       "sb": 0,
       "k_pct": 40.0,
-      "bb_pct": 0.0
+      "bb_pct": 0.0,
+      "war": -0.15
     },
     {
       "id": "brian_serven",
@@ -1625,7 +1711,8 @@
       "rbi": 4,
       "sb": 0,
       "k_pct": 31.0,
-      "bb_pct": 7.0
+      "bb_pct": 7.0,
+      "war": 0.14
     },
     {
       "id": "brice_turang",
@@ -1645,7 +1732,8 @@
       "rbi": 59,
       "sb": 50,
       "k_pct": 17.0,
-      "bb_pct": 8.1
+      "bb_pct": 8.1,
+      "war": 4.76
     },
     {
       "id": "brooks_baldwin",
@@ -1663,7 +1751,8 @@
       "rbi": 8,
       "sb": 4,
       "k_pct": 25.4,
-      "bb_pct": 4.9
+      "bb_pct": 4.9,
+      "war": -0.02
     },
     {
       "id": "brooks_lee",
@@ -1683,7 +1772,8 @@
       "rbi": 27,
       "sb": 3,
       "k_pct": 14.6,
-      "bb_pct": 5.9
+      "bb_pct": 5.9,
+      "war": -0.15
     },
     {
       "id": "bryan_de_la_cruz",
@@ -1703,7 +1793,8 @@
       "rbi": 71,
       "sb": 5,
       "k_pct": 27.3,
-      "bb_pct": 4.7
+      "bb_pct": 4.7,
+      "war": -1.13
     },
     {
       "id": "bryan_ramos",
@@ -1721,7 +1812,8 @@
       "rbi": 11,
       "sb": 0,
       "k_pct": 20.4,
-      "bb_pct": 6.5
+      "bb_pct": 6.5,
+      "war": -0.19
     },
     {
       "id": "bryan_reynolds",
@@ -1741,7 +1833,8 @@
       "rbi": 88,
       "sb": 10,
       "k_pct": 22.5,
-      "bb_pct": 8.2
+      "bb_pct": 8.2,
+      "war": 3.64
     },
     {
       "id": "bryce_harper",
@@ -1762,7 +1855,8 @@
       "rbi": 90,
       "sb": 7,
       "k_pct": 21.8,
-      "bb_pct": 12.0
+      "bb_pct": 12.0,
+      "war": 4.6
     },
     {
       "id": "bryce_johnson",
@@ -1780,7 +1874,8 @@
       "rbi": 5,
       "sb": 1,
       "k_pct": 16.4,
-      "bb_pct": 9.6
+      "bb_pct": 9.6,
+      "war": -0.32
     },
     {
       "id": "bryce_teodosio",
@@ -1798,7 +1893,8 @@
       "rbi": 0,
       "sb": 0,
       "k_pct": 41.7,
-      "bb_pct": 0.0
+      "bb_pct": 0.0,
+      "war": -0.23
     },
     {
       "id": "bryson_stott",
@@ -1818,7 +1914,8 @@
       "rbi": 60,
       "sb": 32,
       "k_pct": 16.3,
-      "bb_pct": 9.3
+      "bb_pct": 9.3,
+      "war": 2.3
     },
     {
       "id": "bubba_thompson",
@@ -1836,7 +1933,8 @@
       "rbi": 0,
       "sb": 5,
       "k_pct": 61.1,
-      "bb_pct": 0.0
+      "bb_pct": 0.0,
+      "war": -0.26
     },
     {
       "id": "buddy_kennedy",
@@ -1856,7 +1954,8 @@
       "rbi": 6,
       "sb": 1,
       "k_pct": 26.9,
-      "bb_pct": 15.4
+      "bb_pct": 15.4,
+      "war": 0.18
     },
     {
       "id": "byron_buxton",
@@ -1874,7 +1973,8 @@
       "rbi": 57,
       "sb": 7,
       "k_pct": 25.5,
-      "bb_pct": 5.2
+      "bb_pct": 5.2,
+      "war": 3.58
     },
     {
       "id": "cade_marlowe",
@@ -1894,7 +1994,8 @@
       "rbi": 1,
       "sb": 0,
       "k_pct": 11.1,
-      "bb_pct": 11.1
+      "bb_pct": 11.1,
+      "war": 0.03
     },
     {
       "id": "cal_raleigh",
@@ -1914,7 +2015,8 @@
       "rbi": 101,
       "sb": 6,
       "k_pct": 28.0,
-      "bb_pct": 11.1
+      "bb_pct": 11.1,
+      "war": 4.64
     },
     {
       "id": "cal_stevenson",
@@ -1934,7 +2036,8 @@
       "rbi": 6,
       "sb": 0,
       "k_pct": 14.8,
-      "bb_pct": 11.1
+      "bb_pct": 11.1,
+      "war": -0.11
     },
     {
       "id": "carlos_correa",
@@ -1952,7 +2055,8 @@
       "rbi": 54,
       "sb": 0,
       "k_pct": 16.6,
-      "bb_pct": 10.9
+      "bb_pct": 10.9,
+      "war": 3.65
     },
     {
       "id": "carlos_narváez",
@@ -1972,7 +2076,8 @@
       "rbi": 0,
       "sb": 0,
       "k_pct": 40.0,
-      "bb_pct": 13.3
+      "bb_pct": 13.3,
+      "war": 0.11
     },
     {
       "id": "carlos_santana",
@@ -1992,7 +2097,8 @@
       "rbi": 73,
       "sb": 4,
       "k_pct": 16.6,
-      "bb_pct": 10.9
+      "bb_pct": 10.9,
+      "war": 2.49
     },
     {
       "id": "carson_kelly",
@@ -2010,7 +2116,8 @@
       "rbi": 38,
       "sb": 0,
       "k_pct": 17.5,
-      "bb_pct": 7.9
+      "bb_pct": 7.9,
+      "war": 0.51
     },
     {
       "id": "casey_schmitt",
@@ -2028,7 +2135,8 @@
       "rbi": 16,
       "sb": 0,
       "k_pct": 22.1,
-      "bb_pct": 3.5
+      "bb_pct": 3.5,
+      "war": 0.19
     },
     {
       "id": "cavan_biggio",
@@ -2046,7 +2154,8 @@
       "rbi": 19,
       "sb": 2,
       "k_pct": 32.1,
-      "bb_pct": 10.7
+      "bb_pct": 10.7,
+      "war": 0.05
     },
     {
       "id": "ceddanne_rafaela",
@@ -2066,7 +2175,8 @@
       "rbi": 77,
       "sb": 19,
       "k_pct": 26.4,
-      "bb_pct": 2.6
+      "bb_pct": 2.6,
+      "war": 3.04
     },
     {
       "id": "cedric_mullins",
@@ -2086,7 +2196,8 @@
       "rbi": 56,
       "sb": 32,
       "k_pct": 19.6,
-      "bb_pct": 8.2
+      "bb_pct": 8.2,
+      "war": 2.36
     },
     {
       "id": "chadwick_tromp",
@@ -2104,7 +2215,8 @@
       "rbi": 6,
       "sb": 0,
       "k_pct": 31.5,
-      "bb_pct": 1.9
+      "bb_pct": 1.9,
+      "war": 0.17
     },
     {
       "id": "charles_leblanc",
@@ -2124,7 +2236,8 @@
       "rbi": 6,
       "sb": 0,
       "k_pct": 32.1,
-      "bb_pct": 25.0
+      "bb_pct": 25.0,
+      "war": 0.14
     },
     {
       "id": "charlie_blackmon",
@@ -2142,7 +2255,8 @@
       "rbi": 53,
       "sb": 6,
       "k_pct": 17.2,
-      "bb_pct": 8.6
+      "bb_pct": 8.6,
+      "war": 0.5
     },
     {
       "id": "chas_mccormick",
@@ -2160,7 +2274,8 @@
       "rbi": 27,
       "sb": 8,
       "k_pct": 27.0,
-      "bb_pct": 6.4
+      "bb_pct": 6.4,
+      "war": -0.66
     },
     {
       "id": "chris_roller",
@@ -2178,7 +2293,8 @@
       "rbi": 0,
       "sb": 0,
       "k_pct": 100.0,
-      "bb_pct": 0.0
+      "bb_pct": 0.0,
+      "war": -0.03
     },
     {
       "id": "chris_taylor",
@@ -2196,7 +2312,8 @@
       "rbi": 24,
       "sb": 5,
       "k_pct": 30.9,
-      "bb_pct": 11.4
+      "bb_pct": 11.4,
+      "war": -0.18
     },
     {
       "id": "christian_bethancourt",
@@ -2214,7 +2331,8 @@
       "rbi": 24,
       "sb": 3,
       "k_pct": 24.5,
-      "bb_pct": 3.4
+      "bb_pct": 3.4,
+      "war": 0.35
     },
     {
       "id": "christian_encarnacion_strand",
@@ -2232,7 +2350,8 @@
       "rbi": 16,
       "sb": 0,
       "k_pct": 28.5,
-      "bb_pct": 3.3
+      "bb_pct": 3.3,
+      "war": -1.04
     },
     {
       "id": "christian_vázquez",
@@ -2250,7 +2369,8 @@
       "rbi": 30,
       "sb": 3,
       "k_pct": 20.6,
-      "bb_pct": 3.5
+      "bb_pct": 3.5,
+      "war": -0.22
     },
     {
       "id": "christian_walker",
@@ -2270,7 +2390,8 @@
       "rbi": 84,
       "sb": 2,
       "k_pct": 24.1,
-      "bb_pct": 9.9
+      "bb_pct": 9.9,
+      "war": 2.52
     },
     {
       "id": "christian_yelich",
@@ -2291,7 +2412,8 @@
       "rbi": 42,
       "sb": 21,
       "k_pct": 18.4,
-      "bb_pct": 12.7
+      "bb_pct": 12.7,
+      "war": 2.25
     },
     {
       "id": "christopher_morel",
@@ -2311,7 +2433,8 @@
       "rbi": 65,
       "sb": 8,
       "k_pct": 25.9,
-      "bb_pct": 9.9
+      "bb_pct": 9.9,
+      "war": -0.58
     },
     {
       "id": "chuckie_robinson",
@@ -2329,7 +2452,8 @@
       "rbi": 1,
       "sb": 0,
       "k_pct": 26.0,
-      "bb_pct": 6.5
+      "bb_pct": 6.5,
+      "war": -0.47
     },
     {
       "id": "cj_abrams",
@@ -2350,7 +2474,8 @@
       "rbi": 66,
       "sb": 31,
       "k_pct": 21.1,
-      "bb_pct": 6.6
+      "bb_pct": 6.6,
+      "war": 3.33
     },
     {
       "id": "cj_alexander",
@@ -2368,7 +2493,8 @@
       "rbi": 0,
       "sb": 0,
       "k_pct": 37.5,
-      "bb_pct": 0.0
+      "bb_pct": 0.0,
+      "war": -0.22
     },
     {
       "id": "coby_mayo",
@@ -2386,7 +2512,8 @@
       "rbi": 1,
       "sb": 0,
       "k_pct": 47.8,
-      "bb_pct": 8.7
+      "bb_pct": 8.7,
+      "war": -0.69
     },
     {
       "id": "cody_bellinger",
@@ -2404,7 +2531,8 @@
       "rbi": 83,
       "sb": 9,
       "k_pct": 15.6,
-      "bb_pct": 7.9
+      "bb_pct": 7.9,
+      "war": 2.22
     },
     {
       "id": "cole_tucker",
@@ -2422,7 +2550,8 @@
       "rbi": 3,
       "sb": 3,
       "k_pct": 29.8,
-      "bb_pct": 10.5
+      "bb_pct": 10.5,
+      "war": -0.53
     },
     {
       "id": "colt_keith",
@@ -2440,7 +2569,8 @@
       "rbi": 64,
       "sb": 7,
       "k_pct": 19.7,
-      "bb_pct": 6.5
+      "bb_pct": 6.5,
+      "war": 1.02
     },
     {
       "id": "colton_cowser",
@@ -2460,7 +2590,8 @@
       "rbi": 69,
       "sb": 9,
       "k_pct": 30.5,
-      "bb_pct": 9.2
+      "bb_pct": 9.2,
+      "war": 2.83
     },
     {
       "id": "conner_capel",
@@ -2478,7 +2609,8 @@
       "rbi": 0,
       "sb": 1,
       "k_pct": 25.0,
-      "bb_pct": 0.0
+      "bb_pct": 0.0,
+      "war": -0.06
     },
     {
       "id": "connor_joe",
@@ -2496,7 +2628,8 @@
       "rbi": 38,
       "sb": 2,
       "k_pct": 21.8,
-      "bb_pct": 10.6
+      "bb_pct": 10.6,
+      "war": 0.67
     },
     {
       "id": "connor_norby",
@@ -2514,7 +2647,8 @@
       "rbi": 20,
       "sb": 3,
       "k_pct": 32.5,
-      "bb_pct": 7.6
+      "bb_pct": 7.6,
+      "war": 0.31
     },
     {
       "id": "connor_wong",
@@ -2532,7 +2666,8 @@
       "rbi": 52,
       "sb": 8,
       "k_pct": 23.4,
-      "bb_pct": 5.7
+      "bb_pct": 5.7,
+      "war": 1.76
     },
     {
       "id": "cooper_hummel",
@@ -2550,7 +2685,8 @@
       "rbi": 1,
       "sb": 1,
       "k_pct": 25.0,
-      "bb_pct": 0.0
+      "bb_pct": 0.0,
+      "war": -0.13
     },
     {
       "id": "corbin_carroll",
@@ -2571,7 +2707,8 @@
       "rbi": 79,
       "sb": 35,
       "k_pct": 19.0,
-      "bb_pct": 10.7
+      "bb_pct": 10.7,
+      "war": 3.3
     },
     {
       "id": "corey_julks",
@@ -2589,7 +2726,8 @@
       "rbi": 14,
       "sb": 5,
       "k_pct": 26.5,
-      "bb_pct": 7.9
+      "bb_pct": 7.9,
+      "war": -1.14
     },
     {
       "id": "corey_seager",
@@ -2609,7 +2747,8 @@
       "rbi": 75,
       "sb": 1,
       "k_pct": 18.0,
-      "bb_pct": 9.9
+      "bb_pct": 9.9,
+      "war": 5.22
     },
     {
       "id": "cristian_pache",
@@ -2627,7 +2766,8 @@
       "rbi": 16,
       "sb": 1,
       "k_pct": 35.0,
-      "bb_pct": 9.3
+      "bb_pct": 9.3,
+      "war": -0.21
     },
     {
       "id": "curt_casali",
@@ -2645,7 +2785,8 @@
       "rbi": 8,
       "sb": 0,
       "k_pct": 17.5,
-      "bb_pct": 10.3
+      "bb_pct": 10.3,
+      "war": 0.26
     },
     {
       "id": "curtis_mead",
@@ -2663,7 +2804,8 @@
       "rbi": 7,
       "sb": 2,
       "k_pct": 22.7,
-      "bb_pct": 4.5
+      "bb_pct": 4.5,
+      "war": -0.49
     },
     {
       "id": "césar_salazar",
@@ -2681,7 +2823,8 @@
       "rbi": 8,
       "sb": 0,
       "k_pct": 18.8,
-      "bb_pct": 6.2
+      "bb_pct": 6.2,
+      "war": 0.15
     },
     {
       "id": "dairon_blanco",
@@ -2701,7 +2844,8 @@
       "rbi": 14,
       "sb": 31,
       "k_pct": 24.2,
-      "bb_pct": 6.1
+      "bb_pct": 6.1,
+      "war": 0.1
     },
     {
       "id": "dan_vogelbach",
@@ -2719,7 +2863,8 @@
       "rbi": 9,
       "sb": 0,
       "k_pct": 21.5,
-      "bb_pct": 11.4
+      "bb_pct": 11.4,
+      "war": -0.46
     },
     {
       "id": "dane_myers",
@@ -2737,7 +2882,8 @@
       "rbi": 19,
       "sb": 4,
       "k_pct": 33.3,
-      "bb_pct": 7.4
+      "bb_pct": 7.4,
+      "war": 0.59
     },
     {
       "id": "daniel_johnson",
@@ -2757,7 +2903,8 @@
       "rbi": 0,
       "sb": 0,
       "k_pct": 0.0,
-      "bb_pct": 0.0
+      "bb_pct": 0.0,
+      "war": -0.03
     },
     {
       "id": "daniel_schneemann",
@@ -2775,7 +2922,8 @@
       "rbi": 22,
       "sb": 3,
       "k_pct": 31.7,
-      "bb_pct": 11.3
+      "bb_pct": 11.3,
+      "war": 0.71
     },
     {
       "id": "danny_jansen",
@@ -2795,7 +2943,8 @@
       "rbi": 25,
       "sb": 0,
       "k_pct": 18.8,
-      "bb_pct": 12.3
+      "bb_pct": 12.3,
+      "war": 0.67
     },
     {
       "id": "danny_mendick",
@@ -2813,7 +2962,8 @@
       "rbi": 9,
       "sb": 6,
       "k_pct": 24.6,
-      "bb_pct": 4.2
+      "bb_pct": 4.2,
+      "war": -0.31
     },
     {
       "id": "dansby_swanson",
@@ -2833,7 +2983,8 @@
       "rbi": 66,
       "sb": 19,
       "k_pct": 24.2,
-      "bb_pct": 9.1
+      "bb_pct": 9.1,
+      "war": 3.96
     },
     {
       "id": "darell_hernaiz",
@@ -2851,7 +3002,8 @@
       "rbi": 12,
       "sb": 1,
       "k_pct": 20.0,
-      "bb_pct": 8.1
+      "bb_pct": 8.1,
+      "war": -0.79
     },
     {
       "id": "darren_baker",
@@ -2869,7 +3021,8 @@
       "rbi": 0,
       "sb": 0,
       "k_pct": 21.4,
-      "bb_pct": 0.0
+      "bb_pct": 0.0,
+      "war": 0.03
     },
     {
       "id": "dashawn_keirsey",
@@ -2889,7 +3042,8 @@
       "rbi": 1,
       "sb": 0,
       "k_pct": 7.1,
-      "bb_pct": 0.0
+      "bb_pct": 0.0,
+      "war": -0.01
     },
     {
       "id": "daulton_varsho",
@@ -2907,7 +3061,8 @@
       "rbi": 59,
       "sb": 10,
       "k_pct": 26.7,
-      "bb_pct": 9.4
+      "bb_pct": 9.4,
+      "war": 4.83
     },
     {
       "id": "david_bañuelos",
@@ -2927,7 +3082,8 @@
       "rbi": 0,
       "sb": 0,
       "k_pct": 0.0,
-      "bb_pct": 0.0
+      "bb_pct": 0.0,
+      "war": -0.03
     },
     {
       "id": "david_bote",
@@ -2945,7 +3101,8 @@
       "rbi": 6,
       "sb": 0,
       "k_pct": 27.1,
-      "bb_pct": 4.2
+      "bb_pct": 4.2,
+      "war": 0.17
     },
     {
       "id": "david_dahl",
@@ -2963,7 +3120,8 @@
       "rbi": 10,
       "sb": 0,
       "k_pct": 33.3,
-      "bb_pct": 4.8
+      "bb_pct": 4.8,
+      "war": 0.29
     },
     {
       "id": "david_fletcher",
@@ -2983,7 +3141,8 @@
       "rbi": 2,
       "sb": 0,
       "k_pct": 11.1,
-      "bb_pct": 0.0
+      "bb_pct": 0.0,
+      "war": 0.04
     },
     {
       "id": "david_fry",
@@ -3001,7 +3160,8 @@
       "rbi": 55,
       "sb": 4,
       "k_pct": 21.3,
-      "bb_pct": 10.7
+      "bb_pct": 10.7,
+      "war": 1.36
     },
     {
       "id": "david_hamilton",
@@ -3021,7 +3181,8 @@
       "rbi": 29,
       "sb": 33,
       "k_pct": 25.0,
-      "bb_pct": 6.9
+      "bb_pct": 6.9,
+      "war": 2.76
     },
     {
       "id": "david_hensley",
@@ -3039,7 +3200,8 @@
       "rbi": 4,
       "sb": 1,
       "k_pct": 29.3,
-      "bb_pct": 10.3
+      "bb_pct": 10.3,
+      "war": -0.35
     },
     {
       "id": "david_peralta",
@@ -3057,7 +3219,8 @@
       "rbi": 28,
       "sb": 2,
       "k_pct": 20.6,
-      "bb_pct": 8.4
+      "bb_pct": 8.4,
+      "war": 0.83
     },
     {
       "id": "david_villar",
@@ -3075,7 +3238,8 @@
       "rbi": 4,
       "sb": 0,
       "k_pct": 35.1,
-      "bb_pct": 2.7
+      "bb_pct": 2.7,
+      "war": 0.02
     },
     {
       "id": "davis_schneider",
@@ -3093,7 +3257,8 @@
       "rbi": 46,
       "sb": 6,
       "k_pct": 31.6,
-      "bb_pct": 10.3
+      "bb_pct": 10.3,
+      "war": -0.14
     },
     {
       "id": "davis_wendzel",
@@ -3111,7 +3276,8 @@
       "rbi": 2,
       "sb": 0,
       "k_pct": 24.5,
-      "bb_pct": 2.0
+      "bb_pct": 2.0,
+      "war": -0.07
     },
     {
       "id": "daz_cameron",
@@ -3129,7 +3295,8 @@
       "rbi": 15,
       "sb": 5,
       "k_pct": 27.4,
-      "bb_pct": 7.0
+      "bb_pct": 7.0,
+      "war": -0.48
     },
     {
       "id": "derek_hill",
@@ -3147,7 +3314,8 @@
       "rbi": 26,
       "sb": 6,
       "k_pct": 32.6,
-      "bb_pct": 2.9
+      "bb_pct": 2.9,
+      "war": 0.08
     },
     {
       "id": "diego_castillo",
@@ -3168,7 +3336,8 @@
       "rbi": 2,
       "sb": 0,
       "k_pct": 12.5,
-      "bb_pct": 25.0
+      "bb_pct": 25.0,
+      "war": 0.2
     },
     {
       "id": "dillon_dingler",
@@ -3186,7 +3355,8 @@
       "rbi": 11,
       "sb": 0,
       "k_pct": 34.5,
-      "bb_pct": 3.4
+      "bb_pct": 3.4,
+      "war": -0.34
     },
     {
       "id": "dj_lemahieu",
@@ -3204,7 +3374,8 @@
       "rbi": 26,
       "sb": 0,
       "k_pct": 15.4,
-      "bb_pct": 8.3
+      "bb_pct": 8.3,
+      "war": -1.52
     },
     {
       "id": "dj_stewart",
@@ -3224,7 +3395,8 @@
       "rbi": 19,
       "sb": 1,
       "k_pct": 24.7,
-      "bb_pct": 16.0
+      "bb_pct": 16.0,
+      "war": -0.78
     },
     {
       "id": "dominic_canzone",
@@ -3242,7 +3414,8 @@
       "rbi": 18,
       "sb": 1,
       "k_pct": 28.2,
-      "bb_pct": 9.6
+      "bb_pct": 9.6,
+      "war": 0.17
     },
     {
       "id": "dominic_fletcher",
@@ -3260,7 +3433,8 @@
       "rbi": 17,
       "sb": 0,
       "k_pct": 24.1,
-      "bb_pct": 4.6
+      "bb_pct": 4.6,
+      "war": -0.37
     },
     {
       "id": "dominic_smith",
@@ -3278,7 +3452,8 @@
       "rbi": 34,
       "sb": 1,
       "k_pct": 24.8,
-      "bb_pct": 9.1
+      "bb_pct": 9.1,
+      "war": 0.02
     },
     {
       "id": "donovan_solano",
@@ -3296,7 +3471,8 @@
       "rbi": 35,
       "sb": 2,
       "k_pct": 21.0,
-      "bb_pct": 7.1
+      "bb_pct": 7.1,
+      "war": 0.97
     },
     {
       "id": "donovan_walton",
@@ -3314,7 +3490,8 @@
       "rbi": 2,
       "sb": 0,
       "k_pct": 28.0,
-      "bb_pct": 8.0
+      "bb_pct": 8.0,
+      "war": -0.03
     },
     {
       "id": "drew_millas",
@@ -3332,7 +3509,8 @@
       "rbi": 1,
       "sb": 4,
       "k_pct": 25.0,
-      "bb_pct": 7.8
+      "bb_pct": 7.8,
+      "war": 0.41
     },
     {
       "id": "drew_romo",
@@ -3350,7 +3528,8 @@
       "rbi": 7,
       "sb": 0,
       "k_pct": 33.3,
-      "bb_pct": 3.7
+      "bb_pct": 3.7,
+      "war": -0.18
     },
     {
       "id": "drew_waters",
@@ -3368,7 +3547,8 @@
       "rbi": 1,
       "sb": 0,
       "k_pct": 31.6,
-      "bb_pct": 10.5
+      "bb_pct": 10.5,
+      "war": -0.01
     },
     {
       "id": "duke_ellis",
@@ -3386,7 +3566,8 @@
       "rbi": 0,
       "sb": 5,
       "k_pct": 40.0,
-      "bb_pct": 0.0
+      "bb_pct": 0.0,
+      "war": -0.08
     },
     {
       "id": "dustin_harris",
@@ -3406,7 +3587,8 @@
       "rbi": 3,
       "sb": 0,
       "k_pct": 28.6,
-      "bb_pct": 14.3
+      "bb_pct": 14.3,
+      "war": 0.17
     },
     {
       "id": "dylan_carlson",
@@ -3424,7 +3606,8 @@
       "rbi": 26,
       "sb": 2,
       "k_pct": 28.2,
-      "bb_pct": 8.3
+      "bb_pct": 8.3,
+      "war": -1.17
     },
     {
       "id": "dylan_crews",
@@ -3442,7 +3625,8 @@
       "rbi": 8,
       "sb": 12,
       "k_pct": 19.5,
-      "bb_pct": 8.3
+      "bb_pct": 8.3,
+      "war": 0.58
     },
     {
       "id": "dylan_moore",
@@ -3463,7 +3647,8 @@
       "rbi": 42,
       "sb": 32,
       "k_pct": 27.8,
-      "bb_pct": 12.0
+      "bb_pct": 12.0,
+      "war": 2.09
     },
     {
       "id": "eddie_rosario",
@@ -3481,7 +3666,8 @@
       "rbi": 35,
       "sb": 9,
       "k_pct": 23.9,
-      "bb_pct": 5.0
+      "bb_pct": 5.0,
+      "war": -1.62
     },
     {
       "id": "eddy_alvarez",
@@ -3499,7 +3685,8 @@
       "rbi": 0,
       "sb": 0,
       "k_pct": 18.2,
-      "bb_pct": 9.1
+      "bb_pct": 9.1,
+      "war": 0.05
     },
     {
       "id": "edmundo_sosa",
@@ -3517,7 +3704,8 @@
       "rbi": 32,
       "sb": 7,
       "k_pct": 24.0,
-      "bb_pct": 4.7
+      "bb_pct": 4.7,
+      "war": 2.21
     },
     {
       "id": "edouard_julien",
@@ -3535,7 +3723,8 @@
       "rbi": 22,
       "sb": 6,
       "k_pct": 33.8,
-      "bb_pct": 10.9
+      "bb_pct": 10.9,
+      "war": -0.17
     },
     {
       "id": "edward_olivares",
@@ -3553,7 +3742,8 @@
       "rbi": 24,
       "sb": 1,
       "k_pct": 18.9,
-      "bb_pct": 8.2
+      "bb_pct": 8.2,
+      "war": -0.67
     },
     {
       "id": "edwin_ríos",
@@ -3571,7 +3761,8 @@
       "rbi": 0,
       "sb": 0,
       "k_pct": 40.0,
-      "bb_pct": 10.0
+      "bb_pct": 10.0,
+      "war": -0.11
     },
     {
       "id": "eguy_rosario",
@@ -3589,7 +3780,8 @@
       "rbi": 6,
       "sb": 0,
       "k_pct": 35.1,
-      "bb_pct": 3.5
+      "bb_pct": 3.5,
+      "war": 0.33
     },
     {
       "id": "ehire_adrianza",
@@ -3607,7 +3799,8 @@
       "rbi": 2,
       "sb": 0,
       "k_pct": 37.9,
-      "bb_pct": 6.9
+      "bb_pct": 6.9,
+      "war": 0.08
     },
     {
       "id": "elehuris_montero",
@@ -3625,7 +3818,8 @@
       "rbi": 28,
       "sb": 0,
       "k_pct": 22.5,
-      "bb_pct": 8.0
+      "bb_pct": 8.0,
+      "war": -1.74
     },
     {
       "id": "eli_white",
@@ -3643,7 +3837,8 @@
       "rbi": 4,
       "sb": 3,
       "k_pct": 28.6,
-      "bb_pct": 2.4
+      "bb_pct": 2.4,
+      "war": 0.27
     },
     {
       "id": "elly_de_la_cruz",
@@ -3664,7 +3859,8 @@
       "rbi": 79,
       "sb": 67,
       "k_pct": 31.3,
-      "bb_pct": 9.9
+      "bb_pct": 9.9,
+      "war": 5.21
     },
     {
       "id": "eloy_jiménez",
@@ -3682,7 +3878,8 @@
       "rbi": 28,
       "sb": 3,
       "k_pct": 20.1,
-      "bb_pct": 6.3
+      "bb_pct": 6.3,
+      "war": -0.8
     },
     {
       "id": "elías_díaz",
@@ -3700,7 +3897,8 @@
       "rbi": 42,
       "sb": 0,
       "k_pct": 19.6,
-      "bb_pct": 5.7
+      "bb_pct": 5.7,
+      "war": 1.21
     },
     {
       "id": "emmanuel_rivera",
@@ -3718,7 +3916,8 @@
       "rbi": 29,
       "sb": 2,
       "k_pct": 22.8,
-      "bb_pct": 8.6
+      "bb_pct": 8.6,
+      "war": -0.34
     },
     {
       "id": "enmanuel_valdez",
@@ -3736,7 +3935,8 @@
       "rbi": 29,
       "sb": 1,
       "k_pct": 23.7,
-      "bb_pct": 7.6
+      "bb_pct": 7.6,
+      "war": -0.54
     },
     {
       "id": "enrique_hernández",
@@ -3754,7 +3954,8 @@
       "rbi": 42,
       "sb": 0,
       "k_pct": 19.5,
-      "bb_pct": 6.8
+      "bb_pct": 6.8,
+      "war": 1.23
     },
     {
       "id": "eric_haase",
@@ -3772,7 +3973,8 @@
       "rbi": 14,
       "sb": 0,
       "k_pct": 40.6,
-      "bb_pct": 4.3
+      "bb_pct": 4.3,
+      "war": 0.45
     },
     {
       "id": "eric_wagaman",
@@ -3790,7 +3992,8 @@
       "rbi": 10,
       "sb": 0,
       "k_pct": 22.7,
-      "bb_pct": 2.7
+      "bb_pct": 2.7,
+      "war": 0.43
     },
     {
       "id": "eric_yang",
@@ -3808,7 +4011,8 @@
       "rbi": 0,
       "sb": 0,
       "k_pct": 100.0,
-      "bb_pct": 0.0
+      "bb_pct": 0.0,
+      "war": -0.03
     },
     {
       "id": "ernie_clement",
@@ -3828,7 +4032,8 @@
       "rbi": 57,
       "sb": 12,
       "k_pct": 9.1,
-      "bb_pct": 2.4
+      "bb_pct": 2.4,
+      "war": 3.31
     },
     {
       "id": "esteury_ruiz",
@@ -3846,7 +4051,8 @@
       "rbi": 8,
       "sb": 5,
       "k_pct": 30.8,
-      "bb_pct": 6.2
+      "bb_pct": 6.2,
+      "war": -0.13
     },
     {
       "id": "estevan_florial",
@@ -3864,7 +4070,8 @@
       "rbi": 11,
       "sb": 2,
       "k_pct": 36.9,
-      "bb_pct": 9.9
+      "bb_pct": 9.9,
+      "war": 0.1
     },
     {
       "id": "eugenio_suárez",
@@ -3884,7 +4091,8 @@
       "rbi": 101,
       "sb": 2,
       "k_pct": 27.4,
-      "bb_pct": 7.6
+      "bb_pct": 7.6,
+      "war": 3.04
     },
     {
       "id": "evan_carter",
@@ -3902,7 +4110,8 @@
       "rbi": 15,
       "sb": 2,
       "k_pct": 26.5,
-      "bb_pct": 9.3
+      "bb_pct": 9.3,
+      "war": 0.7
     },
     {
       "id": "ezequiel_duran",
@@ -3920,7 +4129,8 @@
       "rbi": 22,
       "sb": 1,
       "k_pct": 22.1,
-      "bb_pct": 4.9
+      "bb_pct": 4.9,
+      "war": 0.16
     },
     {
       "id": "ezequiel_tovar",
@@ -3940,7 +4150,8 @@
       "rbi": 80,
       "sb": 6,
       "k_pct": 28.7,
-      "bb_pct": 3.3
+      "bb_pct": 3.3,
+      "war": 3.58
     },
     {
       "id": "fernando_tatís",
@@ -3960,7 +4171,8 @@
       "rbi": 49,
       "sb": 11,
       "k_pct": 21.9,
-      "bb_pct": 7.3
+      "bb_pct": 7.3,
+      "war": 2.65
     },
     {
       "id": "forrest_wall",
@@ -3978,7 +4190,8 @@
       "rbi": 1,
       "sb": 4,
       "k_pct": 22.9,
-      "bb_pct": 8.6
+      "bb_pct": 8.6,
+      "war": 0.03
     },
     {
       "id": "francisco_lindor",
@@ -3999,7 +4212,8 @@
       "rbi": 91,
       "sb": 29,
       "k_pct": 18.4,
-      "bb_pct": 8.1
+      "bb_pct": 8.1,
+      "war": 6.83
     },
     {
       "id": "francisco_álvarez",
@@ -4017,7 +4231,8 @@
       "rbi": 49,
       "sb": 1,
       "k_pct": 25.1,
-      "bb_pct": 8.8
+      "bb_pct": 8.8,
+      "war": 0.81
     },
     {
       "id": "freddie_freeman",
@@ -4038,7 +4253,8 @@
       "rbi": 90,
       "sb": 9,
       "k_pct": 15.6,
-      "bb_pct": 12.2
+      "bb_pct": 12.2,
+      "war": 4.52
     },
     {
       "id": "freddy_fermin",
@@ -4056,7 +4272,8 @@
       "rbi": 38,
       "sb": 2,
       "k_pct": 17.9,
-      "bb_pct": 6.2
+      "bb_pct": 6.2,
+      "war": 3.13
     },
     {
       "id": "gabriel_arias",
@@ -4074,7 +4291,8 @@
       "rbi": 16,
       "sb": 5,
       "k_pct": 32.9,
-      "bb_pct": 3.7
+      "bb_pct": 3.7,
+      "war": -0.38
     },
     {
       "id": "gabriel_moreno",
@@ -4094,7 +4312,8 @@
       "rbi": 46,
       "sb": 3,
       "k_pct": 14.8,
-      "bb_pct": 11.7
+      "bb_pct": 11.7,
+      "war": 2.55
     },
     {
       "id": "garrett_cooper",
@@ -4112,7 +4331,8 @@
       "rbi": 11,
       "sb": 0,
       "k_pct": 30.2,
-      "bb_pct": 6.0
+      "bb_pct": 6.0,
+      "war": -0.79
     },
     {
       "id": "garrett_hampson",
@@ -4130,7 +4350,8 @@
       "rbi": 16,
       "sb": 7,
       "k_pct": 25.4,
-      "bb_pct": 6.0
+      "bb_pct": 6.0,
+      "war": 0.45
     },
     {
       "id": "garrett_mitchell",
@@ -4148,7 +4369,8 @@
       "rbi": 22,
       "sb": 11,
       "k_pct": 31.4,
-      "bb_pct": 11.1
+      "bb_pct": 11.1,
+      "war": 2.07
     },
     {
       "id": "garrett_stubbs",
@@ -4166,7 +4388,8 @@
       "rbi": 11,
       "sb": 5,
       "k_pct": 26.7,
-      "bb_pct": 9.1
+      "bb_pct": 9.1,
+      "war": 0.29
     },
     {
       "id": "gary_sánchez",
@@ -4184,7 +4407,8 @@
       "rbi": 37,
       "sb": 0,
       "k_pct": 27.1,
-      "bb_pct": 9.6
+      "bb_pct": 9.6,
+      "war": 0.22
     },
     {
       "id": "gavin_lux",
@@ -4202,7 +4426,8 @@
       "rbi": 54,
       "sb": 5,
       "k_pct": 22.5,
-      "bb_pct": 9.0
+      "bb_pct": 9.0,
+      "war": 2.01
     },
     {
       "id": "gavin_sheets",
@@ -4220,7 +4445,8 @@
       "rbi": 45,
       "sb": 2,
       "k_pct": 21.1,
-      "bb_pct": 8.6
+      "bb_pct": 8.6,
+      "war": -1.0
     },
     {
       "id": "george_springer",
@@ -4240,7 +4466,8 @@
       "rbi": 56,
       "sb": 16,
       "k_pct": 18.7,
-      "bb_pct": 9.7
+      "bb_pct": 9.7,
+      "war": 0.91
     },
     {
       "id": "geraldo_perdomo",
@@ -4260,7 +4487,8 @@
       "rbi": 38,
       "sb": 9,
       "k_pct": 14.9,
-      "bb_pct": 9.3
+      "bb_pct": 9.3,
+      "war": 3.45
     },
     {
       "id": "giancarlo_stanton",
@@ -4280,7 +4508,8 @@
       "rbi": 75,
       "sb": 0,
       "k_pct": 31.0,
-      "bb_pct": 8.2
+      "bb_pct": 8.2,
+      "war": 0.8
     },
     {
       "id": "gio_urshela",
@@ -4298,7 +4527,8 @@
       "rbi": 53,
       "sb": 0,
       "k_pct": 15.6,
-      "bb_pct": 5.0
+      "bb_pct": 5.0,
+      "war": 0.62
     },
     {
       "id": "gleyber_torres",
@@ -4316,7 +4546,8 @@
       "rbi": 64,
       "sb": 4,
       "k_pct": 20.4,
-      "bb_pct": 9.7
+      "bb_pct": 9.7,
+      "war": 1.88
     },
     {
       "id": "grae_kessinger",
@@ -4336,7 +4567,8 @@
       "rbi": 0,
       "sb": 0,
       "k_pct": 28.0,
-      "bb_pct": 12.0
+      "bb_pct": 12.0,
+      "war": -0.36
     },
     {
       "id": "graham_pauley",
@@ -4354,7 +4586,8 @@
       "rbi": 5,
       "sb": 0,
       "k_pct": 46.9,
-      "bb_pct": 0.0
+      "bb_pct": 0.0,
+      "war": -0.35
     },
     {
       "id": "grant_koch",
@@ -4374,7 +4607,8 @@
       "rbi": 0,
       "sb": 0,
       "k_pct": 75.0,
-      "bb_pct": 12.5
+      "bb_pct": 12.5,
+      "war": -0.13
     },
     {
       "id": "grant_mccray",
@@ -4392,7 +4626,8 @@
       "rbi": 12,
       "sb": 5,
       "k_pct": 43.1,
-      "bb_pct": 4.6
+      "bb_pct": 4.6,
+      "war": -0.04
     },
     {
       "id": "greg_jones",
@@ -4412,7 +4647,8 @@
       "rbi": 1,
       "sb": 0,
       "k_pct": 66.7,
-      "bb_pct": 16.7
+      "bb_pct": 16.7,
+      "war": 0.07
     },
     {
       "id": "griffin_conine",
@@ -4430,7 +4666,8 @@
       "rbi": 12,
       "sb": 0,
       "k_pct": 31.5,
-      "bb_pct": 6.7
+      "bb_pct": 6.7,
+      "war": 0.79
     },
     {
       "id": "gunnar_henderson",
@@ -4451,7 +4688,8 @@
       "rbi": 93,
       "sb": 21,
       "k_pct": 22.1,
-      "bb_pct": 10.8
+      "bb_pct": 10.8,
+      "war": 8.79
     },
     {
       "id": "gustavo_campero",
@@ -4469,7 +4707,8 @@
       "rbi": 6,
       "sb": 3,
       "k_pct": 16.7,
-      "bb_pct": 0.0
+      "bb_pct": 0.0,
+      "war": -0.09
     },
     {
       "id": "ha_seong_kim",
@@ -4490,7 +4729,8 @@
       "rbi": 49,
       "sb": 22,
       "k_pct": 16.3,
-      "bb_pct": 12.3
+      "bb_pct": 12.3,
+      "war": 2.58
     },
     {
       "id": "harold_ramírez",
@@ -4508,7 +4748,8 @@
       "rbi": 31,
       "sb": 6,
       "k_pct": 20.3,
-      "bb_pct": 2.0
+      "bb_pct": 2.0,
+      "war": -0.1
     },
     {
       "id": "harrison_bader",
@@ -4528,7 +4769,8 @@
       "rbi": 52,
       "sb": 17,
       "k_pct": 21.7,
-      "bb_pct": 4.8
+      "bb_pct": 4.8,
+      "war": 0.86
     },
     {
       "id": "heliot_ramos",
@@ -4548,7 +4790,8 @@
       "rbi": 73,
       "sb": 6,
       "k_pct": 26.1,
-      "bb_pct": 7.1
+      "bb_pct": 7.1,
+      "war": 2.28
     },
     {
       "id": "henry_davis",
@@ -4566,7 +4809,8 @@
       "rbi": 5,
       "sb": 0,
       "k_pct": 36.6,
-      "bb_pct": 10.6
+      "bb_pct": 10.6,
+      "war": -0.61
     },
     {
       "id": "heston_kjerstad",
@@ -4584,7 +4828,8 @@
       "rbi": 15,
       "sb": 1,
       "k_pct": 28.9,
-      "bb_pct": 8.8
+      "bb_pct": 8.8,
+      "war": 0.38
     },
     {
       "id": "hunter_feduccia",
@@ -4605,7 +4850,8 @@
       "rbi": 1,
       "sb": 0,
       "k_pct": 14.3,
-      "bb_pct": 14.3
+      "bb_pct": 14.3,
+      "war": 0.06
     },
     {
       "id": "hunter_goodman",
@@ -4623,7 +4869,8 @@
       "rbi": 36,
       "sb": 1,
       "k_pct": 28.6,
-      "bb_pct": 3.6
+      "bb_pct": 3.6,
+      "war": -0.89
     },
     {
       "id": "hunter_renfroe",
@@ -4641,7 +4888,8 @@
       "rbi": 52,
       "sb": 1,
       "k_pct": 19.8,
-      "bb_pct": 8.5
+      "bb_pct": 8.5,
+      "war": 0.14
     },
     {
       "id": "ian_happ",
@@ -4662,7 +4910,8 @@
       "rbi": 86,
       "sb": 13,
       "k_pct": 25.5,
-      "bb_pct": 12.1
+      "bb_pct": 12.1,
+      "war": 3.92
     },
     {
       "id": "ildemaro_vargas",
@@ -4682,7 +4931,8 @@
       "rbi": 31,
       "sb": 9,
       "k_pct": 10.1,
-      "bb_pct": 6.2
+      "bb_pct": 6.2,
+      "war": -0.49
     },
     {
       "id": "isaac_collins",
@@ -4700,7 +4950,8 @@
       "rbi": 0,
       "sb": 1,
       "k_pct": 52.6,
-      "bb_pct": 10.5
+      "bb_pct": 10.5,
+      "war": -0.33
     },
     {
       "id": "isaac_paredes",
@@ -4718,7 +4969,8 @@
       "rbi": 84,
       "sb": 1,
       "k_pct": 16.3,
-      "bb_pct": 11.8
+      "bb_pct": 11.8,
+      "war": 2.73
     },
     {
       "id": "isiah_kiner_falefa",
@@ -4736,7 +4988,8 @@
       "rbi": 44,
       "sb": 11,
       "k_pct": 15.7,
-      "bb_pct": 3.2
+      "bb_pct": 3.2,
+      "war": 3.54
     },
     {
       "id": "iván_herrera",
@@ -4754,7 +5007,8 @@
       "rbi": 28,
       "sb": 5,
       "k_pct": 20.4,
-      "bb_pct": 9.6
+      "bb_pct": 9.6,
+      "war": 1.77
     },
     {
       "id": "j_d_davis",
@@ -4772,7 +5026,8 @@
       "rbi": 7,
       "sb": 0,
       "k_pct": 24.8,
-      "bb_pct": 7.6
+      "bb_pct": 7.6,
+      "war": -0.36
     },
     {
       "id": "j_d_martinez",
@@ -4790,7 +5045,8 @@
       "rbi": 71,
       "sb": 0,
       "k_pct": 28.5,
-      "bb_pct": 9.9
+      "bb_pct": 9.9,
+      "war": 0.48
     },
     {
       "id": "j_p_crawford",
@@ -4808,7 +5064,8 @@
       "rbi": 38,
       "sb": 5,
       "k_pct": 22.5,
-      "bb_pct": 11.5
+      "bb_pct": 11.5,
+      "war": 2.66
     },
     {
       "id": "j_p_martínez",
@@ -4826,7 +5083,8 @@
       "rbi": 0,
       "sb": 1,
       "k_pct": 40.0,
-      "bb_pct": 0.0
+      "bb_pct": 0.0,
+      "war": 0.03
     },
     {
       "id": "j_t_realmuto",
@@ -4844,7 +5102,8 @@
       "rbi": 49,
       "sb": 2,
       "k_pct": 24.6,
-      "bb_pct": 6.5
+      "bb_pct": 6.5,
+      "war": 2.86
     },
     {
       "id": "jace_jung",
@@ -4864,7 +5123,8 @@
       "rbi": 3,
       "sb": 0,
       "k_pct": 30.9,
-      "bb_pct": 16.0
+      "bb_pct": 16.0,
+      "war": -0.46
     },
     {
       "id": "jace_peterson",
@@ -4882,7 +5142,8 @@
       "rbi": 1,
       "sb": 0,
       "k_pct": 23.1,
-      "bb_pct": 11.5
+      "bb_pct": 11.5,
+      "war": -0.62
     },
     {
       "id": "jack_lópez",
@@ -4900,7 +5161,8 @@
       "rbi": 6,
       "sb": 0,
       "k_pct": 35.2,
-      "bb_pct": 2.8
+      "bb_pct": 2.8,
+      "war": -0.01
     },
     {
       "id": "jack_suwinski",
@@ -4918,7 +5180,8 @@
       "rbi": 27,
       "sb": 9,
       "k_pct": 28.5,
-      "bb_pct": 9.7
+      "bb_pct": 9.7,
+      "war": -1.71
     },
     {
       "id": "jackson_chourio",
@@ -4939,7 +5202,8 @@
       "rbi": 83,
       "sb": 22,
       "k_pct": 21.1,
-      "bb_pct": 6.8
+      "bb_pct": 6.8,
+      "war": 3.86
     },
     {
       "id": "jackson_holliday",
@@ -4957,7 +5221,8 @@
       "rbi": 23,
       "sb": 4,
       "k_pct": 33.2,
-      "bb_pct": 7.2
+      "bb_pct": 7.2,
+      "war": -0.04
     },
     {
       "id": "jackson_merrill",
@@ -4978,7 +5243,8 @@
       "rbi": 92,
       "sb": 16,
       "k_pct": 17.0,
-      "bb_pct": 4.9
+      "bb_pct": 4.9,
+      "war": 4.46
     },
     {
       "id": "jacob_amaya",
@@ -4996,7 +5262,8 @@
       "rbi": 3,
       "sb": 1,
       "k_pct": 38.9,
-      "bb_pct": 5.6
+      "bb_pct": 5.6,
+      "war": -0.06
     },
     {
       "id": "jacob_hurtubise",
@@ -5014,7 +5281,8 @@
       "rbi": 4,
       "sb": 2,
       "k_pct": 25.7,
-      "bb_pct": 8.6
+      "bb_pct": 8.6,
+      "war": -0.13
     },
     {
       "id": "jacob_stallings",
@@ -5032,7 +5300,8 @@
       "rbi": 36,
       "sb": 0,
       "k_pct": 23.0,
-      "bb_pct": 9.6
+      "bb_pct": 9.6,
+      "war": 1.67
     },
     {
       "id": "jacob_wilson",
@@ -5052,7 +5321,8 @@
       "rbi": 3,
       "sb": 0,
       "k_pct": 9.6,
-      "bb_pct": 7.7
+      "bb_pct": 7.7,
+      "war": -0.18
     },
     {
       "id": "jacob_young",
@@ -5072,7 +5342,8 @@
       "rbi": 36,
       "sb": 33,
       "k_pct": 19.5,
-      "bb_pct": 5.7
+      "bb_pct": 5.7,
+      "war": 2.69
     },
     {
       "id": "jahmai_jones",
@@ -5090,7 +5361,8 @@
       "rbi": 4,
       "sb": 1,
       "k_pct": 34.0,
-      "bb_pct": 4.3
+      "bb_pct": 4.3,
+      "war": -0.02
     },
     {
       "id": "jair_camargo",
@@ -5110,7 +5382,8 @@
       "rbi": 0,
       "sb": 0,
       "k_pct": 42.9,
-      "bb_pct": 14.3
+      "bb_pct": 14.3,
+      "war": -0.12
     },
     {
       "id": "jake_bauers",
@@ -5128,7 +5401,8 @@
       "rbi": 43,
       "sb": 13,
       "k_pct": 33.8,
-      "bb_pct": 11.2
+      "bb_pct": 11.2,
+      "war": -0.32
     },
     {
       "id": "jake_burger",
@@ -5148,7 +5422,8 @@
       "rbi": 76,
       "sb": 1,
       "k_pct": 25.9,
-      "bb_pct": 5.4
+      "bb_pct": 5.4,
+      "war": 0.84
     },
     {
       "id": "jake_cave",
@@ -5166,7 +5441,8 @@
       "rbi": 38,
       "sb": 5,
       "k_pct": 28.2,
-      "bb_pct": 5.2
+      "bb_pct": 5.2,
+      "war": -0.75
     },
     {
       "id": "jake_cronenworth",
@@ -5184,7 +5460,8 @@
       "rbi": 85,
       "sb": 5,
       "k_pct": 17.9,
-      "bb_pct": 9.3
+      "bb_pct": 9.3,
+      "war": 1.91
     },
     {
       "id": "jake_fraley",
@@ -5204,7 +5481,8 @@
       "rbi": 26,
       "sb": 20,
       "k_pct": 18.3,
-      "bb_pct": 6.8
+      "bb_pct": 6.8,
+      "war": 0.3
     },
     {
       "id": "jake_mccarthy",
@@ -5224,7 +5502,8 @@
       "rbi": 58,
       "sb": 25,
       "k_pct": 15.8,
-      "bb_pct": 6.3
+      "bb_pct": 6.3,
+      "war": 1.64
     },
     {
       "id": "jake_meyers",
@@ -5242,7 +5521,8 @@
       "rbi": 63,
       "sb": 11,
       "k_pct": 22.8,
-      "bb_pct": 6.8
+      "bb_pct": 6.8,
+      "war": 1.53
     },
     {
       "id": "jake_rogers",
@@ -5260,7 +5540,8 @@
       "rbi": 39,
       "sb": 1,
       "k_pct": 29.4,
-      "bb_pct": 6.5
+      "bb_pct": 6.5,
+      "war": 0.93
     },
     {
       "id": "jakson_reetz",
@@ -5278,7 +5559,8 @@
       "rbi": 1,
       "sb": 0,
       "k_pct": 33.3,
-      "bb_pct": 6.7
+      "bb_pct": 6.7,
+      "war": -0.17
     },
     {
       "id": "james_mccann",
@@ -5296,7 +5578,8 @@
       "rbi": 31,
       "sb": 1,
       "k_pct": 23.9,
-      "bb_pct": 5.6
+      "bb_pct": 5.6,
+      "war": 0.67
     },
     {
       "id": "james_outman",
@@ -5314,7 +5597,8 @@
       "rbi": 11,
       "sb": 2,
       "k_pct": 35.0,
-      "bb_pct": 10.2
+      "bb_pct": 10.2,
+      "war": -0.48
     },
     {
       "id": "james_wood",
@@ -5332,7 +5616,8 @@
       "rbi": 41,
       "sb": 14,
       "k_pct": 28.7,
-      "bb_pct": 11.5
+      "bb_pct": 11.5,
+      "war": 1.07
     },
     {
       "id": "jamie_westbrook",
@@ -5350,7 +5635,8 @@
       "rbi": 7,
       "sb": 0,
       "k_pct": 29.2,
-      "bb_pct": 8.3
+      "bb_pct": 8.3,
+      "war": -0.05
     },
     {
       "id": "jared_triolo",
@@ -5368,7 +5654,8 @@
       "rbi": 49,
       "sb": 8,
       "k_pct": 26.4,
-      "bb_pct": 9.4
+      "bb_pct": 9.4,
+      "war": 1.4
     },
     {
       "id": "jared_walsh",
@@ -5386,7 +5673,8 @@
       "rbi": 7,
       "sb": 0,
       "k_pct": 35.0,
-      "bb_pct": 11.7
+      "bb_pct": 11.7,
+      "war": -0.12
     },
     {
       "id": "jarred_kelenic",
@@ -5404,7 +5692,8 @@
       "rbi": 47,
       "sb": 7,
       "k_pct": 29.6,
-      "bb_pct": 7.1
+      "bb_pct": 7.1,
+      "war": 0.44
     },
     {
       "id": "jarren_duran",
@@ -5425,7 +5714,8 @@
       "rbi": 77,
       "sb": 34,
       "k_pct": 21.7,
-      "bb_pct": 7.3
+      "bb_pct": 7.3,
+      "war": 8.99
     },
     {
       "id": "jason_delay",
@@ -5446,7 +5736,8 @@
       "rbi": 6,
       "sb": 0,
       "k_pct": 0.0,
-      "bb_pct": 15.8
+      "bb_pct": 15.8,
+      "war": 0.08
     },
     {
       "id": "jason_heyward",
@@ -5464,7 +5755,8 @@
       "rbi": 39,
       "sb": 5,
       "k_pct": 20.5,
-      "bb_pct": 8.5
+      "bb_pct": 8.5,
+      "war": 1.09
     },
     {
       "id": "jason_vosler",
@@ -5482,7 +5774,8 @@
       "rbi": 3,
       "sb": 0,
       "k_pct": 30.0,
-      "bb_pct": 6.7
+      "bb_pct": 6.7,
+      "war": -0.13
     },
     {
       "id": "jasson_domínguez",
@@ -5502,7 +5795,8 @@
       "rbi": 4,
       "sb": 5,
       "k_pct": 28.4,
-      "bb_pct": 16.4
+      "bb_pct": 16.4,
+      "war": -0.04
     },
     {
       "id": "javier_báez",
@@ -5520,7 +5814,8 @@
       "rbi": 37,
       "sb": 8,
       "k_pct": 23.9,
-      "bb_pct": 4.2
+      "bb_pct": 4.2,
+      "war": -1.17
     },
     {
       "id": "javier_sanoja",
@@ -5540,7 +5835,8 @@
       "rbi": 3,
       "sb": 0,
       "k_pct": 10.8,
-      "bb_pct": 2.7
+      "bb_pct": 2.7,
+      "war": -0.02
     },
     {
       "id": "jazz_chisholm",
@@ -5561,7 +5857,8 @@
       "rbi": 74,
       "sb": 40,
       "k_pct": 24.5,
-      "bb_pct": 8.5
+      "bb_pct": 8.5,
+      "war": 2.92
     },
     {
       "id": "jeff_mcneil",
@@ -5581,7 +5878,8 @@
       "rbi": 46,
       "sb": 5,
       "k_pct": 14.4,
-      "bb_pct": 7.4
+      "bb_pct": 7.4,
+      "war": 1.54
     },
     {
       "id": "jeimer_candelario",
@@ -5601,7 +5899,8 @@
       "rbi": 59,
       "sb": 4,
       "k_pct": 24.6,
-      "bb_pct": 5.8
+      "bb_pct": 5.8,
+      "war": -0.69
     },
     {
       "id": "jerar_encarnacion",
@@ -5619,7 +5918,8 @@
       "rbi": 20,
       "sb": 1,
       "k_pct": 28.6,
-      "bb_pct": 4.2
+      "bb_pct": 4.2,
+      "war": 0.09
     },
     {
       "id": "jeremy_peña",
@@ -5639,7 +5939,8 @@
       "rbi": 70,
       "sb": 20,
       "k_pct": 17.1,
-      "bb_pct": 3.8
+      "bb_pct": 3.8,
+      "war": 3.93
     },
     {
       "id": "jesse_winker",
@@ -5659,7 +5960,8 @@
       "rbi": 61,
       "sb": 14,
       "k_pct": 20.8,
-      "bb_pct": 12.4
+      "bb_pct": 12.4,
+      "war": 1.93
     },
     {
       "id": "jesús_sánchez",
@@ -5679,7 +5981,8 @@
       "rbi": 66,
       "sb": 16,
       "k_pct": 26.0,
-      "bb_pct": 7.6
+      "bb_pct": 7.6,
+      "war": 1.01
     },
     {
       "id": "jhonkensy_noel",
@@ -5697,7 +6000,8 @@
       "rbi": 28,
       "sb": 0,
       "k_pct": 31.8,
-      "bb_pct": 6.6
+      "bb_pct": 6.6,
+      "war": 0.95
     },
     {
       "id": "jhonny_pereda",
@@ -5715,7 +6019,8 @@
       "rbi": 4,
       "sb": 0,
       "k_pct": 25.0,
-      "bb_pct": 0.0
+      "bb_pct": 0.0,
+      "war": -0.04
     },
     {
       "id": "jihwan_bae",
@@ -5733,7 +6038,8 @@
       "rbi": 6,
       "sb": 6,
       "k_pct": 29.6,
-      "bb_pct": 7.4
+      "bb_pct": 7.4,
+      "war": -0.38
     },
     {
       "id": "jj_bleday",
@@ -5753,7 +6059,8 @@
       "rbi": 62,
       "sb": 2,
       "k_pct": 19.4,
-      "bb_pct": 10.4
+      "bb_pct": 10.4,
+      "war": 2.13
     },
     {
       "id": "jo_adell",
@@ -5774,7 +6081,8 @@
       "rbi": 65,
       "sb": 15,
       "k_pct": 27.9,
-      "bb_pct": 7.7
+      "bb_pct": 7.7,
+      "war": 0.79
     },
     {
       "id": "joc_pederson",
@@ -5795,7 +6103,8 @@
       "rbi": 66,
       "sb": 7,
       "k_pct": 23.4,
-      "bb_pct": 12.2
+      "bb_pct": 12.2,
+      "war": 2.82
     },
     {
       "id": "joey_bart",
@@ -5813,7 +6122,8 @@
       "rbi": 45,
       "sb": 0,
       "k_pct": 25.8,
-      "bb_pct": 7.8
+      "bb_pct": 7.8,
+      "war": 2.19
     },
     {
       "id": "joey_gallo",
@@ -5833,7 +6143,8 @@
       "rbi": 28,
       "sb": 3,
       "k_pct": 39.1,
-      "bb_pct": 12.3
+      "bb_pct": 12.3,
+      "war": 0.24
     },
     {
       "id": "joey_loperfido",
@@ -5851,7 +6162,8 @@
       "rbi": 26,
       "sb": 4,
       "k_pct": 36.3,
-      "bb_pct": 5.0
+      "bb_pct": 5.0,
+      "war": 0.44
     },
     {
       "id": "joey_meneses",
@@ -5869,7 +6181,8 @@
       "rbi": 44,
       "sb": 2,
       "k_pct": 19.9,
-      "bb_pct": 6.6
+      "bb_pct": 6.6,
+      "war": -0.57
     },
     {
       "id": "joey_ortiz",
@@ -5887,7 +6200,8 @@
       "rbi": 65,
       "sb": 11,
       "k_pct": 20.0,
-      "bb_pct": 10.9
+      "bb_pct": 10.9,
+      "war": 2.81
     },
     {
       "id": "joey_wendle",
@@ -5905,7 +6219,8 @@
       "rbi": 1,
       "sb": 1,
       "k_pct": 24.3,
-      "bb_pct": 2.7
+      "bb_pct": 2.7,
+      "war": -0.12
     },
     {
       "id": "joey_wiemer",
@@ -5923,7 +6238,8 @@
       "rbi": 0,
       "sb": 1,
       "k_pct": 32.1,
-      "bb_pct": 7.1
+      "bb_pct": 7.1,
+      "war": -0.19
     },
     {
       "id": "johan_rojas",
@@ -5943,7 +6259,8 @@
       "rbi": 36,
       "sb": 25,
       "k_pct": 19.0,
-      "bb_pct": 3.6
+      "bb_pct": 3.6,
+      "war": 0.57
     },
     {
       "id": "johnathan_rodríguez",
@@ -5963,7 +6280,8 @@
       "rbi": 5,
       "sb": 0,
       "k_pct": 34.1,
-      "bb_pct": 22.0
+      "bb_pct": 22.0,
+      "war": -0.39
     },
     {
       "id": "jon_berti",
@@ -5981,7 +6299,8 @@
       "rbi": 6,
       "sb": 5,
       "k_pct": 18.9,
-      "bb_pct": 8.1
+      "bb_pct": 8.1,
+      "war": 0.65
     },
     {
       "id": "jon_singleton",
@@ -5999,7 +6318,8 @@
       "rbi": 43,
       "sb": 0,
       "k_pct": 27.3,
-      "bb_pct": 11.6
+      "bb_pct": 11.6,
+      "war": 0.16
     },
     {
       "id": "jonah_bride",
@@ -6017,7 +6337,8 @@
       "rbi": 41,
       "sb": 0,
       "k_pct": 20.1,
-      "bb_pct": 11.0
+      "bb_pct": 11.0,
+      "war": 0.89
     },
     {
       "id": "jonah_heim",
@@ -6035,7 +6356,8 @@
       "rbi": 60,
       "sb": 1,
       "k_pct": 18.3,
-      "bb_pct": 5.3
+      "bb_pct": 5.3,
+      "war": 1.36
     },
     {
       "id": "jonatan_clase",
@@ -6053,7 +6375,8 @@
       "rbi": 7,
       "sb": 3,
       "k_pct": 25.8,
-      "bb_pct": 4.5
+      "bb_pct": 4.5,
+      "war": -0.06
     },
     {
       "id": "jonathan_aranda",
@@ -6071,7 +6394,8 @@
       "rbi": 15,
       "sb": 0,
       "k_pct": 22.2,
-      "bb_pct": 8.3
+      "bb_pct": 8.3,
+      "war": 0.69
     },
     {
       "id": "jonathan_india",
@@ -6091,7 +6415,8 @@
       "rbi": 59,
       "sb": 13,
       "k_pct": 19.6,
-      "bb_pct": 12.5
+      "bb_pct": 12.5,
+      "war": 1.67
     },
     {
       "id": "jonathan_ornelas",
@@ -6109,7 +6434,8 @@
       "rbi": 4,
       "sb": 0,
       "k_pct": 32.5,
-      "bb_pct": 5.0
+      "bb_pct": 5.0,
+      "war": 0.03
     },
     {
       "id": "jonny_deluca",
@@ -6129,7 +6455,8 @@
       "rbi": 33,
       "sb": 16,
       "k_pct": 21.2,
-      "bb_pct": 6.6
+      "bb_pct": 6.6,
+      "war": 0.57
     },
     {
       "id": "jordan_beck",
@@ -6147,7 +6474,8 @@
       "rbi": 14,
       "sb": 7,
       "k_pct": 35.3,
-      "bb_pct": 6.5
+      "bb_pct": 6.5,
+      "war": -0.87
     },
     {
       "id": "jordan_walker",
@@ -6165,7 +6493,8 @@
       "rbi": 20,
       "sb": 1,
       "k_pct": 27.5,
-      "bb_pct": 5.5
+      "bb_pct": 5.5,
+      "war": -0.83
     },
     {
       "id": "jordan_westburg",
@@ -6183,7 +6512,8 @@
       "rbi": 64,
       "sb": 6,
       "k_pct": 21.7,
-      "bb_pct": 4.9
+      "bb_pct": 4.9,
+      "war": 2.25
     },
     {
       "id": "jordyn_adams",
@@ -6201,7 +6531,8 @@
       "rbi": 4,
       "sb": 2,
       "k_pct": 31.6,
-      "bb_pct": 7.9
+      "bb_pct": 7.9,
+      "war": -0.17
     },
     {
       "id": "jorge_barrosa",
@@ -6221,7 +6552,8 @@
       "rbi": 1,
       "sb": 1,
       "k_pct": 11.1,
-      "bb_pct": 0.0
+      "bb_pct": 0.0,
+      "war": 0.0
     },
     {
       "id": "jorge_mateo",
@@ -6239,7 +6571,8 @@
       "rbi": 19,
       "sb": 13,
       "k_pct": 23.0,
-      "bb_pct": 4.8
+      "bb_pct": 4.8,
+      "war": 0.79
     },
     {
       "id": "jorge_polanco",
@@ -6257,7 +6590,8 @@
       "rbi": 48,
       "sb": 4,
       "k_pct": 29.2,
-      "bb_pct": 9.8
+      "bb_pct": 9.8,
+      "war": 1.29
     },
     {
       "id": "jorge_soler",
@@ -6277,7 +6611,8 @@
       "rbi": 65,
       "sb": 1,
       "k_pct": 24.6,
-      "bb_pct": 11.8
+      "bb_pct": 11.8,
+      "war": 1.09
     },
     {
       "id": "jose_iglesias",
@@ -6297,7 +6632,8 @@
       "rbi": 26,
       "sb": 6,
       "k_pct": 13.4,
-      "bb_pct": 4.1
+      "bb_pct": 4.1,
+      "war": 3.04
     },
     {
       "id": "jose_trevino",
@@ -6315,7 +6651,8 @@
       "rbi": 28,
       "sb": 1,
       "k_pct": 17.4,
-      "bb_pct": 8.5
+      "bb_pct": 8.5,
+      "war": 0.62
     },
     {
       "id": "josh_bell",
@@ -6333,7 +6670,8 @@
       "rbi": 75,
       "sb": 0,
       "k_pct": 19.9,
-      "bb_pct": 8.4
+      "bb_pct": 8.4,
+      "war": -0.3
     },
     {
       "id": "josh_jung",
@@ -6351,7 +6689,8 @@
       "rbi": 18,
       "sb": 4,
       "k_pct": 25.4,
-      "bb_pct": 4.2
+      "bb_pct": 4.2,
+      "war": 0.72
     },
     {
       "id": "josh_lowe",
@@ -6371,7 +6710,8 @@
       "rbi": 35,
       "sb": 25,
       "k_pct": 31.7,
-      "bb_pct": 8.2
+      "bb_pct": 8.2,
+      "war": 0.7
     },
     {
       "id": "josh_naylor",
@@ -6391,7 +6731,8 @@
       "rbi": 110,
       "sb": 6,
       "k_pct": 16.5,
-      "bb_pct": 9.1
+      "bb_pct": 9.1,
+      "war": 1.47
     },
     {
       "id": "josh_rojas",
@@ -6409,7 +6750,8 @@
       "rbi": 31,
       "sb": 10,
       "k_pct": 22.7,
-      "bb_pct": 9.7
+      "bb_pct": 9.7,
+      "war": 2.11
     },
     {
       "id": "josh_smith",
@@ -6427,7 +6769,8 @@
       "rbi": 64,
       "sb": 11,
       "k_pct": 20.4,
-      "bb_pct": 7.8
+      "bb_pct": 7.8,
+      "war": 3.51
     },
     {
       "id": "joshua_palacios",
@@ -6447,7 +6790,8 @@
       "rbi": 9,
       "sb": 1,
       "k_pct": 15.2,
-      "bb_pct": 12.7
+      "bb_pct": 12.7,
+      "war": -0.05
     },
     {
       "id": "josé_abreu",
@@ -6465,7 +6809,8 @@
       "rbi": 8,
       "sb": 0,
       "k_pct": 23.3,
-      "bb_pct": 3.3
+      "bb_pct": 3.3,
+      "war": -1.7
     },
     {
       "id": "josé_altuve",
@@ -6486,7 +6831,8 @@
       "rbi": 67,
       "sb": 22,
       "k_pct": 17.4,
-      "bb_pct": 6.9
+      "bb_pct": 6.9,
+      "war": 3.23
     },
     {
       "id": "josé_azócar",
@@ -6504,7 +6850,8 @@
       "rbi": 3,
       "sb": 5,
       "k_pct": 24.1,
-      "bb_pct": 6.3
+      "bb_pct": 6.3,
+      "war": -0.35
     },
     {
       "id": "josé_caballero",
@@ -6524,7 +6871,8 @@
       "rbi": 45,
       "sb": 44,
       "k_pct": 27.5,
-      "bb_pct": 5.6
+      "bb_pct": 5.6,
+      "war": 1.61
     },
     {
       "id": "josé_devers",
@@ -6542,7 +6890,8 @@
       "rbi": 0,
       "sb": 0,
       "k_pct": 25.0,
-      "bb_pct": 0.0
+      "bb_pct": 0.0,
+      "war": 0.1
     },
     {
       "id": "josé_fermín",
@@ -6562,7 +6911,8 @@
       "rbi": 4,
       "sb": 2,
       "k_pct": 13.9,
-      "bb_pct": 8.9
+      "bb_pct": 8.9,
+      "war": -0.61
     },
     {
       "id": "josé_herrera",
@@ -6580,7 +6930,8 @@
       "rbi": 13,
       "sb": 0,
       "k_pct": 23.7,
-      "bb_pct": 7.9
+      "bb_pct": 7.9,
+      "war": -0.24
     },
     {
       "id": "josé_miranda",
@@ -6598,7 +6949,8 @@
       "rbi": 50,
       "sb": 2,
       "k_pct": 15.3,
-      "bb_pct": 4.2
+      "bb_pct": 4.2,
+      "war": 1.69
     },
     {
       "id": "josé_ramírez",
@@ -6620,7 +6972,8 @@
       "rbi": 123,
       "sb": 41,
       "k_pct": 12.0,
-      "bb_pct": 7.9
+      "bb_pct": 7.9,
+      "war": 6.82
     },
     {
       "id": "josé_siri",
@@ -6638,7 +6991,8 @@
       "rbi": 48,
       "sb": 14,
       "k_pct": 37.9,
-      "bb_pct": 6.9
+      "bb_pct": 6.9,
+      "war": 1.84
     },
     {
       "id": "josé_tena",
@@ -6656,7 +7010,8 @@
       "rbi": 15,
       "sb": 6,
       "k_pct": 24.1,
-      "bb_pct": 4.1
+      "bb_pct": 4.1,
+      "war": 0.15
     },
     {
       "id": "juan_soto",
@@ -6677,7 +7032,8 @@
       "rbi": 110,
       "sb": 7,
       "k_pct": 16.7,
-      "bb_pct": 18.1
+      "bb_pct": 18.1,
+      "war": 8.0
     },
     {
       "id": "juan_yepez",
@@ -6695,7 +7051,8 @@
       "rbi": 28,
       "sb": 2,
       "k_pct": 16.7,
-      "bb_pct": 7.1
+      "bb_pct": 7.1,
+      "war": 0.57
     },
     {
       "id": "julio_rodríguez",
@@ -6716,7 +7073,8 @@
       "rbi": 72,
       "sb": 24,
       "k_pct": 25.4,
-      "bb_pct": 6.2
+      "bb_pct": 6.2,
+      "war": 4.22
     },
     {
       "id": "jung_hoo_lee",
@@ -6736,7 +7094,8 @@
       "rbi": 8,
       "sb": 2,
       "k_pct": 8.2,
-      "bb_pct": 6.3
+      "bb_pct": 6.3,
+      "war": 0.12
     },
     {
       "id": "junior_caminero",
@@ -6754,7 +7113,8 @@
       "rbi": 18,
       "sb": 2,
       "k_pct": 21.5,
-      "bb_pct": 6.2
+      "bb_pct": 6.2,
+      "war": 0.72
     },
     {
       "id": "jurickson_profar",
@@ -6774,7 +7134,8 @@
       "rbi": 90,
       "sb": 10,
       "k_pct": 15.1,
-      "bb_pct": 11.3
+      "bb_pct": 11.3,
+      "war": 3.58
     },
     {
       "id": "justin_foscue",
@@ -6792,7 +7153,8 @@
       "rbi": 2,
       "sb": 0,
       "k_pct": 40.9,
-      "bb_pct": 4.5
+      "bb_pct": 4.5,
+      "war": -0.69
     },
     {
       "id": "justin_turner",
@@ -6810,7 +7172,8 @@
       "rbi": 56,
       "sb": 0,
       "k_pct": 17.5,
-      "bb_pct": 10.9
+      "bb_pct": 10.9,
+      "war": 1.42
     },
     {
       "id": "justyn_henry_malloy",
@@ -6828,7 +7191,8 @@
       "rbi": 21,
       "sb": 1,
       "k_pct": 37.0,
-      "bb_pct": 10.0
+      "bb_pct": 10.0,
+      "war": -0.49
     },
     {
       "id": "kameron_misner",
@@ -6846,7 +7210,8 @@
       "rbi": 0,
       "sb": 0,
       "k_pct": 62.5,
-      "bb_pct": 0.0
+      "bb_pct": 0.0,
+      "war": -0.31
     },
     {
       "id": "ke_bryan_hayes",
@@ -6864,7 +7229,8 @@
       "rbi": 26,
       "sb": 11,
       "k_pct": 18.9,
-      "bb_pct": 5.8
+      "bb_pct": 5.8,
+      "war": 0.88
     },
     {
       "id": "keibert_ruiz",
@@ -6884,7 +7250,8 @@
       "rbi": 58,
       "sb": 3,
       "k_pct": 11.1,
-      "bb_pct": 3.3
+      "bb_pct": 3.3,
+      "war": 0.55
     },
     {
       "id": "kerry_carpenter",
@@ -6902,7 +7269,8 @@
       "rbi": 57,
       "sb": 0,
       "k_pct": 25.3,
-      "bb_pct": 7.4
+      "bb_pct": 7.4,
+      "war": 2.11
     },
     {
       "id": "keston_hiura",
@@ -6920,7 +7288,8 @@
       "rbi": 1,
       "sb": 0,
       "k_pct": 37.0,
-      "bb_pct": 0.0
+      "bb_pct": 0.0,
+      "war": -0.58
     },
     {
       "id": "ketel_marte",
@@ -6940,7 +7309,8 @@
       "rbi": 98,
       "sb": 7,
       "k_pct": 18.2,
-      "bb_pct": 11.1
+      "bb_pct": 11.1,
+      "war": 6.75
     },
     {
       "id": "kevin_alcántara",
@@ -6960,7 +7330,8 @@
       "rbi": 0,
       "sb": 0,
       "k_pct": 10.0,
-      "bb_pct": 0.0
+      "bb_pct": 0.0,
+      "war": -0.15
     },
     {
       "id": "kevin_kiermaier",
@@ -6978,7 +7349,8 @@
       "rbi": 28,
       "sb": 6,
       "k_pct": 30.6,
-      "bb_pct": 4.3
+      "bb_pct": 4.3,
+      "war": 0.91
     },
     {
       "id": "kevin_newman",
@@ -6996,7 +7368,8 @@
       "rbi": 30,
       "sb": 8,
       "k_pct": 15.4,
-      "bb_pct": 4.8
+      "bb_pct": 4.8,
+      "war": 2.2
     },
     {
       "id": "kevin_pillar",
@@ -7014,7 +7387,8 @@
       "rbi": 47,
       "sb": 12,
       "k_pct": 21.8,
-      "bb_pct": 5.1
+      "bb_pct": 5.1,
+      "war": 0.33
     },
     {
       "id": "kody_clemens",
@@ -7032,7 +7406,8 @@
       "rbi": 18,
       "sb": 0,
       "k_pct": 24.2,
-      "bb_pct": 4.2
+      "bb_pct": 4.2,
+      "war": 0.28
     },
     {
       "id": "korey_lee",
@@ -7050,7 +7425,8 @@
       "rbi": 39,
       "sb": 6,
       "k_pct": 30.9,
-      "bb_pct": 4.3
+      "bb_pct": 4.3,
+      "war": 0.02
     },
     {
       "id": "kris_bryant",
@@ -7068,7 +7444,8 @@
       "rbi": 16,
       "sb": 0,
       "k_pct": 31.0,
-      "bb_pct": 8.4
+      "bb_pct": 8.4,
+      "war": -0.79
     },
     {
       "id": "kyle_farmer",
@@ -7086,7 +7463,8 @@
       "rbi": 27,
       "sb": 3,
       "k_pct": 20.2,
-      "bb_pct": 7.9
+      "bb_pct": 7.9,
+      "war": -0.32
     },
     {
       "id": "kyle_higashioka",
@@ -7104,7 +7482,8 @@
       "rbi": 48,
       "sb": 2,
       "k_pct": 28.1,
-      "bb_pct": 5.7
+      "bb_pct": 5.7,
+      "war": 1.39
     },
     {
       "id": "kyle_isbel",
@@ -7122,7 +7501,8 @@
       "rbi": 44,
       "sb": 11,
       "k_pct": 20.6,
-      "bb_pct": 6.3
+      "bb_pct": 6.3,
+      "war": 1.99
     },
     {
       "id": "kyle_manzardo",
@@ -7140,7 +7520,8 @@
       "rbi": 15,
       "sb": 0,
       "k_pct": 26.1,
-      "bb_pct": 5.7
+      "bb_pct": 5.7,
+      "war": -0.02
     },
     {
       "id": "kyle_mccann",
@@ -7158,7 +7539,8 @@
       "rbi": 15,
       "sb": 0,
       "k_pct": 37.6,
-      "bb_pct": 10.2
+      "bb_pct": 10.2,
+      "war": 0.17
     },
     {
       "id": "kyle_schwarber",
@@ -7179,7 +7561,8 @@
       "rbi": 108,
       "sb": 5,
       "k_pct": 28.4,
-      "bb_pct": 15.3
+      "bb_pct": 15.3,
+      "war": 3.29
     },
     {
       "id": "kyle_stowers",
@@ -7197,7 +7580,8 @@
       "rbi": 24,
       "sb": 0,
       "k_pct": 35.2,
-      "bb_pct": 6.2
+      "bb_pct": 6.2,
+      "war": -0.43
     },
     {
       "id": "kyle_tucker",
@@ -7218,7 +7602,8 @@
       "rbi": 50,
       "sb": 11,
       "k_pct": 15.8,
-      "bb_pct": 16.4
+      "bb_pct": 16.4,
+      "war": 4.61
     },
     {
       "id": "kyren_paris",
@@ -7236,7 +7621,8 @@
       "rbi": 5,
       "sb": 1,
       "k_pct": 28.8,
-      "bb_pct": 11.9
+      "bb_pct": 11.9,
+      "war": -0.33
     },
     {
       "id": "lamonte_wade",
@@ -7256,7 +7642,8 @@
       "rbi": 36,
       "sb": 2,
       "k_pct": 22.4,
-      "bb_pct": 15.5
+      "bb_pct": 15.5,
+      "war": 2.03
     },
     {
       "id": "lane_thomas",
@@ -7276,7 +7663,8 @@
       "rbi": 63,
       "sb": 32,
       "k_pct": 25.9,
-      "bb_pct": 8.3
+      "bb_pct": 8.3,
+      "war": 0.25
     },
     {
       "id": "lars_nootbaar",
@@ -7296,7 +7684,8 @@
       "rbi": 47,
       "sb": 7,
       "k_pct": 19.5,
-      "bb_pct": 12.8
+      "bb_pct": 12.8,
+      "war": 1.58
     },
     {
       "id": "lawrence_butler",
@@ -7317,7 +7706,8 @@
       "rbi": 58,
       "sb": 18,
       "k_pct": 23.9,
-      "bb_pct": 7.8
+      "bb_pct": 7.8,
+      "war": 2.95
     },
     {
       "id": "lenyn_sosa",
@@ -7335,7 +7725,8 @@
       "rbi": 36,
       "sb": 3,
       "k_pct": 20.9,
-      "bb_pct": 3.3
+      "bb_pct": 3.3,
+      "war": -0.48
     },
     {
       "id": "leo_jimenez",
@@ -7353,7 +7744,8 @@
       "rbi": 20,
       "sb": 0,
       "k_pct": 28.1,
-      "bb_pct": 5.7
+      "bb_pct": 5.7,
+      "war": 0.88
     },
     {
       "id": "leo_rivas",
@@ -7371,7 +7763,8 @@
       "rbi": 8,
       "sb": 3,
       "k_pct": 27.9,
-      "bb_pct": 11.6
+      "bb_pct": 11.6,
+      "war": 0.28
     },
     {
       "id": "leody_taveras",
@@ -7391,7 +7784,8 @@
       "rbi": 45,
       "sb": 23,
       "k_pct": 21.2,
-      "bb_pct": 7.9
+      "bb_pct": 7.9,
+      "war": 0.73
     },
     {
       "id": "levi_jordan",
@@ -7409,7 +7803,8 @@
       "rbi": 1,
       "sb": 0,
       "k_pct": 27.3,
-      "bb_pct": 0.0
+      "bb_pct": 0.0,
+      "war": -0.18
     },
     {
       "id": "liover_peguero",
@@ -7427,7 +7822,8 @@
       "rbi": 2,
       "sb": 0,
       "k_pct": 30.0,
-      "bb_pct": 0.0
+      "bb_pct": 0.0,
+      "war": -0.05
     },
     {
       "id": "livan_soto",
@@ -7447,7 +7843,8 @@
       "rbi": 0,
       "sb": 0,
       "k_pct": 18.8,
-      "bb_pct": 18.8
+      "bb_pct": 18.8,
+      "war": 0.08
     },
     {
       "id": "logan_driscoll",
@@ -7465,7 +7862,8 @@
       "rbi": 6,
       "sb": 0,
       "k_pct": 16.2,
-      "bb_pct": 2.7
+      "bb_pct": 2.7,
+      "war": -0.07
     },
     {
       "id": "logan_o_hoppe",
@@ -7485,7 +7883,8 @@
       "rbi": 58,
       "sb": 2,
       "k_pct": 29.6,
-      "bb_pct": 6.3
+      "bb_pct": 6.3,
+      "war": 2.65
     },
     {
       "id": "lourdes_gurriel",
@@ -7503,7 +7902,8 @@
       "rbi": 76,
       "sb": 7,
       "k_pct": 18.2,
-      "bb_pct": 5.2
+      "bb_pct": 5.2,
+      "war": 1.94
     },
     {
       "id": "luis_arráez",
@@ -7523,7 +7923,8 @@
       "rbi": 49,
       "sb": 9,
       "k_pct": 4.3,
-      "bb_pct": 3.6
+      "bb_pct": 3.6,
+      "war": 1.07
     },
     {
       "id": "luis_campusano",
@@ -7543,7 +7944,8 @@
       "rbi": 42,
       "sb": 0,
       "k_pct": 13.7,
-      "bb_pct": 6.7
+      "bb_pct": 6.7,
+      "war": -0.67
     },
     {
       "id": "luis_de_los_santos",
@@ -7561,7 +7963,8 @@
       "rbi": 1,
       "sb": 0,
       "k_pct": 32.3,
-      "bb_pct": 6.5
+      "bb_pct": 6.5,
+      "war": -0.08
     },
     {
       "id": "luis_garcía",
@@ -7581,7 +7984,8 @@
       "rbi": 74,
       "sb": 22,
       "k_pct": 16.3,
-      "bb_pct": 5.1
+      "bb_pct": 5.1,
+      "war": 2.15
     },
     {
       "id": "luis_guillorme",
@@ -7601,7 +8005,8 @@
       "rbi": 11,
       "sb": 4,
       "k_pct": 19.3,
-      "bb_pct": 12.3
+      "bb_pct": 12.3,
+      "war": 0.23
     },
     {
       "id": "luis_matos",
@@ -7619,7 +8024,8 @@
       "rbi": 27,
       "sb": 0,
       "k_pct": 15.4,
-      "bb_pct": 3.2
+      "bb_pct": 3.2,
+      "war": -0.17
     },
     {
       "id": "luis_rengifo",
@@ -7640,7 +8046,8 @@
       "rbi": 30,
       "sb": 24,
       "k_pct": 14.2,
-      "bb_pct": 5.2
+      "bb_pct": 5.2,
+      "war": 1.84
     },
     {
       "id": "luis_robert",
@@ -7660,7 +8067,8 @@
       "rbi": 37,
       "sb": 23,
       "k_pct": 33.2,
-      "bb_pct": 6.6
+      "bb_pct": 6.6,
+      "war": 1.32
     },
     {
       "id": "luis_torrens",
@@ -7678,7 +8086,8 @@
       "rbi": 17,
       "sb": 0,
       "k_pct": 21.5,
-      "bb_pct": 6.9
+      "bb_pct": 6.9,
+      "war": 0.7
     },
     {
       "id": "luis_urías",
@@ -7696,7 +8105,8 @@
       "rbi": 17,
       "sb": 0,
       "k_pct": 31.2,
-      "bb_pct": 8.3
+      "bb_pct": 8.3,
+      "war": 0.42
     },
     {
       "id": "luis_vázquez",
@@ -7714,7 +8124,8 @@
       "rbi": 1,
       "sb": 0,
       "k_pct": 42.9,
-      "bb_pct": 0.0
+      "bb_pct": 0.0,
+      "war": -0.2
     },
     {
       "id": "luisangel_acuña",
@@ -7734,7 +8145,8 @@
       "rbi": 6,
       "sb": 0,
       "k_pct": 15.0,
-      "bb_pct": 2.5
+      "bb_pct": 2.5,
+      "war": 0.52
     },
     {
       "id": "luke_maile",
@@ -7752,7 +8164,8 @@
       "rbi": 11,
       "sb": 2,
       "k_pct": 33.8,
-      "bb_pct": 8.4
+      "bb_pct": 8.4,
+      "war": -0.36
     },
     {
       "id": "luke_raley",
@@ -7772,7 +8185,8 @@
       "rbi": 59,
       "sb": 11,
       "k_pct": 29.6,
-      "bb_pct": 5.9
+      "bb_pct": 5.9,
+      "war": 3.15
     },
     {
       "id": "luke_williams",
@@ -7790,7 +8204,8 @@
       "rbi": 4,
       "sb": 3,
       "k_pct": 25.0,
-      "bb_pct": 7.7
+      "bb_pct": 7.7,
+      "war": 0.22
     },
     {
       "id": "luken_baker",
@@ -7810,7 +8225,8 @@
       "rbi": 10,
       "sb": 1,
       "k_pct": 22.0,
-      "bb_pct": 14.0
+      "bb_pct": 14.0,
+      "war": -0.18
     },
     {
       "id": "maikel_garcía",
@@ -7830,7 +8246,8 @@
       "rbi": 59,
       "sb": 37,
       "k_pct": 16.4,
-      "bb_pct": 6.7
+      "bb_pct": 6.7,
+      "war": 1.41
     },
     {
       "id": "manny_machado",
@@ -7850,7 +8267,8 @@
       "rbi": 107,
       "sb": 11,
       "k_pct": 19.3,
-      "bb_pct": 7.0
+      "bb_pct": 7.0,
+      "war": 3.09
     },
     {
       "id": "manuel_margot",
@@ -7868,7 +8286,8 @@
       "rbi": 32,
       "sb": 5,
       "k_pct": 15.7,
-      "bb_pct": 6.1
+      "bb_pct": 6.1,
+      "war": -0.85
     },
     {
       "id": "marcell_ozuna",
@@ -7888,7 +8307,8 @@
       "rbi": 104,
       "sb": 1,
       "k_pct": 24.7,
-      "bb_pct": 10.7
+      "bb_pct": 10.7,
+      "war": 4.33
     },
     {
       "id": "marco_luciano",
@@ -7906,7 +8326,8 @@
       "rbi": 3,
       "sb": 0,
       "k_pct": 34.6,
-      "bb_pct": 6.2
+      "bb_pct": 6.2,
+      "war": -0.38
     },
     {
       "id": "marcus_semien",
@@ -7927,7 +8348,8 @@
       "rbi": 76,
       "sb": 8,
       "k_pct": 14.6,
-      "bb_pct": 8.9
+      "bb_pct": 8.9,
+      "war": 4.48
     },
     {
       "id": "mark_canha",
@@ -7945,7 +8367,8 @@
       "rbi": 44,
       "sb": 7,
       "k_pct": 20.7,
-      "bb_pct": 11.0
+      "bb_pct": 11.0,
+      "war": 0.45
     },
     {
       "id": "mark_vientos",
@@ -7965,7 +8388,8 @@
       "rbi": 72,
       "sb": 0,
       "k_pct": 29.7,
-      "bb_pct": 7.3
+      "bb_pct": 7.3,
+      "war": 3.09
     },
     {
       "id": "martín_maldonado",
@@ -7983,7 +8407,8 @@
       "rbi": 11,
       "sb": 0,
       "k_pct": 34.5,
-      "bb_pct": 5.4
+      "bb_pct": 5.4,
+      "war": -1.34
     },
     {
       "id": "masataka_yoshida",
@@ -8003,7 +8428,8 @@
       "rbi": 56,
       "sb": 2,
       "k_pct": 12.3,
-      "bb_pct": 6.4
+      "bb_pct": 6.4,
+      "war": 1.59
     },
     {
       "id": "mason_mccoy",
@@ -8021,7 +8447,8 @@
       "rbi": 3,
       "sb": 1,
       "k_pct": 33.3,
-      "bb_pct": 8.8
+      "bb_pct": 8.8,
+      "war": -0.09
     },
     {
       "id": "masyn_winn",
@@ -8039,7 +8466,8 @@
       "rbi": 60,
       "sb": 11,
       "k_pct": 17.1,
-      "bb_pct": 6.4
+      "bb_pct": 6.4,
+      "war": 5.09
     },
     {
       "id": "matt_carpenter",
@@ -8057,7 +8485,8 @@
       "rbi": 15,
       "sb": 0,
       "k_pct": 32.5,
-      "bb_pct": 9.6
+      "bb_pct": 9.6,
+      "war": -0.08
     },
     {
       "id": "matt_chapman",
@@ -8078,7 +8507,8 @@
       "rbi": 81,
       "sb": 15,
       "k_pct": 24.3,
-      "bb_pct": 9.8
+      "bb_pct": 9.8,
+      "war": 7.07
     },
     {
       "id": "matt_duffy",
@@ -8099,7 +8529,8 @@
       "rbi": 0,
       "sb": 0,
       "k_pct": 10.0,
-      "bb_pct": 20.0
+      "bb_pct": 20.0,
+      "war": 0.23
     },
     {
       "id": "matt_mervis",
@@ -8117,7 +8548,8 @@
       "rbi": 3,
       "sb": 0,
       "k_pct": 27.6,
-      "bb_pct": 3.4
+      "bb_pct": 3.4,
+      "war": -0.43
     },
     {
       "id": "matt_olson",
@@ -8137,7 +8569,8 @@
       "rbi": 98,
       "sb": 0,
       "k_pct": 24.8,
-      "bb_pct": 10.4
+      "bb_pct": 10.4,
+      "war": 3.86
     },
     {
       "id": "matt_thaiss",
@@ -8157,7 +8590,8 @@
       "rbi": 16,
       "sb": 3,
       "k_pct": 31.0,
-      "bb_pct": 15.0
+      "bb_pct": 15.0,
+      "war": 0.55
     },
     {
       "id": "matt_vierling",
@@ -8175,7 +8609,8 @@
       "rbi": 59,
       "sb": 6,
       "k_pct": 21.2,
-      "bb_pct": 7.2
+      "bb_pct": 7.2,
+      "war": 2.83
     },
     {
       "id": "matt_wallner",
@@ -8193,7 +8628,8 @@
       "rbi": 37,
       "sb": 3,
       "k_pct": 36.4,
-      "bb_pct": 9.2
+      "bb_pct": 9.2,
+      "war": 2.15
     },
     {
       "id": "matthew_batten",
@@ -8213,7 +8649,8 @@
       "rbi": 0,
       "sb": 0,
       "k_pct": 0.0,
-      "bb_pct": 0.0
+      "bb_pct": 0.0,
+      "war": 0.05
     },
     {
       "id": "mauricio_dubón",
@@ -8233,7 +8670,8 @@
       "rbi": 47,
       "sb": 3,
       "k_pct": 12.9,
-      "bb_pct": 3.7
+      "bb_pct": 3.7,
+      "war": 0.97
     },
     {
       "id": "max_kepler",
@@ -8251,7 +8689,8 @@
       "rbi": 43,
       "sb": 1,
       "k_pct": 20.1,
-      "bb_pct": 5.5
+      "bb_pct": 5.5,
+      "war": 0.96
     },
     {
       "id": "max_muncy",
@@ -8271,7 +8710,8 @@
       "rbi": 49,
       "sb": 1,
       "k_pct": 26.2,
-      "bb_pct": 15.3
+      "bb_pct": 15.3,
+      "war": 2.96
     },
     {
       "id": "max_schuemann",
@@ -8289,7 +8729,8 @@
       "rbi": 36,
       "sb": 14,
       "k_pct": 25.8,
-      "bb_pct": 10.2
+      "bb_pct": 10.2,
+      "war": 0.81
     },
     {
       "id": "michael_busch",
@@ -8309,7 +8750,8 @@
       "rbi": 69,
       "sb": 2,
       "k_pct": 28.5,
-      "bb_pct": 11.1
+      "bb_pct": 11.1,
+      "war": 2.84
     },
     {
       "id": "michael_conforto",
@@ -8329,7 +8771,8 @@
       "rbi": 68,
       "sb": 0,
       "k_pct": 24.2,
-      "bb_pct": 8.6
+      "bb_pct": 8.6,
+      "war": 1.29
     },
     {
       "id": "michael_harris",
@@ -8347,7 +8790,8 @@
       "rbi": 50,
       "sb": 10,
       "k_pct": 20.0,
-      "bb_pct": 4.9
+      "bb_pct": 4.9,
+      "war": 3.19
     },
     {
       "id": "michael_helman",
@@ -8365,7 +8809,8 @@
       "rbi": 0,
       "sb": 0,
       "k_pct": 30.0,
-      "bb_pct": 0.0
+      "bb_pct": 0.0,
+      "war": 0.07
     },
     {
       "id": "michael_massey",
@@ -8383,7 +8828,8 @@
       "rbi": 46,
       "sb": 1,
       "k_pct": 15.7,
-      "bb_pct": 4.2
+      "bb_pct": 4.2,
+      "war": 1.69
     },
     {
       "id": "michael_siani",
@@ -8403,7 +8849,8 @@
       "rbi": 21,
       "sb": 20,
       "k_pct": 27.5,
-      "bb_pct": 6.3
+      "bb_pct": 6.3,
+      "war": 0.82
     },
     {
       "id": "michael_stefanic",
@@ -8421,7 +8868,8 @@
       "rbi": 9,
       "sb": 0,
       "k_pct": 16.0,
-      "bb_pct": 8.0
+      "bb_pct": 8.0,
+      "war": -0.2
     },
     {
       "id": "michael_taylor",
@@ -8439,7 +8887,8 @@
       "rbi": 22,
       "sb": 12,
       "k_pct": 34.8,
-      "bb_pct": 7.6
+      "bb_pct": 7.6,
+      "war": 0.9
     },
     {
       "id": "michael_toglia",
@@ -8459,7 +8908,8 @@
       "rbi": 56,
       "sb": 10,
       "k_pct": 32.1,
-      "bb_pct": 11.8
+      "bb_pct": 11.8,
+      "war": 2.09
     },
     {
       "id": "mickey_gasper",
@@ -8479,7 +8929,8 @@
       "rbi": 0,
       "sb": 0,
       "k_pct": 34.8,
-      "bb_pct": 17.4
+      "bb_pct": 17.4,
+      "war": -0.19
     },
     {
       "id": "mickey_moniak",
@@ -8497,7 +8948,8 @@
       "rbi": 49,
       "sb": 8,
       "k_pct": 27.3,
-      "bb_pct": 5.0
+      "bb_pct": 5.0,
+      "war": -0.13
     },
     {
       "id": "miguel_amaya",
@@ -8515,7 +8967,8 @@
       "rbi": 48,
       "sb": 0,
       "k_pct": 17.0,
-      "bb_pct": 6.3
+      "bb_pct": 6.3,
+      "war": 1.95
     },
     {
       "id": "miguel_andújar",
@@ -8535,7 +8988,8 @@
       "rbi": 32,
       "sb": 3,
       "k_pct": 13.2,
-      "bb_pct": 4.1
+      "bb_pct": 4.1,
+      "war": 0.35
     },
     {
       "id": "miguel_rojas",
@@ -8555,7 +9009,8 @@
       "rbi": 36,
       "sb": 8,
       "k_pct": 10.1,
-      "bb_pct": 6.8
+      "bb_pct": 6.8,
+      "war": 3.35
     },
     {
       "id": "miguel_sanó",
@@ -8573,7 +9028,8 @@
       "rbi": 6,
       "sb": 0,
       "k_pct": 37.9,
-      "bb_pct": 9.5
+      "bb_pct": 9.5,
+      "war": -0.11
     },
     {
       "id": "miguel_vargas",
@@ -8591,7 +9047,8 @@
       "rbi": 16,
       "sb": 3,
       "k_pct": 24.1,
-      "bb_pct": 10.5
+      "bb_pct": 10.5,
+      "war": -0.8
     },
     {
       "id": "mike_ford",
@@ -8609,7 +9066,8 @@
       "rbi": 4,
       "sb": 0,
       "k_pct": 23.8,
-      "bb_pct": 3.2
+      "bb_pct": 3.2,
+      "war": -0.65
     },
     {
       "id": "mike_tauchman",
@@ -8629,7 +9087,8 @@
       "rbi": 30,
       "sb": 6,
       "k_pct": 19.9,
-      "bb_pct": 13.4
+      "bb_pct": 13.4,
+      "war": 0.61
     },
     {
       "id": "mike_trout",
@@ -8649,7 +9108,8 @@
       "rbi": 14,
       "sb": 6,
       "k_pct": 21.4,
-      "bb_pct": 12.7
+      "bb_pct": 12.7,
+      "war": 1.03
     },
     {
       "id": "mike_yastrzemski",
@@ -8667,7 +9127,8 @@
       "rbi": 58,
       "sb": 3,
       "k_pct": 26.1,
-      "bb_pct": 8.0
+      "bb_pct": 8.0,
+      "war": 2.09
     },
     {
       "id": "miles_mastrobuoni",
@@ -8685,7 +9146,8 @@
       "rbi": 4,
       "sb": 2,
       "k_pct": 15.9,
-      "bb_pct": 6.5
+      "bb_pct": 6.5,
+      "war": -0.19
     },
     {
       "id": "mitch_garver",
@@ -8705,7 +9167,8 @@
       "rbi": 51,
       "sb": 0,
       "k_pct": 30.9,
-      "bb_pct": 12.3
+      "bb_pct": 12.3,
+      "war": -0.17
     },
     {
       "id": "mitch_haniger",
@@ -8723,7 +9186,8 @@
       "rbi": 47,
       "sb": 0,
       "k_pct": 29.6,
-      "bb_pct": 9.4
+      "bb_pct": 9.4,
+      "war": -0.23
     },
     {
       "id": "mj_melendez",
@@ -8741,7 +9205,8 @@
       "rbi": 44,
       "sb": 4,
       "k_pct": 25.1,
-      "bb_pct": 7.8
+      "bb_pct": 7.8,
+      "war": -0.72
     },
     {
       "id": "mookie_betts",
@@ -8762,7 +9227,8 @@
       "rbi": 77,
       "sb": 16,
       "k_pct": 11.0,
-      "bb_pct": 11.8
+      "bb_pct": 11.8,
+      "war": 4.64
     },
     {
       "id": "myles_straw",
@@ -8782,7 +9248,8 @@
       "rbi": 0,
       "sb": 2,
       "k_pct": 0.0,
-      "bb_pct": 0.0
+      "bb_pct": 0.0,
+      "war": -0.12
     },
     {
       "id": "nacho_alvarez",
@@ -8800,7 +9267,8 @@
       "rbi": 0,
       "sb": 0,
       "k_pct": 31.2,
-      "bb_pct": 0.0
+      "bb_pct": 0.0,
+      "war": -0.53
     },
     {
       "id": "nasim_nuñez",
@@ -8820,7 +9288,8 @@
       "rbi": 1,
       "sb": 8,
       "k_pct": 19.2,
-      "bb_pct": 15.4
+      "bb_pct": 15.4,
+      "war": 0.68
     },
     {
       "id": "nathan_lukes",
@@ -8840,7 +9309,8 @@
       "rbi": 10,
       "sb": 1,
       "k_pct": 9.9,
-      "bb_pct": 11.0
+      "bb_pct": 11.0,
+      "war": 1.18
     },
     {
       "id": "nathaniel_lowe",
@@ -8860,7 +9330,8 @@
       "rbi": 71,
       "sb": 2,
       "k_pct": 22.0,
-      "bb_pct": 12.5
+      "bb_pct": 12.5,
+      "war": 3.02
     },
     {
       "id": "nelson_velázquez",
@@ -8878,7 +9349,8 @@
       "rbi": 27,
       "sb": 2,
       "k_pct": 26.5,
-      "bb_pct": 8.3
+      "bb_pct": 8.3,
+      "war": -0.45
     },
     {
       "id": "nick_ahmed",
@@ -8896,7 +9368,8 @@
       "rbi": 19,
       "sb": 2,
       "k_pct": 22.3,
-      "bb_pct": 4.8
+      "bb_pct": 4.8,
+      "war": -0.37
     },
     {
       "id": "nick_allen",
@@ -8914,7 +9387,8 @@
       "rbi": 4,
       "sb": 0,
       "k_pct": 19.0,
-      "bb_pct": 4.8
+      "bb_pct": 4.8,
+      "war": 0.23
     },
     {
       "id": "nick_castellanos",
@@ -8934,7 +9408,8 @@
       "rbi": 87,
       "sb": 6,
       "k_pct": 21.0,
-      "bb_pct": 6.2
+      "bb_pct": 6.2,
+      "war": 0.58
     },
     {
       "id": "nick_fortes",
@@ -8954,7 +9429,8 @@
       "rbi": 29,
       "sb": 0,
       "k_pct": 12.2,
-      "bb_pct": 3.3
+      "bb_pct": 3.3,
+      "war": 0.22
     },
     {
       "id": "nick_gonzales",
@@ -8972,7 +9448,8 @@
       "rbi": 51,
       "sb": 5,
       "k_pct": 19.1,
-      "bb_pct": 4.6
+      "bb_pct": 4.6,
+      "war": 0.98
     },
     {
       "id": "nick_gordon",
@@ -8990,7 +9467,8 @@
       "rbi": 32,
       "sb": 5,
       "k_pct": 24.3,
-      "bb_pct": 4.0
+      "bb_pct": 4.0,
+      "war": -1.56
     },
     {
       "id": "nick_loftin",
@@ -9010,7 +9488,8 @@
       "rbi": 15,
       "sb": 1,
       "k_pct": 14.0,
-      "bb_pct": 11.1
+      "bb_pct": 11.1,
+      "war": 0.23
     },
     {
       "id": "nick_madrigal",
@@ -9030,7 +9509,8 @@
       "rbi": 11,
       "sb": 1,
       "k_pct": 10.5,
-      "bb_pct": 4.2
+      "bb_pct": 4.2,
+      "war": -0.43
     },
     {
       "id": "nick_martini",
@@ -9048,7 +9528,8 @@
       "rbi": 26,
       "sb": 1,
       "k_pct": 23.2,
-      "bb_pct": 5.5
+      "bb_pct": 5.5,
+      "war": -0.36
     },
     {
       "id": "nick_maton",
@@ -9066,7 +9547,8 @@
       "rbi": 0,
       "sb": 0,
       "k_pct": 40.0,
-      "bb_pct": 0.0
+      "bb_pct": 0.0,
+      "war": -0.12
     },
     {
       "id": "nick_senzel",
@@ -9084,7 +9566,8 @@
       "rbi": 18,
       "sb": 1,
       "k_pct": 22.8,
-      "bb_pct": 10.5
+      "bb_pct": 10.5,
+      "war": -1.42
     },
     {
       "id": "nick_sogard",
@@ -9102,7 +9585,8 @@
       "rbi": 8,
       "sb": 3,
       "k_pct": 28.7,
-      "bb_pct": 8.0
+      "bb_pct": 8.0,
+      "war": 0.38
     },
     {
       "id": "nick_yorke",
@@ -9120,7 +9604,8 @@
       "rbi": 5,
       "sb": 2,
       "k_pct": 28.6,
-      "bb_pct": 9.5
+      "bb_pct": 9.5,
+      "war": -0.21
     },
     {
       "id": "nicky_lopez",
@@ -9140,7 +9625,8 @@
       "rbi": 23,
       "sb": 5,
       "k_pct": 15.0,
-      "bb_pct": 8.3
+      "bb_pct": 8.3,
+      "war": 0.09
     },
     {
       "id": "nico_hoerner",
@@ -9161,7 +9647,8 @@
       "rbi": 48,
       "sb": 31,
       "k_pct": 10.3,
-      "bb_pct": 6.9
+      "bb_pct": 6.9,
+      "war": 3.74
     },
     {
       "id": "niko_goodrum",
@@ -9179,7 +9666,8 @@
       "rbi": 0,
       "sb": 1,
       "k_pct": 29.4,
-      "bb_pct": 8.8
+      "bb_pct": 8.8,
+      "war": -0.83
     },
     {
       "id": "niko_kavadas",
@@ -9197,7 +9685,8 @@
       "rbi": 8,
       "sb": 1,
       "k_pct": 38.7,
-      "bb_pct": 10.4
+      "bb_pct": 10.4,
+      "war": -0.23
     },
     {
       "id": "noelvi_marte",
@@ -9215,7 +9704,8 @@
       "rbi": 19,
       "sb": 9,
       "k_pct": 30.9,
-      "bb_pct": 3.7
+      "bb_pct": 3.7,
+      "war": -1.77
     },
     {
       "id": "nolan_arenado",
@@ -9235,7 +9725,8 @@
       "rbi": 72,
       "sb": 2,
       "k_pct": 14.5,
-      "bb_pct": 6.9
+      "bb_pct": 6.9,
+      "war": 2.7
     },
     {
       "id": "nolan_gorman",
@@ -9253,7 +9744,8 @@
       "rbi": 50,
       "sb": 6,
       "k_pct": 37.3,
-      "bb_pct": 8.4
+      "bb_pct": 8.4,
+      "war": 0.47
     },
     {
       "id": "nolan_jones",
@@ -9273,7 +9765,8 @@
       "rbi": 29,
       "sb": 5,
       "k_pct": 30.6,
-      "bb_pct": 12.1
+      "bb_pct": 12.1,
+      "war": -0.8
     },
     {
       "id": "nolan_schanuel",
@@ -9291,7 +9784,8 @@
       "rbi": 57,
       "sb": 10,
       "k_pct": 17.0,
-      "bb_pct": 11.2
+      "bb_pct": 11.2,
+      "war": 1.21
     },
     {
       "id": "oliver_dunn",
@@ -9309,7 +9803,8 @@
       "rbi": 7,
       "sb": 3,
       "k_pct": 38.5,
-      "bb_pct": 5.8
+      "bb_pct": 5.8,
+      "war": 0.22
     },
     {
       "id": "omar_narváez",
@@ -9327,7 +9822,8 @@
       "rbi": 5,
       "sb": 0,
       "k_pct": 17.4,
-      "bb_pct": 4.3
+      "bb_pct": 4.3,
+      "war": -0.93
     },
     {
       "id": "oneil_cruz",
@@ -9348,7 +9844,8 @@
       "rbi": 76,
       "sb": 22,
       "k_pct": 30.2,
-      "bb_pct": 8.5
+      "bb_pct": 8.5,
+      "war": 2.56
     },
     {
       "id": "orelvis_martinez",
@@ -9366,7 +9863,8 @@
       "rbi": 0,
       "sb": 0,
       "k_pct": 33.3,
-      "bb_pct": 0.0
+      "bb_pct": 0.0,
+      "war": 0.0
     },
     {
       "id": "orlando_arcia",
@@ -9384,7 +9882,8 @@
       "rbi": 48,
       "sb": 2,
       "k_pct": 21.2,
-      "bb_pct": 6.8
+      "bb_pct": 6.8,
+      "war": 0.52
     },
     {
       "id": "oscar_colás",
@@ -9402,7 +9901,8 @@
       "rbi": 4,
       "sb": 0,
       "k_pct": 26.3,
-      "bb_pct": 10.5
+      "bb_pct": 10.5,
+      "war": 0.05
     },
     {
       "id": "oswald_peraza",
@@ -9420,7 +9920,8 @@
       "rbi": 1,
       "sb": 0,
       "k_pct": 27.3,
-      "bb_pct": 9.1
+      "bb_pct": 9.1,
+      "war": 0.06
     },
     {
       "id": "oswaldo_cabrera",
@@ -9438,7 +9939,8 @@
       "rbi": 39,
       "sb": 4,
       "k_pct": 19.3,
-      "bb_pct": 6.4
+      "bb_pct": 6.4,
+      "war": 1.31
     },
     {
       "id": "otto_lopez",
@@ -9458,7 +9960,8 @@
       "rbi": 44,
       "sb": 20,
       "k_pct": 17.2,
-      "bb_pct": 5.7
+      "bb_pct": 5.7,
+      "war": 2.81
     },
     {
       "id": "owen_miller",
@@ -9476,7 +9979,8 @@
       "rbi": 3,
       "sb": 0,
       "k_pct": 28.6,
-      "bb_pct": 0.0
+      "bb_pct": 0.0,
+      "war": -0.46
     },
     {
       "id": "ozzie_albies",
@@ -9496,7 +10000,8 @@
       "rbi": 55,
       "sb": 8,
       "k_pct": 14.9,
-      "bb_pct": 6.2
+      "bb_pct": 6.2,
+      "war": 1.64
     },
     {
       "id": "pablo_reyes",
@@ -9514,7 +10019,8 @@
       "rbi": 5,
       "sb": 1,
       "k_pct": 29.7,
-      "bb_pct": 4.7
+      "bb_pct": 4.7,
+      "war": -0.65
     },
     {
       "id": "parker_meadows",
@@ -9532,7 +10038,8 @@
       "rbi": 28,
       "sb": 9,
       "k_pct": 25.5,
-      "bb_pct": 8.4
+      "bb_pct": 8.4,
+      "war": 2.12
     },
     {
       "id": "patrick_bailey",
@@ -9550,7 +10057,8 @@
       "rbi": 46,
       "sb": 4,
       "k_pct": 22.3,
-      "bb_pct": 8.7
+      "bb_pct": 8.7,
+      "war": 1.73
     },
     {
       "id": "patrick_wisdom",
@@ -9568,7 +10076,8 @@
       "rbi": 23,
       "sb": 5,
       "k_pct": 33.9,
-      "bb_pct": 5.7
+      "bb_pct": 5.7,
+      "war": -0.4
     },
     {
       "id": "paul_dejong",
@@ -9588,7 +10097,8 @@
       "rbi": 58,
       "sb": 2,
       "k_pct": 32.4,
-      "bb_pct": 4.8
+      "bb_pct": 4.8,
+      "war": 0.9
     },
     {
       "id": "paul_goldschmidt",
@@ -9608,7 +10118,8 @@
       "rbi": 70,
       "sb": 11,
       "k_pct": 26.3,
-      "bb_pct": 7.2
+      "bb_pct": 7.2,
+      "war": 1.43
     },
     {
       "id": "pavin_smith",
@@ -9626,7 +10137,8 @@
       "rbi": 37,
       "sb": 1,
       "k_pct": 19.6,
-      "bb_pct": 11.4
+      "bb_pct": 11.4,
+      "war": 0.61
     },
     {
       "id": "pedro_león",
@@ -9644,7 +10156,8 @@
       "rbi": 0,
       "sb": 2,
       "k_pct": 47.6,
-      "bb_pct": 4.8
+      "bb_pct": 4.8,
+      "war": -0.32
     },
     {
       "id": "pedro_pagés",
@@ -9662,7 +10175,8 @@
       "rbi": 27,
       "sb": 2,
       "k_pct": 26.5,
-      "bb_pct": 5.9
+      "bb_pct": 5.9,
+      "war": 0.84
     },
     {
       "id": "pete_alonso",
@@ -9682,7 +10196,8 @@
       "rbi": 89,
       "sb": 3,
       "k_pct": 24.7,
-      "bb_pct": 10.1
+      "bb_pct": 10.1,
+      "war": 2.48
     },
     {
       "id": "pete_crow_armstrong",
@@ -9702,7 +10217,8 @@
       "rbi": 51,
       "sb": 27,
       "k_pct": 23.8,
-      "bb_pct": 5.1
+      "bb_pct": 5.1,
+      "war": 2.32
     },
     {
       "id": "rafael_devers",
@@ -9722,7 +10238,8 @@
       "rbi": 84,
       "sb": 3,
       "k_pct": 24.5,
-      "bb_pct": 11.1
+      "bb_pct": 11.1,
+      "war": 3.92
     },
     {
       "id": "rafael_marchán",
@@ -9742,7 +10259,8 @@
       "rbi": 6,
       "sb": 0,
       "k_pct": 14.3,
-      "bb_pct": 5.4
+      "bb_pct": 5.4,
+      "war": 0.73
     },
     {
       "id": "rafael_ortega",
@@ -9760,7 +10278,8 @@
       "rbi": 1,
       "sb": 2,
       "k_pct": 23.5,
-      "bb_pct": 11.8
+      "bb_pct": 11.8,
+      "war": -0.22
     },
     {
       "id": "ramón_laureano",
@@ -9778,7 +10297,8 @@
       "rbi": 34,
       "sb": 8,
       "k_pct": 31.1,
-      "bb_pct": 4.9
+      "bb_pct": 4.9,
+      "war": 1.27
     },
     {
       "id": "ramón_urías",
@@ -9796,7 +10316,8 @@
       "rbi": 39,
       "sb": 1,
       "k_pct": 18.3,
-      "bb_pct": 7.6
+      "bb_pct": 7.6,
+      "war": 1.35
     },
     {
       "id": "randal_grichuk",
@@ -9814,7 +10335,8 @@
       "rbi": 46,
       "sb": 0,
       "k_pct": 16.5,
-      "bb_pct": 7.2
+      "bb_pct": 7.2,
+      "war": 2.16
     },
     {
       "id": "randy_arozarena",
@@ -9835,7 +10357,8 @@
       "rbi": 62,
       "sb": 20,
       "k_pct": 26.0,
-      "bb_pct": 11.2
+      "bb_pct": 11.2,
+      "war": 1.71
     },
     {
       "id": "rece_hinds",
@@ -9853,7 +10376,8 @@
       "rbi": 11,
       "sb": 2,
       "k_pct": 31.4,
-      "bb_pct": 7.8
+      "bb_pct": 7.8,
+      "war": 0.7
     },
     {
       "id": "reese_mcguire",
@@ -9871,7 +10395,8 @@
       "rbi": 19,
       "sb": 3,
       "k_pct": 24.5,
-      "bb_pct": 8.2
+      "bb_pct": 8.2,
+      "war": 0.17
     },
     {
       "id": "rené_pinto",
@@ -9889,7 +10414,8 @@
       "rbi": 6,
       "sb": 0,
       "k_pct": 36.0,
-      "bb_pct": 8.0
+      "bb_pct": 8.0,
+      "war": -0.13
     },
     {
       "id": "rhys_hoskins",
@@ -9909,7 +10435,8 @@
       "rbi": 84,
       "sb": 3,
       "k_pct": 28.7,
-      "bb_pct": 10.2
+      "bb_pct": 10.2,
+      "war": -0.11
     },
     {
       "id": "richie_palacios",
@@ -9930,7 +10457,8 @@
       "rbi": 22,
       "sb": 19,
       "k_pct": 20.9,
-      "bb_pct": 14.1
+      "bb_pct": 14.1,
+      "war": 1.8
     },
     {
       "id": "riley_adams",
@@ -9948,7 +10476,8 @@
       "rbi": 8,
       "sb": 1,
       "k_pct": 26.9,
-      "bb_pct": 7.7
+      "bb_pct": 7.7,
+      "war": 0.16
     },
     {
       "id": "riley_greene",
@@ -9968,7 +10497,8 @@
       "rbi": 76,
       "sb": 4,
       "k_pct": 26.6,
-      "bb_pct": 10.9
+      "bb_pct": 10.9,
+      "war": 5.28
     },
     {
       "id": "rob_brantly",
@@ -9986,7 +10516,8 @@
       "rbi": 0,
       "sb": 0,
       "k_pct": 22.2,
-      "bb_pct": 0.0
+      "bb_pct": 0.0,
+      "war": -0.02
     },
     {
       "id": "rob_refsnyder",
@@ -10004,7 +10535,8 @@
       "rbi": 41,
       "sb": 2,
       "k_pct": 25.3,
-      "bb_pct": 9.1
+      "bb_pct": 9.1,
+      "war": 0.94
     },
     {
       "id": "robbie_grossman",
@@ -10024,7 +10556,8 @@
       "rbi": 17,
       "sb": 3,
       "k_pct": 23.7,
-      "bb_pct": 13.9
+      "bb_pct": 13.9,
+      "war": -0.23
     },
     {
       "id": "romy_gonzalez",
@@ -10042,7 +10575,8 @@
       "rbi": 29,
       "sb": 11,
       "k_pct": 26.9,
-      "bb_pct": 5.6
+      "bb_pct": 5.6,
+      "war": 0.99
     },
     {
       "id": "ronald_acuña",
@@ -10063,7 +10597,8 @@
       "rbi": 15,
       "sb": 16,
       "k_pct": 23.9,
-      "bb_pct": 12.2
+      "bb_pct": 12.2,
+      "war": 0.02
     },
     {
       "id": "rowdy_tellez",
@@ -10081,7 +10616,8 @@
       "rbi": 56,
       "sb": 1,
       "k_pct": 21.1,
-      "bb_pct": 7.4
+      "bb_pct": 7.4,
+      "war": -0.28
     },
     {
       "id": "royce_lewis",
@@ -10099,7 +10635,8 @@
       "rbi": 49,
       "sb": 0,
       "k_pct": 22.8,
-      "bb_pct": 8.6
+      "bb_pct": 8.6,
+      "war": 0.66
     },
     {
       "id": "ryan_bliss",
@@ -10117,7 +10654,8 @@
       "rbi": 10,
       "sb": 5,
       "k_pct": 31.0,
-      "bb_pct": 7.0
+      "bb_pct": 7.0,
+      "war": 0.43
     },
     {
       "id": "ryan_jeffers",
@@ -10137,7 +10675,8 @@
       "rbi": 70,
       "sb": 3,
       "k_pct": 20.2,
-      "bb_pct": 6.9
+      "bb_pct": 6.9,
+      "war": 2.06
     },
     {
       "id": "ryan_kreidler",
@@ -10155,7 +10694,8 @@
       "rbi": 2,
       "sb": 5,
       "k_pct": 28.8,
-      "bb_pct": 9.1
+      "bb_pct": 9.1,
+      "war": -0.52
     },
     {
       "id": "ryan_mckenna",
@@ -10173,7 +10713,8 @@
       "rbi": 2,
       "sb": 1,
       "k_pct": 33.3,
-      "bb_pct": 6.7
+      "bb_pct": 6.7,
+      "war": 0.1
     },
     {
       "id": "ryan_mcmahon",
@@ -10193,7 +10734,8 @@
       "rbi": 66,
       "sb": 4,
       "k_pct": 28.5,
-      "bb_pct": 10.6
+      "bb_pct": 10.6,
+      "war": 2.32
     },
     {
       "id": "ryan_mountcastle",
@@ -10211,7 +10753,8 @@
       "rbi": 66,
       "sb": 3,
       "k_pct": 22.5,
-      "bb_pct": 5.3
+      "bb_pct": 5.3,
+      "war": 2.35
     },
     {
       "id": "ryan_noda",
@@ -10231,7 +10774,8 @@
       "rbi": 4,
       "sb": 0,
       "k_pct": 33.3,
-      "bb_pct": 12.6
+      "bb_pct": 12.6,
+      "war": -0.56
     },
     {
       "id": "ryan_o_hearn",
@@ -10251,7 +10795,8 @@
       "rbi": 60,
       "sb": 3,
       "k_pct": 14.0,
-      "bb_pct": 9.3
+      "bb_pct": 9.3,
+      "war": 1.75
     },
     {
       "id": "ryan_vilade",
@@ -10269,7 +10814,8 @@
       "rbi": 5,
       "sb": 0,
       "k_pct": 24.5,
-      "bb_pct": 4.1
+      "bb_pct": 4.1,
+      "war": -0.74
     },
     {
       "id": "sal_frelick",
@@ -10290,7 +10836,8 @@
       "rbi": 37,
       "sb": 18,
       "k_pct": 14.9,
-      "bb_pct": 7.4
+      "bb_pct": 7.4,
+      "war": 2.19
     },
     {
       "id": "salvador_pérez",
@@ -10310,7 +10857,8 @@
       "rbi": 109,
       "sb": 0,
       "k_pct": 19.7,
-      "bb_pct": 6.7
+      "bb_pct": 6.7,
+      "war": 2.77
     },
     {
       "id": "sam_haggerty",
@@ -10328,7 +10876,8 @@
       "rbi": 1,
       "sb": 1,
       "k_pct": 25.0,
-      "bb_pct": 6.2
+      "bb_pct": 6.2,
+      "war": -0.27
     },
     {
       "id": "sam_hilliard",
@@ -10346,7 +10895,8 @@
       "rbi": 28,
       "sb": 5,
       "k_pct": 35.2,
-      "bb_pct": 8.8
+      "bb_pct": 8.8,
+      "war": 0.41
     },
     {
       "id": "sam_huff",
@@ -10366,7 +10916,8 @@
       "rbi": 0,
       "sb": 0,
       "k_pct": 50.0,
-      "bb_pct": 25.0
+      "bb_pct": 25.0,
+      "war": -0.02
     },
     {
       "id": "samad_taylor",
@@ -10384,7 +10935,8 @@
       "rbi": 0,
       "sb": 0,
       "k_pct": 20.0,
-      "bb_pct": 0.0
+      "bb_pct": 0.0,
+      "war": 0.05
     },
     {
       "id": "sandro_fabian",
@@ -10404,7 +10956,8 @@
       "rbi": 0,
       "sb": 0,
       "k_pct": 0.0,
-      "bb_pct": 0.0
+      "bb_pct": 0.0,
+      "war": -0.13
     },
     {
       "id": "santiago_espinal",
@@ -10424,7 +10977,8 @@
       "rbi": 48,
       "sb": 11,
       "k_pct": 13.7,
-      "bb_pct": 6.1
+      "bb_pct": 6.1,
+      "war": -0.42
     },
     {
       "id": "sean_bouchard",
@@ -10442,7 +10996,8 @@
       "rbi": 8,
       "sb": 4,
       "k_pct": 30.6,
-      "bb_pct": 11.1
+      "bb_pct": 11.1,
+      "war": -0.59
     },
     {
       "id": "sean_murphy",
@@ -10460,7 +11015,8 @@
       "rbi": 26,
       "sb": 0,
       "k_pct": 25.4,
-      "bb_pct": 10.2
+      "bb_pct": 10.2,
+      "war": 1.25
     },
     {
       "id": "seby_zavala",
@@ -10478,7 +11034,8 @@
       "rbi": 2,
       "sb": 0,
       "k_pct": 37.2,
-      "bb_pct": 7.0
+      "bb_pct": 7.0,
+      "war": -0.3
     },
     {
       "id": "seiya_suzuki",
@@ -10499,7 +11056,8 @@
       "rbi": 75,
       "sb": 16,
       "k_pct": 27.4,
-      "bb_pct": 10.8
+      "bb_pct": 10.8,
+      "war": 3.53
     },
     {
       "id": "seth_brown",
@@ -10517,7 +11075,8 @@
       "rbi": 46,
       "sb": 4,
       "k_pct": 27.9,
-      "bb_pct": 6.2
+      "bb_pct": 6.2,
+      "war": -0.57
     },
     {
       "id": "shay_whitcomb",
@@ -10535,7 +11094,8 @@
       "rbi": 5,
       "sb": 0,
       "k_pct": 17.4,
-      "bb_pct": 10.9
+      "bb_pct": 10.9,
+      "war": -0.42
     },
     {
       "id": "shea_langeliers",
@@ -10555,7 +11115,8 @@
       "rbi": 81,
       "sb": 4,
       "k_pct": 27.0,
-      "bb_pct": 7.6
+      "bb_pct": 7.6,
+      "war": 2.85
     },
     {
       "id": "shohei_ohtani",
@@ -10576,7 +11137,8 @@
       "rbi": 130,
       "sb": 59,
       "k_pct": 22.2,
-      "bb_pct": 11.1
+      "bb_pct": 11.1,
+      "war": 9.04
     },
     {
       "id": "spencer_horwitz",
@@ -10594,7 +11156,8 @@
       "rbi": 40,
       "sb": 0,
       "k_pct": 18.3,
-      "bb_pct": 11.0
+      "bb_pct": 11.0,
+      "war": 1.14
     },
     {
       "id": "spencer_steer",
@@ -10615,7 +11178,8 @@
       "rbi": 95,
       "sb": 25,
       "k_pct": 20.8,
-      "bb_pct": 10.9
+      "bb_pct": 10.9,
+      "war": 1.49
     },
     {
       "id": "spencer_torkelson",
@@ -10633,7 +11197,8 @@
       "rbi": 38,
       "sb": 0,
       "k_pct": 27.4,
-      "bb_pct": 8.6
+      "bb_pct": 8.6,
+      "war": 0.19
     },
     {
       "id": "starling_marte",
@@ -10653,7 +11218,8 @@
       "rbi": 45,
       "sb": 16,
       "k_pct": 21.9,
-      "bb_pct": 7.3
+      "bb_pct": 7.3,
+      "war": 0.63
     },
     {
       "id": "steven_kwan",
@@ -10673,7 +11239,8 @@
       "rbi": 46,
       "sb": 12,
       "k_pct": 9.4,
-      "bb_pct": 9.8
+      "bb_pct": 9.8,
+      "war": 3.95
     },
     {
       "id": "steward_berroa",
@@ -10693,7 +11260,8 @@
       "rbi": 1,
       "sb": 6,
       "k_pct": 31.1,
-      "bb_pct": 17.8
+      "bb_pct": 17.8,
+      "war": 0.3
     },
     {
       "id": "stone_garrett",
@@ -10714,7 +11282,8 @@
       "rbi": 3,
       "sb": 0,
       "k_pct": 0.0,
-      "bb_pct": 16.7
+      "bb_pct": 16.7,
+      "war": 0.27
     },
     {
       "id": "stuart_fairchild",
@@ -10732,7 +11301,8 @@
       "rbi": 30,
       "sb": 13,
       "k_pct": 25.8,
-      "bb_pct": 7.3
+      "bb_pct": 7.3,
+      "war": 1.0
     },
     {
       "id": "taylor_trammell",
@@ -10752,7 +11322,8 @@
       "rbi": 0,
       "sb": 0,
       "k_pct": 37.5,
-      "bb_pct": 12.5
+      "bb_pct": 12.5,
+      "war": -0.24
     },
     {
       "id": "taylor_walls",
@@ -10773,7 +11344,8 @@
       "rbi": 15,
       "sb": 16,
       "k_pct": 26.5,
-      "bb_pct": 12.3
+      "bb_pct": 12.3,
+      "war": 1.42
     },
     {
       "id": "taylor_ward",
@@ -10793,7 +11365,8 @@
       "rbi": 76,
       "sb": 6,
       "k_pct": 24.5,
-      "bb_pct": 9.5
+      "bb_pct": 9.5,
+      "war": 2.25
     },
     {
       "id": "teoscar_hernández",
@@ -10813,7 +11386,8 @@
       "rbi": 100,
       "sb": 12,
       "k_pct": 28.8,
-      "bb_pct": 8.1
+      "bb_pct": 8.1,
+      "war": 4.14
     },
     {
       "id": "thairo_estrada",
@@ -10831,7 +11405,8 @@
       "rbi": 49,
       "sb": 2,
       "k_pct": 19.9,
-      "bb_pct": 2.6
+      "bb_pct": 2.6,
+      "war": -0.55
     },
     {
       "id": "thomas_saggese",
@@ -10849,7 +11424,8 @@
       "rbi": 4,
       "sb": 0,
       "k_pct": 26.9,
-      "bb_pct": 3.8
+      "bb_pct": 3.8,
+      "war": -0.17
     },
     {
       "id": "tim_anderson",
@@ -10867,7 +11443,8 @@
       "rbi": 9,
       "sb": 4,
       "k_pct": 28.1,
-      "bb_pct": 2.9
+      "bb_pct": 2.9,
+      "war": -1.34
     },
     {
       "id": "tj_friedl",
@@ -10885,7 +11462,8 @@
       "rbi": 56,
       "sb": 9,
       "k_pct": 15.2,
-      "bb_pct": 7.6
+      "bb_pct": 7.6,
+      "war": 0.52
     },
     {
       "id": "tom_murphy",
@@ -10903,7 +11481,8 @@
       "rbi": 2,
       "sb": 0,
       "k_pct": 36.8,
-      "bb_pct": 10.5
+      "bb_pct": 10.5,
+      "war": -0.44
     },
     {
       "id": "tommy_edman",
@@ -10921,7 +11500,8 @@
       "rbi": 20,
       "sb": 6,
       "k_pct": 19.6,
-      "bb_pct": 7.2
+      "bb_pct": 7.2,
+      "war": 0.9
     },
     {
       "id": "tommy_pham",
@@ -10939,7 +11519,8 @@
       "rbi": 41,
       "sb": 7,
       "k_pct": 22.1,
-      "bb_pct": 7.3
+      "bb_pct": 7.3,
+      "war": -0.22
     },
     {
       "id": "tomás_nido",
@@ -10957,7 +11538,8 @@
       "rbi": 12,
       "sb": 0,
       "k_pct": 25.0,
-      "bb_pct": 3.6
+      "bb_pct": 3.6,
+      "war": -0.4
     },
     {
       "id": "tony_kemp",
@@ -10977,7 +11559,8 @@
       "rbi": 0,
       "sb": 0,
       "k_pct": 10.0,
-      "bb_pct": 10.0
+      "bb_pct": 10.0,
+      "war": -0.15
     },
     {
       "id": "travis_blankenhorn",
@@ -10995,7 +11578,8 @@
       "rbi": 5,
       "sb": 0,
       "k_pct": 28.1,
-      "bb_pct": 3.1
+      "bb_pct": 3.1,
+      "war": -0.47
     },
     {
       "id": "travis_d_arnaud",
@@ -11013,7 +11597,8 @@
       "rbi": 49,
       "sb": 1,
       "k_pct": 26.1,
-      "bb_pct": 7.0
+      "bb_pct": 7.0,
+      "war": 1.08
     },
     {
       "id": "travis_jankowski",
@@ -11031,7 +11616,8 @@
       "rbi": 14,
       "sb": 11,
       "k_pct": 21.3,
-      "bb_pct": 5.8
+      "bb_pct": 5.8,
+      "war": 0.36
     },
     {
       "id": "trea_turner",
@@ -11052,7 +11638,8 @@
       "rbi": 62,
       "sb": 19,
       "k_pct": 18.1,
-      "bb_pct": 5.0
+      "bb_pct": 5.0,
+      "war": 2.82
     },
     {
       "id": "trent_grisham",
@@ -11070,7 +11657,8 @@
       "rbi": 32,
       "sb": 1,
       "k_pct": 27.3,
-      "bb_pct": 10.5
+      "bb_pct": 10.5,
+      "war": 0.39
     },
     {
       "id": "trenton_brooks",
@@ -11090,7 +11678,8 @@
       "rbi": 1,
       "sb": 1,
       "k_pct": 20.7,
-      "bb_pct": 13.8
+      "bb_pct": 13.8,
+      "war": -0.25
     },
     {
       "id": "trevor_larnach",
@@ -11108,7 +11697,8 @@
       "rbi": 54,
       "sb": 4,
       "k_pct": 22.2,
-      "bb_pct": 10.0
+      "bb_pct": 10.0,
+      "war": 1.29
     },
     {
       "id": "trevor_story",
@@ -11126,7 +11716,8 @@
       "rbi": 10,
       "sb": 6,
       "k_pct": 31.1,
-      "bb_pct": 10.4
+      "bb_pct": 10.4,
+      "war": 0.79
     },
     {
       "id": "trey_cabbage",
@@ -11144,7 +11735,8 @@
       "rbi": 8,
       "sb": 1,
       "k_pct": 37.4,
-      "bb_pct": 4.4
+      "bb_pct": 4.4,
+      "war": -0.13
     },
     {
       "id": "trey_lipscomb",
@@ -11162,7 +11754,8 @@
       "rbi": 10,
       "sb": 11,
       "k_pct": 18.9,
-      "bb_pct": 7.5
+      "bb_pct": 7.5,
+      "war": -0.17
     },
     {
       "id": "trey_sweeney",
@@ -11180,7 +11773,8 @@
       "rbi": 17,
       "sb": 2,
       "k_pct": 26.7,
-      "bb_pct": 5.8
+      "bb_pct": 5.8,
+      "war": 0.66
     },
     {
       "id": "tristan_gray",
@@ -11198,7 +11792,8 @@
       "rbi": 0,
       "sb": 0,
       "k_pct": 51.6,
-      "bb_pct": 9.7
+      "bb_pct": 9.7,
+      "war": -0.05
     },
     {
       "id": "triston_casas",
@@ -11218,7 +11813,8 @@
       "rbi": 32,
       "sb": 0,
       "k_pct": 31.6,
-      "bb_pct": 12.3
+      "bb_pct": 12.3,
+      "war": 0.66
     },
     {
       "id": "tucker_barnhart",
@@ -11238,7 +11834,8 @@
       "rbi": 6,
       "sb": 1,
       "k_pct": 32.3,
-      "bb_pct": 13.5
+      "bb_pct": 13.5,
+      "war": 0.26
     },
     {
       "id": "ty_france",
@@ -11256,7 +11853,8 @@
       "rbi": 51,
       "sb": 1,
       "k_pct": 21.3,
-      "bb_pct": 7.1
+      "bb_pct": 7.1,
+      "war": -0.63
     },
     {
       "id": "tyler_black",
@@ -11276,7 +11874,8 @@
       "rbi": 2,
       "sb": 3,
       "k_pct": 29.8,
-      "bb_pct": 12.3
+      "bb_pct": 12.3,
+      "war": -0.07
     },
     {
       "id": "tyler_fitzgerald",
@@ -11296,7 +11895,8 @@
       "rbi": 34,
       "sb": 17,
       "k_pct": 31.7,
-      "bb_pct": 6.5
+      "bb_pct": 6.5,
+      "war": 2.74
     },
     {
       "id": "tyler_freeman",
@@ -11316,7 +11916,8 @@
       "rbi": 34,
       "sb": 11,
       "k_pct": 13.8,
-      "bb_pct": 7.3
+      "bb_pct": 7.3,
+      "war": 0.88
     },
     {
       "id": "tyler_gentry",
@@ -11334,7 +11935,8 @@
       "rbi": 0,
       "sb": 0,
       "k_pct": 40.0,
-      "bb_pct": 0.0
+      "bb_pct": 0.0,
+      "war": -0.13
     },
     {
       "id": "tyler_heineman",
@@ -11354,7 +11956,8 @@
       "rbi": 0,
       "sb": 0,
       "k_pct": 37.5,
-      "bb_pct": 18.8
+      "bb_pct": 18.8,
+      "war": 0.18
     },
     {
       "id": "tyler_locklear",
@@ -11372,7 +11975,8 @@
       "rbi": 3,
       "sb": 1,
       "k_pct": 40.8,
-      "bb_pct": 6.1
+      "bb_pct": 6.1,
+      "war": -0.32
     },
     {
       "id": "tyler_nevin",
@@ -11390,7 +11994,8 @@
       "rbi": 20,
       "sb": 1,
       "k_pct": 23.0,
-      "bb_pct": 9.0
+      "bb_pct": 9.0,
+      "war": -0.22
     },
     {
       "id": "tyler_o_neill",
@@ -11410,7 +12015,8 @@
       "rbi": 62,
       "sb": 4,
       "k_pct": 33.5,
-      "bb_pct": 11.2
+      "bb_pct": 11.2,
+      "war": 2.86
     },
     {
       "id": "tyler_soderstrom",
@@ -11428,7 +12034,8 @@
       "rbi": 26,
       "sb": 0,
       "k_pct": 24.8,
-      "bb_pct": 9.3
+      "bb_pct": 9.3,
+      "war": 0.47
     },
     {
       "id": "tyler_stephenson",
@@ -11446,7 +12053,8 @@
       "rbi": 68,
       "sb": 1,
       "k_pct": 22.6,
-      "bb_pct": 9.3
+      "bb_pct": 9.3,
+      "war": 2.4
     },
     {
       "id": "tyler_wade",
@@ -11464,7 +12072,8 @@
       "rbi": 8,
       "sb": 8,
       "k_pct": 18.6,
-      "bb_pct": 7.1
+      "bb_pct": 7.1,
+      "war": -0.66
     },
     {
       "id": "tyrone_taylor",
@@ -11482,7 +12091,8 @@
       "rbi": 37,
       "sb": 11,
       "k_pct": 23.2,
-      "bb_pct": 5.5
+      "bb_pct": 5.5,
+      "war": 1.98
     },
     {
       "id": "vaughn_grissom",
@@ -11500,7 +12110,8 @@
       "rbi": 6,
       "sb": 2,
       "k_pct": 21.1,
-      "bb_pct": 6.1
+      "bb_pct": 6.1,
+      "war": -0.12
     },
     {
       "id": "victor_scott",
@@ -11518,7 +12129,8 @@
       "rbi": 10,
       "sb": 5,
       "k_pct": 26.9,
-      "bb_pct": 3.8
+      "bb_pct": 3.8,
+      "war": -0.48
     },
     {
       "id": "vidal_bruján",
@@ -11536,7 +12148,8 @@
       "rbi": 16,
       "sb": 5,
       "k_pct": 19.4,
-      "bb_pct": 9.0
+      "bb_pct": 9.0,
+      "war": 0.62
     },
     {
       "id": "vinnie_pasquantino",
@@ -11556,7 +12169,8 @@
       "rbi": 98,
       "sb": 1,
       "k_pct": 12.7,
-      "bb_pct": 7.2
+      "bb_pct": 7.2,
+      "war": 1.31
     },
     {
       "id": "vinny_capra",
@@ -11574,7 +12188,8 @@
       "rbi": 0,
       "sb": 0,
       "k_pct": 33.3,
-      "bb_pct": 0.0
+      "bb_pct": 0.0,
+      "war": -0.13
     },
     {
       "id": "vladimir_guerrero",
@@ -11595,7 +12210,8 @@
       "rbi": 103,
       "sb": 2,
       "k_pct": 13.8,
-      "bb_pct": 10.3
+      "bb_pct": 10.3,
+      "war": 6.02
     },
     {
       "id": "víctor_caratini",
@@ -11613,7 +12229,8 @@
       "rbi": 31,
       "sb": 0,
       "k_pct": 19.2,
-      "bb_pct": 8.3
+      "bb_pct": 8.3,
+      "war": 1.27
     },
     {
       "id": "víctor_robles",
@@ -11633,7 +12250,8 @@
       "rbi": 29,
       "sb": 34,
       "k_pct": 17.8,
-      "bb_pct": 7.1
+      "bb_pct": 7.1,
+      "war": 3.1
     },
     {
       "id": "wenceel_pérez",
@@ -11651,7 +12269,8 @@
       "rbi": 38,
       "sb": 9,
       "k_pct": 21.6,
-      "bb_pct": 7.5
+      "bb_pct": 7.5,
+      "war": 0.59
     },
     {
       "id": "weston_wilson",
@@ -11669,7 +12288,8 @@
       "rbi": 10,
       "sb": 3,
       "k_pct": 29.3,
-      "bb_pct": 8.1
+      "bb_pct": 8.1,
+      "war": 0.66
     },
     {
       "id": "whit_merrifield",
@@ -11689,7 +12309,8 @@
       "rbi": 15,
       "sb": 17,
       "k_pct": 15.4,
-      "bb_pct": 10.4
+      "bb_pct": 10.4,
+      "war": 0.23
     },
     {
       "id": "will_benson",
@@ -11709,7 +12330,8 @@
       "rbi": 44,
       "sb": 16,
       "k_pct": 39.6,
-      "bb_pct": 10.3
+      "bb_pct": 10.3,
+      "war": -1.34
     },
     {
       "id": "will_brennan",
@@ -11729,7 +12351,8 @@
       "rbi": 32,
       "sb": 4,
       "k_pct": 13.6,
-      "bb_pct": 5.4
+      "bb_pct": 5.4,
+      "war": -0.15
     },
     {
       "id": "will_smith",
@@ -11749,7 +12372,8 @@
       "rbi": 75,
       "sb": 1,
       "k_pct": 19.2,
-      "bb_pct": 9.3
+      "bb_pct": 9.3,
+      "war": 3.42
     },
     {
       "id": "will_wagner",
@@ -11767,7 +12391,8 @@
       "rbi": 12,
       "sb": 0,
       "k_pct": 18.6,
-      "bb_pct": 4.7
+      "bb_pct": 4.7,
+      "war": 0.72
     },
     {
       "id": "willi_castro",
@@ -11785,7 +12410,8 @@
       "rbi": 64,
       "sb": 14,
       "k_pct": 23.5,
-      "bb_pct": 8.0
+      "bb_pct": 8.0,
+      "war": 1.58
     },
     {
       "id": "william_contreras",
@@ -11805,7 +12431,8 @@
       "rbi": 93,
       "sb": 9,
       "k_pct": 20.5,
-      "bb_pct": 11.5
+      "bb_pct": 11.5,
+      "war": 4.96
     },
     {
       "id": "willie_calhoun",
@@ -11825,7 +12452,8 @@
       "rbi": 20,
       "sb": 0,
       "k_pct": 12.2,
-      "bb_pct": 9.0
+      "bb_pct": 9.0,
+      "war": -0.21
     },
     {
       "id": "willson_contreras",
@@ -11845,7 +12473,8 @@
       "rbi": 38,
       "sb": 4,
       "k_pct": 26.8,
-      "bb_pct": 12.6
+      "bb_pct": 12.6,
+      "war": 3.04
     },
     {
       "id": "willy_adames",
@@ -11866,7 +12495,8 @@
       "rbi": 113,
       "sb": 21,
       "k_pct": 25.0,
-      "bb_pct": 10.7
+      "bb_pct": 10.7,
+      "war": 3.21
     },
     {
       "id": "wilmer_flores",
@@ -11886,7 +12516,8 @@
       "rbi": 28,
       "sb": 0,
       "k_pct": 13.6,
-      "bb_pct": 8.2
+      "bb_pct": 8.2,
+      "war": -0.58
     },
     {
       "id": "wilyer_abreu",
@@ -11904,7 +12535,8 @@
       "rbi": 60,
       "sb": 8,
       "k_pct": 27.8,
-      "bb_pct": 8.9
+      "bb_pct": 8.9,
+      "war": 3.59
     },
     {
       "id": "wyatt_langford",
@@ -11924,7 +12556,8 @@
       "rbi": 75,
       "sb": 19,
       "k_pct": 20.6,
-      "bb_pct": 9.1
+      "bb_pct": 9.1,
+      "war": 4.19
     },
     {
       "id": "xander_bogaerts",
@@ -11942,7 +12575,8 @@
       "rbi": 47,
       "sb": 13,
       "k_pct": 17.1,
-      "bb_pct": 6.0
+      "bb_pct": 6.0,
+      "war": 1.23
     },
     {
       "id": "xavier_edwards",
@@ -11962,7 +12596,8 @@
       "rbi": 27,
       "sb": 31,
       "k_pct": 17.1,
-      "bb_pct": 10.9
+      "bb_pct": 10.9,
+      "war": 2.12
     },
     {
       "id": "yainer_diaz",
@@ -11980,7 +12615,8 @@
       "rbi": 90,
       "sb": 2,
       "k_pct": 17.2,
-      "bb_pct": 3.9
+      "bb_pct": 3.9,
+      "war": 3.11
     },
     {
       "id": "yan_gomes",
@@ -11998,7 +12634,8 @@
       "rbi": 8,
       "sb": 0,
       "k_pct": 37.5,
-      "bb_pct": 2.1
+      "bb_pct": 2.1,
+      "war": -0.68
     },
     {
       "id": "yandy_díaz",
@@ -12016,7 +12653,8 @@
       "rbi": 67,
       "sb": 0,
       "k_pct": 15.3,
-      "bb_pct": 8.0
+      "bb_pct": 8.0,
+      "war": 1.6
     },
     {
       "id": "yasmani_grandal",
@@ -12034,7 +12672,8 @@
       "rbi": 28,
       "sb": 1,
       "k_pct": 18.9,
-      "bb_pct": 9.9
+      "bb_pct": 9.9,
+      "war": 0.67
     },
     {
       "id": "yordan_álvarez",
@@ -12055,7 +12694,8 @@
       "rbi": 92,
       "sb": 6,
       "k_pct": 14.9,
-      "bb_pct": 10.8
+      "bb_pct": 10.8,
+      "war": 5.21
     },
     {
       "id": "yoán_moncada",
@@ -12073,7 +12713,8 @@
       "rbi": 0,
       "sb": 1,
       "k_pct": 24.4,
-      "bb_pct": 11.1
+      "bb_pct": 11.1,
+      "war": 0.26
     },
     {
       "id": "yuli_gurriel",
@@ -12093,7 +12734,8 @@
       "rbi": 6,
       "sb": 1,
       "k_pct": 23.1,
-      "bb_pct": 13.8
+      "bb_pct": 13.8,
+      "war": 0.16
     },
     {
       "id": "zach_deloach",
@@ -12111,7 +12753,8 @@
       "rbi": 5,
       "sb": 0,
       "k_pct": 28.0,
-      "bb_pct": 10.7
+      "bb_pct": 10.7,
+      "war": -0.11
     },
     {
       "id": "zach_dezenzo",
@@ -12129,7 +12772,8 @@
       "rbi": 10,
       "sb": 0,
       "k_pct": 33.8,
-      "bb_pct": 4.6
+      "bb_pct": 4.6,
+      "war": -0.18
     },
     {
       "id": "zach_mckinstry",
@@ -12149,7 +12793,8 @@
       "rbi": 24,
       "sb": 16,
       "k_pct": 21.2,
-      "bb_pct": 7.4
+      "bb_pct": 7.4,
+      "war": 0.77
     },
     {
       "id": "zach_neto",
@@ -12170,7 +12815,8 @@
       "rbi": 81,
       "sb": 30,
       "k_pct": 23.2,
-      "bb_pct": 6.5
+      "bb_pct": 6.5,
+      "war": 5.06
     },
     {
       "id": "zach_remillard",
@@ -12190,7 +12836,8 @@
       "rbi": 1,
       "sb": 1,
       "k_pct": 25.6,
-      "bb_pct": 12.8
+      "bb_pct": 12.8,
+      "war": 0.24
     },
     {
       "id": "zack_gelof",
@@ -12210,7 +12857,8 @@
       "rbi": 50,
       "sb": 25,
       "k_pct": 34.3,
-      "bb_pct": 6.9
+      "bb_pct": 6.9,
+      "war": 1.36
     },
     {
       "id": "zack_short",
@@ -12230,7 +12878,8 @@
       "rbi": 5,
       "sb": 2,
       "k_pct": 27.3,
-      "bb_pct": 15.9
+      "bb_pct": 15.9,
+      "war": -0.1
     }
   ]
 }
