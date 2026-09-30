@@ -2237,6 +2237,7 @@ function mergeCardData(numeric, llm){
     games: numeric.games,
     innings: numeric.innings,
     era: numeric.era,
+    ...("war" in numeric ? { war: numeric.war } : {}),
     k_bb_pct: numeric.k_bb_pct,
     gb_pct: numeric.gb_pct,
     signature_pitch: llm.signature_pitch || "",
