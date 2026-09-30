@@ -195,7 +195,7 @@
   .pmix-table.pmix-cmp th, .pmix-table.pmix-cmp td{ position:static; left:auto; width:auto; overflow:visible; text-overflow:clip; box-shadow:none; }
   .pmix-table.pmix-cmp tbody tr.cnt-pick{ cursor:pointer; }
   .pmix-table.pmix-cmp tr.cnt-sel > td.cnt-name{ box-shadow:inset 3px 0 0 var(--blue) !important; }
-  .ss-name-cell{ white-space:normal !important; min-width:170px; font-size:11px; line-height:1.35; text-align:left; }
+  .ss-name-cell{ white-space:normal !important; min-width:120px; font-size:11px; line-height:1.35; text-align:left; }
   /* 年度ごとの色（年度セル・チップ・ラベルの識別用） */
   [data-yr="2026"], .yr-dot[data-yrc="2026"]{ --yc:#60A5FA; }
   [data-yr="2025"], .yr-dot[data-yrc="2025"]{ --yc:#FBBF24; }
@@ -3489,13 +3489,13 @@ function wireCountPatternBlock(blockEl, pitchRows){
 // （投手から見た被打率など）。打者名は打者カード（batter_cards_numeric/{batterId}.json）へのリンク。
 // 表は最小打席数で絞り込み、見出しクリックで並べ替え。上位VSB_INITIAL_ROWS件だけ出し「もっと見る」で全件。
 const VSB_COLS = [
-  { key:"pa",  label:"打席",   fmt:"int", w:64 }, { key:"ab", label:"打数", fmt:"int", w:60 },
-  { key:"h",   label:"被安打", fmt:"int", good:"low", w:72 }, { key:"hr", label:"被本塁打", fmt:"int", good:"low", w:84 },
-  { key:"k",   label:"三振",   fmt:"int", good:"high", w:64 }, { key:"bb", label:"四球", fmt:"int", good:"low", w:64 },
-  { key:"avg", label:"被打率", fmt:"avg", good:"low", w:74 }, { key:"obp", label:"被出塁率", fmt:"avg", good:"low", w:84 },
-  { key:"slg", label:"被長打率", fmt:"avg", good:"low", w:84 }, { key:"ops", label:"被OPS", fmt:"ops", good:"low", w:74 },
-  { key:"k_pct", label:"K%", fmt:"pct", good:"high", w:70 }, { key:"bb_pct", label:"BB%", fmt:"pct", good:"low", w:70 },
-  { key:"whiff_pct", label:"空振り率", fmt:"pct", good:"high", w:86 },
+  { key:"pa",  label:"打席",   fmt:"int", w:52 }, { key:"ab", label:"打数", fmt:"int", w:52 },
+  { key:"h",   label:"被安打", fmt:"int", good:"low", w:60 }, { key:"hr", label:"被本塁打", fmt:"int", good:"low", w:72 },
+  { key:"avg", label:"被打率", fmt:"avg", good:"low", w:68 }, { key:"ops", label:"被OPS", fmt:"ops", good:"low", w:68 },
+  { key:"obp", label:"被出塁率", fmt:"avg", good:"low", w:78 }, { key:"slg", label:"被長打率", fmt:"avg", good:"low", w:78 },
+  { key:"kbb_pct", label:"K-BB%", fmt:"pct", good:"high", w:66 },
+  { key:"k_pct", label:"K%", fmt:"pct", good:"high", w:58 }, { key:"bb_pct", label:"BB%", fmt:"pct", good:"low", w:58 },
+  { key:"whiff_pct", label:"空振り率", fmt:"pct", good:"high", w:76 },
 ];
 const VSB_MIN_PA_OPTIONS = [[1, "全員"], [3, "3打席以上"], [5, "5打席以上"], [10, "10打席以上"]];
 const VSB_INITIAL_ROWS = 10;
@@ -3595,8 +3595,9 @@ function wireVsBatters(d){
   const yearRows = canCompareYears(d)
     ? d._availableYears.map(y => ({ year: y, rows: (cardOfYear(d, y) || {}).vs_batters || [] }))
     : [{ year: d._activeYear || "", rows: list0 }];
-  const careerList = canCompareYears(d) ? mergeVsBattersAcrossYears(yearRows) : list0;
-  const seasonList = yearRows.flatMap(({ year, rows }) => rows.map(r => ({ ...r, _year: year })));
+  const withKbb = (r) => ({ ...r, kbb_pct: (r.k_pct != null && r.bb_pct != null) ? Math.round((r.k_pct - r.bb_pct) * 10) / 10 : null });
+  const careerList = (canCompareYears(d) ? mergeVsBattersAcrossYears(yearRows) : list0).map(withKbb);
+  const seasonList = yearRows.flatMap(({ year, rows }) => rows.map(r => ({ ...withKbb(r), _year: year })));
   const currentScope = () => {
     const b = scopeToggle && scopeToggle.querySelector(".hand-btn.active");
     return b ? b.dataset.scope : "career";
@@ -4258,10 +4259,10 @@ function buildGameLogTable(d){
       }).join("")}
     </tr>
   `;};
-  const ssTotalW = 86 + 190 + ssCols.length * SSW;
+  const ssTotalW = 86 + 150 + ssCols.length * SSW;
   const seasonTabHtml = `
     <div class="pmix-scroll"><table class="pmix-table pmix-cmp" style="width:${ssTotalW}px;table-layout:fixed">
-      <colgroup><col style="width:86px"><col style="width:190px">${ssCols.map(() => `<col style="width:${SSW}px">`).join("")}</colgroup>
+      <colgroup><col style="width:86px"><col style="width:150px">${ssCols.map(() => `<col style="width:${SSW}px">`).join("")}</colgroup>
       <thead><tr><th style="position:sticky;left:0;z-index:4;background:var(--panel-alt)">年度</th><th style="text-align:left;position:static;left:auto">結果</th>${ssCols.map(c => `<th>${c.label}</th>`).join("")}</tr></thead>
       <tbody>${seasonEntries.map(seasonRowHtml).join("")}</tbody>
     </table></div>
@@ -6865,7 +6866,7 @@ function renderPlayerCard(card, llm){
 
       <div class="section section-note">
         <div class="section-title"><span class="bar" style="background:var(--amber)"></span><span class="label">守備・走塁</span></div>
-        ${renderDefenseSection(seasonsMap, compareYearList(seasonsMap))}
+        ${renderDefenseSection(seasonsMap, Object.keys(seasonsMap).filter(y => seasonsMap[y]).sort((a, b) => b.localeCompare(a)))}
       </div>
 
       <div class="section" data-gamelog-section>
@@ -6998,7 +6999,7 @@ cardsShell.register("batter", {
     const idx = tr.rowIndex, rows = tbl.rows;
     for(let i = idx - 1; i >= Math.max(0, idx - 60); i--){
       Array.from(rows[i].cells).forEach(c => {
-        if(c.rowSpan > 1 && i + c.rowSpan > idx && !c.classList.contains("kst-group-cell")){ c.classList.add("rs-hl"); lit.push(c); }
+        if(c.rowSpan > 1 && i + c.rowSpan > idx){ c.classList.add("rs-hl"); lit.push(c); }
       });
     }
   });
