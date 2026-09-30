@@ -2514,6 +2514,14 @@ def fetch_running_stats(year: int) -> pd.DataFrame:
         return pd.DataFrame(columns=cols)
 
 
+_SAVANT_LOG: list = []
+
+
+def _slog(msg: str) -> None:
+    print(msg)
+    _SAVANT_LOG.append(msg[:500])
+
+
 def _savant_csv(label: str, urls: list[str], year: int | None = None) -> pd.DataFrame:
     """Baseball Savant のリーダーボードCSVを取得する（URL候補を順に試し、最初にCSVが返ったものを使う）。
     列名はサイト側の仕様変更で変わりうるため、取得した列名をログに出す（xlsxにはそのまま保存し、
@@ -2523,20 +2531,20 @@ def _savant_csv(label: str, urls: list[str], year: int | None = None) -> pd.Data
             res = requests.get(url, headers=_SAVANT_HEADERS, timeout=60)
             text = res.content.decode("utf-8-sig")
             if res.status_code != 200 or not text.strip() or text.lstrip().startswith("<"):
-                print(f"  [WARN] {label}: CSVが返りません (status={res.status_code}) {url}")
+                _slog(f"  [WARN] {label}: CSVが返りません (status={res.status_code}) {url}")
                 continue
             df = pd.read_csv(io.StringIO(text), engine="python", on_bad_lines="skip")
             if df.empty:
-                print(f"  [WARN] {label}: 0行 {url}")
+                _slog(f"  [WARN] {label}: 0行 {url}")
                 continue
             if year is not None and "start_year" in df.columns and not (pd.to_numeric(df["start_year"], errors="coerce") == year).any():
                 # 年の指定がサイト側で無視され、別の年（既定の最新年）が返ってきた場合は採用しない
-                print(f"  [WARN] {label}: 年が一致しません start_year={sorted(set(df['start_year'].dropna().astype(int)))[:3]} {url}")
+                _slog(f"  [WARN] {label}: 年が一致しません start_year={sorted(set(df['start_year'].dropna().astype(int)))[:3]} {url}")
                 continue
-            print(f"  {label}: {len(df)}行 列={list(df.columns)} ({url})")
+            _slog(f"  {label}: {len(df)}行 列={list(df.columns)} ({url})")
             return df
         except Exception as e:  # noqa: BLE001
-            print(f"  [WARN] {label}取得失敗: {e} {url}")
+            _slog(f"  [WARN] {label}取得失敗: {e} {url}")
     return pd.DataFrame()
 
 
@@ -2630,6 +2638,7 @@ def run_defense_season(year, game_type: str) -> str:
         (poptime_df if not poptime_df.empty else pd.DataFrame(columns=poptime_df.columns)).to_excel(writer, sheet_name="CatcherPoptime", index=False)
         war_df.to_excel(writer, sheet_name="WAR", index=False)
         running_df.to_excel(writer, sheet_name="Running", index=False)
+        pd.DataFrame({"log": list(_SAVANT_LOG)}).to_excel(writer, sheet_name="FetchLog", index=False)
         for sname, sdf in extra.items():
             (sdf if not sdf.empty else pd.DataFrame({"empty": []})).to_excel(writer, sheet_name=sname, index=False)
     os.replace(tmp_path, out_path)
