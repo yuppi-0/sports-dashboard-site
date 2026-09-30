@@ -2478,6 +2478,33 @@ def fetch_bwar(year: int) -> pd.DataFrame:
         return pd.DataFrame(columns=cols)
 
 
+_BWAR_PITCH_DF = None
+
+
+def fetch_pitcher_bwar(year: int) -> pd.DataFrame:
+    """Baseball-Reference の bWAR（投手）。戻り値の列: name("last, first"小文字), player_id(MLBAM), war。
+    取得に失敗しても他の保存は止めない（WARNを出して空を返す）。"""
+    global _BWAR_PITCH_DF
+    cols = ["name", "player_id", "war"]
+    try:
+        if _BWAR_PITCH_DF is None:
+            from pybaseball import bwar_pitch
+            _BWAR_PITCH_DF = bwar_pitch(return_all=True)
+        d = _BWAR_PITCH_DF[_BWAR_PITCH_DF["year_ID"] == int(year)].copy()
+        d["WAR"] = pd.to_numeric(d["WAR"], errors="coerce")
+        d["mlb_ID"] = pd.to_numeric(d["mlb_ID"], errors="coerce")
+        d = d.dropna(subset=["mlb_ID", "WAR"])
+        g = d.groupby("mlb_ID", as_index=False)["WAR"].sum()   # 移籍した選手は所属ごとの行を合算
+        ids = [int(x) for x in g["mlb_ID"]]
+        names = resolve_names(ids, os.path.join(BASE_DATA_DIR, "_cache", "player_names.json"))
+        rows = [{"name": names[i], "player_id": i, "war": round(float(w), 2)} for i, w in zip(ids, g["WAR"]) if i in names]
+        print(f"  投手bWAR: {len(rows)}行")
+        return pd.DataFrame(rows, columns=cols)
+    except Exception as e:  # noqa: BLE001
+        print(f"  [WARN] 投手bWAR取得失敗（投手WARは表示されません）: {e}")
+        return pd.DataFrame(columns=cols)
+
+
 def fetch_running_stats(year: int) -> pd.DataFrame:
     """MLB StatsAPI から、その年の公式戦の盗塁(sb)・盗塁死(cs)を選手ごとに取得する。
     戻り値の列: name("last, first"小文字), player_id(MLBAM), sb, cs。
@@ -2626,6 +2653,7 @@ def run_defense_season(year, game_type: str) -> str:
     war_df = fetch_bwar(int(year))
     print(f"  盗塁・盗塁死(StatsAPI)取得: {year}年")
     running_df = fetch_running_stats(int(year))
+    pwar_df = fetch_pitcher_bwar(int(year))
     print(f"  守備・走塁の追加指標取得: {year}年")
     extra = fetch_extra_defense(int(year))
 
@@ -2640,6 +2668,7 @@ def run_defense_season(year, game_type: str) -> str:
         (poptime_df if not poptime_df.empty else pd.DataFrame(columns=poptime_df.columns)).to_excel(writer, sheet_name="CatcherPoptime", index=False)
         war_df.to_excel(writer, sheet_name="WAR", index=False)
         running_df.to_excel(writer, sheet_name="Running", index=False)
+        pwar_df.to_excel(writer, sheet_name="PitcherWAR", index=False)
         pd.DataFrame({"log": list(_SAVANT_LOG)}).to_excel(writer, sheet_name="FetchLog", index=False)
         for sname, sdf in extra.items():
             (sdf if not sdf.empty else pd.DataFrame({"empty": []})).to_excel(writer, sheet_name=sname, index=False)
@@ -4665,6 +4694,8 @@ def main():
                 out_path=path_llm_input,
                 # min_ipは指定しない（デフォルト0=全投手を出力）。絞り込みはClaude.aiへのプロンプト側で行う
                 numeric_json_dir=numeric_json_dir,
+                # 投手WAR（--steps defense のキャッシュの PitcherWAR シート）。無ければNoneでWARはnullのまま
+                mlb_defense_xlsx=(lambda p: p if os.path.exists(p) else None)(defense_cache_path(year, args.game_type)),
             )
             print(f"  完了: {path_llm_input}")
             print(f"  数値JSON: {numeric_json_dir}")
