@@ -1169,6 +1169,26 @@ def build_game_log_rows(name: str, appearances: list[dict], role_key: str, pitch
     return rows
 
 
+def load_pitcher_war(path: str | None) -> dict:
+    """run_mlb.py --steps defense が書く中間キャッシュxlsxの「PitcherWAR」シート（bWAR・投手）を読む。
+    戻り値: {小文字の"first last": war}。シートやファイルが無ければ空（WARはnullのまま）。"""
+    out: dict = {}
+    if not path or not os.path.isfile(path):
+        return out
+    try:
+        df = pd.read_excel(path, sheet_name="PitcherWAR")
+    except Exception as e:  # noqa: BLE001
+        print(f"  [WARN] 投手WAR(PitcherWAR)の読み込みに失敗（WARは表示されません）: {e}")
+        return out
+    for nm, war in zip(df.get("name", []), df.get("war", [])):
+        if not isinstance(nm, str) or pd.isna(war):
+            continue
+        last, _, first = nm.partition(",")
+        full = f"{first.strip()} {last.strip()}".strip().lower() if first else last.strip().lower()
+        out[full] = float(war)
+    return out
+
+
 def compute_rankings(season_rows: list[dict],
                       rank_min_ip: dict[str, float] | None = None) -> dict:
     """
@@ -1197,6 +1217,7 @@ def compute_rankings(season_rows: list[dict],
 
     specs = [
         ("防御率", "era", False),      # 低いほど良い
+        ("WAR", "war", True),          # 高いほど良い（MLBのみ。値が無い年度・NPBではrank=nullのまま）
         ("K-BB%", "k_bb_pct", True),   # 高いほど良い
         ("K%", "k_pct", True),         # 高いほど良い
         ("BB%", "bb_pct", False),      # 低いほど良い
@@ -1494,7 +1515,8 @@ def classify_pitcher_categories(card: dict) -> list:
 
 def export_llm_input_xlsx(games_json_dir: str, out_path: str, min_ip: float = 0.0,
                            target_names: list[str] | None = None,
-                           numeric_json_dir: str | None = None) -> str:
+                           numeric_json_dir: str | None = None,
+                           mlb_defense_xlsx: str | None = None) -> str:
     """
     numeric_json_dir を指定すると、xlsxに加えて選手ごとの数値データJSON
     （pitcher_cards_numeric/{選手ID}.json）と選手一覧 index.json も書き出す。
@@ -1503,6 +1525,7 @@ def export_llm_input_xlsx(games_json_dir: str, out_path: str, min_ip: float = 0.
     """
     all_data = load_daily_games(games_json_dir)
     names = set(target_names) if target_names else build_all_pitcher_names(all_data)
+    pitcher_war = load_pitcher_war(mlb_defense_xlsx)   # {小文字の"first last": WAR}（MLBのみ。無ければ空）
 
     print("  球種別カラースケール（パーセンタイル）を算出中...")
     pitch_scale_stats = build_pitch_color_scale_stats(all_data)
@@ -1535,6 +1558,7 @@ def export_llm_input_xlsx(games_json_dir: str, out_path: str, min_ip: float = 0.
             team = last_game.get(last_ap.get("side")) if isinstance(last_game, dict) else None
             season["所属チーム"] = team
 
+            season["WAR"] = pitcher_war.get(str(name).strip().lower())
             season_rows.append(season)
 
             season_mix_all = aggregate_season_mix(appearances, "mix")
@@ -1621,6 +1645,7 @@ def export_llm_input_xlsx(games_json_dir: str, out_path: str, min_ip: float = 0.
                     "games": season["登板数"],
                     "innings": season["投球回"],
                     "era": season["防御率"],
+                    "war": season.get("WAR"),
                     "k_bb_pct": season["K-BB%"],
                     "gb_pct": season["ゴロ率"],
                     "k": season["奪三振"],
@@ -1682,7 +1707,7 @@ def export_llm_input_xlsx(games_json_dir: str, out_path: str, min_ip: float = 0.
         hand_rows = []
         for row in season_rows:
             hr = {"選手名": row["選手名"], "役割": row.get("役割"), "投球回": row.get("投球回"),
-                  "防御率": None, "K-BB%": None, "K%": None, "BB%": None}
+                  "防御率": None, "WAR": None, "K-BB%": None, "K%": None, "BB%": None}
             for k in _HAND_TOTAL_KEYS:
                 hr[k] = row.get(f"{prefix}{k}")
             hand_rows.append(hr)
@@ -1690,7 +1715,7 @@ def export_llm_input_xlsx(games_json_dir: str, out_path: str, min_ip: float = 0.
         for name, d in rk_hand.items():
             # 防御率などの対右/対左は無いので、値のある指標だけ残す
             rankings_by_hand.setdefault(name, {})[hk] = {
-                k: v for k, v in d.items() if k not in ("era", "k_bb_pct", "k_pct", "bb_pct")
+                k: v for k, v in d.items() if k not in ("era", "war", "k_bb_pct", "k_pct", "bb_pct")
             }
 
     # 球種別詳細シート向け：全体/対右/対左の球種別順位を算出し、mix_rowsに列として付与
@@ -1728,6 +1753,7 @@ def export_llm_input_xlsx(games_json_dir: str, out_path: str, min_ip: float = 0.
                 # 選手一覧での並び替え用に主要指標もindex.jsonに含めておく
                 # （選手ごとのJSONを全件取得しなくても一覧画面でソートできるようにするため）
                 "era": card.get("era"),
+                "war": card.get("war"),
                 "k_bb_pct": card.get("kbb_pct_season"),
                 "k_pct": card.get("k_pct_season"),
                 "bb_pct": card.get("bb_pct_season"),
