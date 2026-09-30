@@ -2444,6 +2444,7 @@ def fetch_mlb_defense_season(year: int) -> tuple[pd.DataFrame, pd.DataFrame]:
 
 
 _BWAR_DF = None
+_BWAR_ALL = None
 _BWAR_LOCK = None
 
 
@@ -2513,7 +2514,7 @@ def fetch_running_stats(year: int) -> pd.DataFrame:
         return pd.DataFrame(columns=cols)
 
 
-def _savant_csv(label: str, urls: list[str]) -> pd.DataFrame:
+def _savant_csv(label: str, urls: list[str], year: int | None = None) -> pd.DataFrame:
     """Baseball Savant のリーダーボードCSVを取得する（URL候補を順に試し、最初にCSVが返ったものを使う）。
     列名はサイト側の仕様変更で変わりうるため、取得した列名をログに出す（xlsxにはそのまま保存し、
     export側で候補名から拾う）。取得できなければ空のDataFrameを返す（他の保存は止めない）。"""
@@ -2528,7 +2529,11 @@ def _savant_csv(label: str, urls: list[str]) -> pd.DataFrame:
             if df.empty:
                 print(f"  [WARN] {label}: 0行 {url}")
                 continue
-            print(f"  {label}: {len(df)}行 列={list(df.columns)}")
+            if year is not None and "start_year" in df.columns and not (pd.to_numeric(df["start_year"], errors="coerce") == year).any():
+                # 年の指定がサイト側で無視され、別の年（既定の最新年）が返ってきた場合は採用しない
+                print(f"  [WARN] {label}: 年が一致しません start_year={sorted(set(df['start_year'].dropna().astype(int)))[:3]} {url}")
+                continue
+            print(f"  {label}: {len(df)}行 列={list(df.columns)} ({url})")
             return df
         except Exception as e:  # noqa: BLE001
             print(f"  [WARN] {label}取得失敗: {e} {url}")
@@ -2546,8 +2551,12 @@ def fetch_extra_defense(year: int) -> dict:
         f"{B}/leaderboard/arm-strength?type=player&year={y}&minThrows=25&pos=&team=&csv=true",
         f"{B}/leaderboard/arm-strength?type=player&year={y}&minThrows=10&pos=&team=&csv=true"])
     out["ArmValue"] = _savant_csv("アームバリュー", [
-        f"{B}/leaderboard/arm-value?type=player&year={y}&minThrows=q&pitchHand=&pos=&team=&csv=true",
-        f"{B}/leaderboard/arm-value?type=fielder&year={y}&minThrows=1&pitchHand=&pos=&team=&csv=true"])
+        f"{B}/leaderboard/arm-value?type=player&year={y}&min=q&csv=true",
+        f"{B}/leaderboard/arm_value?type=player&year={y}&min=q&csv=true",
+        f"{B}/leaderboard/outfield-arm-value?type=player&year={y}&min=q&csv=true",
+        f"{B}/leaderboard/outfield_arm?type=player&year={y}&min=q&csv=true",
+        f"{B}/leaderboard/fielding-run-value?type=player&year={y}&min=q&csv=true",
+        f"{B}/leaderboard/fielding-run-value?year={y}&csv=true"], year=y)
     try:
         oj = statcast_outfielder_jump(y)
         print(f"  外野ジャンプ: {len(oj)}行 列={list(oj.columns)}")
@@ -2555,16 +2564,11 @@ def fetch_extra_defense(year: int) -> dict:
         print(f"  [WARN] 外野ジャンプ取得失敗: {e}")
         oj = pd.DataFrame()
     out["OFJump"] = oj
-    out["CatcherBlocking"] = _savant_csv("捕手ブロッキング", [
-        f"{B}/leaderboard/catcher-blocking?type=catcher&seasonStart={y}&seasonEnd={y}&team=&min=q&csv=true",
-        f"{B}/leaderboard/catcher-blocking?type=catcher&year={y}&team=&min=1&csv=true"])
-    out["BaseRunRV"] = _savant_csv("走塁得点(Baserunning Run Value)", [
-        f"{B}/leaderboard/baserunning-run-value?game_type=Regular&n=q&pos=&team=&type=Runner&year={y}&csv=true",
-        f"{B}/leaderboard/baserunning-run-value?game_type=Regular&n=1&pos=&team=&type=Runner&year={y}&csv=true"])
-    out["XBT"] = _savant_csv("追加進塁(XBT)", [
-        f"{B}/leaderboard/baserunning?game_type=Regular&n=q&pos=&team=&type=Runner&year={y}&csv=true",
-        f"{B}/leaderboard/extra-bases-taken?type=Runner&year={y}&n=q&csv=true",
-        f"{B}/leaderboard/running_splits?type=xbt&year={y}&csv=true"])
+    yrs = [f"seasonStart={y}&seasonEnd={y}", f"startYear={y}&endYear={y}", f"year={y}", f"start_year={y}&end_year={y}"]
+    out["CatcherBlocking"] = _savant_csv("捕手ブロッキング",
+        [f"{B}/leaderboard/catcher-blocking?type=catcher&{q}&team=&min=q&csv=true" for q in yrs], year=y)
+    out["BaseRunRV"] = _savant_csv("走塁得点(Baserunning Run Value)",
+        [f"{B}/leaderboard/baserunning-run-value?game_type=Regular&n=q&pos=&team=&type=Runner&{q}&csv=true" for q in yrs], year=y)
     try:
         rs = statcast_running_splits(y, min_opp=1, raw_splits=True)
         print(f"  ランニングスプリット(一塁到達): {len(rs)}行 列={list(rs.columns)}")
@@ -2574,8 +2578,11 @@ def fetch_extra_defense(year: int) -> dict:
     out["RunningSplits"] = rs
     # Baseball-Reference の走塁得点（Rbaser）。FanGraphsのBsRに近い走塁の総合指標
     try:
-        fetch_bwar(y)   # _BWAR_DF を用意（失敗しても下で握りつぶす）
-        d = _BWAR_DF[(_BWAR_DF["year_ID"] == y) & (_BWAR_DF["pitcher"].astype(str).str.upper() != "Y")].copy()
+        global _BWAR_ALL
+        if _BWAR_ALL is None:   # 走塁得点(runs_br)などは return_all=True でしか付かない
+            from pybaseball import bwar_bat
+            _BWAR_ALL = bwar_bat(return_all=True)
+        d = _BWAR_ALL[(_BWAR_ALL["year_ID"] == y) & (_BWAR_ALL["pitcher"].astype(str).str.upper() != "Y")].copy()
         d["mlb_ID"] = pd.to_numeric(d["mlb_ID"], errors="coerce")
         d["runs_br"] = pd.to_numeric(d["runs_br"], errors="coerce")
         d = d.dropna(subset=["mlb_ID", "runs_br"])
