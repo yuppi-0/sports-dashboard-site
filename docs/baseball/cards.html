@@ -101,16 +101,16 @@
      1行目：投手/打者（画面幅いっぱいの大きな切替＝主操作。見出しの代わりになるのでh1は隠す）
      2行目：プロ野球/MLB（小さめ）と「選手を変更」　　3行目：戻るボタン（対戦打者などから移動したときだけ） */
   @media (max-width:720px), (orientation: landscape) and (max-height: 500px){
-    .app > header{ padding:8px 14px 10px; gap:0; }
+    .app > header{ padding:6px 12px 8px; gap:0; }
     .app > header h1{ display:none; }
-    .app > header .header-controls{ width:100%; display:grid; grid-template-columns:auto auto 1fr; gap:8px 10px; align-items:center; }
-    .app > header .mode-switch{ order:1; grid-column:1 / -1; margin:0; display:grid; grid-template-columns:1fr 1fr; gap:3px; padding:3px; border-radius:10px; }
-    .app > header .mode-switch button{ padding:8px 0; font-size:14px; border-radius:8px; }
-    .app > header .league-toggle{ order:2; gap:2px; padding:2px; justify-self:start; }
-    .app > header .league-toggle button{ padding:6px 12px; font-size:12px; }
-    .app > header .year-select{ order:3; justify-self:start; padding:6px 8px; }
-    .app > header .header-change-player-btn{ order:4; justify-self:end; }
-    .app > header .nav-back-btn{ order:5; grid-column:1 / -1; }
+    .app > header .header-controls{ width:100%; display:flex; flex-wrap:wrap; gap:6px; align-items:center; }
+    .app > header .mode-switch{ order:1; margin:0; display:flex; gap:2px; padding:2px; border-radius:9px; }
+    .app > header .mode-switch button{ padding:6px 12px; font-size:13px; border-radius:7px; }
+    .app > header .league-toggle{ order:2; gap:2px; padding:2px; }
+    .app > header .league-toggle button{ padding:5px 9px; font-size:12px; }
+    .app > header .year-select{ order:3; padding:6px 8px; }
+    .app > header .header-change-player-btn{ order:4; margin-left:auto; padding:6px 11px !important; font-size:11.5px !important; }
+    .app > header .nav-back-btn{ order:5; flex:1 0 100%; }
     .app .sidebar-summary{ display:none !important; }   /* 旧：打者側の浮きボタン置き場。ヘッダー内のボタンに統一 */
     body.has-selection .header-change-player-btn,
     .app:has(.body-layout.has-selection) .header-change-player-btn{ display:inline-flex; }
@@ -259,6 +259,28 @@
   .pmix-val.t-top15{ color:#5EEAD4; font-weight:800; } .pmix-val.t-top30{ color:#7FD8CD; } .pmix-val.t-top40{ color:#A9DAD5; }
   .pmix-val.t-bot60{ color:#E9B8C4; } .pmix-val.t-bot70{ color:#F59AB1; } .pmix-val.t-bot85{ color:#FFA6BD; font-weight:800; }
   .pmix-table.ss-table td.ss-name-cell{ font-weight:400; font-size:11.5px; color:var(--text); line-height:1.35; }
+
+  /* 年度フィルタ：スマホでは「2026年 ▾」の1ボタンに畳み、タップで年度チップを開く */
+  .ychip-toggle{ display:none; }
+  @media (max-width:720px), (orientation: landscape) and (max-height: 500px){
+    .year-chips{ gap:5px; }
+    .ychip-toggle{ display:inline-flex; align-items:center; gap:4px; border:1px solid rgba(148,163,184,0.28); background:var(--panel-alt);
+      color:var(--text-bright); padding:4px 10px; border-radius:7px; font-size:12px; font-weight:700; cursor:pointer; white-space:nowrap; }
+    .year-chips:not(.open) .ychip{ display:none; }
+    .year-chips.open{ flex-basis:100%; }
+    .ychip{ padding:4px 8px; font-size:11.5px; }
+    /* 表の固定列・余白を詰める（スマホ） */
+    .split-table td.kst-group-cell, .split-table th.kst-group-cell{ width:54px !important; min-width:0 !important; padding:4px 3px !important; font-size:10px !important; }
+    .split-table td.kst-key-cell, .split-table th.kst-key-cell{ padding:4px 5px !important; font-size:12px !important; }
+    .kst-table th, .kst-table td{ padding:4px 6px !important; }
+    .split-table.kst-table:has(.def-year){ width:max-content; min-width:0; }
+    .kst-table .def-year{ width:64px; min-width:64px; max-width:64px; }
+    .kst-table .def-pos{ width:42px; min-width:42px; max-width:42px; }
+    .pmix-table.ss-table{ min-width:0 !important; }
+    .pmix-table.ss-table td.ss-year, .pmix-table.ss-table th.ss-year{ width:70px; min-width:70px; max-width:70px; padding:6px 4px; }
+    .pmix-table.ss-table th, .pmix-table.ss-table td{ padding:6px 6px; }
+    .pmix-table.ss-table td.ss-name-cell, .pmix-table.ss-table th.ss-name-cell{ position:static !important; left:auto !important; }
+  }
   td.rs-hl{ background-image:linear-gradient(rgba(255,255,255,0.09), rgba(255,255,255,0.09)) !important; }
   .ctitle, .hm-canvas-title{ min-height:12px; line-height:12px !important; margin-bottom:5px !important; }
 </style>
@@ -1674,6 +1696,7 @@ if(document.fonts && document.fonts.ready){
 //  ・「比較」をオンにすると、年度のチップが複数選択（✓付き）になり、タップで追加/解除して年度比較できる。
 //    オンにした時点で、最新の他の年度を1つ自動で加える。もう一度押すと単年に戻る（選択中の最新年度）。
 let yearCompareOn = false;
+let yearChipsOpen = false;   // スマホ：年度チップの展開状態
 function yrOf(label){ const m = /(\d{4})/.exec(String(label == null ? "" : label)); return m ? m[1] : null; }
 // 「Last, First」→「First Last」（対戦相手の選手名表記を、選手カードと同じ並びにそろえる）。
 function flipName(n){
@@ -1688,7 +1711,9 @@ function yrDot(label){ const y = yrOf(label); return y ? `<span class="yr-dot" d
 function yearMselHtml(years, selected){
   const sel = years.filter(y => selected.includes(y));
   const on = yearCompareOn || sel.length > 1;
-  return `<div class="year-chips" role="group" aria-label="年度">
+  const label = sel.length > 1 ? `${on ? "比較 " : ""}${sel.map(y => y.slice(2)).join("・")}年` : `${sel[0] || years[0]}年`;
+  return `<div class="year-chips${yearChipsOpen ? " open" : ""}" role="group" aria-label="年度">
+    <button type="button" class="ychip-toggle" aria-label="年度を選ぶ">${escapeHtml(label)} ▾</button>
     ${years.map(y => `<button type="button" class="ychip${sel.includes(y) ? " active" : ""}" data-y="${escapeHtml(y)}">${on && sel.includes(y) ? "✓ " : ""}<span class="yr-dot" data-yrc="${escapeHtml(y)}"></span>${escapeHtml(y)}年</button>`).join("")}
     <button type="button" class="ychip ychip-cmp${on ? " active" : ""}" data-cmp="1" title="年度を複数選んで比較します">比較</button>
   </div>`;
@@ -1701,7 +1726,7 @@ function wireYearMsel(scope, years, onChange){
       const y = btn.dataset.y, c = cur();
       const on = yearCompareOn || c.length > 1;
       let sel;
-      if(!on) sel = [y];
+      if(!on){ sel = [y]; yearChipsOpen = false; }
       else{
         sel = c.includes(y) ? c.filter(v => v !== y) : [...c, y];
         if(!sel.length) sel = [y];               // 最後の1つは外せない
@@ -1709,6 +1734,8 @@ function wireYearMsel(scope, years, onChange){
       onChange(desc(sel));
     });
   });
+  const tog = scope.querySelector(".year-chips .ychip-toggle");
+  if(tog) tog.addEventListener("click", () => { yearChipsOpen = !yearChipsOpen; tog.closest(".year-chips").classList.toggle("open", yearChipsOpen); });
   const cmp = scope.querySelector(".year-chips .ychip-cmp");
   if(cmp) cmp.addEventListener("click", () => {
     const c = desc(cur()), on = yearCompareOn || c.length > 1;
@@ -6805,8 +6832,8 @@ function renderDefenseSection(seasonsMap, ys){
   const yTd = (y, span) => `<td rowspan="${span}" class="kst-year-cell def-year"${yrAttr(y)} style="background:var(--panel)">${yrDot(y)}${escapeHtml(y)}年</td>`;
   const fieldHtml = yearRows.length ? `
     <div class="fctrl-group-title" style="margin-top:0">守備</div>
-    <div class="table-scroll"><table class="split-table kst-table"><thead><tr><th class="kst-year-cell def-year">年度</th><th class="def-year">ポジション</th>${usedCols.map(c => `<th>${c.label}</th>`).join("")}</tr></thead><tbody>
-      ${yearRows.map(({ Y, rows }) => rows.map((r, i) => `<tr>${i === 0 ? yTd(Y.y, rows.length) : ""}<td class="def-year" style="text-align:center">${r.catcher ? "捕" : r.o ? escapeHtml(r.o.pos) : "-"}</td>${usedCols.map(c =>
+    <div class="table-scroll"><table class="split-table kst-table"><thead><tr><th class="kst-year-cell def-year">年度</th><th class="def-year def-pos">ポジション</th>${usedCols.map(c => `<th>${c.label}</th>`).join("")}</tr></thead><tbody>
+      ${yearRows.map(({ Y, rows }) => rows.map((r, i) => `<tr>${i === 0 ? yTd(Y.y, rows.length) : ""}<td class="def-year def-pos" style="text-align:center">${r.catcher ? "捕" : r.o ? escapeHtml(r.o.pos) : "-"}</td>${usedCols.map(c =>
         c.kind === "year" ? (i === 0 ? (() => { const v = c.get(Y); return v ? rankedTd(v.t, rk(v.r)).replace("<td", `<td rowspan="${rows.length}"`) : `<td rowspan="${rows.length}">-</td>`; })() : "") : cell(c.get(r, Y))
       ).join("")}</tr>`).join("")).join("")}
     </tbody></table></div>`
