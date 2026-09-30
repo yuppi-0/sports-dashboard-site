@@ -6764,7 +6764,6 @@ function renderDefenseSection(seasonsMap, ys){
 
   const runCols = [
     { label: "盗塁", get: (Y) => Y.ov.sb != null ? { t: String(Y.ov.sb), r: (Y.se.splitRankings && Y.se.splitRankings.all30 && Y.se.splitRankings.all30.all || {}).sb } : null },
-    { label: "盗塁成功率", get: (Y) => Y.df.sb_success_pct != null ? { t: num(Y.df.sb_success_pct, 1) + "%" } : null },
     { label: "スプリントスピード", get: (Y) => Y.df.sprint_speed != null ? { t: num(Y.df.sprint_speed, 1) + " ft/s", r: Y.df.sprint_rank } : null },
     { label: "走塁得点(BsR相当)", get: (Y) => Y.df.baserunning && Y.df.baserunning.rbaser != null ? { t: num(Y.df.baserunning.rbaser, 1, true), r: mr(Y.df, "rbaser") } : null },
     { label: "追加進塁(XBT)得点", get: (Y) => Y.df.baserunning && Y.df.baserunning.xb_runs != null ? { t: num(Y.df.baserunning.xb_runs, 1, true), r: mr(Y.df, "xb_runs") } : null },
