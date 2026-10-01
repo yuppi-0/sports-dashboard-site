@@ -36,7 +36,9 @@
   .player-item:hover{ background:var(--panel); }
   .player-item.active{ background:var(--panel-alt); }
   .player-item .name{ font-size:13px; font-weight:700; color:var(--text-bright); }
-  .player-item .meta .metric{ color:var(--text-dim); }
+  .player-item .meta{ display:flex; align-items:baseline; gap:6px; }
+  .player-item .meta > span:first-child{ flex:0 0 92px; white-space:nowrap; }
+  .player-item .meta .metric{ color:var(--text-dim); white-space:nowrap; }
   .player-item .meta .metric b{ color:var(--text); font-weight:700; }
   .empty-list{ padding:20px 14px; font-size:12px; color:var(--text-dim); }
   main{ flex:1; overflow-y:scroll; padding:20px; display:flex; justify-content:center; min-width:0; }
@@ -185,8 +187,8 @@
   .stat-box .rank{ line-height:1.2; min-height:12px; white-space:nowrap; }
   /* 表の行にカーソルを当てたとき、固定列（一番左の指標名など）まで含めて行全体をハイライトする。
      背景色を持つセル（固定列・カラースケール）の上にも重なるよう、背景画像のグラデーションで淡い白を重ねる。
-     カウント区分のセル（.kst-group-cell）だけは対象外。 */
-  .split-table tbody tr:hover > td:not(.kst-group-cell), .pmix-table tbody tr:hover > td,
+     カウント区分のセル（.kst-group-cell）は、そのグループの先頭行にカーソルを当てた時に一緒に光る。 */
+  .split-table tbody tr:hover > td, .pmix-table tbody tr:hover > td,
   .gamelog-table tbody tr:hover > td, .vsb-table tbody tr:hover > td{
     background-image:linear-gradient(rgba(255,255,255,0.09), rgba(255,255,255,0.09)) !important; }
   /* コース分布・コース別：対右と対左のまとまりの間は横線で区切る（比較表示）。単年表示では区切り線なし */
@@ -260,6 +262,13 @@
   /* 年度列の幅は全表で68px（PC・スマホ共通） */
   .kst-table .def-year{ width:68px; min-width:68px; max-width:68px; box-sizing:border-box; padding-left:4px !important; padding-right:4px !important; }
   .kst-table .def-pos{ width:56px; min-width:56px; max-width:56px; box-sizing:border-box; }
+  /* シーズン成績表：列幅は内容に合わせて自動（順位表記「◯位 / ◯人中」が切れないよう各指標列に最小幅を持たせる） */
+  .pmix-table.ss-table{ table-layout:auto; }
+  .pmix-table.ss-table th:not(.ss-year):not(.ss-name-cell), .pmix-table.ss-table td:not(.ss-year):not(.ss-name-cell){ min-width:78px; }
+  /* 横スクロールはできるまま、スクロールバーの表示だけ消す */
+  .table-scroll, .vsb-scroll, .pmix-scroll, .gamelog-scroll, .pcompare-scroll, .pt-scroll, .cz-grid-wrap{ scrollbar-width:none; -ms-overflow-style:none; }
+  .table-scroll::-webkit-scrollbar, .vsb-scroll::-webkit-scrollbar, .pmix-scroll::-webkit-scrollbar, .gamelog-scroll::-webkit-scrollbar,
+  .pcompare-scroll::-webkit-scrollbar, .pt-scroll::-webkit-scrollbar, .cz-grid-wrap::-webkit-scrollbar{ display:none; height:0; }
   .pmix-table.ss-table td.ss-year, .pmix-table.ss-table th.ss-year{ width:68px; min-width:68px; max-width:68px; padding:6px 4px; box-sizing:border-box; }
 
   /* 球種別成績などpmix表：数値の書体・サイズ・順位色を打者の表に合わせる */
@@ -2153,7 +2162,7 @@ function renderPlayerList(players){
   playerListEl.innerHTML = players.map(p => {
     const metricVal = p[sortField];
     const metricHtml = showMetric
-      ? `<span class="metric">${escapeHtml(metricLabel)}: <b>${metricVal != null ? metricVal : "—"}${metricVal != null && sortField !== "era" && sortField !== "war" && sortField !== "innings_num" ? "%" : ""}</b></span>`
+      ? `<span class="metric">${escapeHtml(metricLabel)}: <b>${metricVal != null ? (sortField === "war" ? Number(metricVal).toFixed(1) : metricVal) : "—"}${metricVal != null && sortField !== "era" && sortField !== "war" && sortField !== "innings_num" ? "%" : ""}</b></span>`
       : "";
     return `
     <div class="player-item ${p.id === activePlayerId ? 'active' : ''}" data-id="${escapeHtml(p.id)}" data-name="${escapeHtml(p.name)}">
@@ -4391,7 +4400,7 @@ function buildGameLogTable(d){
         const r = rkAll[RK_KEY[c.key]];
         const rr = r && r.rank != null ? r : null, tier = rr ? tierFromRank(rr) : null;
         const bg = tier ? (TIER_COLOR[tier] || "") : "", tc = tier ? ` t-${tier}` : "";
-        const txt = v != null ? v + "%" : "-";
+        const txt = v != null ? Number(v).toFixed(1) + "%" : "-";
         return `<td${bg ? ` style="background:${bg}"` : ""}>${rr ? `<div class="rk-val${tc}">${txt}</div><div class="rk-sub${tc}">${rr.rank}位 / ${rr.total}人中</div>` : txt}</td>`;
       }).join("")}
     </tr>
