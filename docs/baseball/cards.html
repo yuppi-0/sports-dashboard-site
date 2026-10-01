@@ -36,8 +36,8 @@
   .player-item:hover{ background:var(--panel); }
   .player-item.active{ background:var(--panel-alt); }
   .player-item .name{ font-size:13px; font-weight:700; color:var(--text-bright); }
-  .player-item .meta{ display:flex; align-items:baseline; gap:6px; }
-  .player-item .meta > span:first-child{ flex:0 0 92px; white-space:nowrap; }
+  .player-item .meta{ display:flex; align-items:baseline; gap:6px; flex-wrap:nowrap; justify-content:flex-start; }
+  .player-item .meta > span:first-child{ flex:0 0 76px; white-space:nowrap; }
   .player-item .meta .metric{ color:var(--text-dim); white-space:nowrap; }
   .player-item .meta .metric b{ color:var(--text); font-weight:700; }
   .empty-list{ padding:20px 14px; font-size:12px; color:var(--text-dim); }
@@ -261,9 +261,14 @@
   .ss-table th.ss-year, .ss-table th.ss-name-cell{ text-align:left; }
   /* 年度列の幅は全表で68px（PC・スマホ共通） */
   .kst-table .def-year{ width:68px; min-width:68px; max-width:68px; box-sizing:border-box; padding-left:4px !important; padding-right:4px !important; }
+  .split-table.kst-table:has(.def-year){ width:max-content; min-width:0; }
+  .kst-table:has(.def-year) th:not(.def-year), .kst-table:has(.def-year) td:not(.def-year){ min-width:88px; }
   .kst-table .def-pos{ width:56px; min-width:56px; max-width:56px; box-sizing:border-box; }
   /* シーズン成績表：列幅は内容に合わせて自動（順位表記「◯位 / ◯人中」が切れないよう各指標列に最小幅を持たせる） */
   .pmix-table.ss-table{ table-layout:auto; }
+  /* 共通の列固定（1〜2列目をsticky・幅固定）はこの表には不要。年度・結果が重なって指標列が欠けるため無効化する */
+  .pmix-table.ss-table th, .pmix-table.ss-table td{ position:static !important; left:auto !important; width:auto; z-index:auto !important; box-shadow:none !important; }
+  .pmix-table.ss-table td.ss-name-cell, .pmix-table.ss-table th.ss-name-cell{ min-width:150px; }
   .pmix-table.ss-table th:not(.ss-year):not(.ss-name-cell), .pmix-table.ss-table td:not(.ss-year):not(.ss-name-cell){ min-width:78px; }
   /* 横スクロールはできるまま、スクロールバーの表示だけ消す */
   .table-scroll, .vsb-scroll, .pmix-scroll, .gamelog-scroll, .pcompare-scroll, .pt-scroll, .cz-grid-wrap{ scrollbar-width:none; -ms-overflow-style:none; }
@@ -4406,7 +4411,7 @@ function buildGameLogTable(d){
     </tr>
   `;};
   const seasonTabHtml = `
-    <div class="pmix-scroll"><table class="pmix-table pmix-cmp ss-table" style="width:max-content;min-width:100%">
+    <div class="pmix-scroll"><table class="pmix-table pmix-cmp ss-table" style="width:max-content">
       <thead><tr><th class="ss-year">年度</th><th class="ss-name-cell">結果</th>${hasWar ? "<th>WAR</th>" : ""}${ssCols.map(c => `<th>${c.label}</th>`).join("")}</tr></thead>
       <tbody>${seasonEntries.map(seasonRowHtml).join("")}</tbody>
     </table></div>
@@ -5173,8 +5178,7 @@ function renderPlayerList(){
     <div class="player-item${p.id === activePlayerId ? " active" : ""}" data-id="${escapeHtml(p.id)}" data-name="${escapeHtml(p.name)}">
       <div class="name">${escapeHtml(p.name)}${p.is2GunOnly ? '<span class="farm-only-badge">2軍</span>' : ""}</div>
       <div class="meta">
-        <span>${escapeHtml(p.team || "-")}</span>
-        <span>${escapeHtml(stripParens(p.pos) || "-")}</span>
+        <span>${escapeHtml(p.team || "-")} ・ ${escapeHtml(stripParens(p.pos) || "-")}</span>
         <span class="metric">${escapeHtml(metric.label)} <b>${metric.fmt(p)}</b></span>
       </div>
     </div>`).join("");
@@ -6310,14 +6314,15 @@ function pvLabelFor(dim, v){ return dim === "hand" ? pvHandLabel(v) : v; }
 
 // シーズン全体（全年度）からユニークな球種詳細/球種カテゴリの一覧を作る
 function pvCollectPitchValues(seasonsMap, years){
-  const details = new Set(), mids = new Set();
+  const details = new Set(), mids = new Set(), detailMid = {};
   years.forEach(y => {
     (seasonsMap[y]?.byPitchType?.all || []).forEach(pt => {
       details.add(pt.pitchType);
       mids.add(pt.pitchCategoryMid || "その他");
+      if(!(pt.pitchType in detailMid)) detailMid[pt.pitchType] = pt.pitchCategoryMid || "その他";
     });
   });
-  return { details: [...details], mids: [...mids] };
+  return { details: [...details], mids: [...mids], detailMid };
 }
 
 function pvAxisValues(dim, years, pitchVals){
@@ -6604,7 +6609,18 @@ function buildPivotRows3(seasonsMap, years, activeAxes, filters, rankPool, popul
     first.forEach(v => restCombos.forEach(c => out.push([v, ...c])));
     return out;
   }
-  const combos = cartesian(axisValueLists);
+  // 球種カテゴリと球種詳細を同時に使う場合、詳細が属するカテゴリ以外の組み合わせは出さない
+  // （例：「ストレート系」×「スライダー」のような存在しない組み合わせ）。
+  const di = activeAxes.indexOf("detail"), mi = activeAxes.indexOf("mid");
+  const midFilter = pvSelKind(filters.mid);
+  const combos = cartesian(axisValueLists).filter(c => {
+    if(di < 0) return true;
+    const dm = pitchVals.detailMid[c[di]];
+    if(mi >= 0 && dm !== c[mi]) return false;
+    if(mi < 0 && midFilter.mode === "one" && dm !== midFilter.value) return false;
+    if(mi < 0 && midFilter.mode === "many" && !midFilter.value.includes(dm)) return false;
+    return true;
+  });
 
   return combos.map(combo => {
     const pf = { year: filters.year, hand: filters.hand, mid: filters.mid, detail: filters.detail, band: filters.band };
