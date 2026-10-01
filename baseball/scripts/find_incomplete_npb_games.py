@@ -133,11 +133,58 @@ def scan_date(raw_dir: Path, date: str) -> list[dict]:
     return out
 
 
+def diagnose(r: dict, base: str) -> None:
+    """問題のある1試合について、なぜそうなったかの手掛かり（重複行・投手別の差・最後の打席など）を出す。"""
+    lv_dir = Path(base) / f"{r['year']}年" / r["level"]
+    raw = next(iter(sorted(lv_dir.glob(f"*/raw/{r['date']}"))), None)
+    if raw is None:
+        print("   (raw無し)")
+        return
+    gid = int(r["gid"])
+    pitch_path = raw / f"daily_pitch_data_{r['date']}.xlsx"
+    df = _read(pitch_path, sheet=0) if pitch_path.exists() else None
+    ag = _read(raw / f"all_games_{r['date']}.xlsx") or {}
+    if df is None:
+        print("   投球データ無し")
+        return
+    q = df[df["試合ID"] == gid].reset_index(drop=True)
+    pit = ag.get("投手成績", pd.DataFrame())
+    pit = pit[pit["試合ID"] == gid] if len(pit) else pit
+    keys = [c for c in ["イニング", "表/裏", "打者名", "打席内球数", "通算投球数", "球種", "球速", "1球結果"] if c in q.columns]
+    dups = int(q.duplicated(subset=keys).sum())
+    print(f"   投球行{len(q)} / 完全重複行{dups}")
+    name_col = next((c for c in pit.columns if c in ("投手", "選手", "選手名", "名前")), None)
+    if name_col and "投手名" in q.columns:
+        by = q.groupby("投手名").size()
+        for _, pr in pit.iterrows():
+            nm = str(pr[name_col]).replace(" ", "").replace("\u3000", "")
+            cnt = next((int(v) for k, v in by.items() if str(k).replace(" ", "").replace("\u3000", "") == nm), 0)
+            st = int(pd.to_numeric(pr["投球数"], errors="coerce") or 0)
+            if abs(cnt - st) > 0:
+                print(f"   投手 {pr[name_col]}: データ{cnt}球 / 成績{st}球 (差{cnt - st:+d})")
+    else:
+        print(f"   [投手成績の列] {list(pit.columns)[:12]}")
+    if len(q):
+        last = q.iloc[-1]
+        print(f"   最後の投球: {last['イニング']}{last['表/裏']} 打者={last.get('打者名')} 球数={last.get('通算投球数')} 結果={last.get('1球結果')} / 打席結果={last.get('打席完了結果')}")
+    # 打席内球数の巻き戻り（同じ打席のページを二重に取ったときに出る）
+    seq = pd.to_numeric(q["通算投球数"], errors="coerce") if "通算投球数" in q.columns else None
+    if seq is not None:
+        back = int((seq.diff() < 0).sum())
+        print(f"   通算投球数が巻き戻る箇所: {back}")
+    sp = ag.get("スコアプレー詳細", pd.DataFrame())
+    sp = sp[sp["試合ID"] == gid] if len(sp) else sp
+    sb = ag.get("スコアボード", pd.DataFrame())
+    sb = sb[sb["試合ID"] == gid] if len(sb) else sb
+    print(f"   スコアボード行{len(sb)} / スコアプレー行{len(sp)}")
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--year", default="2026")
     ap.add_argument("--base", default=str(BASE_DATA_DIR), help="RAWのあるベースフォルダ（既定: data/baseball/プロ野球）")
     ap.add_argument("--schedule", action="store_true", help="Yahoo!の日程ページと突き合わせ、RAWに無い試合も探す")
+    ap.add_argument("--diagnose", action="store_true", help="問題のある試合について原因の手掛かりを出す")
     ap.add_argument("--out", default="", help="結果をJSONで保存するパス")
     args = ap.parse_args()
 
@@ -182,6 +229,18 @@ def main() -> None:
     print(f"\n=== 問題のある試合: {len(bad)}件 ===")
     for r in bad:
         print(f"{r['level']} {r['date']} {r.get('gid')} {r.get('home','')}-{r.get('away','')} :: {' / '.join(r['problems'])}")
+
+    if args.diagnose:
+        print("\n=== 原因の手掛かり ===")
+        for r in bad:
+            if not r.get("gid") or r.get("cancelled"):
+                continue
+            r["year"] = args.year
+            print(f"{r['level']} {r['date']} {r['gid']} :: {' / '.join(r['problems'])}")
+            try:
+                diagnose(r, args.base)
+            except Exception as e:  # noqa: BLE001
+                print(f"   [diagnose失敗] {e}")
 
     need = sorted({(r["level"], r["date"]) for r in bad})
     print(f"\n=== 再取得が必要な 日付×リーグ: {len(need)}件 ===")

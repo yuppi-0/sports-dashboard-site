@@ -14,6 +14,10 @@ on:
         description: '日程ページ(Yahoo!)との突き合わせも行う（true/false）'
         required: false
         default: 'true'
+      diagnose:
+        description: '問題のある試合の原因の手掛かりも出す（true/false）'
+        required: false
+        default: 'false'
 
 permissions:
   contents: read
@@ -42,6 +46,7 @@ jobs:
         run: |
           EXTRA=""
           if [ "${{ inputs.schedule }}" = "true" ]; then EXTRA="--schedule"; fi
+          if [ "${{ inputs.diagnose }}" = "true" ]; then EXTRA="$EXTRA --diagnose"; fi
           python baseball/scripts/find_incomplete_npb_games.py --year "${{ inputs.year }}" $EXTRA --out npb_incomplete.json 2>&1 | grep -v "^\[20" | tee npb_incomplete.log | tail -n 150
           { echo '### NPB 未完了・取得ミスの試合'; echo; echo '```'; sed -n '/=== 問題のある試合/,$p' npb_incomplete.log | head -c 60000; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
 
