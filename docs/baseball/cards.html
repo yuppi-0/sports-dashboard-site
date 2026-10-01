@@ -36,8 +36,8 @@
   .player-item:hover{ background:var(--panel); }
   .player-item.active{ background:var(--panel-alt); }
   .player-item .name{ font-size:13px; font-weight:700; color:var(--text-bright); }
-  .player-item .meta{ display:flex; align-items:baseline; gap:6px; flex-wrap:nowrap; justify-content:flex-start; }
-  .player-item .meta > span:first-child{ flex:0 0 76px; white-space:nowrap; }
+  .player-item .meta{ display:flex; align-items:baseline; gap:4px; flex-wrap:nowrap; justify-content:flex-start; }
+  .player-item .meta > span:first-child{ flex:0 0 auto; min-width:62px; white-space:nowrap; }
   .player-item .meta .metric{ color:var(--text-dim); white-space:nowrap; }
   .player-item .meta .metric b{ color:var(--text); font-weight:700; }
   .empty-list{ padding:20px 14px; font-size:12px; color:var(--text-dim); }
@@ -269,6 +269,9 @@
   /* 共通の列固定（1〜2列目をsticky・幅固定）はこの表には不要。年度・結果が重なって指標列が欠けるため無効化する */
   .pmix-table.ss-table th, .pmix-table.ss-table td{ position:static !important; left:auto !important; width:auto; z-index:auto !important; box-shadow:none !important; }
   .pmix-table.ss-table td.ss-name-cell, .pmix-table.ss-table th.ss-name-cell{ min-width:150px; }
+  /* 年度列だけは横スクロール時も左端に固定する */
+  .pmix-table.ss-table td.ss-year, .pmix-table.ss-table th.ss-year{ position:sticky !important; left:0 !important; z-index:3 !important; background:var(--panel); box-shadow:1px 0 0 rgba(148,163,184,0.15) !important; }
+  .pmix-table.ss-table th.ss-year{ background:var(--panel-alt); }
   .pmix-table.ss-table th:not(.ss-year):not(.ss-name-cell), .pmix-table.ss-table td:not(.ss-year):not(.ss-name-cell){ min-width:78px; }
   /* 横スクロールはできるまま、スクロールバーの表示だけ消す */
   .table-scroll, .vsb-scroll, .pmix-scroll, .gamelog-scroll, .pcompare-scroll, .pt-scroll, .cz-grid-wrap{ scrollbar-width:none; -ms-overflow-style:none; }
@@ -1948,7 +1951,7 @@ function mountPitcher(){
 // 年やリーグのフォルダ構成が変わったらここだけ直せばよい
 const LEAGUE_PATHS = SHARED_PATHS.pitcher;
 
-let currentLeague = "npb";
+let currentLeague = window.__cardsStartLeague || "npb";
 let allPlayers = [];      // 現在サイドバーに出している一覧（1軍 or 2軍）
 let firstPlayers = [];    // 1軍index.jsonの選手一覧（ライブ順位の母集団）
 let farmPlayers = [];     // 2軍index.jsonの選手一覧（idは "farm:" 付き）
@@ -4793,7 +4796,7 @@ function mountBatter(){
 // export_llm_input_batter.py --numeric-json-dir で書き出す先と一致させる。
 const LEAGUE_PATHS = SHARED_PATHS.batter;
 
-let currentLeague = "npb";
+let currentLeague = window.__cardsStartLeague || "npb";
 let currentFarmLevel = "ichi";  // 一覧に表示するリーグレベル("ichi"=1軍/"ni"=2軍)。選手詳細内の
                                   // farm-toggleとは別物（あちらは選択中の1選手を切り替えるだけ）
 let allPlayers = [];
@@ -6271,7 +6274,7 @@ function renderSeasonTabs(years, current){
 // にはそれでは広すぎ、逆に「対左右」（"対右投手"等5文字）や「球種カテゴリ」（"ストレート系"等）
 // には狭すぎることがあったため、軸ごとに必要な幅を個別に持たせる（要望）。
 const PV_DIMS = {
-  year:   { label: "年度", colWidth: [56, 64] },
+  year:   { label: "年度", colWidth: [68, 68] },
   hand:   { label: "対左右", colWidth: [64, 80] },
   mid:    { label: "球種カテゴリ", colWidth: [64, 96] },
   detail: { label: "球種詳細", colWidth: [64, 96] },
@@ -6310,7 +6313,7 @@ function pvFullColumnsFor(activeAxes, ext){
 }
 
 function pvHandLabel(h){ return h === "vsR" ? "対右投手" : h === "vsL" ? "対左投手" : "全体"; }
-function pvLabelFor(dim, v){ return dim === "hand" ? pvHandLabel(v) : v; }
+function pvLabelFor(dim, v){ return dim === "hand" ? pvHandLabel(v) : (dim === "year" && /^\d{4}$/.test(String(v)) ? `${v}年` : v); }
 
 // シーズン全体（全年度）からユニークな球種詳細/球種カテゴリの一覧を作る
 function pvCollectPitchValues(seasonsMap, years){
@@ -7350,6 +7353,7 @@ document.addEventListener("click", (e) => {
     const fromCtrl = currentMode && controllers[currentMode];
     const activeBtn = currentMode && roots[currentMode].querySelector(".league-toggle button.active");
     const keepLeague = (activeBtn && activeBtn.dataset.league) || (fromCtrl ? fromCtrl.getState().league : null);
+    window.__cardsStartLeague = keepLeague || undefined;   // まだ読み込んでいないモードは最初からこのリーグで開く（NPB→MLBのちらつき防止）
     switchMode(mb.dataset.mode);
     const c = controllers[mb.dataset.mode];
     history.replaceState(null, "", makeHash(mb.dataset.mode, c && c.getState()));
