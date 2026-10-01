@@ -1736,7 +1736,7 @@ function yearMselHtml(years, selected){
   return `<div class="year-chips${yearChipsOpen ? " open" : ""}" role="group" aria-label="年度">
     <button type="button" class="ychip-toggle" aria-label="年度を選ぶ">${escapeHtml(label)} ▾</button>
     <div class="ychip-menu" role="menu">
-      ${years.map(y => `<button type="button" class="ychip${sel.includes(y) ? " active" : ""}" data-y="${escapeHtml(y)}"><span class="yc-mark">${on ? (sel.includes(y) ? "☑" : "☐") : (sel.includes(y) ? "●" : "")}</span><span class="yr-dot" data-yrc="${escapeHtml(y)}"></span>${escapeHtml(y)}年</button>`).join("")}
+      ${years.map(y => `<button type="button" class="ychip${sel.includes(y) ? " active" : ""}" data-y="${escapeHtml(y)}">${on ? `<span class="yc-mark">${sel.includes(y) ? "☑" : "☐"}</span>` : ""}${escapeHtml(y)}年</button>`).join("")}
       <div class="ychip-sep"></div>
       <button type="button" class="ychip ychip-cmp${on ? " active" : ""}" data-cmp="1" title="年度を複数選んで比較します"><span class="yc-mark">${on ? "☑" : "☐"}</span>年度を比較</button>
     </div>
@@ -3358,7 +3358,7 @@ const COUNT_STRIKE_GROUPS = [
 // ラベル列の幅：以前はシーズン球種別成績の表の1列目（104px）に揃えていたが、
 // 「ゾーン内スイング率」「ボール球空振り率」のような長い指標名が見切れてしまうため、
 // この2つの表専用にもう少し広げた（球種別カウント割合の「球種」列もこれで同じ幅になる）。
-const COUNT_TABLE_LABEL_W = 148, COUNT_TABLE_COL_W = 52;
+const COUNT_TABLE_LABEL_W = 104, COUNT_TABLE_COL_W = 52;
 function countTableColgroupHtml(){
   return `<colgroup><col style="width:${COUNT_TABLE_LABEL_W}px">${COUNT_KEYS.map(() => `<col style="width:${COUNT_TABLE_COL_W}px">`).join("")}</colgroup>`;
 }
