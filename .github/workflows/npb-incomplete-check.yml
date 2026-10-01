@@ -1,0 +1,53 @@
+name: NPB未完了・取得ミス試合の洗い出し
+
+# 保存済みのRAWを調べて、試合が最後まで取れていない（試合中のまま止まっている・投球データが欠けている・
+# 日程にあるのにRAWが無い）試合を一覧にする。データは書き換えない（読み取り専用）ので何度実行してもOK。
+# 結果は実行ログの末尾と、アーティファクト（npb-incomplete-report）に出る。
+on:
+  workflow_dispatch:
+    inputs:
+      year:
+        description: '対象年'
+        required: false
+        default: '2026'
+      schedule:
+        description: '日程ページ(Yahoo!)との突き合わせも行う（true/false）'
+        required: false
+        default: 'true'
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: データ側リポジトリを取得（RAWはこちら）
+        uses: actions/checkout@v4
+        with:
+          repository: yuppi-0/sports-dashboard-data
+          token: ${{ secrets.DATA_REPO_TOKEN }}
+          path: data
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: 依存パッケージをインストール
+        run: pip install -r requirements.txt
+
+      - name: 洗い出し
+        run: |
+          EXTRA=""
+          if [ "${{ inputs.schedule }}" = "true" ]; then EXTRA="--schedule"; fi
+          python baseball/scripts/find_incomplete_npb_games.py --year "${{ inputs.year }}" $EXTRA --out npb_incomplete.json 2>&1 | grep -v "^\[20" | tee npb_incomplete.log | tail -n 150
+          { echo '### NPB 未完了・取得ミスの試合'; echo; echo '```'; sed -n '/=== 問題のある試合/,$p' npb_incomplete.log | head -c 60000; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: npb-incomplete-report
+          path: |
+            npb_incomplete.json
+            npb_incomplete.log
