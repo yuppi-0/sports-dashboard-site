@@ -244,7 +244,6 @@
   .rk-sub.t-top15{ color:#5EEAD4; } .rk-sub.t-top30{ color:#7FD8CD; } .rk-sub.t-top40{ color:#A9DAD5; }
   .rk-sub.t-mid{ color:var(--text-dim); } .rk-sub.t-bot60{ color:#E9B8C4; } .rk-sub.t-bot70{ color:#F59AB1; } .rk-sub.t-bot85{ color:#FFA6BD; }
   .p-name-row{ display:flex; align-items:center; flex-wrap:wrap; gap:6px 12px; }
-  .pmix-table.ss-table, .pmix-table.ss-table th, .pmix-table.ss-table td{ font-family:inherit; }
   .pmix-table.ss-table th{ font-size:12px; font-weight:700; color:var(--text-dim); text-align:right; padding:8px 10px; white-space:nowrap; letter-spacing:0; }
   .pmix-table.ss-table td{ text-align:right; padding:6px 10px; font-size:12px; }
   .pmix-table.ss-table td .rk-val{ font-size:12px; }
@@ -252,7 +251,6 @@
   .pmix-table.ss-table td.ss-name-cell{ font-weight:700; color:var(--text-bright); }
   .pmix-table.ss-table td.ss-year{ text-align:center; font-weight:700; color:var(--text-bright); }
   .pmix-table.ss-table th.ss-year{ text-align:left; }
-  .ss-table{ font-family:inherit; }
   .ss-table th{ font-size:12px; font-weight:700; color:var(--text-dim); text-align:right; padding:8px 10px; white-space:nowrap; }
   .ss-table td{ text-align:right; padding:6px 10px; font-size:13px; line-height:1.25; }
   .ss-table td .rk-val{ font-size:13px; }
@@ -262,7 +260,6 @@
   .kst-table .def-year{ width:100px; min-width:100px; max-width:100px; box-sizing:border-box; }
 
   /* 球種別成績などpmix表：数値の書体・サイズ・順位色を打者の表に合わせる */
-  .pmix-table, .pmix-table th, .pmix-table td{ font-family:inherit; }
   .pmix-table td .pmix-val{ font-size:12px; font-weight:700; }
   .pmix-table td .pmix-count-main{ display:block; font-size:12px; font-weight:700; line-height:1.25; }
   .pmix-table td .pmix-count-sub{ display:block; font-size:9px; font-weight:400; color:var(--text-dim); line-height:1.1; }
@@ -270,17 +267,34 @@
   .pmix-val.t-bot60{ color:#E9B8C4; } .pmix-val.t-bot70{ color:#F59AB1; } .pmix-val.t-bot85{ color:#FFA6BD; font-weight:800; }
   .pmix-table.ss-table td.ss-name-cell{ font-weight:400; font-size:11.5px; color:var(--text); line-height:1.35; }
 
+  /* すべての表を「シーズン球種別成績」の表の書体・サイズにそろえる（投手・打者共通）。
+     書体：DM Mono（なければ等幅）／見出し9px／値12px／順位表記9px。コース分布のグリッドは対象外。 */
+  .card table:not(.hm-grid-table):not(.course-grid-table), .card table:not(.hm-grid-table):not(.course-grid-table) th,
+  .card table:not(.hm-grid-table):not(.course-grid-table) td, .card table:not(.hm-grid-table):not(.course-grid-table) td span,
+  .card table:not(.hm-grid-table):not(.course-grid-table) td div, .card table:not(.hm-grid-table):not(.course-grid-table) td a{ font-family:'DM Mono',monospace !important; }
+  .card table:not(.hm-grid-table):not(.course-grid-table) th{ font-size:9px !important; font-weight:600 !important; }
+  .card table:not(.hm-grid-table):not(.course-grid-table) td,
+  .card table:not(.hm-grid-table):not(.course-grid-table) td .rk-val,
+  .card table:not(.hm-grid-table):not(.course-grid-table) td .pmix-val,
+  .card table:not(.hm-grid-table):not(.course-grid-table) td .pmix-count-main,
+  .card table:not(.hm-grid-table):not(.course-grid-table) td a{ font-size:12px !important; }
+  .card table:not(.hm-grid-table):not(.course-grid-table) td .rk-sub,
+  .card table:not(.hm-grid-table):not(.course-grid-table) td .pmix-count-sub,
+  .card table:not(.hm-grid-table):not(.course-grid-table) td .rk{ font-size:9px !important; }
+
   @media (max-width:720px), (orientation: landscape) and (max-height: 500px){
     /* 表の固定列・余白を詰める（スマホ） */
     .split-table td.kst-group-cell, .split-table th.kst-group-cell{ width:54px !important; min-width:0 !important; padding:4px 3px !important; font-size:10px !important; }
     .split-table td.kst-key-cell, .split-table th.kst-key-cell{ padding:4px 5px !important; font-size:12px !important; }
     .kst-table th, .kst-table td{ padding:4px 6px !important; }
     .split-table.kst-table:has(.def-year){ width:max-content; min-width:0; }
-    /* 表の文字サイズ：シーズン打撃成績の表（10.5px）にそろえる */
-    .split-table th, .split-table td, .kst-table th, .kst-table td, .kst-table .rk-val, .split-table td .rk-val,
-    .vsb-table th, .vsb-table td, .pmix-table th, .pmix-table td, .pmix-table td .pmix-val, .pmix-table td .pmix-count-main,
-    .pmix-table.ss-table th, .pmix-table.ss-table td, .pmix-table.ss-table td .rk-val, .pmix-table.ss-table td.ss-name-cell,
-    .split-table td.kst-key-cell, .split-table th.kst-key-cell{ font-size:10.5px !important; }
+    /* 表の文字サイズ（スマホ）：球種別成績のスマホ表示（見出し10px／値10.5px）にそろえる */
+    .card table:not(.hm-grid-table):not(.course-grid-table) th{ font-size:10px !important; }
+    .card table:not(.hm-grid-table):not(.course-grid-table) td,
+    .card table:not(.hm-grid-table):not(.course-grid-table) td .rk-val,
+    .card table:not(.hm-grid-table):not(.course-grid-table) td .pmix-val,
+    .card table:not(.hm-grid-table):not(.course-grid-table) td .pmix-count-main,
+    .card table:not(.hm-grid-table):not(.course-grid-table) td a{ font-size:10.5px !important; }
     .kst-table .def-year{ width:64px; min-width:64px; max-width:64px; }
     .kst-table .def-pos{ width:42px; min-width:42px; max-width:42px; }
     .pmix-table.ss-table{ min-width:0 !important; }
