@@ -257,7 +257,10 @@
   .ss-table td.ss-name-cell{ text-align:left; font-size:13px; font-weight:700; color:var(--text-bright); }
   .ss-table td.ss-year{ text-align:center; font-weight:700; color:var(--text-bright); }
   .ss-table th.ss-year, .ss-table th.ss-name-cell{ text-align:left; }
-  .kst-table .def-year{ width:100px; min-width:100px; max-width:100px; box-sizing:border-box; }
+  /* 年度列の幅は全表で68px（PC・スマホ共通） */
+  .kst-table .def-year{ width:68px; min-width:68px; max-width:68px; box-sizing:border-box; padding-left:4px !important; padding-right:4px !important; }
+  .kst-table .def-pos{ width:56px; min-width:56px; max-width:56px; box-sizing:border-box; }
+  .pmix-table.ss-table td.ss-year, .pmix-table.ss-table th.ss-year{ width:68px; min-width:68px; max-width:68px; padding:6px 4px; box-sizing:border-box; }
 
   /* 球種別成績などpmix表：数値の書体・サイズ・順位色を打者の表に合わせる */
   .pmix-table td .pmix-val{ font-size:12px; font-weight:700; }
@@ -295,10 +298,8 @@
     .card table:not(.hm-grid-table):not(.course-grid-table) td .pmix-val,
     .card table:not(.hm-grid-table):not(.course-grid-table) td .pmix-count-main,
     .card table:not(.hm-grid-table):not(.course-grid-table) td a{ font-size:10.5px !important; }
-    .kst-table .def-year{ width:64px; min-width:64px; max-width:64px; }
-    .kst-table .def-pos{ width:42px; min-width:42px; max-width:42px; }
     .pmix-table.ss-table{ min-width:0 !important; }
-    .pmix-table.ss-table td.ss-year, .pmix-table.ss-table th.ss-year{ width:70px; min-width:70px; max-width:70px; padding:6px 4px; }
+    
     .pmix-table.ss-table th, .pmix-table.ss-table td{ padding:6px 6px; }
     .pmix-table.ss-table td.ss-name-cell, .pmix-table.ss-table th.ss-name-cell{ position:static !important; left:auto !important; }
   }
@@ -3520,7 +3521,7 @@ function countPatternCompareHtml(entries, pick){
   const perGroup = COUNT_KEYS.length / COUNT_STRIKE_GROUPS.length;
   // 球種名・年度列の幅は「シーズン球種別成績」の表（球種104px／年度52px、スマホは82px／46px）に揃える
   const compact = isMobileLayout();
-  const LW = compact ? 82 : 104, YW = 86;
+  const LW = compact ? 82 : 104, YW = 68;
   const ALL = "__all__";
   const sel = pick || ALL;
   const totalsOf = (rows) => { const t = {}; COUNT_KEYS.forEach(ck => { t[ck] = rows.reduce((sum, p) => sum + ((p.cbs[ck] && p.cbs[ck].c) || 0), 0); }); return t; };
@@ -3786,7 +3787,7 @@ function wireVsBatters(d){
       const yearTd = isSeason ? `<td${yrAttr(r._year)} style="text-align:center;font-weight:700">${yrDot(r._year)}${escapeHtml(r._year ?? "-")}年</td>` : "";
       return `<tr><td>${nameHtml}</td>${yearTd}${VSB_COLS.map(c => `<td${shade(filtered, c, r[c.key])}>${vsbFmt(r[c.key], c.fmt)}</td>`).join("")}</tr>`;
     }).join("");
-    const colW = [190, ...(isSeason ? [62] : []), ...VSB_COLS.map(c => c.w)];
+    const colW = [130, ...(isSeason ? [68] : []), ...VSB_COLS.map(c => c.w)];
     const tW = colW.reduce((a, w) => a + w, 0);
     tableWrap.innerHTML = `<table class="vsb-table" style="table-layout:fixed;width:${tW}px;min-width:0"><colgroup>${colW.map(w => `<col style="width:${w}px">`).join("")}</colgroup><thead>${head}</thead><tbody>${body}</tbody></table>`;
     const hidden = sorted.length - VSB_INITIAL_ROWS;
