@@ -92,7 +92,8 @@ def scan_date(raw_dir: Path, date: str) -> list[dict]:
             rec["problems"].append("スコアボード無し")
         else:
             cols = [c for c in sb.columns if re.fullmatch(r"\d+回", str(c))]
-            innings = sum(1 for c in cols if sb[c].notna().any())
+            # コールドゲーム等で終わった回の次の列に「-」「x」だけが入ることがあるので、数字の入っている回だけを数える
+            innings = sum(1 for c in cols if sb[c].map(_num).notna().any())
             for _, r in sb.iterrows():
                 tot = sum(_num(r[c]) or 0 for c in cols)
                 tt = pd.to_numeric(r.get("計"), errors="coerce")
