@@ -262,7 +262,14 @@
   /* 年度列の幅は全表で68px（PC・スマホ共通） */
   .kst-table .def-year{ width:68px; min-width:68px; max-width:68px; box-sizing:border-box; padding-left:4px !important; padding-right:4px !important; }
   .split-table.kst-table:has(.def-year){ width:max-content; min-width:0; }
-  .kst-table:has(.def-year) th:not(.def-year), .kst-table:has(.def-year) td:not(.def-year){ min-width:88px; }
+  /* 指標列の幅は全表で共通（シーズン球種別成績の指標列に合わせる：PC 104px／スマホ 73px） */
+  :root{ --mw:104px; --mw-num:64px; }
+  .kst-table th:not(.kst-group-cell):not(.kst-key-cell):not(.kst-year-cell):not(.def-year):not(.kst-num),
+  .kst-table td:not(.kst-group-cell):not(.kst-key-cell):not(.kst-year-cell):not(.def-year):not(.kst-num){ min-width:var(--mw); }
+  .kst-table .kst-num{ min-width:var(--mw-num); }
+  .split-table.kst-table, .split-table.pv-result-table{ width:max-content; min-width:0; }
+  .pv-result-table th:not(.pv-axis-col):not(.pv-num-col), .pv-result-table td:not(.pv-axis-col):not(.pv-num-col){ min-width:var(--mw); }
+  .pv-result-table .pv-num-col{ min-width:var(--mw-num); }
   .kst-table .def-pos{ width:56px; min-width:56px; max-width:56px; box-sizing:border-box; }
   /* シーズン成績表：列幅は内容に合わせて自動（順位表記「◯位 / ◯人中」が切れないよう各指標列に最小幅を持たせる） */
   .pmix-table.ss-table{ table-layout:auto; }
@@ -272,7 +279,7 @@
   /* 年度列だけは横スクロール時も左端に固定する */
   .pmix-table.ss-table td.ss-year, .pmix-table.ss-table th.ss-year{ position:sticky !important; left:0 !important; z-index:3 !important; background:var(--panel); box-shadow:1px 0 0 rgba(148,163,184,0.15) !important; }
   .pmix-table.ss-table th.ss-year{ background:var(--panel-alt); }
-  .pmix-table.ss-table th:not(.ss-year):not(.ss-name-cell), .pmix-table.ss-table td:not(.ss-year):not(.ss-name-cell){ min-width:78px; }
+  .pmix-table.ss-table th:not(.ss-year):not(.ss-name-cell), .pmix-table.ss-table td:not(.ss-year):not(.ss-name-cell){ min-width:var(--mw); }
   /* 横スクロールはできるまま、スクロールバーの表示だけ消す */
   .table-scroll, .vsb-scroll, .pmix-scroll, .gamelog-scroll, .pcompare-scroll, .pt-scroll, .cz-grid-wrap{ scrollbar-width:none; -ms-overflow-style:none; }
   .table-scroll::-webkit-scrollbar, .vsb-scroll::-webkit-scrollbar, .pmix-scroll::-webkit-scrollbar, .gamelog-scroll::-webkit-scrollbar,
@@ -307,6 +314,7 @@
     .split-table td.kst-group-cell, .split-table th.kst-group-cell{ width:54px !important; min-width:0 !important; padding:4px 3px !important; font-size:10px !important; }
     .split-table td.kst-key-cell, .split-table th.kst-key-cell{ padding:4px 5px !important; font-size:12px !important; }
     .kst-table th, .kst-table td{ padding:4px 6px !important; }
+    :root{ --mw:73px; --mw-num:54px; }
     .split-table.kst-table:has(.def-year){ width:max-content; min-width:0; }
     /* 表の文字サイズ（スマホ）：球種別成績のスマホ表示（見出し10px／値10.5px）にそろえる */
     .card table:not(.hm-grid-table):not(.course-grid-table) th{ font-size:10px !important; }
@@ -6055,7 +6063,7 @@ function renderKeyedStatTable(list, keyLabel, keyField, metrics, emptyNote, grou
       const bg = magnitudeBg(s[m], columnsAll[m], KEYED_HUES[i % KEYED_HUES.length], higherIsBetter);
       return `<td${bg ? ` style="background:${bg}"` : ""}>${text}</td>`;
     }).join("");
-    const countCell = showCount ? `<td>${s.count ?? "-"}</td>` : "";
+    const countCell = showCount ? `<td class="kst-num">${s.count ?? "-"}</td>` : "";
     const yearCell = hasYearCol ? `<td class="kst-year-cell"${yrAttr(s._year)}>${yrDot(s._year)}${s._year != null ? escapeHtml(s._year) + "年" : "-"}</td>` : "";
     // 年度比較（年度列あり）では、同じキーが続く行のキー列を1つに結合して表示する
     let keyCell = "";
@@ -6065,13 +6073,13 @@ function renderKeyedStatTable(list, keyLabel, keyField, metrics, emptyNote, grou
       if(hasYearCol) while(idx + kspan < sortedList.length && sortedList[idx + kspan][keyField] === s[keyField]) kspan++;
       keyCell = `<td class="kst-key-cell"${kspan > 1 ? ` rowspan="${kspan}"` : ""}${groupSpec ? ` style="left:90px"` : ""}>${keyCellFn ? keyCellFn(s) : escapeHtml(s[keyField] ?? "-")}</td>`;
     }
-    return `<tr>${groupCell}${keyCell}${yearCell}<td>${s.pa ?? "-"}</td>${countCell}${cells}</tr>`;
+    return `<tr>${groupCell}${keyCell}${yearCell}<td class="kst-num">${s.pa ?? "-"}</td>${countCell}${cells}</tr>`;
   }).join("");
   const groupHeadTh = groupSpec ? sortTh(groupSpec.header, "__group", sortState, undefined, "kst-group-cell") : "";
-  const countHeadTh = showCount ? sortTh("球数", "count", sortState) : "";
+  const countHeadTh = showCount ? sortTh("球数", "count", sortState, "", "kst-num") : "";
   const yearHeadTh = hasYearCol ? sortTh("年度", "_year", sortState, undefined, "kst-year-cell") : "";
   return `<div class="table-scroll"><table class="split-table kst-table">
-    <thead><tr>${groupHeadTh}${sortTh(keyLabel, "__key", sortState, groupSpec ? ` style="left:90px"` : "", "kst-key-cell")}${yearHeadTh}${sortTh("打席", "pa", sortState)}${countHeadTh}${metrics.map(([m, , l]) => sortTh(l, m, sortState)).join("")}</tr></thead>
+    <thead><tr>${groupHeadTh}${sortTh(keyLabel, "__key", sortState, groupSpec ? ` style="left:90px"` : "", "kst-key-cell")}${yearHeadTh}${sortTh("打席", "pa", sortState, "", "kst-num")}${countHeadTh}${metrics.map(([m, , l]) => sortTh(l, m, sortState)).join("")}</tr></thead>
     <tbody>${rows}</tbody>
   </table></div>`;
 }
@@ -6670,7 +6678,7 @@ function renderPivotTable(rows0, activeAxes, sortState, ext){
       return `<td${axisColStyle(i)}${activeAxes[i] === "year" ? yrAttr(r[`_label${i + 1}`]) : ""}>${activeAxes[i] === "year" ? yrDot(r[`_label${i + 1}`]) : ""}${escapeHtml(r[`_label${i + 1}`] ?? "-")}</td>`;
     });
     const statCells = cols.map(([key]) => {
-      if(key === "pa" || key === "count") return `<td>${r[key] ?? "-"}</td>`;  // 打席・球数は順位・カラースケール対象外
+      if(key === "pa" || key === "count") return `<td class="pv-num-col">${r[key] ?? "-"}</td>`;  // 打席・球数は順位・カラースケール対象外
       const v = r[key];
       let text;
       if(key === "avg" || key === "obp" || key === "slg" || key === "xwoba") text = fmtAvg(v);
@@ -6695,7 +6703,7 @@ function renderPivotTable(rows0, activeAxes, sortState, ext){
   const headAxisCells = headCols.map((h, i) => sortTh(h, `_label${i + 1}`, sortState,
     ` style="left:${axisColLefts[i]}px; width:${axisColWidths[i]}px; min-width:${axisColWidths[i]}px;"`, "pv-axis-col" + (activeAxes[i] === "year" ? " pv-year-col" : ""))).join("");
   return `<div class="table-scroll"><table class="split-table pv-result-table">
-    <thead><tr>${headAxisCells}${cols.map(([k, l]) => sortTh(l, k, sortState)).join("")}</tr></thead>
+    <thead><tr>${headAxisCells}${cols.map(([k, l]) => sortTh(l, k, sortState, "", (k === "pa" || k === "count") ? "pv-num-col" : "")).join("")}</tr></thead>
     <tbody>${trs}</tbody>
 
   </table></div>`;
