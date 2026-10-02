@@ -267,6 +267,7 @@
   .kst-table th:not(.kst-group-cell):not(.kst-key-cell):not(.kst-year-cell):not(.def-year):not(.kst-num),
   .kst-table td:not(.kst-group-cell):not(.kst-key-cell):not(.kst-year-cell):not(.def-year):not(.kst-num){ min-width:var(--mw); }
   .kst-table .kst-num{ min-width:var(--mw-num); }
+  .kst-table th, .kst-table td, .pv-result-table th, .pv-result-table td, .pmix-table.ss-table th, .pmix-table.ss-table td{ box-sizing:border-box; }
   .split-table.kst-table, .split-table.pv-result-table{ width:max-content; min-width:0; }
   .pv-result-table th:not(.pv-axis-col):not(.pv-num-col), .pv-result-table td:not(.pv-axis-col):not(.pv-num-col){ min-width:var(--mw); }
   .pv-result-table .pv-num-col{ min-width:var(--mw-num); }
@@ -4402,7 +4403,7 @@ function buildGameLogTable(d){
     const rr = r && r.rank != null ? r : null, tier = rr ? tierFromRank(rr) : null;
     const bg = tier ? (TIER_COLOR[tier] || "") : "", tc = tier ? ` t-${tier}` : "";
     const txt = v != null ? Number(v).toFixed(1) : "-";
-    return `<td${bg ? ` style="background:${bg}"` : ""}>${rr ? `<div class="rk-val${tc}">${txt}</div><div class="rk-sub${tc}">${rr.rank}位 / ${rr.total}人中</div>` : txt}</td>`;
+    return `<td${bg ? ` style="background:${bg}"` : ""}>${rr ? `<div class="rk-val${tc}">${txt}</div><div class="rk-sub${tc}">${rr.rank}位/${rr.total}人中</div>` : txt}</td>`;
   };
   const seasonRowHtml = (entry) => {
     const rkAll = (entry.data && entry.data.rankings) || {};
@@ -4417,7 +4418,7 @@ function buildGameLogTable(d){
         const rr = r && r.rank != null ? r : null, tier = rr ? tierFromRank(rr) : null;
         const bg = tier ? (TIER_COLOR[tier] || "") : "", tc = tier ? ` t-${tier}` : "";
         const txt = v != null ? Number(v).toFixed(1) + "%" : "-";
-        return `<td${bg ? ` style="background:${bg}"` : ""}>${rr ? `<div class="rk-val${tc}">${txt}</div><div class="rk-sub${tc}">${rr.rank}位 / ${rr.total}人中</div>` : txt}</td>`;
+        return `<td${bg ? ` style="background:${bg}"` : ""}>${rr ? `<div class="rk-val${tc}">${txt}</div><div class="rk-sub${tc}">${rr.rank}位/${rr.total}人中</div>` : txt}</td>`;
       }).join("")}
     </tr>
   `;};
@@ -4886,7 +4887,7 @@ function fmtAvg(v){
 function rankText(rk){
   if(!rk || !rk.total) return "";
   if(rk.rank == null) return "-";
-  return `${rk.rank}位 / ${rk.total}人中`;
+  return `${rk.rank}位/${rk.total}人中`;
 }
 
 // 順位（rank/total）→ 7段階のtier。KPIボックスの文字色をこれで決める。
