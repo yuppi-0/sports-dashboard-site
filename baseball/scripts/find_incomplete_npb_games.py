@@ -102,7 +102,10 @@ def scan_date(raw_dir: Path, date: str) -> list[dict]:
         else:
             cols = [c for c in sb.columns if re.fullmatch(r"\d+回", str(c))]
             # コールドゲーム等で終わった回の次の列に「-」「x」だけが入ることがあるので、数字の入っている回だけを数える
-            innings = sum(1 for c in cols if sb[c].map(_played).any())
+            innings = sum(1 for c in cols if sb[c].notna().any())
+            # 最後の列に「0X」（行われなかった裏）があるか。コールド等で、最後の投球が「N回裏」・スコアボードがN+1列、になる
+            last_col = [c for c in cols if sb[c].notna().any()][-1] if innings else None
+            last_has_x = bool(last_col is not None and sb[last_col].astype(str).str.contains(r"[Xx×]").any())
             for _, r in sb.iterrows():
                 tot = sum(_num(r[c]) or 0 for c in cols)
                 tt = pd.to_numeric(r.get("計"), errors="coerce")
@@ -142,7 +145,8 @@ def scan_date(raw_dir: Path, date: str) -> list[dict]:
                         rec["problems"].append(f"投球データ過多(成績{stat_pitches}/データ{len(q)})")
                 last = q.iloc[-1]
                 m = re.match(r"(\d+)", str(last["イニング"]))
-                if m and innings and int(m.group(1)) != innings:
+                ended_after_bottom = (int(m.group(1)) == innings - 1 and str(last["表/裏"]) == "裏" and last_has_x) if (m and innings) else False
+                if m and innings and int(m.group(1)) != innings and not ended_after_bottom:
                     rec["problems"].append(f"投球データ最終回不一致({last['イニング']}{last['表/裏']}/スコアボード{innings}回)")
         out.append(rec)
     return out
@@ -177,6 +181,10 @@ def diagnose(r: dict, base: str) -> None:
             st = int(pd.to_numeric(pr["投球数"], errors="coerce") or 0)
             if abs(cnt - st) > 0:
                 print(f"   投手 {pr[name_col]}: データ{cnt}球 / 成績{st}球 (差{cnt - st:+d})")
+                if cnt < st:
+                    seqs = pd.to_numeric(q[q["投手名"].astype(str).str.replace(" ", "").str.replace("\u3000", "") == nm]["通算投球数"], errors="coerce").dropna().astype(int)
+                    miss = [i for i in range(1, (int(seqs.max()) if len(seqs) else 0) + 1) if i not in set(seqs)]
+                    print(f"     通算投球数の最大={int(seqs.max()) if len(seqs) else None} / 欠番={miss[:20]}")
     else:
         print(f"   [投手成績の列] {list(pit.columns)[:12]}")
     if len(q):
