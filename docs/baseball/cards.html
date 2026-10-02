@@ -267,6 +267,11 @@
   .kst-table th:not(.kst-group-cell):not(.kst-key-cell):not(.kst-year-cell):not(.def-year):not(.kst-num),
   .kst-table td:not(.kst-group-cell):not(.kst-key-cell):not(.kst-year-cell):not(.def-year):not(.kst-num){ min-width:var(--mw); }
   .kst-table .kst-num{ min-width:var(--mw-num); }
+  /* 指標列の見出し・値は、シーズン球種別成績と同じく左揃え（年度・ラベル列は従来どおり） */
+  .pmix-table.ss-table th:not(.ss-year):not(.ss-name-cell), .pmix-table.ss-table td:not(.ss-year):not(.ss-name-cell),
+  .pv-result-table th:not(.pv-axis-col), .pv-result-table td:not(.pv-axis-col),
+  .kst-table th:not(.kst-group-cell):not(.kst-key-cell):not(.kst-year-cell):not(.def-year),
+  .kst-table td:not(.kst-group-cell):not(.kst-key-cell):not(.kst-year-cell):not(.def-year){ text-align:left; }
   .kst-table th, .kst-table td, .pv-result-table th, .pv-result-table td, .pmix-table.ss-table th, .pmix-table.ss-table td{ box-sizing:border-box; }
   .split-table.kst-table, .split-table.pv-result-table{ width:max-content; min-width:0; }
   .pv-result-table th:not(.pv-axis-col):not(.pv-num-col), .pv-result-table td:not(.pv-axis-col):not(.pv-num-col){ min-width:var(--mw); }
