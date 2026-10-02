@@ -205,6 +205,8 @@
   [data-yr="2025"], .yr-dot[data-yrc="2025"]{ --yc:#FBBF24; }
   [data-yr="2024"], .yr-dot[data-yrc="2024"]{ --yc:#34D399; }
   [data-yr="2023"], .yr-dot[data-yrc="2023"]{ --yc:#C084FC; }
+  [data-yr="2022"], .yr-dot[data-yrc="2022"]{ --yc:#F472B6; }
+  [data-yr="2021"], .yr-dot[data-yrc="2021"]{ --yc:#FB923C; }
   
   .yr-dot{ flex:none; display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--yc, #64748B); margin-right:5px; vertical-align:middle; }
   /* 年度フィルタ（選手名の右）：「2026年 ▾」ボタンを押すと、年度を縦に並べたメニューを開く。
@@ -1550,7 +1552,7 @@
 // 年度ごとにフォルダが分かれている（data/.../{年}年/...）。ページ右上の年度セレクトで切り替える。
 // 新しい年度のデータを作ったら、この一覧に足す（先頭が既定＝最新）。
 // URLは ?year=2025 のように指定できる（例: .../cards.html?year=2025#batter）。
-const AVAILABLE_YEARS = ["2026", "2025", "2024", "2023"];   // MLBは2025年分のカードJSONを生成済み。NPBの2025年はまだ無いため、NPB側で選ぶと0件表示になる
+const AVAILABLE_YEARS = ["2026", "2025", "2024", "2023", "2022", "2021"];   // MLBは2025年分のカードJSONを生成済み。NPBの2025年はまだ無いため、NPB側で選ぶと0件表示になる
 const YEAR = (() => {
   const q = new URLSearchParams(location.search).get("year");
   return AVAILABLE_YEARS.includes(q) ? q : AVAILABLE_YEARS[0];
