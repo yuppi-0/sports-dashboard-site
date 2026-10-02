@@ -575,6 +575,17 @@ def _fetch_schedule_ids(url: str) -> tuple:
             print(f"  [WARN] 日程ページが指定日({m_date.group(1)})を表示していません（{nearest}付近を表示）。"
                   f"Yahoo!の日程ページは現在のシーズンしか表示できないため、この日の試合は取得できません: {url}")
             return False, []
+    # 試合の無い日（シーズン終了後・休養日など）は、Yahoo!が「直近の試合日」の一覧を返す
+    # （date=2026-10-01 を指定しても 9月27日 の試合が並ぶ）。ページ見出しの日付が指定日と違うときは
+    # 「その日の試合は無い」として扱う。これをしないと、同じ試合が別の日付で何度も保存されてしまう。
+    if m_date:
+        shown = re.search(r"(\d{1,2})月(\d{1,2})日", get_text(soup, ".bb-head01__title"))
+        if shown:
+            req = m_date.group(1)
+            if (int(shown.group(1)), int(shown.group(2))) != (int(req[5:7]), int(req[8:10])):
+                print(f"  [INFO] 日程ページの表示日（{shown.group(1)}月{shown.group(2)}日）が指定日（{req}）と違うため、"
+                      f"この日の試合は無いものとして扱います: {url}")
+                return True, []
     gm_card = soup.select_one("#gm_card")
     if not gm_card:
         return True, []
