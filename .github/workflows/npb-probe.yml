@@ -1,0 +1,28 @@
+name: NPB投球データ連鎖の調査
+
+# 投球データ（index連鎖）が途中で止まる／重複する原因を調べる読み取り専用ワークフロー。データは書き換えない。
+on:
+  workflow_dispatch:
+    inputs:
+      game_ids:
+        description: '試合ID（スペース区切りで複数可。例: 2021038710 2021040110）'
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: 依存パッケージをインストール
+        run: pip install -r requirements.txt
+      - name: 調査
+        run: |
+          for g in ${{ inputs.game_ids }}; do
+            python baseball/scripts/probe_npb_chain.py "$g" 2>&1 | grep -v "取得中" | tr '\r' '\n' | grep -v "^\s*$" || true
+          done
