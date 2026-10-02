@@ -183,6 +183,14 @@ def diagnose(r: dict, base: str) -> None:
     sb = ag.get("スコアボード", pd.DataFrame())
     sb = sb[sb["試合ID"] == gid] if len(sb) else sb
     print(f"   スコアボード行{len(sb)} / スコアプレー行{len(sp)}")
+    # スコアボードの中身（コールド・途中終了の判定に使う）
+    cols = [c for c in sb.columns if re.fullmatch(r"\d+回", str(c))] + [c for c in ("計",) if c in sb.columns]
+    for _, srow in sb.iterrows():
+        print("   SB", srow.get("チーム"), [srow[c] for c in cols])
+    st = ag.get("試合基本情報", pd.DataFrame())
+    st = st[st["試合ID"] == gid] if len(st) else st
+    if len(st):
+        print("   試合状態:", st.iloc[0].get("試合状態"), "/ 試合情報:", st.iloc[0].get("試合情報"))
 
 
 def main() -> None:
