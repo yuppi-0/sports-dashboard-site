@@ -214,6 +214,20 @@ jobs:
           STEPS_ARG: ${{ inputs.steps || 'all' }}
           TARGET_DATE: ${{ steps.date.outputs.date }}
 
+      - name: 取得データの自動チェック（別の日付と同じ試合・重複投球・最後まで取れていない試合）
+        if: steps.check.outputs.skip != 'true'
+        continue-on-error: true
+        run: |
+          # 取得系のステップ（games / pitch / datamart / all）を実行したときだけ、対象日付のRAWを点検する。
+          # 問題があれば Actions の警告（::warning::）として出す（失敗にはしない）。
+          STEPS_NOW="${{ inputs.steps || 'all' }}"
+          if echo " $STEPS_NOW " | grep -Eqw "all|games|pitch|datamart"; then
+            TARGET="${{ steps.date.outputs.date }}"
+            python baseball/scripts/find_incomplete_npb_games.py --year "${TARGET:0:4}" --date "$TARGET" --gh-warning 2>&1 | grep -v "FutureWarning\|google\|genai\|README\|updates or bug" | tail -n 60
+          else
+            echo "取得系ステップではないためスキップ"
+          fi
+
       - name: データ側をコミット&push（sports-dashboard-data）
         if: steps.check.outputs.skip != 'true'
         working-directory: data

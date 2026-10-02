@@ -23,6 +23,7 @@
 from __future__ import annotations
 
 import argparse
+import datetime
 import json
 import os
 import re
@@ -210,17 +211,51 @@ def diagnose(r: dict, base: str) -> None:
         print("   試合状態:", st.iloc[0].get("試合状態"), "/ 試合情報:", st.iloc[0].get("試合情報"))
 
 
+def _date_scope(spec: str):
+    """'2026-05-13' または '2026-05-13:2026-05-20' → (開始, 終了)。空なら None。"""
+    if not spec:
+        return None
+    a, _, b = spec.partition(":")
+    d0 = datetime.date.fromisoformat(a)
+    return d0, datetime.date.fromisoformat(b) if b else d0
+
+
+def cross_date_problems(ids_by_date: dict, scope) -> list:
+    """同じ試合IDが別の日付にも保存されている日付（後の日付側）を返す。scope があればその範囲の日付だけ。"""
+    out = []
+    first_seen: dict = {}
+    for d in sorted(ids_by_date):
+        for gid in sorted(ids_by_date[d]):
+            first_seen.setdefault(gid, d)
+    for d in sorted(ids_by_date):
+        dd = datetime.date.fromisoformat(d)
+        if scope and not (scope[0] <= dd <= scope[1]):
+            continue
+        dup = {g: first_seen[g] for g in ids_by_date[d] if first_seen[g] < d}
+        if dup:
+            src = sorted(set(dup.values()))
+            out.append((d, len(dup), len(ids_by_date[d]), src))
+    return out
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--year", default="2026")
     ap.add_argument("--base", default=str(BASE_DATA_DIR), help="RAWのあるベースフォルダ（既定: data/baseball/プロ野球）")
     ap.add_argument("--schedule", action="store_true", help="Yahoo!の日程ページと突き合わせ、RAWに無い試合も探す")
+    ap.add_argument("--date", default="", help="この日（または A:B の範囲）だけを調べる。毎日の自動更新後チェック用")
+    ap.add_argument("--gh-warning", action="store_true", help="問題をGitHub Actionsの警告（::warning::）としても出す")
     ap.add_argument("--diagnose", action="store_true", help="問題のある試合について原因の手掛かりを出す")
     ap.add_argument("--out", default="", help="結果をJSONで保存するパス")
     args = ap.parse_args()
 
+    scope = _date_scope(args.date)
+    window = None
+    if scope:
+        window = (scope[0] - datetime.timedelta(days=14), scope[1] + datetime.timedelta(days=14))
     results = []
     raw_ids_by_key: dict = {}
+    ids_by_type: dict = {}   # (リーグ, 試合種別) -> {日付: 試合IDの集合}
     for lg, lv in LEVELS:
         lv_dir = Path(args.base) / f"{args.year}年" / lv
         if not lv_dir.is_dir():
@@ -230,6 +265,23 @@ def main() -> None:
             if not raw_root.is_dir():
                 continue
             for dpath in sorted(p for p in raw_root.iterdir() if p.is_dir()):
+                try:
+                    dd = datetime.date.fromisoformat(dpath.name)
+                except ValueError:
+                    continue
+                in_scope = scope is None or (scope[0] <= dd <= scope[1])
+                if window and not (window[0] <= dd <= window[1]):
+                    continue
+                ids_here = set()
+                try:
+                    _info = pd.read_excel(dpath / f"all_games_{dpath.name}.xlsx", sheet_name="試合基本情報")
+                    ids_here = {str(int(g)) for g in _info["試合ID"].dropna()}
+                except Exception:  # noqa: BLE001
+                    pass
+                if ids_here:
+                    ids_by_type.setdefault((lv, type_dir.name), {})[dpath.name] = ids_here
+                if not in_scope:
+                    continue
                 recs = scan_date(dpath, dpath.name)
                 for r in recs:
                     r["level"], r["type"] = lv, type_dir.name
@@ -257,6 +309,11 @@ def main() -> None:
                     missing_games.append({"date": date, "level": lv, "gid": gid, "problems": ["日程にあるのにRAWに無い"]})
 
     bad = [r for r in results if r.get("problems") and not r.get("cancelled")] + missing_games
+    # 同じ試合が別の日付にも保存されていないか（試合の無い日に直近の試合日の試合が保存される不具合の検出）
+    for (lv, gt), by_date in ids_by_type.items():
+        for d, n, total, src in cross_date_problems(by_date, scope):
+            bad.append({"date": d, "level": lv, "gid": None, "home": "", "away": "",
+                        "problems": [f"別の日付({', '.join(src)})と同じ試合を保存（{total}試合中{n}試合）"]})
     print(f"\n=== 問題のある試合: {len(bad)}件 ===")
     for r in bad:
         print(f"{r['level']} {r['date']} {r.get('gid')} {r.get('home','')}-{r.get('away','')} :: {' / '.join(r['problems'])}")
@@ -272,6 +329,12 @@ def main() -> None:
                 diagnose(r, args.base)
             except Exception as e:  # noqa: BLE001
                 print(f"   [diagnose失敗] {e}")
+
+    if args.gh_warning:
+        for r in bad[:20]:
+            print(f"::warning::NPB取得チェック {r['level']} {r['date']} {r.get('gid') or ''} {' / '.join(r['problems'])}")
+        if not bad:
+            print("NPB取得チェック: 問題なし")
 
     need = sorted({(r["level"], r["date"]) for r in bad})
     print(f"\n=== 再取得が必要な 日付×リーグ: {len(need)}件 ===")
