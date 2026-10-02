@@ -1,0 +1,29 @@
+name: NPB日程ページの調査
+
+# 試合の無い日に日程ページが何を表示するかを調べる読み取り専用ワークフロー。データは書き換えない。
+on:
+  workflow_dispatch:
+    inputs:
+      league:
+        description: 'ichi（1軍）/ ni（2軍）'
+        required: false
+        default: 'ni'
+      dates:
+        description: '調べる日付（スペース区切り）'
+        required: true
+        default: '2026-09-28 2026-09-27 2026-09-29'
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -r requirements.txt
+      - name: 調査
+        run: python baseball/scripts/probe_npb_schedule.py "${{ inputs.league }}" ${{ inputs.dates }} 2>&1 | grep -v "FutureWarning\|google\|genai\|README\|updates or bug" || true
