@@ -1,0 +1,58 @@
+name: NPB投球データの重複除去（保存済みRAW）
+
+# 保存済みの daily_pitch_data_*.xlsx から、同じ投球の重複行を取り除く（通信なし）。
+# データマート・数値JSONは元々同じ重複除去を通っているので、除去後の再計算は不要。
+on:
+  workflow_dispatch:
+    inputs:
+      year:
+        description: '対象年'
+        required: false
+        default: '2026'
+      dry_run:
+        description: '件数だけ確認して書き換えない（true/false）'
+        required: false
+        default: 'true'
+
+permissions:
+  contents: write
+
+jobs:
+  dedupe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: データ側リポジトリを取得（sports-dashboard-data）
+        uses: actions/checkout@v4
+        with:
+          repository: yuppi-0/sports-dashboard-data
+          token: ${{ secrets.DATA_REPO_TOKEN }}
+          path: data
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: 依存パッケージをインストール
+        run: pip install pandas openpyxl
+
+      - name: 重複を除く
+        run: |
+          EXTRA=""
+          if [ "${{ inputs.dry_run }}" = "true" ]; then EXTRA="--dry-run"; fi
+          python baseball/scripts/dedupe_pitch_data.py --year "${{ inputs.year }}" $EXTRA | tee dedupe.log | tail -n 40
+
+      - name: データ側をコミット&push
+        if: inputs.dry_run != 'true'
+        working-directory: data
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add .
+          if git diff --cached --quiet; then
+            echo "更新なし"
+          else
+            git commit -m "NPB投球データ(RAW)の重複行を除去: ${{ inputs.year }}年"
+            bash "$GITHUB_WORKSPACE/baseball/scripts/push_with_retry.sh"
+          fi

@@ -120,6 +120,11 @@ def scan_date(raw_dir: Path, date: str) -> list[dict]:
             if len(q) == 0:
                 rec["problems"].append("投球データ無し")
             else:
+                # 同じ投球の重複（取得処理の不具合で起きた。データマートは除去済みだがRAWには残る）
+                if all(c in q.columns for c in ("投手名", "通算投球数")):
+                    dup = int(q.duplicated(subset=["投手名", "通算投球数"]).sum())
+                    if dup:
+                        rec["problems"].append(f"投球データ重複({dup}行)")
                 if stat_pitches:
                     diff = stat_pitches - len(q)
                     if diff > PITCH_SHORT_ABS:

@@ -999,6 +999,23 @@ def _parse_courses(soup) -> dict:
     return courses
 
 
+# 投球データの重複判定キー。データマート（preprocess_pitch）の重複除去と同じ：
+# 通算投球数は「その試合でその投手が何球目か」なので、試合ID+投手名+通算投球数で一意になる。
+PITCH_DEDUP_KEYS = ["試合ID", "投手名", "通算投球数"]
+
+
+def dedupe_pitch_rows(rows: list[dict]) -> list[dict]:
+    """投球行（辞書のリスト）から、同じ投球の重複を除く（最初の1件を残す）。"""
+    seen, out = set(), []
+    for r in rows:
+        k = tuple(str(r.get(c, "")) for c in PITCH_DEDUP_KEYS)
+        if k in seen:
+            continue
+        seen.add(k)
+        out.append(r)
+    return out
+
+
 def scrape_all_pitches_of_game(game_id: str) -> list[dict]:
     print(f"\n>>> 試合ID: {game_id} の全投球データ取得を開始します")
     pitches        = []
@@ -1056,13 +1073,9 @@ def scrape_all_pitches_of_game(game_id: str) -> list[dict]:
 
     # 同じ打席のページが複数ある（走者の動き・牽制などで index の末尾が 00→01→… と増える）と、
     # そのたびに「その打席のここまでの全投球」が表に並ぶため、同じ投球が重複して入る。
-    # 投手・打者・イニング・通算投球数（投手ごとの累計）で一意なので、重複は最後に出たものを残して除く。
+    # データマート側（preprocess_pitch）と同じキー・同じ「最初の1件を残す」で、取得時点で除いておく。
     before = len(pitches)
-    last_of = {}
-    for i, p in enumerate(pitches):
-        last_of[(p.get("イニング"), p.get("表/裏"), p.get("投手名"), p.get("打者名"), p.get("打席内球数"), p.get("通算投球数"))] = i
-    pitches = [p for i, p in enumerate(pitches)
-               if last_of[(p.get("イニング"), p.get("表/裏"), p.get("投手名"), p.get("打者名"), p.get("打席内球数"), p.get("通算投球数"))] == i]
+    pitches = dedupe_pitch_rows(pitches)
     removed = before - len(pitches)
     print(f"\n  取得完了（{len(pitches)}球" + (f"、重複{removed}球を除外）" if removed else "）"))
     return pitches
@@ -1799,7 +1812,7 @@ def preprocess_pitch(df: pd.DataFrame) -> pd.DataFrame:
     # 通算投球数（試合内のユニーク番号）があれば投手名+通算投球数で厳密に除去
     # なければコース座標まで含めたキーで除去
     if "通算投球数" in df.columns and "投手名" in df.columns:
-        dedup_keys = ["試合ID", "投手名", "通算投球数"]  # 試合IDを含める（複数試合混在時の誤除去防止）
+        dedup_keys = list(PITCH_DEDUP_KEYS)  # 試合IDを含める（複数試合混在時の誤除去防止）
     else:
         dedup_keys = [c for c in [
             "イニング", "表/裏", "アウト数", "打席内球数",
