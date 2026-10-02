@@ -1054,7 +1054,17 @@ def scrape_all_pitches_of_game(game_id: str) -> list[dict]:
         current_index = next_btn["index"] if (next_btn and "index" in next_btn.attrs) else None
         time.sleep(1)
 
-    print(f"\n  取得完了（{len(pitches)}球）")
+    # 同じ打席のページが複数ある（走者の動き・牽制などで index の末尾が 00→01→… と増える）と、
+    # そのたびに「その打席のここまでの全投球」が表に並ぶため、同じ投球が重複して入る。
+    # 投手・打者・イニング・通算投球数（投手ごとの累計）で一意なので、重複は最後に出たものを残して除く。
+    before = len(pitches)
+    last_of = {}
+    for i, p in enumerate(pitches):
+        last_of[(p.get("イニング"), p.get("表/裏"), p.get("投手名"), p.get("打者名"), p.get("打席内球数"), p.get("通算投球数"))] = i
+    pitches = [p for i, p in enumerate(pitches)
+               if last_of[(p.get("イニング"), p.get("表/裏"), p.get("投手名"), p.get("打者名"), p.get("打席内球数"), p.get("通算投球数"))] == i]
+    removed = before - len(pitches)
+    print(f"\n  取得完了（{len(pitches)}球" + (f"、重複{removed}球を除外）" if removed else "）"))
     return pitches
 
 
