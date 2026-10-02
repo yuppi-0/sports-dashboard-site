@@ -1,0 +1,71 @@
+name: NPB重複日付の削除（同じ試合が別の日付にも保存されている分）
+
+# 試合の無い日に直近の試合日の試合が保存されてしまった日付（RAW・日別データマート・日別JSON）を探して削除する。
+# 削除後は、シーズン集計（npb-update の llm_input / batter_llm_input）を実行し直すこと。
+on:
+  workflow_dispatch:
+    inputs:
+      year:
+        description: '対象年'
+        required: false
+        default: '2026'
+      apply:
+        description: 'true で削除する（false は一覧だけ）'
+        required: false
+        default: 'false'
+
+permissions:
+  contents: write
+
+jobs:
+  remove:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: データ側リポジトリを取得（sports-dashboard-data）
+        uses: actions/checkout@v4
+        with:
+          repository: yuppi-0/sports-dashboard-data
+          token: ${{ secrets.DATA_REPO_TOKEN }}
+          path: data
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: 依存パッケージをインストール
+        run: pip install -r requirements.txt
+
+      - name: 重複日付を探す／削除する
+        run: |
+          EXTRA=""
+          if [ "${{ inputs.apply }}" = "true" ]; then EXTRA="--apply"; fi
+          python baseball/scripts/remove_duplicate_game_dates.py --year "${{ inputs.year }}" $EXTRA 2>&1 | grep -v "FutureWarning\|google\|genai\|README\|updates or bug" | tee remove.log
+
+      - name: データ側をコミット&push
+        if: inputs.apply == 'true'
+        working-directory: data
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A .
+          if git diff --cached --quiet; then
+            echo "更新なし"
+          else
+            git commit -m "NPB重複日付のRAW・日別データマートを削除: ${{ inputs.year }}年"
+            bash "$GITHUB_WORKSPACE/baseball/scripts/push_with_retry.sh"
+          fi
+
+      - name: サイト側（docs/）をコミット&push
+        if: inputs.apply == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A docs
+          if git diff --cached --quiet; then
+            echo "更新なし"
+          else
+            git commit -m "NPB重複日付の日別JSONを削除: ${{ inputs.year }}年"
+            ADD_PATHS=docs bash baseball/scripts/push_with_retry.sh "python baseball/scripts/rebuild_index.py"
+          fi
