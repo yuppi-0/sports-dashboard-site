@@ -52,6 +52,15 @@ def _num(v):
     return None if pd.isna(n) else int(n)
 
 
+def _played(v) -> bool:
+    """スコアボードのセルが「実際に攻撃した回」を表すか。数字だけのセル。
+    「X」付き（例 0X）は、裏の攻撃が不要で行われなかった回（サヨナラ・コールド等）の表記なので数えない。"""
+    s = str(v)
+    if re.search(r"[Xx×]", s):
+        return False
+    return bool(pd.notna(pd.to_numeric(s, errors="coerce")))
+
+
 def _read(path: Path, sheet=None):
     try:
         return pd.read_excel(path, sheet_name=sheet)
@@ -93,7 +102,7 @@ def scan_date(raw_dir: Path, date: str) -> list[dict]:
         else:
             cols = [c for c in sb.columns if re.fullmatch(r"\d+回", str(c))]
             # コールドゲーム等で終わった回の次の列に「-」「x」だけが入ることがあるので、数字の入っている回だけを数える
-            innings = sum(1 for c in cols if sb[c].map(_num).notna().any())
+            innings = sum(1 for c in cols if sb[c].map(_played).any())
             for _, r in sb.iterrows():
                 tot = sum(_num(r[c]) or 0 for c in cols)
                 tt = pd.to_numeric(r.get("計"), errors="coerce")
