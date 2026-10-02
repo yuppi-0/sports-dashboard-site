@@ -580,6 +580,9 @@ def _fetch_schedule_ids(url: str) -> tuple:
     # 「その日の試合は無い」として扱う。これをしないと、同じ試合が別の日付で何度も保存されてしまう。
     if m_date:
         shown = re.search(r"(\d{1,2})月(\d{1,2})日", get_text(soup, ".bb-head01__title"))
+        if not shown:
+            print(f"  [WARN] 日程ページの見出しの日付を読み取れませんでした（ページ構成が変わった可能性）。"
+                  f"試合ページの日付確認だけで重複を防ぎます: {url}")
         if shown:
             req = m_date.group(1)
             if (int(shown.group(1)), int(shown.group(2))) != (int(req[5:7]), int(req[8:10])):
@@ -810,7 +813,18 @@ def _parse_pitcher_stats(soup_stats, game_id: str, home_team: str = ""):
     return headers, pitcher_list
 
 
-def scrape_game_data(game_id: str) -> dict | None:
+# 試合ページの日付が指定日と違うため取らなかった試合ID（同じ実行内の投球データ取得でも除外する）
+WRONG_DATE_GAME_IDS: set = set()
+
+
+def game_page_date(soup) -> str | None:
+    """試合ページの<title>（例「2026年9月27日 東北楽天…」）から試合日を YYYY-MM-DD で返す。読めなければ None。"""
+    t = soup.title.get_text() if soup is not None and soup.title else ""
+    m = re.search(r"(\d{4})年(\d{1,2})月(\d{1,2})日", t)
+    return f"{int(m.group(1)):04d}-{int(m.group(2)):02d}-{int(m.group(3)):02d}" if m else None
+
+
+def scrape_game_data(game_id: str, expected_date: str | None = None) -> dict | None:
     top_url   = f"{BASE_URL}/game/{game_id}/top"
     stats_url = f"{BASE_URL}/game/{game_id}/stats"
 
@@ -818,6 +832,14 @@ def scrape_game_data(game_id: str) -> dict | None:
     soup_top = get_soup(top_url)
     if not soup_top:
         print(f"     [スキップ] 試合情報が取得できませんでした: {game_id}")
+        return None
+
+    # 日程ページが「試合の無い日」に直近の試合日の一覧を返すことがあり、そのまま取ると同じ試合が
+    # 別の日付にも保存される。試合ページ自身の日付が指定日と違えば、その試合は取らない。
+    shown = game_page_date(soup_top)
+    if expected_date and shown and shown != expected_date:
+        print(f"     [スキップ] 試合ID {game_id} の試合日は {shown}（指定日 {expected_date} ではない）")
+        WRONG_DATE_GAME_IDS.add(str(game_id))
         return None
 
     game_info = _parse_game_info(soup_top, game_id)
@@ -866,7 +888,7 @@ def run_game_scraper() -> str:
     sched = schedule_folder_map(game_ids=game_ids) if is_regular_folder(default_folder) else {}
 
     for gid in game_ids:
-        single = scrape_game_data(gid)
+        single = scrape_game_data(gid, expected_date=TARGET_DATE)
         if single:
             info = single.get("試合基本情報")
             content = default_folder
@@ -1117,6 +1139,23 @@ def run_pitch_scraper(target_game_ids: list[str] | None = None) -> str:
             print("試合が見つかりませんでした。")
             return ""
         retry_mode = False
+        # games ステップで保存済みの試合（試合日が指定日と確認できたもの）だけを対象にする
+        wrong = [g for g in ids if str(g) in WRONG_DATE_GAME_IDS]
+        if wrong:
+            print(f"  [除外] 試合日が指定日と違う試合は投球データを取得しません: {wrong}")
+            ids = [g for g in ids if str(g) not in WRONG_DATE_GAME_IDS]
+            if not ids:
+                print("この日の試合はありません。")
+                return ""
+        saved = known_game_folders()
+        if saved:
+            dropped = [g for g in ids if str(g) not in saved]
+            if dropped:
+                print(f"  [除外] この日の保存済み試合に無い試合IDは投球データを取得しません: {dropped}")
+            ids = [g for g in ids if str(g) in saved]
+            if not ids:
+                print("保存済みの試合がありません。")
+                return ""
 
     known = known_game_folders()
     sched = schedule_folder_map(game_ids=ids) if is_regular_folder(default_folder) else {}

@@ -10,3 +10,4 @@ __pycache__/
 *.lock
 *.tmp
 .parallel_*.log
+.pytest_cache/
