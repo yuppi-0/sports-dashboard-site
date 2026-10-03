@@ -1332,14 +1332,47 @@ def calc_pitch_movement_stats(g: pd.DataFrame) -> dict:
 # Section 10. 打者成績計算（MLB指標付き）
 # ==================================================
 
+# 打点を付けない結果（併殺打・三重殺）。公式記録では併殺打で入った得点は打点にならない。
+_NO_RBI_EVENTS = {"grounded_into_double_play", "double_play", "triple_play", "strikeout_double_play"}
+
+
+def _pa_rbi(last: pd.DataFrame) -> pd.Series:
+    """打席ごとの打点（公式の記録に近づけた推定）。`last` は打席の最終投球の行（1打席1行）。
+
+    Statcastに打点の列は無いので、最終投球での得点（post_bat_score − bat_score）から求める。
+    ただし公式記録どおり、次は打点にしない：
+      ・併殺打（ダブルプレー）で入った得点
+      ・失策で入った得点（ただし無死・一死で三塁に走者がいた場合は、ゴロアウトでも入っていた得点として1点だけ認める）
+    statsapi由来のデータ（post_bat_scoreに公式の打点そのものが入っている）はそのまま使う。
+    """
+    if "post_bat_score" not in last.columns or "bat_score" not in last.columns:
+        return pd.Series(0, index=last.index)
+    runs = (last["post_bat_score"].fillna(0) - last["bat_score"].fillna(0)).clip(lower=0)
+    if "_statsapi_source" in last.columns and bool(last["_statsapi_source"].fillna(False).any()):
+        return runs
+    if "events" in last.columns:
+        ev = last["events"]
+        runs = runs.where(~ev.isin(_NO_RBI_EVENTS), 0)
+        if "outs_when_up" in last.columns and "on_3b" in last.columns:
+            ok = (last["outs_when_up"].fillna(9) < 2) & last["on_3b"].notna()
+            err = ev == "field_error"
+            runs = runs.where(~err, runs.where(ok, 0).clip(upper=1))
+    return runs
+
+
 def calc_batter_pa_stats(g: pd.DataFrame) -> dict:
     pa_df = g.groupby("at_bat_number").first().reset_index()
+    # 打席を完了していない打席（盗塁死でイニングが終わった等＝結果が付かない／truncated_pa）は
+    # 公式の打席数に数えない。以前はすべて1打席に数えていたため打席数が公式より多く出ていた。
+    pa_df = pa_df[pa_df["events"].notna() & (pa_df["events"] != "truncated_pa")]
 
     pa  = len(pa_df)
+    # 打数に数える結果。失策出塁（field_error）・三重殺も打数（以前は漏れていて打数が少なく、打率・出塁率が高く出ていた）
     AB_EVENTS = {
         "single","double","triple","home_run","strikeout","strikeout_double_play",
         "field_out","flyout","lineout","groundout","grounded_into_double_play",
         "force_out","double_play","fielders_choice","fielders_choice_out","other_out",
+        "field_error","triple_play",
     }
     ab      = len(pa_df[pa_df["events"].isin(AB_EVENTS)])
     hits    = pa_df["events"].isin(["single","double","triple","home_run"]).sum()
@@ -1364,7 +1397,10 @@ def calc_batter_pa_stats(g: pd.DataFrame) -> dict:
     obpd = ab + bb + hbp + sac_f
     obp  = _round((hits+bb+hbp)/obpd, 3) if obpd > 0 else np.nan
     ops  = _round(_safe(obp,0) + _safe(slg,0), 3)
-    rbi  = max(0, int((pa_df["post_bat_score"].fillna(0)-pa_df["bat_score"].fillna(0)).clip(lower=0).sum()))
+    # 打点：各打席の最終投球の行から求める（最初の投球ではなく最後の投球の時点の得点状況が必要）
+    _last_rows = g.groupby("at_bat_number").tail(1)
+    _last_rows = _last_rows[_last_rows["at_bat_number"].isin(pa_df["at_bat_number"])]
+    rbi  = int(_pa_rbi(_last_rows).sum())
 
     ab_result_str = ",".join(
         event_to_jp(r["events"], r.get("bb_type",""))
@@ -1388,6 +1424,7 @@ def calc_batter_pa_stats(g: pd.DataFrame) -> dict:
                                         # では試合全体の走者情報が無く正しく計算できない）
         "打席": pa, "打数": ab,
         "安打": int(hits), "本塁打": int(hr), "長打": int(xbh), "単打": int(singles),
+        "二塁打": int(doubles), "三塁打": int(triples), "犠飛": int(sac_f), "犠打": int(sac_b),
         "四球": int(bb), "死球": int(hbp), "三振": int(so),
         "フライアウト(犠牲フライ含む)": int(fly_out),
         "ライナーアウト": int(line_out), "ゴロアウト": int(gro_out),
@@ -2913,7 +2950,7 @@ def build_batter_pitch_splits_mlb(df: pd.DataFrame) -> pd.DataFrame:
         # 打点：Statcastはbat_score/post_bat_scoreを最終投球に付与しているため
         # (post_bat_score-bat_score)の差分がその打席のRBI（NPBには対応する情報が無い）
         if "post_bat_score" in last.columns and "bat_score" in last.columns:
-            rbi_n = int((last["post_bat_score"].fillna(0) - last["bat_score"].fillna(0)).clip(lower=0).sum())
+            rbi_n = int(_pa_rbi(last).sum())
         else:
             rbi_n = 0
         swing = g["_is_swing"]
@@ -3096,7 +3133,7 @@ def build_batter_course_splits_mlb(df: pd.DataFrame) -> pd.DataFrame:
         # 打点：Statcastはbat_score/post_bat_scoreを最終投球に付与しているため
         # (post_bat_score-bat_score)の差分がその打席のRBI（NPBには対応する情報が無い）
         if "post_bat_score" in last.columns and "bat_score" in last.columns:
-            rbi_n = int((last["post_bat_score"].fillna(0) - last["bat_score"].fillna(0)).clip(lower=0).sum())
+            rbi_n = int(_pa_rbi(last).sum())
         else:
             rbi_n = 0
         swing = g["_is_swing"]
@@ -3215,7 +3252,7 @@ def build_batter_course_pitch_splits_mlb(df: pd.DataFrame) -> pd.DataFrame:
         hbp_n = int((ev == "hit_by_pitch").sum())
         k_n = int(ev.isin(["strikeout", "strikeout_double_play"]).sum())
         if "post_bat_score" in last.columns and "bat_score" in last.columns:
-            rbi_n = int((last["post_bat_score"].fillna(0) - last["bat_score"].fillna(0)).clip(lower=0).sum())
+            rbi_n = int(_pa_rbi(last).sum())
         else:
             rbi_n = 0
         swing = g["_is_swing"]
@@ -3312,7 +3349,7 @@ def build_batter_count_splits_mlb(df: pd.DataFrame) -> pd.DataFrame:
         # 打点：Statcastはbat_score/post_bat_scoreを最終投球に付与しているため
         # (post_bat_score-bat_score)の差分がその打席のRBI（NPBには対応する情報が無い）
         if "post_bat_score" in last.columns and "bat_score" in last.columns:
-            rbi_n = int((last["post_bat_score"].fillna(0) - last["bat_score"].fillna(0)).clip(lower=0).sum())
+            rbi_n = int(_pa_rbi(last).sum())
         else:
             rbi_n = 0
         swing = g["_is_swing"]
@@ -3400,7 +3437,7 @@ def build_batter_situation_splits_mlb(df: pd.DataFrame) -> pd.DataFrame:
         # 打点：Statcastはbat_score/post_bat_scoreを最終投球に付与しているため
         # (post_bat_score-bat_score)の差分がその打席のRBI（NPBには対応する情報が無い）
         if "post_bat_score" in last.columns and "bat_score" in last.columns:
-            rbi_n = int((last["post_bat_score"].fillna(0) - last["bat_score"].fillna(0)).clip(lower=0).sum())
+            rbi_n = int(_pa_rbi(last).sum())
         else:
             rbi_n = 0
         swing = g["_is_swing"]
@@ -3489,7 +3526,7 @@ def build_batter_vs_pitcher_mlb(df: pd.DataFrame) -> pd.DataFrame:
         hbp_n = int((ev == "hit_by_pitch").sum())
         k_n = int(ev.isin(["strikeout", "strikeout_double_play"]).sum())
         if "post_bat_score" in last.columns and "bat_score" in last.columns:
-            rbi_n = int((last["post_bat_score"].fillna(0) - last["bat_score"].fillna(0)).clip(lower=0).sum())
+            rbi_n = int(_pa_rbi(last).sum())
         else:
             rbi_n = 0
         swing = g["_is_swing"]
@@ -4159,6 +4196,10 @@ def _build_game_json(dm_path: str, date: str,
             "pa":     _iv(r.get("打席")),
             "ab":     _iv(r.get("打数")),
             "rbi":    _iv(r.get("打点")),
+            # シーズンの出塁率・長打率を公式の定義で合算するための内訳（列が無い古いデータマートでは付けない）
+            **({"bbh": _iv(r.get("四球")) + _iv(r.get("死球")), "hbp": _iv(r.get("死球")),
+                "dbl": _iv(r.get("二塁打")), "tpl": _iv(r.get("三塁打")),
+                "sf": _iv(r.get("犠飛")), "sh": _iv(r.get("犠打"))} if "犠飛" in r else {}),
             "sb":     _iv(r.get("盗塁")),
             "cs":     _iv(r.get("盗塁死")),
             # MLB独自
