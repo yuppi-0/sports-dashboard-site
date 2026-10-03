@@ -53,6 +53,7 @@ import sys
 import os
 import io
 import json
+import time
 from jsonio import write_json, remove_json, list_json_stems
 from player_names import resolve_names
 import math
@@ -2166,6 +2167,69 @@ def build_game_batter_stats(df: pd.DataFrame) -> pd.DataFrame:
                      "打順":0,"守備位置":pos_val,"stand":_stand,**stats})
     return pd.DataFrame(rows)
 
+# ── 投手の試合別成績を公式の箱スコア（statsapi）で上書きする ─────────────────
+# Statcastの投球データからの再集計は、走者の進塁での失点（自責/非自責・継投時の引き継ぎ走者の責任投手）、
+# 盗塁死・牽制死などの打席外のアウトを正しく扱えず、投球回が短く・自責点（防御率）が大きく出ていた。
+# 公式の箱スコアにある投球回・自責点・失点・被安打・四死球・奪三振・対戦打者数をそのまま使う。
+_PIT_BOX_CACHE: dict = {}
+
+
+def fetch_pitching_boxscore(game_pk) -> dict:
+    """{投手ID(int): 公式の投手成績dict}。取得できなければ空dict（呼び出し側は従来の再集計値を使う）。"""
+    key = str(game_pk)
+    if key in _PIT_BOX_CACHE:
+        return _PIT_BOX_CACHE[key]
+    out: dict = {}
+    if _REQUESTS_AVAILABLE:
+        import requests as _rq
+        for attempt in range(4):
+            try:
+                res = _rq.get(f"https://statsapi.mlb.com/api/v1/game/{key}/boxscore", timeout=30)
+                res.raise_for_status()
+                teams = res.json().get("teams", {})
+                for side in ("home", "away"):
+                    for pdata in (teams.get(side, {}).get("players", {}) or {}).values():
+                        st = (pdata.get("stats", {}) or {}).get("pitching", {}) or {}
+                        pid = (pdata.get("person", {}) or {}).get("id")
+                        if pid and st:
+                            out[int(pid)] = st
+                break
+            except Exception as e:  # noqa: BLE001
+                if attempt == 3:
+                    logger.warning(f"[boxscore] 取得失敗 game_pk={key}: {e}")
+                else:
+                    time.sleep(1.5 * (attempt + 1))
+    _PIT_BOX_CACHE[key] = out
+    return out
+
+
+def apply_official_pitching(stats: dict, box: dict | None) -> dict:
+    """再集計した投手成績 stats を、公式の箱スコア box（statsapiのpitching stats）で上書きして返す。
+    boxが無い・投球回が読めないときは stats をそのまま返す。"""
+    if not box or box.get("inningsPitched") in (None, ""):
+        return stats
+
+    def _i(k):
+        try:
+            return int(box.get(k, 0) or 0)
+        except (TypeError, ValueError):
+            return 0
+    tbf, so, bb = _i("battersFaced"), _i("strikeOuts"), _i("baseOnBalls")
+    new = dict(stats)
+    new.update({
+        "投球回": str(box["inningsPitched"]),
+        "失点": _i("runs"), "自責点": _i("earnedRuns"),
+        "被安打": _i("hits"), "被本塁打": _i("homeRuns"),
+        "与四球": bb, "与死球": _i("hitBatsmen"), "奪三振": so,
+    })
+    if tbf > 0:
+        new["対戦打者数"] = tbf
+        new["K%"] = _pct(so, tbf)
+        new["BB%"] = _pct(bb, tbf)
+        new["K-BB%"] = _round(_safe(_pct(so, tbf), 0) - _safe(_pct(bb, tbf), 0), 1)
+    return new
+
+
 def build_game_pitcher_stats(df: pd.DataFrame) -> pd.DataFrame:
     rows = []
     is_statsapi = "_statsapi_source" in df.columns and df["_statsapi_source"].any()
@@ -2180,6 +2244,7 @@ def build_game_pitcher_stats(df: pd.DataFrame) -> pd.DataFrame:
             stats = _calc_pitcher_stats_from_statsapi(g)
         else:
             stats = calc_pitcher_stats(g)
+            stats = apply_official_pitching(stats, fetch_pitching_boxscore(gid).get(int(pid)))
 
         rows.append({"試合ID":str(gid),"試合日":str(row0["game_date"])[:10],
                      "選手名":name,"チーム":team,"ホーム/アウェイ":ha,
