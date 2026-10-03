@@ -1398,7 +1398,11 @@ def calc_batter_pa_stats(g: pd.DataFrame) -> dict:
     obp  = _round((hits+bb+hbp)/obpd, 3) if obpd > 0 else np.nan
     ops  = _round(_safe(obp,0) + _safe(slg,0), 3)
     # 打点：各打席の最終投球の行から求める（最初の投球ではなく最後の投球の時点の得点状況が必要）
-    _last_rows = g.groupby("at_bat_number").tail(1)
+    # （Statcastの行は新しい投球が先頭に並ぶことがあるため、行の並びではなく pitch_number が最大の行を最終投球とする）
+    if "pitch_number" in g.columns and g["pitch_number"].notna().any():
+        _last_rows = g.loc[g.groupby("at_bat_number")["pitch_number"].idxmax()]
+    else:
+        _last_rows = g.groupby("at_bat_number").head(1)
     _last_rows = _last_rows[_last_rows["at_bat_number"].isin(pa_df["at_bat_number"])]
     rbi  = int(_pa_rbi(_last_rows).sum())
 
