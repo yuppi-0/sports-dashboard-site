@@ -1,0 +1,26 @@
+name: MLB打者成績の公式値との突き合わせ
+
+# 当サイトのMLB打者成績（打率・出塁率・長打率・OPS・打席・本塁打・打点・盗塁）を、MLB公式の
+# レギュラーシーズン成績と突き合わせて、ずれを一覧にする。データは書き換えない（読み取り専用）。
+on:
+  workflow_dispatch:
+    inputs:
+      years:
+        description: '対象年（スペース区切り）'
+        required: false
+        default: '2026 2025 2024 2023'
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install requests
+      - name: 突き合わせ
+        run: python baseball/scripts/check_mlb_batting.py --year ${{ inputs.years }}
