@@ -47,3 +47,12 @@ def test_falls_back_to_weighted_average_when_breakdown_missing():
     g = {"pa": 4, "ab": 4, "h": 1, "hr": 0, "bb": 0, "k": 0, "rbi": 0, "sb": 0, "obp": 0.25, "slg": 0.25, "ops": 0.5}
     r = eb.calc_season_batter_stats([{"player": g}])
     assert (r["出塁率"], r["長打率"], r["OPS"]) == (0.25, 0.25, 0.5)
+
+
+def test_ops_sums_unrounded_obp_and_slg():
+    # 佐藤輝明: 出塁率.391 + 長打率.625 の丸め値の和は1.016だが、公式のOPSは丸める前の合算で1.017
+    one = {"pa": 598, "ab": 523, "h": 164, "hr": 40, "bb": 66, "k": 100, "rbi": 105, "sb": 0,
+           "hbp": 6, "bbh": 69, "dbl": 22, "tpl": 1, "sf": 0, "sh": 0}
+    r = eb.calc_season_batter_stats([{"player": one}])
+    exact = (164 + 69) / (523 + 69) + (164 + 22 + 2 + 120) / 523
+    assert r["OPS"] == round(exact, 3)

@@ -315,7 +315,9 @@ def calc_season_batter_stats(appearances: list[dict], hand_filter: str | None = 
         obp_den = ab + bbh + sf
         obp = round((h + bbh) / obp_den, 3) if obp_den > 0 else None
         slg = round((h + dbl + 2 * tpl + 3 * hr) / ab, 3) if ab > 0 else None
-        ops = round(obp + slg, 3) if obp is not None and slg is not None else None
+        # OPSは丸める前の出塁率+長打率を合算して丸める（公式の値。丸めた値の和だと±0.001ずれることがある）
+        ops = (round((h + bbh) / obp_den + (h + dbl + 2 * tpl + 3 * hr) / ab, 3)
+               if obp_den > 0 and ab > 0 else None)
     else:
         # 内訳が無いデータ（MLB・古いデータ）は、試合ごとの計算済み値を打席数で加重平均した近似値
         obp = _weighted_avg([(ap["player"].get("obp"), ap["player"].get("pa") or 0) for ap in rows])
@@ -400,7 +402,7 @@ def _agg_pitch_group(entries: list[dict]) -> dict:
         "avg": round(h / ab, 3) if ab > 0 else None,
         "slg": round(total_bases / ab, 3) if ab > 0 else None,
         "obp": round((h + bb + hbp) / obp_den, 3) if obp_den > 0 else None,
-        "ops": (round(total_bases / ab, 3) + round((h + bb + hbp) / obp_den, 3))
+        "ops": round(total_bases / ab + (h + bb + hbp) / obp_den, 3)
                if ab > 0 and obp_den > 0 else None,
         "k_pct": round(k / pa * 100, 1) if pa > 0 else None,
         "bb_pct": round(bb / pa * 100, 1) if pa > 0 else None,
