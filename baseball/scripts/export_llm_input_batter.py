@@ -307,10 +307,20 @@ def calc_season_batter_stats(appearances: list[dict], hand_filter: str | None = 
     bbpct = round(bb / pa * 100, 1) if pa > 0 else None
     hrpct = round(hr / pa * 100, 1) if pa > 0 else None
 
-    # OBP/SLG/OPSは打席内訳が無いため、試合ごとの計算済み値を打席数で加重平均した近似値
-    obp = _weighted_avg([(ap["player"].get("obp"), ap["player"].get("pa") or 0) for ap in rows])
-    slg = _weighted_avg([(ap["player"].get("slg"), ap["player"].get("pa") or 0) for ap in rows])
-    ops = _weighted_avg([(ap["player"].get("ops"), ap["player"].get("pa") or 0) for ap in rows])
+    if all("sf" in (ap["player"] or {}) and "dbl" in (ap["player"] or {}) for ap in rows):
+        # 内訳（二塁打・三塁打・犠飛）がある試合データ（NPB・公式の箱スコア由来）は、
+        # 公式の定義どおりシーズン合計から計算する：
+        #   出塁率 = (安打+四死球) / (打数+四死球+犠飛)、長打率 = 塁打 / 打数
+        dbl, tpl, sf = s("dbl"), s("tpl"), s("sf")
+        obp_den = ab + bb + sf
+        obp = round((h + bb) / obp_den, 3) if obp_den > 0 else None
+        slg = round((h + dbl + 2 * tpl + 3 * hr) / ab, 3) if ab > 0 else None
+        ops = round(obp + slg, 3) if obp is not None and slg is not None else None
+    else:
+        # 内訳が無いデータ（MLB・古いデータ）は、試合ごとの計算済み値を打席数で加重平均した近似値
+        obp = _weighted_avg([(ap["player"].get("obp"), ap["player"].get("pa") or 0) for ap in rows])
+        slg = _weighted_avg([(ap["player"].get("slg"), ap["player"].get("pa") or 0) for ap in rows])
+        ops = _weighted_avg([(ap["player"].get("ops"), ap["player"].get("pa") or 0) for ap in rows])
 
     chase = _weighted_avg([(ap["player"].get("chase"), ap["player"].get("pa") or 0) for ap in rows])
     contact = _weighted_avg([(ap["player"].get("contact"), ap["player"].get("pa") or 0) for ap in rows])

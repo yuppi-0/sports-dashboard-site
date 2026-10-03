@@ -1416,6 +1416,39 @@ _INPLAY_CATS    = ("アウト系", "出塁/ヒット系", "犠打/犠飛系")
 _AB_RESULT_PAT  = re.compile(r"安打|2塁打|3塁打|本塁打|右中本$|左中本$|^中本$|ゴロ|飛|直|併殺|失|野選")
 
 
+_BOX_INN_COL = re.compile(r"^\d+回$")
+
+
+def box_batting_counts(row) -> dict | None:
+    """Yahoo!の試合別「打撃成績」（公式の箱スコア）の1行から、打撃の基礎数値を取り出す。
+
+    打席完了結果（投球データ）からの再集計は、犠飛・失策・走者のいる打席などの判定を誤って
+    打数や出塁率・長打率がずれることがあったため、公式の数字を使う。
+      打数・安打・本塁打・四球・死球・犠打・三振・打点: 箱スコアの列そのもの
+      二塁打・三塁打・犠飛: 箱スコアに列が無いので、打席別結果（1回〜）の文字（左２・中３・右犠飛 等）から数える
+      打席 = 打数 + 四球 + 死球 + 犠打 + 犠飛（公式の定義）
+    必要な列が数値で読めなければ None（呼び出し側は従来の集計にフォールバックする）。
+    """
+    def n(col):
+        v = to_num(row.get(col, np.nan))
+        return None if v is None or (isinstance(v, float) and np.isnan(v)) else int(v)
+
+    ab, h, hr, bb, hbp, sh = (n(c) for c in ("打数", "安打", "本塁打", "四球", "死球", "犠打"))
+    if None in (ab, h, hr, bb, hbp, sh):
+        return None
+    cells = [str(row[c]).strip() for c in row.index
+             if _BOX_INN_COL.match(str(c)) and pd.notna(row[c]) and str(row[c]).strip() not in ("", "nan")]
+    d2 = sum(1 for c in cells if re.search(r"[２2]$", c))
+    d3 = sum(1 for c in cells if re.search(r"[３3]$", c))
+    sf = sum(1 for c in cells if "犠飛" in c)
+    return {
+        "ab": ab, "h": h, "hr": hr, "bb": bb, "hbp": hbp, "sh": sh, "sf": sf,
+        "d2": d2, "d3": d3, "k": n("三振"), "rbi": n("打点"),
+        "pa": ab + bb + hbp + sh + sf,
+    }
+
+
+
 def ab_result_flags(category: str, result: str) -> tuple[int, int, int]:
     """打席完了球の (打数, 安打, 長打[2塁打以上]) を 0/1 で返す。打数に数えない結果は全て0。"""
     res = str(result or "").strip()
@@ -2635,6 +2668,19 @@ def run_datamart(
         # 打数 = 打席 - 四球 - 死球 - 犠打 - 犠飛
         ab = pa - bb_cnt - hbp_cnt - sac_cnt - sf_cnt
 
+        # 公式の箱スコアが読めるときは、その数字で打撃成績を決める（投球データからの再集計は
+        # 犠飛などの判定ずれで打数・打率・出塁率・長打率・OPSが公式とずれていた）。
+        _box = box_batting_counts(b)
+        if _box:
+            ab, h_cnt, hr_cnt = _box["ab"], _box["h"], _box["hr"]
+            bb_cnt, hbp_cnt, sac_cnt, sf_cnt = _box["bb"], _box["hbp"], _box["sh"], _box["sf"]
+            dbl_cnt, tpl_cnt = _box["d2"], _box["d3"]
+            if _box["k"] is not None:
+                k_cnt = _box["k"]
+            sgl_cnt = max(h_cnt - dbl_cnt - tpl_cnt - hr_cnt, 0)
+            extra_hit = dbl_cnt + tpl_cnt
+            pa = _box["pa"]
+
         # 出塁率・長打率・OPS
         obp_d = ab + bb_cnt + hbp_cnt + sf_cnt
         obp   = round((h_cnt + bb_cnt + hbp_cnt) / obp_d, 3) if obp_d > 0 else 0.0
@@ -2674,6 +2720,7 @@ def run_datamart(
             "盗塁":   to_num(b.get("盗塁", 0), default=0),
             "打席": pa, "打数": ab,
             "安打": h_cnt, "本塁打": hr_cnt, "長打": extra_hit, "単打": sgl_cnt,
+            "二塁打": dbl_cnt, "三塁打": tpl_cnt, "犠打": sac_cnt, "犠飛": sf_cnt,
             "四球":   bb_cnt, "死球": hbp_cnt,
             "三振":   k_cnt,
             "フライアウト(犠牲フライ含む)": bd.get("フライアウト(犠牲フライ含む)", bd.get("フライアウト（犠牲フライ含む）", 0)),
@@ -3569,6 +3616,11 @@ def _build_dashboard_data(datamart_path: str, pitch_locs: dict | None = None, cb
             # datamartの列は「四球」「死球」に分かれている（「四死球」という列は存在しない）。
             # 以前は存在しない列名を参照していたため常に0になっていた。
             "bb":      _iv(bat_row.get("四球")) + _iv(bat_row.get("死球")),
+            # 出塁率・長打率をシーズンで正確に合算するための内訳（NPBのみ。公式の箱スコア由来）
+            # （列が無い古いデータマートではキー自体を付けない＝集計側は従来の近似にフォールバックする）
+            **({"hbp": _iv(bat_row.get("死球")), "dbl": _iv(bat_row.get("二塁打")),
+                "tpl": _iv(bat_row.get("三塁打")), "sf": _iv(bat_row.get("犠飛")),
+                "sh": _iv(bat_row.get("犠打"))} if "犠飛" in bat_row else {}),
             "k":       _iv(bat_row.get("三振")),
             # 列名は「打席」（「打席数」ではない）。以前は存在しない列名を参照していたため常に0になっていた。
             "pa":      _iv(bat_row.get("打席")),
