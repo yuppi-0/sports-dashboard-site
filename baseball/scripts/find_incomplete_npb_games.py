@@ -294,7 +294,22 @@ def main() -> None:
     if args.schedule:
         sys.path.insert(0, str(_SCRIPT_DIR))
         import run as npb  # noqa: WPS433  （スクレイパー本体。日程ページの取得関数を使う）
-        for (lv, date) in sorted(raw_ids_by_key):
+        # RAWの日付フォルダが1つも無い日（取得が丸ごと抜けた日・中止後の振替試合の日）も日程と突き合わせる。
+        # 日付フォルダがある日だけを見ていると、フォルダごと無い日の試合は永久に検出できない。
+        check_keys = set(raw_ids_by_key)
+        for lv in {lv for (lv, _gt) in ids_by_type}:
+            raw_dates = sorted(datetime.date.fromisoformat(d)
+                               for (lv2, _gt), by_date in ids_by_type.items() if lv2 == lv for d in by_date)
+            if not raw_dates:
+                continue
+            start, end = (window[0], scope[1]) if scope else (raw_dates[0], raw_dates[-1])
+            start = max(start, raw_dates[0])
+            end = min(end, datetime.date.today())
+            d = start
+            while d <= end:
+                check_keys.add((lv, d.isoformat()))
+                d += datetime.timedelta(days=1)
+        for (lv, date) in sorted(check_keys):
             lg = "ichi" if lv == "1軍" else "ni"
             try:
                 npb.set_league_dirs(lg, date)
