@@ -2145,7 +2145,7 @@ def build_game_batter_stats(df: pd.DataFrame) -> pd.DataFrame:
         team = row0.get("home_team","") if ha=="home" else row0.get("away_team","")
         stats= calc_batter_pa_stats(g)
         if not ("_statsapi_source" in g.columns and bool(g["_statsapi_source"].fillna(False).any())):
-            stats = apply_official_rbi(stats, fetch_boxscore(gid)["batting"].get(int(bid)))
+            stats = apply_official_batting(stats, fetch_boxscore(gid)["batting"].get(int(bid)))
         try:
             steal = steal_idx.get((str(gid), int(bid)), {"sb": 0, "cs": 0})
         except (ValueError, TypeError):
@@ -2213,17 +2213,45 @@ def fetch_pitching_boxscore(game_pk) -> dict:
     return fetch_boxscore(game_pk)["pitching"]
 
 
-def apply_official_rbi(stats: dict, box_bat: dict | None) -> dict:
-    """打者の試合別成績の打点を、公式の箱スコア（statsapiのbatting stats）の打点で置き換えて返す。
-    ルールからの推定（併殺打・失策の扱い等）は完全には一致しないため、公式の値がある試合はそれを使う。"""
-    if not box_bat or box_bat.get("rbi") is None:
+def apply_official_batting(stats: dict, box_bat: dict | None) -> dict:
+    """打者の試合別成績を、公式の箱スコア（statsapiのbatting stats）の値で置き換えて返す。
+    Statcastのイベントからの再集計は、打点（併殺打・失策の扱い）や、まれに1打席のずれ（欠落・打席の数え方）が出るため、
+    箱スコアにある打席・打数・安打・二三塁打・本塁打・四死球・三振・犠打飛・打点は公式の値を使う。
+    必須の項目（打席・打数・安打）が無いときは、打点だけ置き換える（打点も無ければそのまま返す）。"""
+    if not box_bat:
         return stats
-    try:
-        rbi = int(box_bat["rbi"])
-    except (TypeError, ValueError):
-        return stats
+
+    def _i(k):
+        try:
+            return int(box_bat[k]) if box_bat.get(k) is not None else None
+        except (TypeError, ValueError):
+            return None
+    pa, ab, h = _i("plateAppearances"), _i("atBats"), _i("hits")
+    rbi = _i("rbi")
     new = dict(stats)
-    new["打点"] = rbi
+    if pa is None or ab is None or h is None:
+        if rbi is not None:
+            new["打点"] = rbi
+            return new
+        return stats
+    d2, d3, hr = _i("doubles") or 0, _i("triples") or 0, _i("homeRuns") or 0
+    bb, hbp, so = _i("baseOnBalls") or 0, _i("hitByPitch") or 0, _i("strikeOuts") or 0
+    sf, sh = _i("sacFlies") or 0, _i("sacBunts") or 0
+    singles = h - d2 - d3 - hr
+    tb = singles + 2 * d2 + 3 * d3 + 4 * hr
+    obp_den = ab + bb + hbp + sf
+    new.update({
+        "打席": pa, "打数": ab, "安打": h, "二塁打": d2, "三塁打": d3, "本塁打": hr,
+        "四球": bb, "死球": hbp, "三振": so, "犠飛": sf, "犠打": sh,
+        "単打": singles, "長打": d2 + d3 + hr,
+        "打率": _round(h / ab, 3) if ab > 0 else np.nan,
+        "長打率": _round(tb / ab, 3) if ab > 0 else np.nan,
+        "出塁率": _round((h + bb + hbp) / obp_den, 3) if obp_den > 0 else np.nan,
+        "OPS": _round(((h + bb + hbp) / obp_den if obp_den > 0 else 0) + (tb / ab if ab > 0 else 0), 3),
+        "K%": _pct(so, pa), "BB%": _pct(bb, pa),
+    })
+    if rbi is not None:
+        new["打点"] = rbi
     return new
 
 

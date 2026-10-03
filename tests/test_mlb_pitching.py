@@ -28,10 +28,23 @@ def test_falls_back_when_box_missing_or_unreadable():
     assert mlb.apply_official_pitching(RECOMPUTED, {"inningsPitched": ""}) is RECOMPUTED
 
 
-def test_official_rbi_replaces_rule_based_value():
-    stats = {"打点": 3, "安打": 2}
-    assert mlb.apply_official_rbi(stats, {"rbi": 2})["打点"] == 2
-    assert stats["打点"] == 3                               # 元の辞書は変更しない
-    assert mlb.apply_official_rbi(stats, None) is stats
-    assert mlb.apply_official_rbi(stats, {"rbi": None}) is stats
-    assert mlb.apply_official_rbi(stats, {"rbi": "x"}) is stats
+def test_official_batting_replaces_recomputed_line():
+    stats = {"打点": 3, "打席": 5, "打数": 4, "安打": 2, "二塁打": 0, "三塁打": 0, "本塁打": 0, "四球": 1, "死球": 0, "三振": 1,
+             "犠飛": 0, "犠打": 0, "盗塁": 1, "打球": "x"}
+    box = {"plateAppearances": 5, "atBats": 3, "hits": 2, "doubles": 1, "triples": 0, "homeRuns": 0,
+           "baseOnBalls": 1, "hitByPitch": 0, "strikeOuts": 1, "sacFlies": 1, "sacBunts": 0, "rbi": 2}
+    out = mlb.apply_official_batting(stats, box)
+    assert (out["打席"], out["打数"], out["安打"], out["二塁打"], out["犠飛"], out["打点"]) == (5, 3, 2, 1, 1, 2)
+    assert out["単打"] == 1 and out["長打"] == 1
+    assert out["打率"] == round(2 / 3, 3) and out["長打率"] == round(3 / 3, 3)
+    assert out["出塁率"] == round((2 + 1) / (3 + 1 + 0 + 1), 3)
+    assert out["盗塁"] == 1 and out["打球"] == "x"        # 箱スコアに無い項目はそのまま
+    assert stats["打点"] == 3                              # 元の辞書は変更しない
+
+
+def test_official_batting_falls_back():
+    stats = {"打点": 3, "打席": 5}
+    assert mlb.apply_official_batting(stats, None) is stats
+    assert mlb.apply_official_batting(stats, {}) is stats
+    assert mlb.apply_official_batting(stats, {"rbi": 2})["打点"] == 2     # 必須項目が無ければ打点だけ
+    assert mlb.apply_official_batting(stats, {"rbi": None}) is stats
