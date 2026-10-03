@@ -1,0 +1,19 @@
+name: NPB順位表の調査
+
+# 順位表ページからチーム別の試合数を読めるか調べる読み取り専用ワークフロー。データは書き換えない。
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -r requirements.txt
+      - run: python baseball/scripts/probe_npb_standings.py 2>&1 | grep -v "FutureWarning\|google\|genai\|README\|updates or bug" || true
