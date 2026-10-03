@@ -3618,7 +3618,8 @@ def _build_dashboard_data(datamart_path: str, pitch_locs: dict | None = None, cb
             "bb":      _iv(bat_row.get("四球")) + _iv(bat_row.get("死球")),
             # 出塁率・長打率をシーズンで正確に合算するための内訳（NPBのみ。公式の箱スコア由来）
             # （列が無い古いデータマートではキー自体を付けない＝集計側は従来の近似にフォールバックする）
-            **({"hbp": _iv(bat_row.get("死球")), "dbl": _iv(bat_row.get("二塁打")),
+            **({"bbh": _iv(bat_row.get("四球")) + _iv(bat_row.get("死球")), "hbp": _iv(bat_row.get("死球")),
+                "dbl": _iv(bat_row.get("二塁打")),
                 "tpl": _iv(bat_row.get("三塁打")), "sf": _iv(bat_row.get("犠飛")),
                 "sh": _iv(bat_row.get("犠打"))} if "犠飛" in bat_row else {}),
             "k":       _iv(bat_row.get("三振")),

@@ -29,14 +29,14 @@ def test_box_counts_returns_none_when_columns_missing():
 def test_season_rates_use_official_definitions():
     # 山口航輝（2026-10-02時点の公式成績）：打数396 安打109 二塁打18 三塁打1 本塁打34 四球26 死球6 犠飛2
     one = {"pa": 430, "ab": 396, "h": 109, "hr": 34, "bb": 32, "k": 100, "rbi": 76, "sb": 0,
-           "hbp": 6, "dbl": 18, "tpl": 1, "sf": 2, "sh": 0}
+           "hbp": 6, "bbh": 32, "dbl": 18, "tpl": 1, "sf": 2, "sh": 0}
     r = eb.calc_season_batter_stats([{"player": one}])
     assert (r["打率"], r["出塁率"], r["長打率"], r["OPS"]) == (0.275, 0.328, 0.583, 0.911)
 
 
 def test_season_rates_sum_over_games_not_average_of_rates():
-    g1 = {"pa": 5, "ab": 4, "h": 4, "hr": 0, "bb": 1, "k": 0, "rbi": 0, "sb": 0, "hbp": 0, "dbl": 0, "tpl": 0, "sf": 0, "sh": 0}
-    g2 = {"pa": 5, "ab": 5, "h": 0, "hr": 0, "bb": 0, "k": 0, "rbi": 0, "sb": 0, "hbp": 0, "dbl": 0, "tpl": 0, "sf": 0, "sh": 0}
+    g1 = {"pa": 5, "ab": 4, "h": 4, "hr": 0, "bb": 1, "k": 0, "rbi": 0, "sb": 0, "hbp": 0, "bbh": 1, "dbl": 0, "tpl": 0, "sf": 0, "sh": 0}
+    g2 = {"pa": 5, "ab": 5, "h": 0, "hr": 0, "bb": 0, "k": 0, "rbi": 0, "sb": 0, "hbp": 0, "bbh": 0, "dbl": 0, "tpl": 0, "sf": 0, "sh": 0}
     r = eb.calc_season_batter_stats([{"player": g1}, {"player": g2}])
     assert r["打率"] == round(4 / 9, 3)
     assert r["出塁率"] == round(5 / 10, 3)

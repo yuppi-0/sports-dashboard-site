@@ -307,13 +307,13 @@ def calc_season_batter_stats(appearances: list[dict], hand_filter: str | None = 
     bbpct = round(bb / pa * 100, 1) if pa > 0 else None
     hrpct = round(hr / pa * 100, 1) if pa > 0 else None
 
-    if all("sf" in (ap["player"] or {}) and "dbl" in (ap["player"] or {}) for ap in rows):
-        # 内訳（二塁打・三塁打・犠飛）がある試合データ（NPB・公式の箱スコア由来）は、
+    if all(k_ in (ap["player"] or {}) for ap in rows for k_ in ("sf", "dbl", "tpl", "bbh")):
+        # 内訳（二塁打・三塁打・犠飛・四死球）がある試合データ（NPBは公式の箱スコア由来、MLBはStatcastのイベント由来）は、
         # 公式の定義どおりシーズン合計から計算する：
         #   出塁率 = (安打+四死球) / (打数+四死球+犠飛)、長打率 = 塁打 / 打数
-        dbl, tpl, sf = s("dbl"), s("tpl"), s("sf")
-        obp_den = ab + bb + sf
-        obp = round((h + bb) / obp_den, 3) if obp_den > 0 else None
+        dbl, tpl, sf, bbh = s("dbl"), s("tpl"), s("sf"), s("bbh")
+        obp_den = ab + bbh + sf
+        obp = round((h + bbh) / obp_den, 3) if obp_den > 0 else None
         slg = round((h + dbl + 2 * tpl + 3 * hr) / ab, 3) if ab > 0 else None
         ops = round(obp + slg, 3) if obp is not None and slg is not None else None
     else:
