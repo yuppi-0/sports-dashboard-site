@@ -26,3 +26,12 @@ def test_falls_back_when_box_missing_or_unreadable():
     assert mlb.apply_official_pitching(RECOMPUTED, None) is RECOMPUTED
     assert mlb.apply_official_pitching(RECOMPUTED, {}) is RECOMPUTED
     assert mlb.apply_official_pitching(RECOMPUTED, {"inningsPitched": ""}) is RECOMPUTED
+
+
+def test_official_rbi_replaces_rule_based_value():
+    stats = {"打点": 3, "安打": 2}
+    assert mlb.apply_official_rbi(stats, {"rbi": 2})["打点"] == 2
+    assert stats["打点"] == 3                               # 元の辞書は変更しない
+    assert mlb.apply_official_rbi(stats, None) is stats
+    assert mlb.apply_official_rbi(stats, {"rbi": None}) is stats
+    assert mlb.apply_official_rbi(stats, {"rbi": "x"}) is stats
