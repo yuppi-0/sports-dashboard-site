@@ -203,8 +203,20 @@ def _normalize_name(name):
     return name
 
 
+def _fold_name(name: str) -> str:
+    """アクセント記号・大小文字の違いを無視した比較用キー（投手版と同じ。速報(statsapi)由来のアクセント無し表記と
+    Statcast由来のアクセント有り表記が別人として2枚に割れるのを防ぐ）。"""
+    import unicodedata
+    s = unicodedata.normalize("NFKD", name or "")
+    return "".join(ch for ch in s if not unicodedata.combining(ch)).lower().strip()
+
+
+def _accent_count(name: str) -> int:
+    return sum(1 for ch in (name or "") if ord(ch) > 127)
+
+
 def build_all_batter_names(all_data: dict) -> set[str]:
-    """全登場打者名を収集（表記ゆれを正規化・壊れたエントリはスキップ）"""
+    """全登場打者名を収集（表記ゆれを正規化・壊れたエントリはスキップ）。アクセント違いは1つにまとめ、アクセント付きを代表名にする。"""
     names = set()
     for date, games in all_data.items():
         if date == "highlights" or date.startswith("_"):
@@ -219,7 +231,12 @@ def build_all_batter_names(all_data: dict) -> set[str]:
                 for b in (batters.get(side) or []):
                     if isinstance(b, dict) and b.get("name"):
                         names.add(_normalize_name(b["name"]))
-    return names
+    best: dict = {}
+    for n in names:
+        k = _fold_name(n)
+        if k not in best or _accent_count(n) > _accent_count(best[k]):
+            best[k] = n
+    return set(best.values())
 
 
 def _opp_pitcher_hand(game: dict, batter_side: str) -> str | None:
@@ -242,7 +259,7 @@ def build_appearances_batter(all_data: dict, player_name: str) -> list[dict]:
     """特定打者の全出場試合を集める。各要素に対戦相手投手の腕(opp_pitcher_hand)を添える"""
     appearances = []
     dates = sorted(d for d in all_data.keys() if d != "highlights" and not d.startswith("_"))
-    name_norm = _normalize_name(player_name).lower()
+    name_norm = _fold_name(_normalize_name(player_name))
     for date in dates:
         for g in all_data.get(date, []):
             if not isinstance(g, dict):
@@ -255,7 +272,7 @@ def build_appearances_batter(all_data: dict, player_name: str) -> list[dict]:
                     if not isinstance(b, dict):
                         continue
                     raw_name = b.get("name") or ""
-                    if _normalize_name(raw_name).lower() == name_norm:
+                    if _fold_name(_normalize_name(raw_name)) == name_norm:
                         appearances.append({
                             "date": date, "game": g, "side": side, "player": b,
                             "opp_pitcher_hand": _opp_pitcher_hand(g, side),

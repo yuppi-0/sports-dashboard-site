@@ -118,8 +118,21 @@ def _normalize_pitcher_name(name: str) -> str:
     return name
 
 
+def _fold_name(name: str) -> str:
+    """アクセント記号・大小文字の違いを無視した比較用キー。'José A. Ferrer' と 'Jose A. Ferrer' を同一選手として扱う
+    （速報(statsapi)由来の行はアクセント無し、Statcast由来の行はアクセント有りで入るため、別人として2枚に割れていた）。"""
+    import unicodedata
+    s = unicodedata.normalize("NFKD", name or "")
+    return "".join(ch for ch in s if not unicodedata.combining(ch)).lower().strip()
+
+
+def _accent_count(name: str) -> int:
+    return sum(1 for ch in (name or "") if ord(ch) > 127)
+
+
 def build_all_pitcher_names(all_data: dict) -> set[str]:
-    """全登場投手名を収集（表記ゆれを正規化・壊れたエントリはスキップ）"""
+    """全登場投手名を収集（表記ゆれを正規化・壊れたエントリはスキップ）。
+    アクセント違いの表記は1つにまとめ、アクセント付きの表記を代表名にする。"""
     names = set()
     for date, games in all_data.items():
         if date == "highlights" or date.startswith("_"):
@@ -134,7 +147,12 @@ def build_all_pitcher_names(all_data: dict) -> set[str]:
                 for p in (pitchers.get(side) or []):
                     if isinstance(p, dict) and p.get("name"):
                         names.add(_normalize_pitcher_name(p["name"]))
-    return names
+    best: dict = {}
+    for n in names:
+        k = _fold_name(n)
+        if k not in best or _accent_count(n) > _accent_count(best[k]):
+            best[k] = n
+    return set(best.values())
 
 
 def build_appearances(all_data: dict, player_name: str) -> list[dict]:
@@ -143,7 +161,7 @@ def build_appearances(all_data: dict, player_name: str) -> list[dict]:
     """
     appearances = []
     dates = sorted(d for d in all_data.keys() if d != "highlights" and not d.startswith("_"))
-    name_norm = _normalize_pitcher_name(player_name).lower()
+    name_norm = _fold_name(_normalize_pitcher_name(player_name))
     for date in dates:
         for g in all_data.get(date, []):
             if not isinstance(g, dict):
@@ -156,7 +174,7 @@ def build_appearances(all_data: dict, player_name: str) -> list[dict]:
                     if not isinstance(p, dict):
                         continue
                     raw_name = p.get("name") or ""
-                    if _normalize_pitcher_name(raw_name).lower() == name_norm:
+                    if _fold_name(_normalize_pitcher_name(raw_name)) == name_norm:
                         appearances.append({"date": date, "game": g, "side": side, "player": p})
     return appearances
 
