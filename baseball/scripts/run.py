@@ -2348,6 +2348,11 @@ def run_datamart(
         st_name = starter_map.get((gid, team))
         role = ("先発" if st_name == name else "中継ぎ") if st_name else p.get("役割", "中継ぎ")
 
+        # 対戦打者数・K%・BB%は公式の箱スコア（打者・奪三振・与四球）を優先する。
+        # 投球データからの再集計は、失策出塁・野選・打撃妨害など打球分類に入らない打席を取りこぼし、
+        # 1打席ずつ少なく出ていた（K%・BB%が公式の値より高くなる）。箱スコアが読めない場合だけ再集計値を使う。
+        tbf_v, k_pct_v, bb_pct_v, kbb_pct_v = official_pitcher_rates(p, _ab("対戦打者数", 0), _ab("K%", 0.0), _ab("BB%", 0.0), _ab("K-BB%", 0.0))
+
         fp_rows.append({
             "選手名":            name,
             "チーム":            team,
@@ -2355,7 +2360,7 @@ def run_datamart(
             "試合日":            TARGET_DATE,
             "投球回":            round(ip_v, 2) if ip_v is not None else "",
             "投球数":            p.get("投球数", ""),
-            "対戦打者数":        _ab("対戦打者数", 0),
+            "対戦打者数":        tbf_v,
             "失点":              p.get("失点", ""),
             "自責点":            p.get("自責点", ""),
             "被安打":            p.get("被安打", ""),
@@ -2363,9 +2368,9 @@ def run_datamart(
             "与四球":            p.get("与四球", ""),
             "与死球":            p.get("与死球", ""),
             "奪三振":            p.get("奪三振", ""),
-            "K%":                _ab("K%",    0.0),
-            "BB%":               _ab("BB%",   0.0),
-            "K-BB%":             _ab("K-BB%", 0.0),
+            "K%":                k_pct_v,
+            "BB%":               bb_pct_v,
+            "K-BB%":             kbb_pct_v,
             "全打球数":          _ab("全打球数", ""),
             "GB":                _ab("GB",       ""),
             "LD":                _ab("LD",       ""),
@@ -3202,6 +3207,21 @@ def _parse_abs(result_str):
     if not result_str:
         return []
     return [_ABS_MAP.get(p.strip(), p.strip()) for p in str(result_str).split(",") if p.strip()]
+
+
+def official_pitcher_rates(box_row, tbf_calc, k_pct_calc, bb_pct_calc, kbb_pct_calc):
+    """投手の試合別 (対戦打者数, K%, BB%, K-BB%) を返す。公式の箱スコアの打者数・奪三振・与四球から計算し、
+    読めないとき（打者数が無い/0、数値でない）だけ投球データからの再集計値をそのまま返す。"""
+    def _n(v):
+        try:
+            f = float(v)
+        except (TypeError, ValueError):
+            return None
+        return None if f != f else f
+    tbf, k, bb = _n(box_row.get("打者")), _n(box_row.get("奪三振")), _n(box_row.get("与四球"))
+    if not tbf or tbf <= 0 or k is None or bb is None:
+        return tbf_calc, k_pct_calc, bb_pct_calc, kbb_pct_calc
+    return (int(tbf), round(k / tbf * 100, 1), round(bb / tbf * 100, 1), round((k - bb) / tbf * 100, 1))
 
 
 def _lr_stat(r: dict | None) -> dict | None:
