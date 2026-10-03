@@ -2144,6 +2144,8 @@ def build_game_batter_stats(df: pd.DataFrame) -> pd.DataFrame:
         name = str(row0.get("batter_name") or row0.get("player_name", str(bid)))
         team = row0.get("home_team","") if ha=="home" else row0.get("away_team","")
         stats= calc_batter_pa_stats(g)
+        if not ("_statsapi_source" in g.columns and bool(g["_statsapi_source"].fillna(False).any())):
+            stats = apply_official_rbi(stats, fetch_boxscore(gid)["batting"].get(int(bid)))
         try:
             steal = steal_idx.get((str(gid), int(bid)), {"sb": 0, "cs": 0})
         except (ValueError, TypeError):
@@ -2171,36 +2173,58 @@ def build_game_batter_stats(df: pd.DataFrame) -> pd.DataFrame:
 # Statcastの投球データからの再集計は、走者の進塁での失点（自責/非自責・継投時の引き継ぎ走者の責任投手）、
 # 盗塁死・牽制死などの打席外のアウトを正しく扱えず、投球回が短く・自責点（防御率）が大きく出ていた。
 # 公式の箱スコアにある投球回・自責点・失点・被安打・四死球・奪三振・対戦打者数をそのまま使う。
-_PIT_BOX_CACHE: dict = {}
+_BOX_CACHE: dict = {}
 
 
-def fetch_pitching_boxscore(game_pk) -> dict:
-    """{投手ID(int): 公式の投手成績dict}。取得できなければ空dict（呼び出し側は従来の再集計値を使う）。"""
+def fetch_boxscore(game_pk) -> dict:
+    """公式の箱スコア（statsapi）から {"pitching": {選手ID: 成績dict}, "batting": {選手ID: 成績dict}} を返す。
+    取得できなければ空の辞書（呼び出し側は従来の再集計値を使う）。同じ試合は1回しか取りに行かない。"""
     key = str(game_pk)
-    if key in _PIT_BOX_CACHE:
-        return _PIT_BOX_CACHE[key]
-    out: dict = {}
+    if key in _BOX_CACHE:
+        return _BOX_CACHE[key]
+    out: dict = {"pitching": {}, "batting": {}}
     if _REQUESTS_AVAILABLE:
-        import requests as _rq
         for attempt in range(4):
             try:
-                res = _rq.get(f"https://statsapi.mlb.com/api/v1/game/{key}/boxscore", timeout=30)
+                res = requests.get(f"https://statsapi.mlb.com/api/v1/game/{key}/boxscore", timeout=30)
                 res.raise_for_status()
                 teams = res.json().get("teams", {})
                 for side in ("home", "away"):
                     for pdata in (teams.get(side, {}).get("players", {}) or {}).values():
-                        st = (pdata.get("stats", {}) or {}).get("pitching", {}) or {}
                         pid = (pdata.get("person", {}) or {}).get("id")
-                        if pid and st:
-                            out[int(pid)] = st
+                        if not pid:
+                            continue
+                        for grp in ("pitching", "batting"):
+                            st = (pdata.get("stats", {}) or {}).get(grp, {}) or {}
+                            if st:
+                                out[grp][int(pid)] = st
                 break
             except Exception as e:  # noqa: BLE001
                 if attempt == 3:
                     logger.warning(f"[boxscore] 取得失敗 game_pk={key}: {e}")
                 else:
                     time.sleep(1.5 * (attempt + 1))
-    _PIT_BOX_CACHE[key] = out
+    _BOX_CACHE[key] = out
     return out
+
+
+def fetch_pitching_boxscore(game_pk) -> dict:
+    """{投手ID(int): 公式の投手成績dict}（取得できなければ空）。"""
+    return fetch_boxscore(game_pk)["pitching"]
+
+
+def apply_official_rbi(stats: dict, box_bat: dict | None) -> dict:
+    """打者の試合別成績の打点を、公式の箱スコア（statsapiのbatting stats）の打点で置き換えて返す。
+    ルールからの推定（併殺打・失策の扱い等）は完全には一致しないため、公式の値がある試合はそれを使う。"""
+    if not box_bat or box_bat.get("rbi") is None:
+        return stats
+    try:
+        rbi = int(box_bat["rbi"])
+    except (TypeError, ValueError):
+        return stats
+    new = dict(stats)
+    new["打点"] = rbi
+    return new
 
 
 def apply_official_pitching(stats: dict, box: dict | None) -> dict:
