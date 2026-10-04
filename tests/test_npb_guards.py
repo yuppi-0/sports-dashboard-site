@@ -127,15 +127,12 @@ def test_explicit_game_ids_only_for_saved_games_of_the_date(monkeypatch):
 
 
 # ── 取りこぼし取り直しの打ち切り（実行時間を抑える） ──
-def test_backfill_gives_up_dates_that_never_get_generated():
+def test_backfill_tries_each_game_only_once():
     import backfill_missing_npb_games as bf
     now = 1_000_000.0
     assert bf.eligible({}, "2軍", "2026-09-01", now)                                    # 初めては取り直す
-    st = {"2軍|2026-09-01": {"tries": 1, "last": now - 3600}}
-    assert not bf.eligible(st, "2軍", "2026-09-01", now)                                # 直後は間隔を空ける
-    assert bf.eligible(st, "2軍", "2026-09-01", now + 21 * 3600)                        # 間隔が空けばもう1回
-    st = {"2軍|2026-09-01": {"tries": bf.MAX_TRIES, "last": now - 99 * 3600}}
-    assert not bf.eligible(st, "2軍", "2026-09-01", now)                                # 2回試して出来なければ諦める
+    st = {"2軍|2026-09-01": {"tries": 1, "last": now - 99 * 3600}}
+    assert not bf.eligible(st, "2軍", "2026-09-01", now)                                # 1回試したら、時間が経っても再試行しない
 
 
 def test_backfill_state_roundtrip_and_raw_exists(tmp_path):
