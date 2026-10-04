@@ -1,0 +1,35 @@
+name: NPB保存済み箱スコアの訂正漏れチェック
+
+# 保存済みのNPB試合の箱スコアを、Yahoo!の現在のページと比べて、後日の公式記録の訂正が反映されていない試合を一覧にする。データは書き換えない（読み取り専用）。
+on:
+  workflow_dispatch:
+    inputs:
+      year:
+        description: '対象年'
+        required: false
+        default: '2026'
+      limit:
+        description: '試験用: 先頭からこの試合数だけ（0=全試合）'
+        required: false
+        default: '0'
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: yuppi-0/sports-dashboard-data
+          token: ${{ secrets.DATA_REPO_TOKEN }}
+          path: data
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -r requirements.txt
+      - name: 比較
+        run: python baseball/scripts/check_npb_stale_games.py --year "${{ inputs.year }}" --limit "${{ inputs.limit }}" 2>&1 | grep -v "FutureWarning\|google\|genai\|README\|updates or bug\|試合データ取得中"
