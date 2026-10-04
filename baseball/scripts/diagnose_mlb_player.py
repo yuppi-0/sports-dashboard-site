@@ -77,6 +77,7 @@ def main() -> None:
     ap.add_argument("name")
     ap.add_argument("--kind", choices=["pitching", "hitting"], required=True)
     ap.add_argument("--year", required=True)
+    ap.add_argument("--box", nargs="*", default=[], help="公式の箱スコアで、この選手の成績を見たい試合のgamePk")
     a = ap.parse_args()
     r = requests.get(f"{API}/stats", params={"stats": "season", "group": a.kind, "gameType": "R", "season": a.year,
                                              "playerPool": "ALL", "sportId": 1, "limit": 3000}, timeout=60).json()
@@ -88,6 +89,12 @@ def main() -> None:
     print("公式の該当選手:", ids)
     cards = list(load_card(a.year, a.kind, a.name))
     print("当サイトのカード:", [(f, c.get("team")) for f, c in cards])
+    for gpk in a.box:
+        bx = requests.get(f"{API}/game/{gpk}/boxscore", timeout=60).json()
+        for side in ("home", "away"):
+            for pl in (bx.get("teams", {}).get(side, {}).get("players") or {}).values():
+                if norm(pl["person"]["fullName"]) == norm(a.name):
+                    print(f"箱スコア gamePk={gpk} {side} {pl['person']['fullName']} id={pl['person']['id']}: {pl.get('stats', {}).get(a.kind) or pl.get('stats')}")
     # 当サイトの日付が米国の試合日そのままか、その翌日（日本時間表記）かは、公式の試合日と合う件数が多い方を採る
     first = next(iter(ids), None)
     official_dates: set = set()
@@ -109,7 +116,7 @@ def main() -> None:
         gl = requests.get(f"{API}/people/{pid}/stats", params={"stats": "gameLog", "group": a.kind, "season": a.year,
                                                                 "gameType": "R"}, timeout=60).json()
         splits = (gl.get("stats") or [{}])[0].get("splits") or []
-        print(f"\n=== {nm} id={pid} 公式 {len(splits)}試合 / 当サイト {sum(len(v) for v in site.values())}試合 ===")
+        print(f"\n=== {nm} id={pid} 公式 {len(splits)}試合・合計 {_sum_stats([x['stat'] for x in splits], a.kind)} / 当サイト {sum(len(v) for v in site.values())}試合 ===")
         seen = seen_all
         missing = 0
         by_date: dict = {}
@@ -124,7 +131,7 @@ def main() -> None:
                 missing += 1
                 if missing > 12:
                     continue
-                print(f"  [当サイトに無い] {d} {sp.get('opponent', {}).get('name')} 公式: " +
+                print(f"  [当サイトに無い] {d} {sp.get('opponent', {}).get('name')} gamePk={sp.get('game', {}).get('gamePk')} 公式: " +
                       (f"IP {st.get('inningsPitched')} K {st.get('strikeOuts')} BB {st.get('baseOnBalls')} H {st.get('hits')} ER {st.get('earnedRuns')}"
                        if a.kind == "pitching" else f"PA {st.get('plateAppearances')} AB {st.get('atBats')} H {st.get('hits')} BB {st.get('baseOnBalls')} SB {st.get('stolenBases')}"))
                 continue
@@ -136,7 +143,7 @@ def main() -> None:
                 o = (st.get("plateAppearances"), st.get("atBats"), st.get("hits"), st.get("baseOnBalls"), st.get("strikeOuts"), st.get("homeRuns"), st.get("rbi"))
                 m = (g.get("pa"), g.get("ab"), g.get("h"), g.get("bb"), g.get("k"), g.get("hr"), g.get("rbi"))
             if tuple(o) != tuple(m):
-                print(f"  [値が違う] {d} 公式{o} / 当サイト{m}")
+                print(f"  [値が違う] {d} 公式{o} / 当サイト{m} gamePk={[x.get('game', {}).get('gamePk') for x in sps]}")
         if missing > 12:
             print(f"  …（当サイトに無い試合は計{missing}件、同姓同名の別人の試合を含む可能性）")
     extra = sorted(set(site) - seen_all)

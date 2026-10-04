@@ -4,6 +4,10 @@ name: MLB選手の試合別の公式突き合わせ（原因調査）
 on:
   workflow_dispatch:
     inputs:
+      box:
+        description: '公式の箱スコアも見たい試合のgamePk（スペース区切り、任意）'
+        required: false
+        default: ''
       cases:
         description: '「種別:年:選手名」をカンマ区切り（種別は pitching / hitting）。例: pitching:2021:Joe Smith,hitting:2024:Danny Jansen'
         required: true
@@ -23,10 +27,11 @@ jobs:
       - name: 突き合わせ
         env:
           CASES: ${{ inputs.cases }}
+          BOX: ${{ inputs.box && format('--box {0}', inputs.box) || '' }}
         run: |
           IFS=',' read -ra ARR <<< "$CASES"
           for c in "${ARR[@]}"; do
             IFS=':' read -r kind year name <<< "$c"
             echo "##### $kind $year $name"
-            python baseball/scripts/diagnose_mlb_player.py --kind "$kind" --year "$year" "$name" || true
+            python baseball/scripts/diagnose_mlb_player.py --kind "$kind" --year "$year" "$name" ${BOX} || true
           done
