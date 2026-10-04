@@ -107,7 +107,7 @@
       "team": "LAA",
       "pos": "二",
       "categories": [],
-      "games": 59,
+      "games": 60,
       "pa": 147,
       "avg": 0.24,
       "obp": 0.315,
@@ -406,7 +406,7 @@
       "team": "MIN",
       "pos": "捕",
       "categories": [],
-      "games": 27,
+      "games": 28,
       "pa": 73,
       "avg": 0.304,
       "obp": 0.342,
@@ -813,7 +813,7 @@
       "team": "CLE",
       "pos": "捕",
       "categories": [],
-      "games": 74,
+      "games": 78,
       "pa": 247,
       "avg": 0.247,
       "obp": 0.325,
@@ -1031,7 +1031,7 @@
       "team": "TB",
       "pos": "二",
       "categories": [],
-      "games": 86,
+      "games": 87,
       "pa": 286,
       "avg": 0.238,
       "obp": 0.302,
@@ -1572,7 +1572,7 @@
       "team": "COL",
       "pos": "捕",
       "categories": [],
-      "games": 75,
+      "games": 78,
       "pa": 237,
       "avg": 0.225,
       "obp": 0.268,
@@ -2040,7 +2040,7 @@
       "team": "ATH",
       "pos": "右",
       "categories": [],
-      "games": 122,
+      "games": 123,
       "pa": 381,
       "avg": 0.251,
       "obp": 0.318,
@@ -2138,7 +2138,7 @@
       "team": "CHC",
       "pos": "捕",
       "categories": [],
-      "games": 116,
+      "games": 117,
       "pa": 425,
       "avg": 0.258,
       "obp": 0.336,
@@ -2419,7 +2419,7 @@
       "team": "SF",
       "pos": "遊",
       "categories": [],
-      "games": 67,
+      "games": 68,
       "pa": 221,
       "avg": 0.217,
       "obp": 0.257,
@@ -3704,7 +3704,7 @@
       "categories": [
         "選球眼型"
       ],
-      "games": 10,
+      "games": 12,
       "pa": 15,
       "avg": 0.0,
       "obp": 0.2,
@@ -4454,7 +4454,7 @@
       "team": "PHI",
       "pos": "捕",
       "categories": [],
-      "games": 21,
+      "games": 23,
       "pa": 65,
       "avg": 0.153,
       "obp": 0.215,
@@ -4475,7 +4475,7 @@
       "categories": [
         "選球眼型"
       ],
-      "games": 85,
+      "games": 86,
       "pa": 275,
       "avg": 0.209,
       "obp": 0.349,
@@ -5598,7 +5598,7 @@
       "categories": [
         "選球眼型"
       ],
-      "games": 54,
+      "games": 56,
       "pa": 171,
       "avg": 0.161,
       "obp": 0.276,
@@ -5639,7 +5639,7 @@
       "team": "AZ",
       "pos": "捕",
       "categories": [],
-      "games": 48,
+      "games": 49,
       "pa": 166,
       "avg": 0.282,
       "obp": 0.311,
@@ -6100,7 +6100,7 @@
       "team": "SEA",
       "pos": "捕",
       "categories": [],
-      "games": 30,
+      "games": 31,
       "pa": 101,
       "avg": 0.3,
       "obp": 0.366,
@@ -6621,7 +6621,7 @@
       "categories": [
         "コンタクト型"
       ],
-      "games": 118,
+      "games": 120,
       "pa": 364,
       "avg": 0.238,
       "obp": 0.331,
@@ -6721,7 +6721,7 @@
       "categories": [
         "走力型"
       ],
-      "games": 79,
+      "games": 81,
       "pa": 221,
       "avg": 0.203,
       "obp": 0.245,
@@ -6797,7 +6797,7 @@
       "team": "CIN",
       "pos": "捕",
       "categories": [],
-      "games": 47,
+      "games": 51,
       "pa": 156,
       "avg": 0.217,
       "obp": 0.221,
@@ -6899,7 +6899,7 @@
       "categories": [
         "コンタクト型"
       ],
-      "games": 41,
+      "games": 42,
       "pa": 115,
       "avg": 0.226,
       "obp": 0.265,
@@ -7079,7 +7079,7 @@
       "categories": [
         "コンタクト型"
       ],
-      "games": 116,
+      "games": 169,
       "pa": 370,
       "avg": 0.248,
       "obp": 0.309,
@@ -7139,7 +7139,7 @@
       "team": "WSH",
       "pos": "指",
       "categories": [],
-      "games": 112,
+      "games": 113,
       "pa": 288,
       "avg": 0.222,
       "obp": 0.302,
@@ -7626,7 +7626,7 @@
       "team": "TEX",
       "pos": "捕",
       "categories": [],
-      "games": 53,
+      "games": 55,
       "pa": 186,
       "avg": 0.218,
       "obp": 0.306,
@@ -7983,7 +7983,7 @@
       "team": "SEA",
       "pos": "三",
       "categories": [],
-      "games": 46,
+      "games": 47,
       "pa": 148,
       "avg": 0.153,
       "obp": 0.267,
@@ -8164,7 +8164,7 @@
       "categories": [
         "パワーヒッター"
       ],
-      "games": 147,
+      "games": 162,
       "pa": 543,
       "avg": 0.277,
       "obp": 0.309,
@@ -8261,7 +8261,7 @@
       "team": "NYM",
       "pos": "捕",
       "categories": [],
-      "games": 86,
+      "games": 88,
       "pa": 281,
       "avg": 0.235,
       "obp": 0.295,
@@ -8301,7 +8301,7 @@
       "categories": [
         "走力型"
       ],
-      "games": 82,
+      "games": 83,
       "pa": 224,
       "avg": 0.229,
       "obp": 0.261,
@@ -8361,7 +8361,7 @@
       "team": "KC",
       "pos": "捕",
       "categories": [],
-      "games": 16,
+      "games": 17,
       "pa": 48,
       "avg": 0.159,
       "obp": 0.229,
@@ -8855,7 +8855,7 @@
       "categories": [
         "選球眼型"
       ],
-      "games": 33,
+      "games": 34,
       "pa": 87,
       "avg": 0.194,
       "obp": 0.333,
@@ -9139,7 +9139,7 @@
       "categories": [
         "コンタクト型"
       ],
-      "games": 101,
+      "games": 103,
       "pa": 252,
       "avg": 0.267,
       "obp": 0.312,
@@ -9243,7 +9243,7 @@
       "categories": [
         "コンタクト型"
       ],
-      "games": 1,
+      "games": 26,
       "pa": 1,
       "avg": null,
       "obp": null,
@@ -9367,7 +9367,7 @@
       "categories": [
         "コンタクト型"
       ],
-      "games": 128,
+      "games": 130,
       "pa": 330,
       "avg": 0.241,
       "obp": 0.304,
@@ -10197,7 +10197,7 @@
       "team": "STL",
       "pos": "捕",
       "categories": [],
-      "games": 67,
+      "games": 69,
       "pa": 211,
       "avg": 0.217,
       "obp": 0.275,
@@ -10594,7 +10594,7 @@
       "team": "SD",
       "pos": "捕",
       "categories": [],
-      "games": 30,
+      "games": 31,
       "pa": 91,
       "avg": 0.146,
       "obp": 0.222,
@@ -11054,7 +11054,7 @@
       "team": "TEX",
       "pos": "左",
       "categories": [],
-      "games": 27,
+      "games": 28,
       "pa": 47,
       "avg": 0.159,
       "obp": 0.213,
@@ -11351,7 +11351,7 @@
         "パワーヒッター",
         "選球眼型"
       ],
-      "games": 135,
+      "games": 139,
       "pa": 618,
       "avg": 0.275,
       "obp": 0.377,
@@ -12022,7 +12022,7 @@
       "team": "COL",
       "pos": "右",
       "categories": [],
-      "games": 128,
+      "games": 129,
       "pa": 449,
       "avg": 0.277,
       "obp": 0.348,
@@ -12119,7 +12119,7 @@
       "team": "PIT",
       "pos": "右",
       "categories": [],
-      "games": 36,
+      "games": 39,
       "pa": 107,
       "avg": 0.211,
       "obp": 0.283,
@@ -12161,7 +12161,7 @@
       "categories": [
         "コンタクト型"
       ],
-      "games": 66,
+      "games": 70,
       "pa": 200,
       "avg": 0.175,
       "obp": 0.223,
@@ -12258,7 +12258,7 @@
       "categories": [
         "走力型"
       ],
-      "games": 56,
+      "games": 58,
       "pa": 148,
       "avg": 0.285,
       "obp": 0.347,
@@ -12473,7 +12473,7 @@
       "categories": [
         "コンタクト型"
       ],
-      "games": 49,
+      "games": 50,
       "pa": 149,
       "avg": 0.256,
       "obp": 0.315,
@@ -12549,7 +12549,7 @@
       "team": "SEA",
       "pos": "三",
       "categories": [],
-      "games": 63,
+      "games": 65,
       "pa": 183,
       "avg": 0.201,
       "obp": 0.284,
