@@ -38,8 +38,8 @@ def missing_labels(target: str, days: int) -> list:
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("target")
-    ap.add_argument("--days", type=int, default=20)
-    ap.add_argument("--max-dates", type=int, default=8)
+    ap.add_argument("--days", type=int, default=3, help="公式日程と突き合わせる日数（毎日実行しているので、前日＋数日で足りる。広く調べたいときは手動実行で増やす）")
+    ap.add_argument("--max-dates", type=int, default=4)
     ap.add_argument("--dry-run", action="store_true")
     args = ap.parse_args()
     labels = missing_labels(args.target, args.days)

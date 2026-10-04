@@ -22,6 +22,10 @@ on:
         description: 'defenseステップ専用：対象年をスペース区切りで複数指定（例: 2024 2025 2026。並列取得する）。空欄なら日付の年'
         required: false
         default: ''
+      backfill_days:
+        description: '取りこぼし確認の遡り日数（空欄なら既定の3日＝前日を中心に確認。広く調べ直したいときだけ 21 などを指定）'
+        required: false
+        default: ''
       source:
         description: 'cron-job.org専用。空欄のままでOK'
         required: false
@@ -110,12 +114,14 @@ jobs:
       - name: 取りこぼした試合の自動取り直し（公式日程で終了済みなのにデータが無い試合）
         if: steps.check.outputs.skip != 'true'
         continue-on-error: true
+        timeout-minutes: 20    # 万一長引いても、ここで打ち切って次のコミット手順に進む
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          BACKFILL_ARGS: ${{ inputs.backfill_days && format('--days {0}', inputs.backfill_days) || '' }}
         run: |
           STEPS_NOW="${{ inputs.steps || 'all' }}"
           if echo " $STEPS_NOW " | grep -Eqw "all|games"; then
-            python baseball/scripts/backfill_missing_mlb_games.py "${{ steps.date.outputs.date }}" 2>&1 | tail -n 40
+            python baseball/scripts/backfill_missing_mlb_games.py "${{ steps.date.outputs.date }}" $BACKFILL_ARGS 2>&1 | tail -n 40
           else
             echo "games を含まないためスキップ"
           fi
