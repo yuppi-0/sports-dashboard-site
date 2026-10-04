@@ -23,7 +23,7 @@ on:
         required: false
         default: ''
       backfill_days:
-        description: '取りこぼし確認の遡り日数（空欄なら既定の3日＝前日を中心に確認。広く調べ直したいときだけ 21 などを指定）'
+        description: '取りこぼし確認の遡り日数（空欄なら既定の1日＝前日だけ確認。広く調べ直したいときだけ 21 などを指定）'
         required: false
         default: ''
       source:
