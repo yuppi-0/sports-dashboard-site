@@ -63,7 +63,7 @@ import pandas as pd
 
 # 日別JSONの読み込みロジックは投手版と完全に共通のため使い回す
 from export_llm_input import load_daily_games
-from player_identity import disambiguate_same_name, canonicalize_by_id
+from player_identity import disambiguate_same_name, canonicalize_by_id, _entries as _player_entries
 from jsonio import read_json, write_json, exists_json, prune_orphan_cards
 
 
@@ -1195,6 +1195,34 @@ def _slugify_name(name: str) -> str:
     return s.strip("_") or "unknown"
 
 
+def _colliding_names(wb) -> frozenset:
+    """守備・走塁キャッシュの各シートで、別々のMLBAM IDが付いている（＝同姓同名の別人が居る）正規化名の集合。"""
+    ids: dict = {}
+    for sname in wb.sheet_names:
+        df = wb.parse(sname)
+        if "player_id" not in df.columns or "name" not in df.columns:
+            continue
+        for pid, nm in zip(df["player_id"], df["name"]):
+            if pd.notna(pid) and isinstance(nm, str) and nm:
+                ids.setdefault(_normalize_name(nm).lower(), set()).add(int(pid))
+    return frozenset(k for k, v in ids.items() if len(v) >= 2)
+
+
+def _ckey(name, pid, collide) -> str:
+    key = _normalize_name(name).lower()
+    return f"{key}#{int(pid)}" if key in collide and pid is not None and not pd.isna(pid) else key
+
+
+def defense_lookup(cache: dict, name: str, mlbam_id=None) -> dict:
+    """守備・走塁キャッシュから選手を引く。同姓同名で分かれているキー（名前#ID）があればIDで、無ければ名前で引く。"""
+    key = _normalize_name(name).lower()
+    if mlbam_id is not None:
+        hit = cache.get(f"{key}#{int(mlbam_id)}")
+        if hit is not None:
+            return hit
+    return cache.get(key, {})
+
+
 def load_mlb_defense_cache(path: str) -> dict:
     """
     run_mlb.py の --steps defense が出力する中間キャッシュxlsx（"OAA"/"SprintSpeed"/
@@ -1216,8 +1244,12 @@ def load_mlb_defense_cache(path: str) -> dict:
         print(f"  [WARN] 守備・走塁キャッシュの読み込みに失敗しました（{path}）: {e}")
         return result
 
-    def _entry(name):
-        key = _normalize_name(name).lower()
+    # 同姓同名の別人（例: Will Smith 捕手と投手）が同じシートに居ると名前キーでは混ざって上書きされるため、
+    # 別のMLBAM IDが2つ以上付く名前だけ「名前#ID」のキーに分ける（打者側は defense_lookup で ID を使って引く）
+    collide = _colliding_names(wb)
+
+    def _entry(name, pid=None):
+        key = _ckey(name, pid, collide)
         return result.setdefault(key, {
             "oaa": [], "sprint_speed": None, "framing": None, "poptime": None, "war": None,
             "sb": None, "cs": None,
@@ -1228,7 +1260,7 @@ def load_mlb_defense_cache(path: str) -> dict:
             name = r.get("name")
             if not name or (isinstance(name, float) and pd.isna(name)):
                 continue
-            _entry(name)["oaa"].append({
+            _entry(name, r.get("player_id"))["oaa"].append({
                 "pos": r.get("pos"),
                 "outs_above_average": None if pd.isna(r.get("outs_above_average")) else int(r.get("outs_above_average")),
                 "fielding_runs_prevented": None if pd.isna(r.get("fielding_runs_prevented")) else int(r.get("fielding_runs_prevented")),
@@ -1240,14 +1272,14 @@ def load_mlb_defense_cache(path: str) -> dict:
             name = r.get("name")
             if not name or (isinstance(name, float) and pd.isna(name)) or pd.isna(r.get("war")):
                 continue
-            _entry(name)["war"] = float(r.get("war"))
+            _entry(name, r.get("player_id"))["war"] = float(r.get("war"))
 
     if "Running" in wb.sheet_names:
         for _, r in wb.parse("Running").iterrows():
             name = r.get("name")
             if not name or (isinstance(name, float) and pd.isna(name)) or pd.isna(r.get("sb")):
                 continue
-            e = _entry(name)
+            e = _entry(name, r.get("player_id"))
             e["sb"] = int(r.get("sb"))
             e["cs"] = None if pd.isna(r.get("cs")) else int(r.get("cs"))
 
@@ -1257,7 +1289,7 @@ def load_mlb_defense_cache(path: str) -> dict:
             if not name or (isinstance(name, float) and pd.isna(name)):
                 continue
             v = r.get("sprint_speed")
-            _entry(name)["sprint_speed"] = None if pd.isna(v) else float(v)
+            _entry(name, r.get("player_id"))["sprint_speed"] = None if pd.isna(v) else float(v)
 
     # run_mlb.py の fetch_catcher_framing() / fetch_catcher_poptime() は、Statcastの生の列名
     # ではなく簡略化した列名（framing_runs/framing_pct、arm_strength/exchange_time/pop_2b/pop_3b等）
@@ -1267,7 +1299,7 @@ def load_mlb_defense_cache(path: str) -> dict:
             name = r.get("name")
             if not name or (isinstance(name, float) and pd.isna(name)):
                 continue
-            _entry(name)["framing"] = {
+            _entry(name, r.get("player_id"))["framing"] = {
                 "pitches": None if pd.isna(r.get("pitches")) else int(r.get("pitches")),
                 "framing_runs": None if pd.isna(r.get("framing_runs")) else float(r.get("framing_runs")),
                 "framing_pct": None if pd.isna(r.get("framing_pct")) else float(r.get("framing_pct")),
@@ -1278,14 +1310,14 @@ def load_mlb_defense_cache(path: str) -> dict:
             name = r.get("name")
             if not name or (isinstance(name, float) and pd.isna(name)):
                 continue
-            _entry(name)["poptime"] = {
+            _entry(name, r.get("player_id"))["poptime"] = {
                 "arm_strength": None if pd.isna(r.get("arm_strength")) else float(r.get("arm_strength")),
                 "exchange_time": None if pd.isna(r.get("exchange_time")) else float(r.get("exchange_time")),
                 "pop_2b": None if pd.isna(r.get("pop_2b")) else float(r.get("pop_2b")),
                 "pop_3b": None if pd.isna(r.get("pop_3b")) else float(r.get("pop_3b")),
             }
 
-    _load_extra_defense_sheets(wb, result, path)
+    _load_extra_defense_sheets(wb, result, path, collide)
     return result
 
 
@@ -1307,7 +1339,7 @@ def _fnum(r, col, nd=None):
     return round(float(v), nd) if nd is not None else float(v)
 
 
-def _load_extra_defense_sheets(wb, result: dict, path: str) -> None:
+def _load_extra_defense_sheets(wb, result: dict, path: str, collide: frozenset = frozenset()) -> None:
     """守備・走塁の追加指標（送球・アームバリュー・外野ジャンプ・捕手ブロッキング・走塁得点・XBT・
     一塁到達・Rbaser）をキャッシュxlsxから読み、result（正規化した選手名→dict）に足す。
     追加シートはSavantの列名のまま保存されているので、候補名の中から存在する列を使う。
@@ -1322,7 +1354,7 @@ def _load_extra_defense_sheets(wb, result: dict, path: str) -> None:
             continue
         for pid, nm in zip(df["player_id"], df["name"]):
             if pd.notna(pid) and isinstance(nm, str) and nm:
-                id_to_key[int(pid)] = _normalize_name(nm).lower()
+                id_to_key[int(pid)] = _ckey(nm, pid, collide)
 
     def _key(pid):
         if pd.isna(pid):
@@ -1333,7 +1365,7 @@ def _load_extra_defense_sheets(wb, result: dict, path: str) -> None:
                 from player_names import resolve_names
                 base = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(path))))
                 nm = resolve_names([pid], os.path.join(base, "_cache", "player_names.json")).get(pid)
-                id_to_key[pid] = _normalize_name(nm).lower() if nm else None
+                id_to_key[pid] = _ckey(nm, pid, collide) if nm else None
             except Exception:  # noqa: BLE001
                 id_to_key[pid] = None
         return id_to_key[pid]
@@ -1475,6 +1507,7 @@ def export_llm_input_batter_xlsx(games_json_dir: str, out_path: str, min_pa: flo
     if _split:
         print(f"  同姓同名の別人を分離: {', '.join(f'{k}={v}' for k, v in _split.items())}")
     names = set(target_names) if target_names else build_all_batter_names(all_data)
+    _mlbam_by_name = {p["name"]: p["id"] for _d, _g, _t, p in _player_entries(all_data, "batters") if p.get("id") is not None}
     season_year = determine_season_year(all_data)
     team_game_counts = compute_team_game_counts(all_data)  # 規定打席判定用
 
@@ -1496,7 +1529,7 @@ def export_llm_input_batter_xlsx(games_json_dir: str, out_path: str, min_pa: flo
             season["試合数"] += count_pitching_only_games(all_data, name)   # 二刀流: 投手だけで出た試合も公式の「試合」に含まれる
             # 盗塁・盗塁死のシーズン合計はStatsAPIの公式値を使う（Statcastの投球データには盗塁イベントが
             # 無く、試合から数えると常に0になるため）。守備キャッシュ(Runningシート)が無ければ従来のまま。
-            _run = defense_cache.get(_normalize_name(name).lower(), {})
+            _run = defense_lookup(defense_cache, name, _mlbam_by_name.get(name))
             if _run.get("sb") is not None:
                 season["盗塁"] = _run["sb"]
                 season["盗塁死"] = _run.get("cs")
@@ -1547,7 +1580,7 @@ def export_llm_input_batter_xlsx(games_json_dir: str, out_path: str, min_pa: flo
                 sb_success_pct = (
                     round(sb_n / (sb_n + cs) * 100, 1) if cs is not None and (sb_n + cs) > 0 else None
                 )
-                defense_entry = defense_cache.get(_normalize_name(name).lower(), {})
+                defense_entry = defense_lookup(defense_cache, name, _mlbam_by_name.get(name))
                 pt_breakdown = build_pitch_type_breakdown(appearances)
                 # コース別成績グリッドの立ち位置表示用：run.py/run_mlb.pyがbuild_batter()の
                 # 出力に付与した"bats"（"R"/"L"/None）を、出場試合の中で最も多く現れた値で代表させる
