@@ -79,3 +79,11 @@ def test_parse_2024_pitching_layout_with_split_innings_cells():
     assert (rows[0]["投球回"], rows[0]["打者"], rows[0]["防御率"]) == ("155", "627", "1.86")
     assert rows[1]["投球回"] == "47.1" and rows[1]["自責点"] == "11"
     assert nh.merge_pitchers([dict(r, team="広島") for r in rows])["大瀬良 大地"]["innings"] == "155.0"
+
+
+def test_parse_falls_back_to_default_columns_when_header_row_is_unreadable():
+    # 見出しの行が無い（または読めない）ページでも、データ行 tr.ststats と既定の列順で読める
+    html = PIT_2024.replace("防御率</th>", "</th>").replace("<th>選手</th>", "<th></th>")
+    rows = nh.parse_table(soup(html), "pit")
+    assert [r["選手"] for r in rows] == ["大瀬良 大地", "森浦 大輔"]
+    assert rows[1]["投球回"] == "47.1" and rows[1]["防御率"] == "2.10"
