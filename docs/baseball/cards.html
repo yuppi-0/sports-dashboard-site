@@ -1580,6 +1580,49 @@ const SHARED_PATHS = buildPaths(YEAR);
 const PATHS_BY_YEAR = {};
 AVAILABLE_YEARS.forEach(y => { PATHS_BY_YEAR[y] = buildPaths(y); });
 
+// ── 2軍（ファーム）の複数年対応 ──
+// 1軍は年度ごとのフォルダから選手カードを集めて年度別成績を出すが、2軍も同じ年度構成（プロ野球/{年}年/2軍/公式戦）で
+// 持っている。2軍の一覧・カードも全年度ぶんを名前で集める（年度によってidの付け方が違っても、名前で突き合わせる）。
+const _farmYearIndexCache = {};
+async function getFarmIndexOfYear(playerTypeKey, league, y){
+  const key = `${playerTypeKey}:${league}:${y}`;
+  if(key in _farmYearIndexCache) return _farmYearIndexCache[key];
+  const paths = PATHS_BY_YEAR[y] && PATHS_BY_YEAR[y][playerTypeKey] && PATHS_BY_YEAR[y][playerTypeKey][league];
+  if(!paths || !paths.farmNumeric){ _farmYearIndexCache[key] = null; return null; }
+  try{
+    const res = await fetchJsonZ(`${paths.farmNumeric}/index.json`);
+    _farmYearIndexCache[key] = res.ok ? await res.json() : null;
+  }catch(e){ _farmYearIndexCache[key] = null; }
+  return _farmYearIndexCache[key];
+}
+// 全年度の2軍一覧を名前で和集合にする（表示用フィールドは、その選手が登場する最新年度のもの）。_years に登場年度（新しい順）。
+async function fetchUnionedFarmIndex(playerTypeKey, league){
+  const results = await Promise.all(AVAILABLE_YEARS.map(async y => ({ year: y, idx: await getFarmIndexOfYear(playerTypeKey, league, y) })));
+  const byName = new Map();
+  for(const { year, idx } of results){   // 新しい年度が先
+    for(const p of ((idx && idx.players) || [])){
+      if(!byName.has(p.name)) byName.set(p.name, { ...p, _years: [year] });
+      else byName.get(p.name)._years.push(year);
+    }
+  }
+  return byName.size ? { players: Array.from(byName.values()) } : null;
+}
+// 2軍の選手カードを全年度ぶん取得する。戻り値 {years: 登場年度（新しい順）, cards: {年度: カードJSON}}
+async function fetchFarmCardsAcrossYears(playerTypeKey, league, name){
+  const cards = {};
+  await Promise.all(AVAILABLE_YEARS.map(async y => {
+    const idx = await getFarmIndexOfYear(playerTypeKey, league, y);
+    const hit = idx && (idx.players || []).find(p => p.name === name);
+    if(!hit) return;
+    const paths = PATHS_BY_YEAR[y][playerTypeKey][league];
+    try{
+      const r = await fetchJsonZ(`${paths.farmNumeric}/${hit.id}.json`);
+      if(r.ok) cards[y] = await r.json();
+    }catch(e){ /* この年度はスキップ */ }
+  }));
+  return { years: AVAILABLE_YEARS.filter(y => cards[y]), cards };
+}
+
 // 選手一覧を年度ごとに取得し、id（選手スラッグ）で和集合にする。
 // AVAILABLE_YEARSは先頭が最新年度なので、表示用フィールド（チーム・成績等）は
 // その選手が登場する最新年度のものを採用する。_years に登場した年度を新しい順で持たせ、
@@ -2393,12 +2436,21 @@ async function getFarmIndex(league){
   if(league in farmIndexCache) return farmIndexCache[league];
   const farmNumeric = LEAGUE_PATHS[league] && LEAGUE_PATHS[league].farmNumeric;
   if(!farmNumeric){ farmIndexCache[league] = null; return null; }
-  try{
-    const idxRes = await fetchJsonZ(`${farmNumeric}/index.json`);
-    const idx = idxRes.ok ? await idxRes.json() : null;
-    farmIndexCache[league] = idx;
-    return idx;
-  }catch(e){ farmIndexCache[league] = null; return null; }
+  farmIndexCache[league] = await fetchUnionedFarmIndex("pitcher", league);   // 全年度の和集合
+  return farmIndexCache[league];
+}
+
+// 2軍の投手カードを全年度ぶん集めて、1軍と同じ形（_allYearCards・_availableYears・年度別シーズン成績）で返す。
+function buildFarmPitcherCard(cards, years){
+  const merged = mergeCardData(cards[years[0]], {});
+  merged._allYearCards = cards;
+  merged._availableYears = years;
+  merged._activeYear = years[0];
+  merged._llmRaw = null;
+  merged._llmYear = years[0];
+  merged._seasonEntriesByYear = buildSeasonEntriesByYear(cards, years);
+  merged.game_log = mergeGameLogsAcrossYears(cards, years);
+  return merged;
 }
 
 // 2軍データ：1軍と同じ選手を名前で探して取得する（見つからなければnull＝2軍データなしとして扱う）。
@@ -2407,14 +2459,9 @@ async function fetchFarmData(league, playerName){
   const farmNumeric = LEAGUE_PATHS[league] && LEAGUE_PATHS[league].farmNumeric;
   if(!farmNumeric || !playerName) return null;
   try{
-    const idx = await getFarmIndex(league);
-    if(!idx) return null;
-    const hit = (idx.players || []).find(p => p.name === playerName);
-    if(!hit) return null;
-    const res = await fetchJsonZ(`${farmNumeric}/${hit.id}.json`);
-    if(!res.ok) return null;
-    const numeric = await res.json();
-    return mergeCardData(numeric, {});
+    const { years, cards } = await fetchFarmCardsAcrossYears("pitcher", league, playerName);
+    if(!years.length) return null;
+    return buildFarmPitcherCard(cards, years);
   }catch(e){ return null; }
 }
 
@@ -2448,11 +2495,17 @@ async function selectPlayer(id, name){
     if(id.startsWith("farm:") && !firstCounterpart){
       const farmId = id.slice("farm:".length);
       const farmNumeric = LEAGUE_PATHS[currentLeague] && LEAGUE_PATHS[currentLeague].farmNumeric;
-      const res = await fetchJsonZ(`${farmNumeric}/${farmId}.json`);
-      if(!res.ok) throw new Error(`選手データの取得に失敗しました (${res.status})`);
-      const numeric = await res.json();
+      const farmName = name || ((farmPlayers.find(p => p.id === id) || {}).name);
+      const multi = farmName ? await fetchFarmCardsAcrossYears("pitcher", currentLeague, farmName) : { years: [], cards: {} };
+      let merged;
+      if(multi.years.length){
+        merged = buildFarmPitcherCard(multi.cards, multi.years);   // 年度ごとの2軍成績（1軍と同じ年度切り替え）
+      }else{
+        const res = await fetchJsonZ(`${farmNumeric}/${farmId}.json`);
+        if(!res.ok) throw new Error(`選手データの取得に失敗しました (${res.status})`);
+        merged = mergeCardData(await res.json(), {});
+      }
       if(myToken !== selectPlayerToken) return;
-      const merged = mergeCardData(numeric, {});
       merged._isFarm = true;
       merged._noLlm = true; // 2軍データは現状AI解釈を持たない
       merged._2gunOnly = true; // 1軍データが無い（1軍/2軍切り替えボタンを出さない）ことをrenderCardに伝える
@@ -4952,24 +5005,19 @@ async function findLlmDataForPlayer(playerName){
 }
 
 async function getFarmIndex(league){
-  const farmNumeric = LEAGUE_PATHS[league].farmNumeric;
-  if(!farmNumeric) return null;
-  try{
-    const idxRes = await fetchJsonZ(`${farmNumeric}/index.json`);
-    if(!idxRes.ok) return null;
-    return await idxRes.json();
-  }catch(e){ return null; }
+  if(!LEAGUE_PATHS[league].farmNumeric) return null;
+  return await fetchUnionedFarmIndex("batter", league);   // 全年度の2軍一覧（名前で和集合）
 }
 
+// 2軍の打者カードを全年度ぶん集め、1軍と同じく card.seasons に年度ごとの成績を合成して返す（無ければnull）。
 async function fetchFarmData(league, playerName){
-  const farmIdx = await getFarmIndex(league);
-  if(!farmIdx || !farmIdx.players) return null;
-  const hit = farmIdx.players.find(p => p.name === playerName);
-  if(!hit) return null;
+  if(!LEAGUE_PATHS[league].farmNumeric) return null;
   try{
-    const res = await fetchJsonZ(`${LEAGUE_PATHS[league].farmNumeric}/${hit.id}.json`);
-    if(!res.ok) return null;
-    return stripNonPitchTypes(await res.json());
+    const { years, cards } = await fetchFarmCardsAcrossYears("batter", league, playerName);
+    if(!years.length) return null;
+    const combinedSeasons = {};
+    years.forEach(y => Object.assign(combinedSeasons, getSeasonsMap(stripNonPitchTypes(cards[y]))));
+    return { ...stripNonPitchTypes(cards[years[0]]), seasons: combinedSeasons };
   }catch(e){ return null; }
 }
 
@@ -5108,12 +5156,11 @@ async function loadPlayerListForCurrentFarmLevel(){
     return;
   }
   try{
-    // 1軍は全年度の和集合、2軍は現状(最新年度)のみ
+    // 1軍も2軍も全年度の和集合（2軍は名前で突き合わせる）
     const players = isFarm
       ? (await (async () => {
-          const res = await fetchJsonZ(`${LEAGUE_PATHS[currentLeague].farmNumeric}/index.json`);
-          if(!res.ok) throw new Error(`index.json の取得に失敗しました (${res.status})`);
-          const data = await res.json();
+          const data = await getFarmIndex(currentLeague);
+          if(!data) throw new Error("2軍の index.json の取得に失敗しました");
           return data.players || [];
         })())
       : await fetchUnionedPlayerIndex("batter", currentLeague);
@@ -5252,11 +5299,15 @@ async function selectPlayer(id, name){
     const isFarmList = currentFarmLevel === "ni";
     let card;
     if(isFarmList){
-      // 2軍は現状年度のみ（複数年対応は1軍のみ）
-      const basePath = LEAGUE_PATHS[currentLeague].farmNumeric;
-      const res = await fetchJsonZ(`${basePath}/${id}.json`);
-      if(!res.ok) throw new Error(`選手データの取得に失敗しました (${res.status})`);
-      card = stripNonPitchTypes(await res.json());
+      // 2軍も1軍と同じく全年度ぶんを名前で集めて年度別成績にする
+      const farmEntry = allPlayers.find(p => p.id === id);
+      card = await fetchFarmData(currentLeague, (farmEntry && farmEntry.name) || name);
+      if(!card){
+        const basePath = LEAGUE_PATHS[currentLeague].farmNumeric;
+        const res = await fetchJsonZ(`${basePath}/${id}.json`);
+        if(!res.ok) throw new Error(`選手データの取得に失敗しました (${res.status})`);
+        card = stripNonPitchTypes(await res.json());
+      }
     }else{
       // 選手一覧（全年度和集合）からこの選手が登場する年度を調べ、各年度のフォルダから
       // 個別に取得して card.seasons へ合成する（年度ごとにファイルが分かれているため）。
@@ -5286,14 +5337,25 @@ async function selectPlayer(id, name){
     const otherBasePath = isFarmList ? LEAGUE_PATHS[currentLeague].numeric : LEAGUE_PATHS[currentLeague].farmNumeric;
     if(otherBasePath){
       const otherCard = isFarmList
-        ? await (async () => { // 2軍表示中 → 1軍側にも居るか名前で探す
-            const idxRes = await fetchJsonZ(`${otherBasePath}/index.json`).catch(() => null);
-            if(!idxRes || !idxRes.ok) return null;
-            const idx = await idxRes.json();
-            const hit = (idx.players || []).find(p => p.name === card.name);
+        ? await (async () => { // 2軍表示中 → 1軍側にも居るか名前で探す（1軍も全年度ぶんを集める）
+            const union = await fetchUnionedPlayerIndex("batter", currentLeague).catch(() => null);
+            const hit = (union || []).find(p => p.name === card.name);
             if(!hit) return null;
-            const r = await fetchJsonZ(`${otherBasePath}/${hit.id}.json`).catch(() => null);
-            return (r && r.ok) ? stripNonPitchTypes(await r.json()) : null;
+            const yrs = (hit._years && hit._years.length) ? hit._years : [YEAR];
+            const byYear = {};
+            await Promise.all(yrs.map(async y => {
+              const paths = PATHS_BY_YEAR[y] && PATHS_BY_YEAR[y].batter && PATHS_BY_YEAR[y].batter[currentLeague];
+              if(!paths) return;
+              try{
+                const r = await fetchJsonZ(`${paths.numeric}/${hit.id}.json`);
+                if(r.ok) byYear[y] = stripNonPitchTypes(await r.json());
+              }catch(e){ /* この年度はスキップ */ }
+            }));
+            const have = yrs.filter(y => byYear[y]);
+            if(!have.length) return null;
+            const seasons = {};
+            have.forEach(y => Object.assign(seasons, getSeasonsMap(byYear[y])));
+            return { ...byYear[have[0]], seasons };
           })()
         : await fetchFarmData(currentLeague, card.name);
       if(otherCard){
