@@ -149,3 +149,13 @@ def test_backfill_state_roundtrip_and_raw_exists(tmp_path):
     assert not bf.raw_exists(tmp_path, 2026, "2軍", "2026-09-02")
     (d / "all_games_2026-09-02.xlsx").write_bytes(b"x")
     assert bf.raw_exists(tmp_path, 2026, "2軍", "2026-09-02")
+
+
+def test_backfill_refetches_only_the_missing_games(monkeypatch):
+    import backfill_missing_npb_games as bf
+    calls = []
+    monkeypatch.setattr(bf.subprocess, "run", lambda cmd, **kw: calls.append(cmd))
+    bf.run_one("2軍", "2026-09-30", 100, ["2026040123", "2026040124"])
+    assert calls[0][-3:] == ["2026040123", "2026040124", "--2軍"]          # 試合IDを渡す＝その試合だけ取得
+    bf.run_one("1軍", "2026-09-30", 100)
+    assert calls[1][-1] == "--1軍" and "2026040123" not in calls[1]          # IDが無ければ従来どおり日単位
