@@ -5674,7 +5674,9 @@
       "name": "福永 裕基",
       "team": "中日",
       "pos": "二",
-      "categories": [],
+      "categories": [
+        "走力型"
+      ],
       "games": 114,
       "pa": 442,
       "avg": 0.28,
@@ -5683,7 +5685,7 @@
       "ops": 0.749,
       "hr": 10,
       "rbi": 34,
-      "sb": 14,
+      "sb": 15,
       "k_pct": 17.2,
       "bb_pct": 9.3,
       "war": null
