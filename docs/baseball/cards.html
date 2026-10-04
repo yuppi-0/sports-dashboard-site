@@ -1635,8 +1635,12 @@ function liveRanksFor(pop, year, selfName, specs, meets, byRole){
   }
   return out;
 }
-const BAT_LIVE_SPECS = [["avg", true], ["obp", true], ["slg", true], ["ops", true], ["hr", true], ["rbi", true], ["sb", true], ["k_pct", false], ["bb_pct", true]];
-const PIT_LIVE_SPECS = [["era", false], ["k_bb_pct", true], ["k_pct", true], ["bb_pct", false], ["gb_pct", true], ["swstr_pct", true],
+const BAT_LIVE_SPECS = [["avg", true], ["obp", true], ["slg", true], ["ops", true], ["hr", true], ["rbi", true], ["sb", true], ["k_pct", false], ["bb_pct", true],
+                        // 向きは export_llm_input_batter.py の _RANK_SPECS_EN と同じ（打者にとって良い方向）。index.json に値がある年度・選手だけ対象
+                        ["war", true], ["whiff_pct", false], ["chase_pct", false], ["contact_pct", true], ["z_swing_pct", true], ["z_contact_pct", true],
+                        ["gb_pct", false], ["hr_pct", true], ["avg_ev", true], ["hard_hit_pct", true], ["sweet_spot_pct", true], ["xwoba", true], ["pull_pct", true],
+                        ["sb_pct", true], ["sprint_speed", true], ["frp", true], ["oaa", true]];
+const PIT_LIVE_SPECS = [["war", true], ["era", false], ["k_bb_pct", true], ["k_pct", true], ["bb_pct", false], ["gb_pct", true], ["swstr_pct", true],
                         ["chase_pct", true], ["strike_pct", true], ["zone_pct", true], ["hit_pct", false], ["xbh_pct", false]];
 function applyLiveRanksBatter(card, league, minPa){
   const pop = populationNow("batter", league, !!card._isFarm);

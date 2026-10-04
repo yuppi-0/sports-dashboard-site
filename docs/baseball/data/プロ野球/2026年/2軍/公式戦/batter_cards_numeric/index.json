@@ -19,7 +19,14 @@
       "sb": 0,
       "k_pct": 10.1,
       "bb_pct": 5.9,
-      "war": null
+      "war": null,
+      "hr_pct": 3.4,
+      "chase_pct": 22.29,
+      "contact_pct": 68.029,
+      "z_swing_pct": 68.029,
+      "whiff_pct": 13.392,
+      "z_contact_pct": 86.8,
+      "gb_pct": 44.0
     },
     {
       "id": "アセベド",
@@ -38,7 +45,14 @@
       "sb": 3,
       "k_pct": 19.8,
       "bb_pct": 7.2,
-      "war": null
+      "war": null,
+      "hr_pct": 1.8,
+      "chase_pct": 41.165,
+      "contact_pct": 76.021,
+      "z_swing_pct": 76.021,
+      "whiff_pct": 26.121,
+      "z_contact_pct": 82.7,
+      "gb_pct": 50.5
     },
     {
       "id": "アルナエス",
@@ -59,7 +73,14 @@
       "sb": 0,
       "k_pct": 8.8,
       "bb_pct": 4.4,
-      "war": null
+      "war": null,
+      "hr_pct": 0.7,
+      "chase_pct": 35.991,
+      "contact_pct": 80.943,
+      "z_swing_pct": 80.943,
+      "whiff_pct": 15.632,
+      "z_contact_pct": 91.9,
+      "gb_pct": 58.5
     },
     {
       "id": "アルモンテ",
@@ -80,7 +101,14 @@
       "sb": 1,
       "k_pct": 26.7,
       "bb_pct": 13.3,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 41.147,
+      "contact_pct": 62.653,
+      "z_swing_pct": 62.653,
+      "whiff_pct": 51.56,
+      "z_contact_pct": 82.7,
+      "gb_pct": 90.0
     },
     {
       "id": "イヒネ_イツア",
@@ -102,7 +130,14 @@
       "sb": 21,
       "k_pct": 25.3,
       "bb_pct": 13.1,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 29.209,
+      "contact_pct": 59.177,
+      "z_swing_pct": 59.177,
+      "whiff_pct": 29.152,
+      "z_contact_pct": 80.3,
+      "gb_pct": 56.2
     },
     {
       "id": "ウォルターズ",
@@ -121,7 +156,13 @@
       "sb": 0,
       "k_pct": 100.0,
       "bb_pct": 0.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 50.0,
+      "contact_pct": 100.0,
+      "z_swing_pct": 100.0,
+      "whiff_pct": 100.0,
+      "z_contact_pct": 0.0
     },
     {
       "id": "ウォーカー",
@@ -140,7 +181,14 @@
       "sb": 2,
       "k_pct": 27.9,
       "bb_pct": 7.7,
-      "war": null
+      "war": null,
+      "hr_pct": 5.9,
+      "chase_pct": 41.311,
+      "contact_pct": 77.645,
+      "z_swing_pct": 77.645,
+      "whiff_pct": 34.135,
+      "z_contact_pct": 81.0,
+      "gb_pct": 37.3
     },
     {
       "id": "エドポロ_ケイン",
@@ -161,7 +209,14 @@
       "sb": 5,
       "k_pct": 30.7,
       "bb_pct": 16.4,
-      "war": null
+      "war": null,
+      "hr_pct": 5.1,
+      "chase_pct": 24.156,
+      "contact_pct": 61.074,
+      "z_swing_pct": 61.074,
+      "whiff_pct": 28.359,
+      "z_contact_pct": 81.5,
+      "gb_pct": 42.3
     },
     {
       "id": "エンカーナシオン",
@@ -180,7 +235,14 @@
       "sb": 0,
       "k_pct": 16.0,
       "bb_pct": 8.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 17.972,
+      "contact_pct": 55.392,
+      "z_swing_pct": 55.392,
+      "whiff_pct": 15.444,
+      "z_contact_pct": 94.4,
+      "gb_pct": 37.2
     },
     {
       "id": "オスナ",
@@ -202,7 +264,14 @@
       "sb": 0,
       "k_pct": 10.3,
       "bb_pct": 22.1,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 28.476,
+      "contact_pct": 53.579,
+      "z_swing_pct": 53.579,
+      "whiff_pct": 13.293,
+      "z_contact_pct": 87.4,
+      "gb_pct": 39.3
     },
     {
       "id": "オスーナ",
@@ -221,7 +290,14 @@
       "sb": 1,
       "k_pct": 36.7,
       "bb_pct": 5.1,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 43.099,
+      "contact_pct": 71.795,
+      "z_swing_pct": 71.795,
+      "whiff_pct": 35.246,
+      "z_contact_pct": 84.5,
+      "gb_pct": 49.5
     },
     {
       "id": "カストロ",
@@ -242,7 +318,14 @@
       "sb": 1,
       "k_pct": 12.1,
       "bb_pct": 9.9,
-      "war": null
+      "war": null,
+      "hr_pct": 4.4,
+      "chase_pct": 25.884,
+      "contact_pct": 71.278,
+      "z_swing_pct": 71.278,
+      "whiff_pct": 19.297,
+      "z_contact_pct": 91.0,
+      "gb_pct": 29.4
     },
     {
       "id": "カリステ",
@@ -261,7 +344,14 @@
       "sb": 2,
       "k_pct": 18.5,
       "bb_pct": 10.1,
-      "war": null
+      "war": null,
+      "hr_pct": 1.7,
+      "chase_pct": 35.75,
+      "contact_pct": 70.312,
+      "z_swing_pct": 70.312,
+      "whiff_pct": 25.503,
+      "z_contact_pct": 83.3,
+      "gb_pct": 49.9
     },
     {
       "id": "ガルシア",
@@ -280,7 +370,14 @@
       "sb": 0,
       "k_pct": 36.4,
       "bb_pct": 10.9,
-      "war": null
+      "war": null,
+      "hr_pct": 7.3,
+      "chase_pct": 33.556,
+      "contact_pct": 76.971,
+      "z_swing_pct": 76.971,
+      "whiff_pct": 34.651,
+      "z_contact_pct": 79.4,
+      "gb_pct": 33.6
     },
     {
       "id": "キャベッジ",
@@ -299,7 +396,14 @@
       "sb": 2,
       "k_pct": 21.5,
       "bb_pct": 11.4,
-      "war": null
+      "war": null,
+      "hr_pct": 3.8,
+      "chase_pct": 36.639,
+      "contact_pct": 82.062,
+      "z_swing_pct": 82.062,
+      "whiff_pct": 31.616,
+      "z_contact_pct": 83.0,
+      "gb_pct": 41.3
     },
     {
       "id": "コルニエル",
@@ -320,7 +424,14 @@
       "sb": 4,
       "k_pct": 20.0,
       "bb_pct": 14.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 35.47,
+      "contact_pct": 69.232,
+      "z_swing_pct": 69.232,
+      "whiff_pct": 16.958,
+      "z_contact_pct": 94.0,
+      "gb_pct": 45.3
     },
     {
       "id": "コンスエグラ",
@@ -339,7 +450,14 @@
       "sb": 0,
       "k_pct": 17.3,
       "bb_pct": 8.6,
-      "war": null
+      "war": null,
+      "hr_pct": 2.5,
+      "chase_pct": 34.209,
+      "contact_pct": 70.262,
+      "z_swing_pct": 70.262,
+      "whiff_pct": 24.886,
+      "z_contact_pct": 85.7,
+      "gb_pct": 30.3
     },
     {
       "id": "ゴンザレス",
@@ -358,7 +476,14 @@
       "sb": 0,
       "k_pct": 20.8,
       "bb_pct": 5.0,
-      "war": null
+      "war": null,
+      "hr_pct": 3.0,
+      "chase_pct": 42.476,
+      "contact_pct": 83.763,
+      "z_swing_pct": 83.763,
+      "whiff_pct": 24.002,
+      "z_contact_pct": 83.7,
+      "gb_pct": 44.9
     },
     {
       "id": "サノー",
@@ -377,7 +502,14 @@
       "sb": 0,
       "k_pct": 16.7,
       "bb_pct": 0.0,
-      "war": null
+      "war": null,
+      "hr_pct": 11.1,
+      "chase_pct": 30.644,
+      "contact_pct": 82.806,
+      "z_swing_pct": 82.806,
+      "whiff_pct": 30.439,
+      "z_contact_pct": 80.6,
+      "gb_pct": 52.9
     },
     {
       "id": "ザイレン",
@@ -398,7 +530,14 @@
       "sb": 0,
       "k_pct": 14.3,
       "bb_pct": 0.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 25.371,
+      "contact_pct": 85.714,
+      "z_swing_pct": 85.714,
+      "whiff_pct": 15.314,
+      "z_contact_pct": 100.0,
+      "gb_pct": 71.4
     },
     {
       "id": "シーモア",
@@ -417,7 +556,14 @@
       "sb": 0,
       "k_pct": 17.4,
       "bb_pct": 4.3,
-      "war": null
+      "war": null,
+      "hr_pct": 1.9,
+      "chase_pct": 36.925,
+      "contact_pct": 71.856,
+      "z_swing_pct": 71.856,
+      "whiff_pct": 22.457,
+      "z_contact_pct": 85.6,
+      "gb_pct": 43.9
     },
     {
       "id": "セデーニョ",
@@ -436,7 +582,14 @@
       "sb": 0,
       "k_pct": 27.0,
       "bb_pct": 5.4,
-      "war": null
+      "war": null,
+      "hr_pct": 6.8,
+      "chase_pct": 32.343,
+      "contact_pct": 69.986,
+      "z_swing_pct": 69.986,
+      "whiff_pct": 27.249,
+      "z_contact_pct": 87.6,
+      "gb_pct": 36.2
     },
     {
       "id": "ダウンズ",
@@ -457,7 +610,14 @@
       "sb": 6,
       "k_pct": 17.7,
       "bb_pct": 17.2,
-      "war": null
+      "war": null,
+      "hr_pct": 1.0,
+      "chase_pct": 23.529,
+      "contact_pct": 59.269,
+      "z_swing_pct": 59.269,
+      "whiff_pct": 18.208,
+      "z_contact_pct": 90.2,
+      "gb_pct": 28.8
     },
     {
       "id": "ダニエル",
@@ -478,7 +638,14 @@
       "sb": 2,
       "k_pct": 20.3,
       "bb_pct": 13.6,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 28.268,
+      "contact_pct": 51.498,
+      "z_swing_pct": 51.498,
+      "whiff_pct": 23.554,
+      "z_contact_pct": 82.6,
+      "gb_pct": 54.7
     },
     {
       "id": "ティマ",
@@ -497,7 +664,14 @@
       "sb": 1,
       "k_pct": 18.8,
       "bb_pct": 6.9,
-      "war": null
+      "war": null,
+      "hr_pct": 3.8,
+      "chase_pct": 41.547,
+      "contact_pct": 72.384,
+      "z_swing_pct": 72.384,
+      "whiff_pct": 24.608,
+      "z_contact_pct": 85.4,
+      "gb_pct": 46.2
     },
     {
       "id": "ディベイニー",
@@ -516,7 +690,14 @@
       "sb": 3,
       "k_pct": 22.3,
       "bb_pct": 7.0,
-      "war": null
+      "war": null,
+      "hr_pct": 1.2,
+      "chase_pct": 30.567,
+      "contact_pct": 73.782,
+      "z_swing_pct": 73.782,
+      "whiff_pct": 21.957,
+      "z_contact_pct": 87.0,
+      "gb_pct": 32.1
     },
     {
       "id": "ネビン",
@@ -537,7 +718,14 @@
       "sb": 0,
       "k_pct": 0.0,
       "bb_pct": 0.0,
-      "war": null
+      "war": null,
+      "hr_pct": 8.3,
+      "chase_pct": 37.767,
+      "contact_pct": 61.675,
+      "z_swing_pct": 61.675,
+      "whiff_pct": 4.175,
+      "z_contact_pct": 94.4,
+      "gb_pct": 40.0
     },
     {
       "id": "ヒュンメル",
@@ -558,7 +746,14 @@
       "sb": 0,
       "k_pct": 18.3,
       "bb_pct": 19.0,
-      "war": null
+      "war": null,
+      "hr_pct": 1.6,
+      "chase_pct": 26.448,
+      "contact_pct": 72.812,
+      "z_swing_pct": 72.812,
+      "whiff_pct": 23.571,
+      "z_contact_pct": 86.8,
+      "gb_pct": 31.6
     },
     {
       "id": "ファビアン",
@@ -577,7 +772,14 @@
       "sb": 1,
       "k_pct": 27.4,
       "bb_pct": 4.1,
-      "war": null
+      "war": null,
+      "hr_pct": 2.7,
+      "chase_pct": 36.922,
+      "contact_pct": 68.618,
+      "z_swing_pct": 68.618,
+      "whiff_pct": 23.675,
+      "z_contact_pct": 86.3,
+      "gb_pct": 23.0
     },
     {
       "id": "フェリス",
@@ -596,7 +798,14 @@
       "sb": 0,
       "k_pct": 75.0,
       "bb_pct": 0.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 40.0,
+      "contact_pct": 75.0,
+      "z_swing_pct": 75.0,
+      "whiff_pct": 80.0,
+      "z_contact_pct": 33.3,
+      "gb_pct": 100.0
     },
     {
       "id": "ブライト_健太",
@@ -617,7 +826,14 @@
       "sb": 1,
       "k_pct": 30.4,
       "bb_pct": 14.3,
-      "war": null
+      "war": null,
+      "hr_pct": 3.6,
+      "chase_pct": 24.555,
+      "contact_pct": 60.102,
+      "z_swing_pct": 60.102,
+      "whiff_pct": 32.862,
+      "z_contact_pct": 74.7,
+      "gb_pct": 54.0
     },
     {
       "id": "ボイト",
@@ -638,7 +854,14 @@
       "sb": 0,
       "k_pct": 18.2,
       "bb_pct": 13.6,
-      "war": null
+      "war": null,
+      "hr_pct": 1.5,
+      "chase_pct": 32.112,
+      "contact_pct": 77.762,
+      "z_swing_pct": 77.762,
+      "whiff_pct": 31.576,
+      "z_contact_pct": 77.5,
+      "gb_pct": 49.7
     },
     {
       "id": "ボスラー",
@@ -657,7 +880,14 @@
       "sb": 0,
       "k_pct": 15.9,
       "bb_pct": 7.9,
-      "war": null
+      "war": null,
+      "hr_pct": 4.8,
+      "chase_pct": 32.735,
+      "contact_pct": 58.241,
+      "z_swing_pct": 58.241,
+      "whiff_pct": 19.411,
+      "z_contact_pct": 90.6,
+      "gb_pct": 30.4
     },
     {
       "id": "ポランコ",
@@ -676,7 +906,14 @@
       "sb": 0,
       "k_pct": 22.9,
       "bb_pct": 7.6,
-      "war": null
+      "war": null,
+      "hr_pct": 6.1,
+      "chase_pct": 33.593,
+      "contact_pct": 77.658,
+      "z_swing_pct": 77.658,
+      "whiff_pct": 27.342,
+      "z_contact_pct": 86.7,
+      "gb_pct": 29.3
     },
     {
       "id": "マッカスカー",
@@ -697,7 +934,14 @@
       "sb": 0,
       "k_pct": 32.1,
       "bb_pct": 16.7,
-      "war": null
+      "war": null,
+      "hr_pct": 5.1,
+      "chase_pct": 29.233,
+      "contact_pct": 65.201,
+      "z_swing_pct": 65.201,
+      "whiff_pct": 34.219,
+      "z_contact_pct": 77.5,
+      "gb_pct": 35.9
     },
     {
       "id": "マラー",
@@ -718,7 +962,13 @@
       "sb": 0,
       "k_pct": 0.0,
       "bb_pct": 0.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 0.0,
+      "contact_pct": 100.0,
+      "z_swing_pct": 100.0,
+      "whiff_pct": 0.0,
+      "z_contact_pct": 100.0
     },
     {
       "id": "マルティネス",
@@ -740,7 +990,14 @@
       "sb": 0,
       "k_pct": 14.3,
       "bb_pct": 21.9,
-      "war": null
+      "war": null,
+      "hr_pct": 6.7,
+      "chase_pct": 21.423,
+      "contact_pct": 72.066,
+      "z_swing_pct": 72.066,
+      "whiff_pct": 17.471,
+      "z_contact_pct": 86.2,
+      "gb_pct": 36.1
     },
     {
       "id": "モイセエフ_ニキータ",
@@ -759,7 +1016,14 @@
       "sb": 7,
       "k_pct": 17.6,
       "bb_pct": 7.8,
-      "war": null
+      "war": null,
+      "hr_pct": 2.0,
+      "chase_pct": 38.893,
+      "contact_pct": 70.366,
+      "z_swing_pct": 70.366,
+      "whiff_pct": 25.678,
+      "z_contact_pct": 85.6,
+      "gb_pct": 46.1
     },
     {
       "id": "モレノ",
@@ -778,7 +1042,14 @@
       "sb": 1,
       "k_pct": 23.1,
       "bb_pct": 7.7,
-      "war": null
+      "war": null,
+      "hr_pct": 7.7,
+      "chase_pct": 13.623,
+      "contact_pct": 61.362,
+      "z_swing_pct": 61.362,
+      "whiff_pct": 15.385,
+      "z_contact_pct": 86.1,
+      "gb_pct": 50.0
     },
     {
       "id": "モンテル",
@@ -797,7 +1068,14 @@
       "sb": 6,
       "k_pct": 23.1,
       "bb_pct": 3.8,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 42.237,
+      "contact_pct": 76.638,
+      "z_swing_pct": 76.638,
+      "whiff_pct": 23.482,
+      "z_contact_pct": 87.0,
+      "gb_pct": 64.7
     },
     {
       "id": "ラグズデール",
@@ -816,7 +1094,14 @@
       "sb": 0,
       "k_pct": 71.4,
       "bb_pct": 0.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 21.429,
+      "contact_pct": 22.614,
+      "z_swing_pct": 22.614,
+      "whiff_pct": 35.714,
+      "z_contact_pct": 71.5,
+      "gb_pct": 100.0
     },
     {
       "id": "ラミレス",
@@ -835,7 +1120,14 @@
       "sb": 1,
       "k_pct": 27.3,
       "bb_pct": 5.2,
-      "war": null
+      "war": null,
+      "hr_pct": 2.4,
+      "chase_pct": 42.699,
+      "contact_pct": 79.473,
+      "z_swing_pct": 79.473,
+      "whiff_pct": 31.087,
+      "z_contact_pct": 80.9,
+      "gb_pct": 35.0
     },
     {
       "id": "リチャード",
@@ -856,7 +1148,14 @@
       "sb": 0,
       "k_pct": 27.1,
       "bb_pct": 17.7,
-      "war": null
+      "war": null,
+      "hr_pct": 6.2,
+      "chase_pct": 27.177,
+      "contact_pct": 69.055,
+      "z_swing_pct": 69.055,
+      "whiff_pct": 33.961,
+      "z_contact_pct": 77.5,
+      "gb_pct": 38.9
     },
     {
       "id": "リン",
@@ -877,7 +1176,14 @@
       "sb": 0,
       "k_pct": 15.0,
       "bb_pct": 6.5,
-      "war": null
+      "war": null,
+      "hr_pct": 0.9,
+      "chase_pct": 39.664,
+      "contact_pct": 71.876,
+      "z_swing_pct": 71.876,
+      "whiff_pct": 22.147,
+      "z_contact_pct": 82.0,
+      "gb_pct": 50.5
     },
     {
       "id": "ルーカス",
@@ -896,7 +1202,14 @@
       "sb": 0,
       "k_pct": 50.0,
       "bb_pct": 0.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 0.0,
+      "contact_pct": 50.0,
+      "z_swing_pct": 50.0,
+      "whiff_pct": 25.0,
+      "z_contact_pct": 50.0,
+      "gb_pct": 100.0
     },
     {
       "id": "ロドリゲス",
@@ -915,7 +1228,14 @@
       "sb": 3,
       "k_pct": 21.1,
       "bb_pct": 8.3,
-      "war": null
+      "war": null,
+      "hr_pct": 2.6,
+      "chase_pct": 30.93,
+      "contact_pct": 71.392,
+      "z_swing_pct": 71.392,
+      "whiff_pct": 23.363,
+      "z_contact_pct": 86.1,
+      "gb_pct": 52.5
     },
     {
       "id": "ロベルト",
@@ -934,7 +1254,14 @@
       "sb": 1,
       "k_pct": 31.5,
       "bb_pct": 4.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 47.075,
+      "contact_pct": 73.129,
+      "z_swing_pct": 73.129,
+      "whiff_pct": 38.098,
+      "z_contact_pct": 80.5,
+      "gb_pct": 51.4
     },
     {
       "id": "ワォーターズ",
@@ -953,7 +1280,14 @@
       "sb": 12,
       "k_pct": 25.8,
       "bb_pct": 6.3,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 39.688,
+      "contact_pct": 67.747,
+      "z_swing_pct": 67.747,
+      "whiff_pct": 25.516,
+      "z_contact_pct": 87.8,
+      "gb_pct": 64.5
     },
     {
       "id": "万波_中正",
@@ -974,7 +1308,14 @@
       "sb": 0,
       "k_pct": 12.0,
       "bb_pct": 4.0,
-      "war": null
+      "war": null,
+      "hr_pct": 4.0,
+      "chase_pct": 35.38,
+      "contact_pct": 88.7,
+      "z_swing_pct": 88.7,
+      "whiff_pct": 21.108,
+      "z_contact_pct": 81.6,
+      "gb_pct": 45.3
     },
     {
       "id": "三上_愛介",
@@ -993,7 +1334,14 @@
       "sb": 4,
       "k_pct": 18.9,
       "bb_pct": 10.2,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 33.965,
+      "contact_pct": 67.423,
+      "z_swing_pct": 67.423,
+      "whiff_pct": 18.303,
+      "z_contact_pct": 85.1,
+      "gb_pct": 61.9
     },
     {
       "id": "三塚_琉生",
@@ -1012,7 +1360,14 @@
       "sb": 3,
       "k_pct": 16.4,
       "bb_pct": 8.6,
-      "war": null
+      "war": null,
+      "hr_pct": 2.3,
+      "chase_pct": 38.618,
+      "contact_pct": 76.605,
+      "z_swing_pct": 76.605,
+      "whiff_pct": 24.229,
+      "z_contact_pct": 84.4,
+      "gb_pct": 55.5
     },
     {
       "id": "三方_陽登",
@@ -1031,7 +1386,14 @@
       "sb": 10,
       "k_pct": 29.0,
       "bb_pct": 7.4,
-      "war": null
+      "war": null,
+      "hr_pct": 2.6,
+      "chase_pct": 31.568,
+      "contact_pct": 57.902,
+      "z_swing_pct": 57.902,
+      "whiff_pct": 27.383,
+      "z_contact_pct": 84.0,
+      "gb_pct": 49.0
     },
     {
       "id": "上原_裕樹",
@@ -1050,7 +1412,14 @@
       "sb": 6,
       "k_pct": 28.0,
       "bb_pct": 8.8,
-      "war": null
+      "war": null,
+      "hr_pct": 1.0,
+      "chase_pct": 34.756,
+      "contact_pct": 70.251,
+      "z_swing_pct": 70.251,
+      "whiff_pct": 26.391,
+      "z_contact_pct": 80.2,
+      "gb_pct": 48.7
     },
     {
       "id": "上川畑_大悟",
@@ -1072,7 +1441,14 @@
       "sb": 1,
       "k_pct": 9.6,
       "bb_pct": 16.4,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 21.757,
+      "contact_pct": 60.725,
+      "z_swing_pct": 60.725,
+      "whiff_pct": 9.264,
+      "z_contact_pct": 97.9,
+      "gb_pct": 56.7
     },
     {
       "id": "上林_誠知",
@@ -1091,7 +1467,14 @@
       "sb": 3,
       "k_pct": 17.5,
       "bb_pct": 1.8,
-      "war": null
+      "war": null,
+      "hr_pct": 3.5,
+      "chase_pct": 48.914,
+      "contact_pct": 77.028,
+      "z_swing_pct": 77.028,
+      "whiff_pct": 24.112,
+      "z_contact_pct": 83.1,
+      "gb_pct": 40.7
     },
     {
       "id": "上田_希由翔",
@@ -1113,7 +1496,14 @@
       "sb": 5,
       "k_pct": 7.8,
       "bb_pct": 14.1,
-      "war": null
+      "war": null,
+      "hr_pct": 3.1,
+      "chase_pct": 24.383,
+      "contact_pct": 63.981,
+      "z_swing_pct": 63.981,
+      "whiff_pct": 16.723,
+      "z_contact_pct": 91.5,
+      "gb_pct": 24.9
     },
     {
       "id": "上甲_凌大",
@@ -1134,7 +1524,14 @@
       "sb": 2,
       "k_pct": 27.8,
       "bb_pct": 17.4,
-      "war": null
+      "war": null,
+      "hr_pct": 1.4,
+      "chase_pct": 23.163,
+      "contact_pct": 62.471,
+      "z_swing_pct": 62.471,
+      "whiff_pct": 29.348,
+      "z_contact_pct": 75.9,
+      "gb_pct": 45.7
     },
     {
       "id": "下村_海翔",
@@ -1156,7 +1553,14 @@
       "sb": 0,
       "k_pct": 0.0,
       "bb_pct": 33.3,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 22.2,
+      "contact_pct": 66.667,
+      "z_swing_pct": 66.667,
+      "whiff_pct": 27.767,
+      "z_contact_pct": 100.0,
+      "gb_pct": 100.0
     },
     {
       "id": "並木_秀尊",
@@ -1177,7 +1581,14 @@
       "sb": 6,
       "k_pct": 6.7,
       "bb_pct": 6.7,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 23.875,
+      "contact_pct": 52.903,
+      "z_swing_pct": 52.903,
+      "whiff_pct": 6.639,
+      "z_contact_pct": 95.9,
+      "gb_pct": 58.4
     },
     {
       "id": "中山_礼都",
@@ -1199,7 +1610,14 @@
       "sb": 1,
       "k_pct": 12.1,
       "bb_pct": 13.7,
-      "war": null
+      "war": null,
+      "hr_pct": 3.2,
+      "chase_pct": 20.622,
+      "contact_pct": 61.703,
+      "z_swing_pct": 61.703,
+      "whiff_pct": 15.536,
+      "z_contact_pct": 96.0,
+      "gb_pct": 51.0
     },
     {
       "id": "中山_翔太",
@@ -1221,7 +1639,14 @@
       "sb": 1,
       "k_pct": 12.8,
       "bb_pct": 13.8,
-      "war": null
+      "war": null,
+      "hr_pct": 2.6,
+      "chase_pct": 34.397,
+      "contact_pct": 65.787,
+      "z_swing_pct": 65.787,
+      "whiff_pct": 20.564,
+      "z_contact_pct": 86.8,
+      "gb_pct": 43.6
     },
     {
       "id": "中島_卓也",
@@ -1240,7 +1665,14 @@
       "sb": 12,
       "k_pct": 20.2,
       "bb_pct": 11.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 28.366,
+      "contact_pct": 61.449,
+      "z_swing_pct": 61.449,
+      "whiff_pct": 18.299,
+      "z_contact_pct": 90.9,
+      "gb_pct": 66.3
     },
     {
       "id": "中島_大輔",
@@ -1261,7 +1693,14 @@
       "sb": 1,
       "k_pct": 0.0,
       "bb_pct": 0.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 35.481,
+      "contact_pct": 73.975,
+      "z_swing_pct": 73.975,
+      "whiff_pct": 3.125,
+      "z_contact_pct": 100.0,
+      "gb_pct": 30.8
     },
     {
       "id": "中川_勇斗",
@@ -1280,7 +1719,14 @@
       "sb": 0,
       "k_pct": 25.0,
       "bb_pct": 8.3,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 36.661,
+      "contact_pct": 62.308,
+      "z_swing_pct": 62.308,
+      "whiff_pct": 24.417,
+      "z_contact_pct": 85.9,
+      "gb_pct": 69.6
     },
     {
       "id": "中川_拓真",
@@ -1299,7 +1745,14 @@
       "sb": 1,
       "k_pct": 22.3,
       "bb_pct": 3.9,
-      "war": null
+      "war": null,
+      "hr_pct": 1.9,
+      "chase_pct": 41.972,
+      "contact_pct": 67.565,
+      "z_swing_pct": 67.565,
+      "whiff_pct": 29.331,
+      "z_contact_pct": 77.0,
+      "gb_pct": 49.2
     },
     {
       "id": "中村_剛也",
@@ -1318,7 +1771,14 @@
       "sb": 0,
       "k_pct": 22.4,
       "bb_pct": 6.5,
-      "war": null
+      "war": null,
+      "hr_pct": 4.7,
+      "chase_pct": 29.949,
+      "contact_pct": 68.628,
+      "z_swing_pct": 68.628,
+      "whiff_pct": 26.926,
+      "z_contact_pct": 79.6,
+      "gb_pct": 44.4
     },
     {
       "id": "中村_奈一輝",
@@ -1337,7 +1797,14 @@
       "sb": 9,
       "k_pct": 20.7,
       "bb_pct": 8.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.5,
+      "chase_pct": 33.64,
+      "contact_pct": 59.515,
+      "z_swing_pct": 59.515,
+      "whiff_pct": 21.504,
+      "z_contact_pct": 88.8,
+      "gb_pct": 62.1
     },
     {
       "id": "中村_奨吾",
@@ -1358,7 +1825,14 @@
       "sb": 3,
       "k_pct": 18.8,
       "bb_pct": 13.8,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 29.693,
+      "contact_pct": 62.072,
+      "z_swing_pct": 62.072,
+      "whiff_pct": 19.504,
+      "z_contact_pct": 89.6,
+      "gb_pct": 44.6
     },
     {
       "id": "中村_奨成",
@@ -1379,7 +1853,14 @@
       "sb": 3,
       "k_pct": 12.6,
       "bb_pct": 9.9,
-      "war": null
+      "war": null,
+      "hr_pct": 3.8,
+      "chase_pct": 28.098,
+      "contact_pct": 53.212,
+      "z_swing_pct": 53.212,
+      "whiff_pct": 16.934,
+      "z_contact_pct": 90.9,
+      "gb_pct": 41.8
     },
     {
       "id": "中村_志輝",
@@ -1400,7 +1881,14 @@
       "sb": 0,
       "k_pct": 0.0,
       "bb_pct": 0.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 43.95,
+      "contact_pct": 41.65,
+      "z_swing_pct": 41.65,
+      "whiff_pct": 12.5,
+      "z_contact_pct": 100.0,
+      "gb_pct": 25.0
     },
     {
       "id": "中村_悠平",
@@ -1422,7 +1910,14 @@
       "sb": 0,
       "k_pct": 15.0,
       "bb_pct": 20.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 17.08,
+      "contact_pct": 54.215,
+      "z_swing_pct": 54.215,
+      "whiff_pct": 8.75,
+      "z_contact_pct": 95.6,
+      "gb_pct": 61.8
     },
     {
       "id": "中村_晃",
@@ -1444,7 +1939,14 @@
       "sb": 1,
       "k_pct": 3.9,
       "bb_pct": 14.3,
-      "war": null
+      "war": null,
+      "hr_pct": 1.3,
+      "chase_pct": 22.281,
+      "contact_pct": 59.768,
+      "z_swing_pct": 59.768,
+      "whiff_pct": 6.3,
+      "z_contact_pct": 98.7,
+      "gb_pct": 50.4
     },
     {
       "id": "中村_貴浩",
@@ -1463,7 +1965,14 @@
       "sb": 5,
       "k_pct": 19.9,
       "bb_pct": 9.9,
-      "war": null
+      "war": null,
+      "hr_pct": 0.6,
+      "chase_pct": 39.73,
+      "contact_pct": 76.266,
+      "z_swing_pct": 76.266,
+      "whiff_pct": 24.402,
+      "z_contact_pct": 84.0,
+      "gb_pct": 50.0
     },
     {
       "id": "中澤_恒貴",
@@ -1482,7 +1991,14 @@
       "sb": 3,
       "k_pct": 22.4,
       "bb_pct": 5.3,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 34.232,
+      "contact_pct": 77.404,
+      "z_swing_pct": 77.404,
+      "whiff_pct": 17.109,
+      "z_contact_pct": 89.9,
+      "gb_pct": 44.3
     },
     {
       "id": "中澤_英明",
@@ -1501,7 +2017,14 @@
       "sb": 2,
       "k_pct": 16.2,
       "bb_pct": 10.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.4,
+      "chase_pct": 25.784,
+      "contact_pct": 60.766,
+      "z_swing_pct": 60.766,
+      "whiff_pct": 18.597,
+      "z_contact_pct": 86.2,
+      "gb_pct": 47.7
     },
     {
       "id": "中田_歩夢",
@@ -1520,7 +2043,14 @@
       "sb": 7,
       "k_pct": 21.3,
       "bb_pct": 11.3,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 27.551,
+      "contact_pct": 61.419,
+      "z_swing_pct": 61.419,
+      "whiff_pct": 18.686,
+      "z_contact_pct": 82.8,
+      "gb_pct": 50.3
     },
     {
       "id": "中西_創大",
@@ -1539,7 +2069,14 @@
       "sb": 1,
       "k_pct": 34.8,
       "bb_pct": 3.6,
-      "war": null
+      "war": null,
+      "hr_pct": 0.9,
+      "chase_pct": 47.368,
+      "contact_pct": 70.934,
+      "z_swing_pct": 70.934,
+      "whiff_pct": 35.898,
+      "z_contact_pct": 78.9,
+      "gb_pct": 42.2
     },
     {
       "id": "丸_佳浩",
@@ -1561,7 +2098,14 @@
       "sb": 3,
       "k_pct": 6.0,
       "bb_pct": 20.0,
-      "war": null
+      "war": null,
+      "hr_pct": 2.0,
+      "chase_pct": 14.672,
+      "contact_pct": 65.486,
+      "z_swing_pct": 65.486,
+      "whiff_pct": 10.14,
+      "z_contact_pct": 94.9,
+      "gb_pct": 47.2
     },
     {
       "id": "丸山_和郁",
@@ -1582,7 +2126,14 @@
       "sb": 4,
       "k_pct": 11.3,
       "bb_pct": 11.3,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 26.692,
+      "contact_pct": 62.677,
+      "z_swing_pct": 62.677,
+      "whiff_pct": 13.156,
+      "z_contact_pct": 95.6,
+      "gb_pct": 38.3
     },
     {
       "id": "久保_修",
@@ -1601,7 +2152,14 @@
       "sb": 1,
       "k_pct": 20.0,
       "bb_pct": 10.8,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 33.394,
+      "contact_pct": 61.462,
+      "z_swing_pct": 61.462,
+      "whiff_pct": 19.605,
+      "z_contact_pct": 93.9,
+      "gb_pct": 43.6
     },
     {
       "id": "九鬼_隆平",
@@ -1620,7 +2178,14 @@
       "sb": 1,
       "k_pct": 20.3,
       "bb_pct": 10.9,
-      "war": null
+      "war": null,
+      "hr_pct": 0.8,
+      "chase_pct": 20.155,
+      "contact_pct": 62.874,
+      "z_swing_pct": 62.874,
+      "whiff_pct": 21.802,
+      "z_contact_pct": 84.6,
+      "gb_pct": 56.5
     },
     {
       "id": "亀田_啓太",
@@ -1641,7 +2206,14 @@
       "sb": 0,
       "k_pct": 0.0,
       "bb_pct": 0.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 55.533,
+      "contact_pct": 66.667,
+      "z_swing_pct": 66.667,
+      "whiff_pct": 44.433,
+      "z_contact_pct": 66.7,
+      "gb_pct": 66.7
     },
     {
       "id": "二俣_翔一",
@@ -1663,7 +2235,14 @@
       "sb": 1,
       "k_pct": 14.0,
       "bb_pct": 12.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 29.938,
+      "contact_pct": 62.166,
+      "z_swing_pct": 62.166,
+      "whiff_pct": 19.844,
+      "z_contact_pct": 87.7,
+      "gb_pct": 64.6
     },
     {
       "id": "五十幡_亮汰",
@@ -1685,7 +2264,14 @@
       "sb": 3,
       "k_pct": 0.0,
       "bb_pct": 18.2,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 22.273,
+      "contact_pct": 55.455,
+      "z_swing_pct": 55.455,
+      "whiff_pct": 11.364,
+      "z_contact_pct": 90.9,
+      "gb_pct": 70.0
     },
     {
       "id": "井上_広大",
@@ -1704,7 +2290,14 @@
       "sb": 3,
       "k_pct": 30.3,
       "bb_pct": 10.3,
-      "war": null
+      "war": null,
+      "hr_pct": 4.5,
+      "chase_pct": 30.443,
+      "contact_pct": 77.927,
+      "z_swing_pct": 77.927,
+      "whiff_pct": 33.117,
+      "z_contact_pct": 78.3,
+      "gb_pct": 43.1
     },
     {
       "id": "井上_朋也",
@@ -1723,7 +2316,14 @@
       "sb": 1,
       "k_pct": 25.3,
       "bb_pct": 11.0,
-      "war": null
+      "war": null,
+      "hr_pct": 3.7,
+      "chase_pct": 29.929,
+      "contact_pct": 66.314,
+      "z_swing_pct": 66.314,
+      "whiff_pct": 28.867,
+      "z_contact_pct": 82.4,
+      "gb_pct": 41.7
     },
     {
       "id": "井上_絢登",
@@ -1745,7 +2345,14 @@
       "sb": 3,
       "k_pct": 12.0,
       "bb_pct": 12.3,
-      "war": null
+      "war": null,
+      "hr_pct": 2.2,
+      "chase_pct": 30.928,
+      "contact_pct": 69.479,
+      "z_swing_pct": 69.479,
+      "whiff_pct": 17.659,
+      "z_contact_pct": 89.4,
+      "gb_pct": 46.6
     },
     {
       "id": "井坪_陽生",
@@ -1766,7 +2373,14 @@
       "sb": 6,
       "k_pct": 11.9,
       "bb_pct": 5.9,
-      "war": null
+      "war": null,
+      "hr_pct": 0.5,
+      "chase_pct": 35.205,
+      "contact_pct": 62.283,
+      "z_swing_pct": 62.283,
+      "whiff_pct": 13.146,
+      "z_contact_pct": 91.8,
+      "gb_pct": 53.8
     },
     {
       "id": "京田_陽太",
@@ -1787,7 +2401,14 @@
       "sb": 0,
       "k_pct": 14.7,
       "bb_pct": 5.3,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 33.864,
+      "contact_pct": 79.973,
+      "z_swing_pct": 79.973,
+      "whiff_pct": 20.285,
+      "z_contact_pct": 83.1,
+      "gb_pct": 58.7
     },
     {
       "id": "今坂_幸暉",
@@ -1806,7 +2427,14 @@
       "sb": 0,
       "k_pct": 43.3,
       "bb_pct": 10.0,
-      "war": null
+      "war": null,
+      "hr_pct": 3.3,
+      "chase_pct": 26.04,
+      "contact_pct": 55.78,
+      "z_swing_pct": 55.78,
+      "whiff_pct": 35.447,
+      "z_contact_pct": 74.1,
+      "gb_pct": 25.2
     },
     {
       "id": "今岡_拓夢",
@@ -1825,7 +2453,14 @@
       "sb": 0,
       "k_pct": 40.0,
       "bb_pct": 0.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 60.0,
+      "contact_pct": 80.0,
+      "z_swing_pct": 80.0,
+      "whiff_pct": 29.32,
+      "z_contact_pct": 100.0,
+      "gb_pct": 0.0
     },
     {
       "id": "今川_優馬",
@@ -1844,7 +2479,14 @@
       "sb": 5,
       "k_pct": 17.9,
       "bb_pct": 6.0,
-      "war": null
+      "war": null,
+      "hr_pct": 3.3,
+      "chase_pct": 28.308,
+      "contact_pct": 69.139,
+      "z_swing_pct": 69.139,
+      "whiff_pct": 18.893,
+      "z_contact_pct": 89.0,
+      "gb_pct": 50.0
     },
     {
       "id": "今朝丸_裕喜",
@@ -1863,7 +2505,14 @@
       "sb": 0,
       "k_pct": 50.0,
       "bb_pct": 0.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 37.5,
+      "contact_pct": 54.175,
+      "z_swing_pct": 54.175,
+      "whiff_pct": 38.892,
+      "z_contact_pct": 77.3,
+      "gb_pct": 80.0
     },
     {
       "id": "今村_龍之介",
@@ -1882,7 +2531,14 @@
       "sb": 1,
       "k_pct": 28.2,
       "bb_pct": 9.3,
-      "war": null
+      "war": null,
+      "hr_pct": 2.7,
+      "chase_pct": 37.568,
+      "contact_pct": 70.364,
+      "z_swing_pct": 70.364,
+      "whiff_pct": 29.787,
+      "z_contact_pct": 79.6,
+      "gb_pct": 45.1
     },
     {
       "id": "仲三_優太",
@@ -1903,7 +2559,14 @@
       "sb": 4,
       "k_pct": 19.6,
       "bb_pct": 11.3,
-      "war": null
+      "war": null,
+      "hr_pct": 5.4,
+      "chase_pct": 29.886,
+      "contact_pct": 70.354,
+      "z_swing_pct": 70.354,
+      "whiff_pct": 24.214,
+      "z_contact_pct": 83.7,
+      "gb_pct": 43.0
     },
     {
       "id": "仲村_来唯也",
@@ -1924,7 +2587,14 @@
       "sb": 0,
       "k_pct": 14.3,
       "bb_pct": 7.4,
-      "war": null
+      "war": null,
+      "hr_pct": 0.8,
+      "chase_pct": 34.585,
+      "contact_pct": 71.191,
+      "z_swing_pct": 71.191,
+      "whiff_pct": 18.466,
+      "z_contact_pct": 87.3,
+      "gb_pct": 60.8
     },
     {
       "id": "仲田_侑仁",
@@ -1943,7 +2613,14 @@
       "sb": 0,
       "k_pct": 21.1,
       "bb_pct": 4.2,
-      "war": null
+      "war": null,
+      "hr_pct": 1.2,
+      "chase_pct": 42.317,
+      "contact_pct": 80.977,
+      "z_swing_pct": 80.977,
+      "whiff_pct": 25.661,
+      "z_contact_pct": 86.5,
+      "gb_pct": 46.9
     },
     {
       "id": "仲田_慶介",
@@ -1964,7 +2641,14 @@
       "sb": 4,
       "k_pct": 14.6,
       "bb_pct": 11.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 34.761,
+      "contact_pct": 66.313,
+      "z_swing_pct": 66.313,
+      "whiff_pct": 15.343,
+      "z_contact_pct": 92.0,
+      "gb_pct": 70.7
     },
     {
       "id": "伊原_陵人",
@@ -1983,7 +2667,14 @@
       "sb": 0,
       "k_pct": 25.0,
       "bb_pct": 0.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 29.15,
+      "contact_pct": 62.5,
+      "z_swing_pct": 62.5,
+      "whiff_pct": 12.5,
+      "z_contact_pct": 80.0,
+      "gb_pct": 100.0
     },
     {
       "id": "伊永_大蔵",
@@ -2002,7 +2693,14 @@
       "sb": 0,
       "k_pct": 40.0,
       "bb_pct": 10.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 26.0,
+      "contact_pct": 67.5,
+      "z_swing_pct": 67.5,
+      "whiff_pct": 50.0,
+      "z_contact_pct": 68.5,
+      "gb_pct": 52.4
     },
     {
       "id": "伊藤_光",
@@ -2023,7 +2721,14 @@
       "sb": 0,
       "k_pct": 12.5,
       "bb_pct": 0.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 50.612,
+      "contact_pct": 51.237,
+      "z_swing_pct": 51.237,
+      "whiff_pct": 21.875,
+      "z_contact_pct": 100.0,
+      "gb_pct": 14.3
     },
     {
       "id": "伊藤_将司",
@@ -2042,7 +2747,12 @@
       "sb": 0,
       "k_pct": 100.0,
       "bb_pct": 0.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 0.0,
+      "contact_pct": 0.0,
+      "z_swing_pct": 0.0,
+      "whiff_pct": 0.0
     },
     {
       "id": "伊藤_琉偉",
@@ -2063,7 +2773,14 @@
       "sb": 5,
       "k_pct": 28.1,
       "bb_pct": 14.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 28.007,
+      "contact_pct": 60.711,
+      "z_swing_pct": 60.711,
+      "whiff_pct": 23.521,
+      "z_contact_pct": 84.7,
+      "gb_pct": 62.9
     },
     {
       "id": "伊藤_裕季也",
@@ -2084,7 +2801,14 @@
       "sb": 1,
       "k_pct": 26.7,
       "bb_pct": 15.6,
-      "war": null
+      "war": null,
+      "hr_pct": 1.8,
+      "chase_pct": 27.962,
+      "contact_pct": 60.216,
+      "z_swing_pct": 60.216,
+      "whiff_pct": 24.717,
+      "z_contact_pct": 80.5,
+      "gb_pct": 48.5
     },
     {
       "id": "伏見_寅威",
@@ -2105,7 +2829,14 @@
       "sb": 0,
       "k_pct": 0.0,
       "bb_pct": 0.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 16.667,
+      "contact_pct": 86.667,
+      "z_swing_pct": 86.667,
+      "whiff_pct": 0.0,
+      "z_contact_pct": 100.0,
+      "gb_pct": 33.3
     },
     {
       "id": "伴在_汰文",
@@ -2124,7 +2855,14 @@
       "sb": 0,
       "k_pct": 30.8,
       "bb_pct": 11.5,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 34.169,
+      "contact_pct": 63.194,
+      "z_swing_pct": 63.194,
+      "whiff_pct": 34.715,
+      "z_contact_pct": 78.7,
+      "gb_pct": 46.1
     },
     {
       "id": "佐々木_俊輔",
@@ -2145,7 +2883,14 @@
       "sb": 3,
       "k_pct": 15.0,
       "bb_pct": 10.0,
-      "war": null
+      "war": null,
+      "hr_pct": 5.0,
+      "chase_pct": 36.295,
+      "contact_pct": 77.375,
+      "z_swing_pct": 77.375,
+      "whiff_pct": 27.095,
+      "z_contact_pct": 84.7,
+      "gb_pct": 40.0
     },
     {
       "id": "佐々木_泰",
@@ -2166,7 +2911,14 @@
       "sb": 0,
       "k_pct": 0.0,
       "bb_pct": 3.2,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 44.806,
+      "contact_pct": 58.613,
+      "z_swing_pct": 58.613,
+      "whiff_pct": 5.929,
+      "z_contact_pct": 95.9,
+      "gb_pct": 24.2
     },
     {
       "id": "佐倉_侠史朗",
@@ -2185,7 +2937,14 @@
       "sb": 0,
       "k_pct": 19.4,
       "bb_pct": 5.6,
-      "war": null
+      "war": null,
+      "hr_pct": 2.8,
+      "chase_pct": 29.894,
+      "contact_pct": 75.683,
+      "z_swing_pct": 75.683,
+      "whiff_pct": 24.278,
+      "z_contact_pct": 86.3,
+      "gb_pct": 41.4
     },
     {
       "id": "佐藤_啓介",
@@ -2207,7 +2966,14 @@
       "sb": 4,
       "k_pct": 9.6,
       "bb_pct": 18.4,
-      "war": null
+      "war": null,
+      "hr_pct": 2.6,
+      "chase_pct": 21.185,
+      "contact_pct": 55.718,
+      "z_swing_pct": 55.718,
+      "whiff_pct": 13.565,
+      "z_contact_pct": 88.4,
+      "gb_pct": 61.3
     },
     {
       "id": "佐藤_太陽",
@@ -2226,7 +2992,14 @@
       "sb": 6,
       "k_pct": 17.3,
       "bb_pct": 9.1,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 25.953,
+      "contact_pct": 59.414,
+      "z_swing_pct": 59.414,
+      "whiff_pct": 14.841,
+      "z_contact_pct": 91.6,
+      "gb_pct": 54.1
     },
     {
       "id": "佐藤_柳之介",
@@ -2245,7 +3018,12 @@
       "sb": 0,
       "k_pct": 100.0,
       "bb_pct": 0.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 25.0,
+      "contact_pct": 12.5,
+      "z_swing_pct": 12.5,
+      "whiff_pct": 50.0
     },
     {
       "id": "佐藤_直樹",
@@ -2266,7 +3044,14 @@
       "sb": 0,
       "k_pct": 22.7,
       "bb_pct": 13.6,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 22.809,
+      "contact_pct": 71.9,
+      "z_swing_pct": 71.9,
+      "whiff_pct": 36.268,
+      "z_contact_pct": 81.2,
+      "gb_pct": 86.7
     },
     {
       "id": "佐藤_航太",
@@ -2285,7 +3070,14 @@
       "sb": 2,
       "k_pct": 41.2,
       "bb_pct": 0.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 53.441,
+      "contact_pct": 71.771,
+      "z_swing_pct": 71.771,
+      "whiff_pct": 30.024,
+      "z_contact_pct": 75.0,
+      "gb_pct": 46.7
     },
     {
       "id": "佐藤_英雄",
@@ -2304,7 +3096,14 @@
       "sb": 0,
       "k_pct": 23.1,
       "bb_pct": 8.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.8,
+      "chase_pct": 31.644,
+      "contact_pct": 75.295,
+      "z_swing_pct": 75.295,
+      "whiff_pct": 28.397,
+      "z_contact_pct": 79.4,
+      "gb_pct": 43.6
     },
     {
       "id": "佐藤_都志也",
@@ -2325,7 +3124,14 @@
       "sb": 0,
       "k_pct": 37.5,
       "bb_pct": 12.5,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 44.9,
+      "contact_pct": 58.3,
+      "z_swing_pct": 58.3,
+      "whiff_pct": 45.0,
+      "z_contact_pct": 66.7,
+      "gb_pct": 50.0
     },
     {
       "id": "佐野_大陽",
@@ -2344,7 +3150,14 @@
       "sb": 4,
       "k_pct": 16.7,
       "bb_pct": 9.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.9,
+      "chase_pct": 28.845,
+      "contact_pct": 68.254,
+      "z_swing_pct": 68.254,
+      "whiff_pct": 18.728,
+      "z_contact_pct": 89.7,
+      "gb_pct": 59.9
     },
     {
       "id": "倉本_寿彦",
@@ -2365,7 +3178,14 @@
       "sb": 0,
       "k_pct": 11.6,
       "bb_pct": 8.2,
-      "war": null
+      "war": null,
+      "hr_pct": 0.2,
+      "chase_pct": 42.718,
+      "contact_pct": 76.456,
+      "z_swing_pct": 76.456,
+      "whiff_pct": 15.422,
+      "z_contact_pct": 92.4,
+      "gb_pct": 60.5
     },
     {
       "id": "元_謙太",
@@ -2384,7 +3204,14 @@
       "sb": 1,
       "k_pct": 19.6,
       "bb_pct": 11.6,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 22.471,
+      "contact_pct": 59.029,
+      "z_swing_pct": 59.029,
+      "whiff_pct": 21.498,
+      "z_contact_pct": 84.0,
+      "gb_pct": 52.4
     },
     {
       "id": "元山_飛優",
@@ -2405,7 +3232,14 @@
       "sb": 0,
       "k_pct": 14.5,
       "bb_pct": 5.3,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 34.513,
+      "contact_pct": 65.751,
+      "z_swing_pct": 65.751,
+      "whiff_pct": 17.113,
+      "z_contact_pct": 88.1,
+      "gb_pct": 54.1
     },
     {
       "id": "児玉_亮涼",
@@ -2426,7 +3260,14 @@
       "sb": 2,
       "k_pct": 7.4,
       "bb_pct": 9.5,
-      "war": null
+      "war": null,
+      "hr_pct": 0.7,
+      "chase_pct": 19.293,
+      "contact_pct": 65.398,
+      "z_swing_pct": 65.398,
+      "whiff_pct": 9.186,
+      "z_contact_pct": 92.0,
+      "gb_pct": 52.6
     },
     {
       "id": "入江_大樹",
@@ -2445,7 +3286,14 @@
       "sb": 1,
       "k_pct": 17.9,
       "bb_pct": 11.8,
-      "war": null
+      "war": null,
+      "hr_pct": 1.5,
+      "chase_pct": 37.687,
+      "contact_pct": 71.307,
+      "z_swing_pct": 71.307,
+      "whiff_pct": 24.148,
+      "z_contact_pct": 83.9,
+      "gb_pct": 62.1
     },
     {
       "id": "内山_壮真",
@@ -2467,7 +3315,14 @@
       "sb": 0,
       "k_pct": 10.3,
       "bb_pct": 21.8,
-      "war": null
+      "war": null,
+      "hr_pct": 3.4,
+      "chase_pct": 21.278,
+      "contact_pct": 61.333,
+      "z_swing_pct": 61.333,
+      "whiff_pct": 15.2,
+      "z_contact_pct": 89.4,
+      "gb_pct": 38.5
     },
     {
       "id": "内田_湘大",
@@ -2486,7 +3341,14 @@
       "sb": 0,
       "k_pct": 29.2,
       "bb_pct": 4.8,
-      "war": null
+      "war": null,
+      "hr_pct": 0.6,
+      "chase_pct": 53.622,
+      "contact_pct": 74.817,
+      "z_swing_pct": 74.817,
+      "whiff_pct": 33.326,
+      "z_contact_pct": 80.8,
+      "gb_pct": 69.8
     },
     {
       "id": "内藤_鵬",
@@ -2505,7 +3367,14 @@
       "sb": 1,
       "k_pct": 20.1,
       "bb_pct": 6.7,
-      "war": null
+      "war": null,
+      "hr_pct": 2.9,
+      "chase_pct": 38.168,
+      "contact_pct": 71.45,
+      "z_swing_pct": 71.45,
+      "whiff_pct": 24.053,
+      "z_contact_pct": 85.6,
+      "gb_pct": 36.6
     },
     {
       "id": "前川_右京",
@@ -2526,7 +3395,14 @@
       "sb": 1,
       "k_pct": 20.3,
       "bb_pct": 15.3,
-      "war": null
+      "war": null,
+      "hr_pct": 3.4,
+      "chase_pct": 24.502,
+      "contact_pct": 62.621,
+      "z_swing_pct": 62.621,
+      "whiff_pct": 22.151,
+      "z_contact_pct": 85.6,
+      "gb_pct": 42.1
     },
     {
       "id": "前川_誠太",
@@ -2547,7 +3423,14 @@
       "sb": 1,
       "k_pct": 8.1,
       "bb_pct": 6.3,
-      "war": null
+      "war": null,
+      "hr_pct": 2.7,
+      "chase_pct": 26.732,
+      "contact_pct": 55.552,
+      "z_swing_pct": 55.552,
+      "whiff_pct": 6.927,
+      "z_contact_pct": 94.8,
+      "gb_pct": 49.5
     },
     {
       "id": "前田_聖矢",
@@ -2568,7 +3451,14 @@
       "sb": 9,
       "k_pct": 9.7,
       "bb_pct": 6.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.7,
+      "chase_pct": 33.108,
+      "contact_pct": 57.473,
+      "z_swing_pct": 57.473,
+      "whiff_pct": 8.454,
+      "z_contact_pct": 95.8,
+      "gb_pct": 53.5
     },
     {
       "id": "前田_銀治",
@@ -2587,7 +3477,14 @@
       "sb": 2,
       "k_pct": 31.9,
       "bb_pct": 9.7,
-      "war": null
+      "war": null,
+      "hr_pct": 2.8,
+      "chase_pct": 35.122,
+      "contact_pct": 66.492,
+      "z_swing_pct": 66.492,
+      "whiff_pct": 26.169,
+      "z_contact_pct": 79.0,
+      "gb_pct": 47.3
     },
     {
       "id": "加藤_匠馬",
@@ -2608,7 +3505,14 @@
       "sb": 0,
       "k_pct": 37.5,
       "bb_pct": 12.5,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 41.837,
+      "contact_pct": 79.175,
+      "z_swing_pct": 79.175,
+      "whiff_pct": 22.487,
+      "z_contact_pct": 89.3,
+      "gb_pct": 57.1
     },
     {
       "id": "加藤_響",
@@ -2630,7 +3534,14 @@
       "sb": 7,
       "k_pct": 12.9,
       "bb_pct": 12.5,
-      "war": null
+      "war": null,
+      "hr_pct": 1.0,
+      "chase_pct": 30.946,
+      "contact_pct": 62.416,
+      "z_swing_pct": 62.416,
+      "whiff_pct": 14.736,
+      "z_contact_pct": 89.7,
+      "gb_pct": 52.0
     },
     {
       "id": "勝又_温史",
@@ -2651,7 +3562,14 @@
       "sb": 0,
       "k_pct": 8.3,
       "bb_pct": 10.4,
-      "war": null
+      "war": null,
+      "hr_pct": 2.1,
+      "chase_pct": 31.152,
+      "contact_pct": 66.2,
+      "z_swing_pct": 66.2,
+      "whiff_pct": 15.656,
+      "z_contact_pct": 88.5,
+      "gb_pct": 64.1
     },
     {
       "id": "勝又_琉偉",
@@ -2670,7 +3588,14 @@
       "sb": 0,
       "k_pct": 21.3,
       "bb_pct": 4.9,
-      "war": null
+      "war": null,
+      "hr_pct": 1.6,
+      "chase_pct": 43.449,
+      "contact_pct": 77.39,
+      "z_swing_pct": 77.39,
+      "whiff_pct": 29.693,
+      "z_contact_pct": 80.5,
+      "gb_pct": 48.9
     },
     {
       "id": "勝田_成",
@@ -2692,7 +3617,14 @@
       "sb": 1,
       "k_pct": 8.3,
       "bb_pct": 16.7,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 14.067,
+      "contact_pct": 48.758,
+      "z_swing_pct": 48.758,
+      "whiff_pct": 13.625,
+      "z_contact_pct": 91.7,
+      "gb_pct": 66.7
     },
     {
       "id": "北村_恵吾",
@@ -2713,7 +3645,14 @@
       "sb": 0,
       "k_pct": 13.9,
       "bb_pct": 10.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 27.61,
+      "contact_pct": 64.634,
+      "z_swing_pct": 64.634,
+      "whiff_pct": 15.502,
+      "z_contact_pct": 91.5,
+      "gb_pct": 40.4
     },
     {
       "id": "半田_南十",
@@ -2732,7 +3671,14 @@
       "sb": 3,
       "k_pct": 22.7,
       "bb_pct": 1.4,
-      "war": null
+      "war": null,
+      "hr_pct": 0.7,
+      "chase_pct": 45.387,
+      "contact_pct": 74.818,
+      "z_swing_pct": 74.818,
+      "whiff_pct": 25.668,
+      "z_contact_pct": 79.1,
+      "gb_pct": 51.0
     },
     {
       "id": "友杉_篤輝",
@@ -2753,7 +3699,14 @@
       "sb": 1,
       "k_pct": 12.5,
       "bb_pct": 6.2,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 23.856,
+      "contact_pct": 68.296,
+      "z_swing_pct": 68.296,
+      "whiff_pct": 14.627,
+      "z_contact_pct": 94.0,
+      "gb_pct": 29.1
     },
     {
       "id": "古川_雄大",
@@ -2772,7 +3725,14 @@
       "sb": 0,
       "k_pct": 20.0,
       "bb_pct": 8.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 24.836,
+      "contact_pct": 64.268,
+      "z_swing_pct": 64.268,
+      "whiff_pct": 25.62,
+      "z_contact_pct": 76.1,
+      "gb_pct": 35.1
     },
     {
       "id": "古市_尊",
@@ -2794,7 +3754,14 @@
       "sb": 2,
       "k_pct": 8.6,
       "bb_pct": 14.3,
-      "war": null
+      "war": null,
+      "hr_pct": 1.4,
+      "chase_pct": 21.974,
+      "contact_pct": 64.073,
+      "z_swing_pct": 64.073,
+      "whiff_pct": 7.586,
+      "z_contact_pct": 98.0,
+      "gb_pct": 55.8
     },
     {
       "id": "古賀_悠斗",
@@ -2815,7 +3782,12 @@
       "sb": 0,
       "k_pct": 50.0,
       "bb_pct": 50.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 33.3,
+      "contact_pct": 0.0,
+      "z_swing_pct": 0.0,
+      "whiff_pct": 33.3
     },
     {
       "id": "古賀_輝希",
@@ -2836,7 +3808,14 @@
       "sb": 2,
       "k_pct": 19.5,
       "bb_pct": 12.2,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 31.59,
+      "contact_pct": 60.538,
+      "z_swing_pct": 60.538,
+      "whiff_pct": 22.232,
+      "z_contact_pct": 89.0,
+      "gb_pct": 21.2
     },
     {
       "id": "吉川_尚輝",
@@ -2858,7 +3837,14 @@
       "sb": 6,
       "k_pct": 9.7,
       "bb_pct": 18.1,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 19.562,
+      "contact_pct": 69.186,
+      "z_swing_pct": 69.186,
+      "whiff_pct": 12.167,
+      "z_contact_pct": 91.5,
+      "gb_pct": 53.3
     },
     {
       "id": "吉田_賢吾",
@@ -2879,7 +3865,14 @@
       "sb": 4,
       "k_pct": 10.6,
       "bb_pct": 7.8,
-      "war": null
+      "war": null,
+      "hr_pct": 2.8,
+      "chase_pct": 33.18,
+      "contact_pct": 83.444,
+      "z_swing_pct": 83.444,
+      "whiff_pct": 13.544,
+      "z_contact_pct": 91.1,
+      "gb_pct": 41.6
     },
     {
       "id": "吉納_翼",
@@ -2900,7 +3893,14 @@
       "sb": 1,
       "k_pct": 23.1,
       "bb_pct": 12.4,
-      "war": null
+      "war": null,
+      "hr_pct": 3.8,
+      "chase_pct": 29.782,
+      "contact_pct": 62.771,
+      "z_swing_pct": 62.771,
+      "whiff_pct": 24.576,
+      "z_contact_pct": 86.1,
+      "gb_pct": 41.7
     },
     {
       "id": "吉野_創士",
@@ -2919,7 +3919,14 @@
       "sb": 7,
       "k_pct": 17.3,
       "bb_pct": 10.4,
-      "war": null
+      "war": null,
+      "hr_pct": 2.7,
+      "chase_pct": 34.103,
+      "contact_pct": 70.96,
+      "z_swing_pct": 70.96,
+      "whiff_pct": 22.98,
+      "z_contact_pct": 84.9,
+      "gb_pct": 45.9
     },
     {
       "id": "名原_典彦",
@@ -2940,7 +3947,14 @@
       "sb": 8,
       "k_pct": 8.6,
       "bb_pct": 11.1,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 31.652,
+      "contact_pct": 59.504,
+      "z_swing_pct": 59.504,
+      "whiff_pct": 14.6,
+      "z_contact_pct": 93.2,
+      "gb_pct": 43.4
     },
     {
       "id": "味谷_大誠",
@@ -2959,7 +3973,14 @@
       "sb": 6,
       "k_pct": 24.4,
       "bb_pct": 5.8,
-      "war": null
+      "war": null,
+      "hr_pct": 1.3,
+      "chase_pct": 35.638,
+      "contact_pct": 69.461,
+      "z_swing_pct": 69.461,
+      "whiff_pct": 27.04,
+      "z_contact_pct": 80.5,
+      "gb_pct": 68.2
     },
     {
       "id": "和田_康士朗",
@@ -2980,7 +4001,14 @@
       "sb": 4,
       "k_pct": 11.4,
       "bb_pct": 11.4,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 18.187,
+      "contact_pct": 67.011,
+      "z_swing_pct": 67.011,
+      "whiff_pct": 14.689,
+      "z_contact_pct": 88.5,
+      "gb_pct": 49.6
     },
     {
       "id": "和辻_大輝",
@@ -3001,7 +4029,14 @@
       "sb": 5,
       "k_pct": 12.3,
       "bb_pct": 10.8,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 32.369,
+      "contact_pct": 63.114,
+      "z_swing_pct": 63.114,
+      "whiff_pct": 18.117,
+      "z_contact_pct": 92.0,
+      "gb_pct": 61.3
     },
     {
       "id": "園部_佳太",
@@ -3022,7 +4057,14 @@
       "sb": 6,
       "k_pct": 17.5,
       "bb_pct": 13.3,
-      "war": null
+      "war": null,
+      "hr_pct": 0.9,
+      "chase_pct": 29.379,
+      "contact_pct": 56.799,
+      "z_swing_pct": 56.799,
+      "whiff_pct": 17.552,
+      "z_contact_pct": 91.9,
+      "gb_pct": 58.2
     },
     {
       "id": "土田_龍空",
@@ -3041,7 +4083,14 @@
       "sb": 9,
       "k_pct": 20.5,
       "bb_pct": 9.1,
-      "war": null
+      "war": null,
+      "hr_pct": 1.1,
+      "chase_pct": 37.395,
+      "contact_pct": 65.377,
+      "z_swing_pct": 65.377,
+      "whiff_pct": 22.335,
+      "z_contact_pct": 82.8,
+      "gb_pct": 26.9
     },
     {
       "id": "坂本_達也",
@@ -3060,7 +4109,14 @@
       "sb": 1,
       "k_pct": 17.6,
       "bb_pct": 5.9,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 36.297,
+      "contact_pct": 68.103,
+      "z_swing_pct": 68.103,
+      "whiff_pct": 23.126,
+      "z_contact_pct": 90.1,
+      "gb_pct": 63.8
     },
     {
       "id": "堀_柊那",
@@ -3079,7 +4135,14 @@
       "sb": 2,
       "k_pct": 17.3,
       "bb_pct": 6.8,
-      "war": null
+      "war": null,
+      "hr_pct": 0.6,
+      "chase_pct": 33.889,
+      "contact_pct": 66.925,
+      "z_swing_pct": 66.925,
+      "whiff_pct": 16.902,
+      "z_contact_pct": 93.5,
+      "gb_pct": 59.5
     },
     {
       "id": "堀内_謙伍",
@@ -3101,7 +4164,14 @@
       "sb": 0,
       "k_pct": 9.4,
       "bb_pct": 18.9,
-      "war": null
+      "war": null,
+      "hr_pct": 1.9,
+      "chase_pct": 27.357,
+      "contact_pct": 61.772,
+      "z_swing_pct": 61.772,
+      "whiff_pct": 9.817,
+      "z_contact_pct": 91.8,
+      "gb_pct": 40.0
     },
     {
       "id": "堂林_翔太",
@@ -3120,7 +4190,14 @@
       "sb": 2,
       "k_pct": 15.7,
       "bb_pct": 10.0,
-      "war": null
+      "war": null,
+      "hr_pct": 2.4,
+      "chase_pct": 27.526,
+      "contact_pct": 71.056,
+      "z_swing_pct": 71.056,
+      "whiff_pct": 19.573,
+      "z_contact_pct": 90.0,
+      "gb_pct": 40.9
     },
     {
       "id": "塩見_泰隆",
@@ -3141,7 +4218,14 @@
       "sb": 0,
       "k_pct": 19.4,
       "bb_pct": 16.1,
-      "war": null
+      "war": null,
+      "hr_pct": 1.1,
+      "chase_pct": 26.197,
+      "contact_pct": 67.093,
+      "z_swing_pct": 67.093,
+      "whiff_pct": 25.717,
+      "z_contact_pct": 82.1,
+      "gb_pct": 55.3
     },
     {
       "id": "塩﨑_栄多",
@@ -3160,7 +4244,14 @@
       "sb": 0,
       "k_pct": 21.2,
       "bb_pct": 8.2,
-      "war": null
+      "war": null,
+      "hr_pct": 1.1,
+      "chase_pct": 36.279,
+      "contact_pct": 67.271,
+      "z_swing_pct": 67.271,
+      "whiff_pct": 28.58,
+      "z_contact_pct": 85.1,
+      "gb_pct": 52.8
     },
     {
       "id": "増田_大輝",
@@ -3182,7 +4273,14 @@
       "sb": 4,
       "k_pct": 14.1,
       "bb_pct": 16.9,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 20.776,
+      "contact_pct": 70.755,
+      "z_swing_pct": 70.755,
+      "whiff_pct": 18.192,
+      "z_contact_pct": 85.8,
+      "gb_pct": 48.2
     },
     {
       "id": "増田_陸",
@@ -3201,7 +4299,14 @@
       "sb": 3,
       "k_pct": 18.5,
       "bb_pct": 9.0,
-      "war": null
+      "war": null,
+      "hr_pct": 1.7,
+      "chase_pct": 29.414,
+      "contact_pct": 62.642,
+      "z_swing_pct": 62.642,
+      "whiff_pct": 18.847,
+      "z_contact_pct": 88.7,
+      "gb_pct": 38.6
     },
     {
       "id": "外崎_修汰",
@@ -3220,7 +4325,14 @@
       "sb": 2,
       "k_pct": 16.5,
       "bb_pct": 7.6,
-      "war": null
+      "war": null,
+      "hr_pct": 6.3,
+      "chase_pct": 22.506,
+      "contact_pct": 72.53,
+      "z_swing_pct": 72.53,
+      "whiff_pct": 17.144,
+      "z_contact_pct": 86.3,
+      "gb_pct": 47.5
     },
     {
       "id": "大友_宗",
@@ -3241,7 +4353,14 @@
       "sb": 2,
       "k_pct": 12.7,
       "bb_pct": 8.5,
-      "war": null
+      "war": null,
+      "hr_pct": 2.8,
+      "chase_pct": 29.345,
+      "contact_pct": 73.811,
+      "z_swing_pct": 73.811,
+      "whiff_pct": 24.21,
+      "z_contact_pct": 87.1,
+      "gb_pct": 27.5
     },
     {
       "id": "大坪_梓恩",
@@ -3260,7 +4379,14 @@
       "sb": 2,
       "k_pct": 22.5,
       "bb_pct": 6.2,
-      "war": null
+      "war": null,
+      "hr_pct": 2.2,
+      "chase_pct": 42.419,
+      "contact_pct": 81.623,
+      "z_swing_pct": 81.623,
+      "whiff_pct": 28.274,
+      "z_contact_pct": 82.8,
+      "gb_pct": 44.0
     },
     {
       "id": "大城_滉二",
@@ -3279,7 +4405,14 @@
       "sb": 0,
       "k_pct": 27.3,
       "bb_pct": 9.1,
-      "war": null
+      "war": null,
+      "hr_pct": 4.5,
+      "chase_pct": 32.595,
+      "contact_pct": 73.318,
+      "z_swing_pct": 73.318,
+      "whiff_pct": 29.009,
+      "z_contact_pct": 72.7,
+      "gb_pct": 71.8
     },
     {
       "id": "大塚_瑠晏",
@@ -3300,7 +4433,14 @@
       "sb": 2,
       "k_pct": 22.8,
       "bb_pct": 12.3,
-      "war": null
+      "war": null,
+      "hr_pct": 2.6,
+      "chase_pct": 24.233,
+      "contact_pct": 55.904,
+      "z_swing_pct": 55.904,
+      "whiff_pct": 23.489,
+      "z_contact_pct": 85.8,
+      "gb_pct": 52.4
     },
     {
       "id": "大島_洋平",
@@ -3321,7 +4461,14 @@
       "sb": 2,
       "k_pct": 6.7,
       "bb_pct": 7.5,
-      "war": null
+      "war": null,
+      "hr_pct": 0.8,
+      "chase_pct": 23.948,
+      "contact_pct": 67.838,
+      "z_swing_pct": 67.838,
+      "whiff_pct": 9.908,
+      "z_contact_pct": 93.4,
+      "gb_pct": 55.2
     },
     {
       "id": "大川_陽大",
@@ -3340,7 +4487,14 @@
       "sb": 6,
       "k_pct": 20.3,
       "bb_pct": 5.8,
-      "war": null
+      "war": null,
+      "hr_pct": 1.3,
+      "chase_pct": 32.274,
+      "contact_pct": 62.356,
+      "z_swing_pct": 62.356,
+      "whiff_pct": 21.825,
+      "z_contact_pct": 88.0,
+      "gb_pct": 48.9
     },
     {
       "id": "大栄_利哉",
@@ -3361,7 +4515,14 @@
       "sb": 1,
       "k_pct": 16.0,
       "bb_pct": 12.0,
-      "war": null
+      "war": null,
+      "hr_pct": 2.0,
+      "chase_pct": 21.936,
+      "contact_pct": 65.52,
+      "z_swing_pct": 65.52,
+      "whiff_pct": 21.884,
+      "z_contact_pct": 87.4,
+      "gb_pct": 53.9
     },
     {
       "id": "大橋_令和",
@@ -3380,7 +4541,12 @@
       "sb": 0,
       "k_pct": 100.0,
       "bb_pct": 0.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 50.0,
+      "contact_pct": 0.0,
+      "z_swing_pct": 0.0,
+      "whiff_pct": 100.0
     },
     {
       "id": "大泉_周也",
@@ -3401,7 +4567,14 @@
       "sb": 4,
       "k_pct": 13.4,
       "bb_pct": 9.1,
-      "war": null
+      "war": null,
+      "hr_pct": 3.2,
+      "chase_pct": 30.808,
+      "contact_pct": 64.098,
+      "z_swing_pct": 64.098,
+      "whiff_pct": 18.703,
+      "z_contact_pct": 89.7,
+      "gb_pct": 54.2
     },
     {
       "id": "大渡_純星",
@@ -3422,7 +4595,14 @@
       "sb": 1,
       "k_pct": 23.1,
       "bb_pct": 15.4,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 42.652,
+      "contact_pct": 67.956,
+      "z_swing_pct": 67.956,
+      "whiff_pct": 16.342,
+      "z_contact_pct": 91.7,
+      "gb_pct": 74.0
     },
     {
       "id": "大竹_耕太郎",
@@ -3441,7 +4621,14 @@
       "sb": 0,
       "k_pct": 33.3,
       "bb_pct": 0.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 58.333,
+      "contact_pct": 35.7,
+      "z_swing_pct": 35.7,
+      "whiff_pct": 8.333,
+      "z_contact_pct": 100.0,
+      "gb_pct": 100.0
     },
     {
       "id": "大里_昂生",
@@ -3460,7 +4647,14 @@
       "sb": 0,
       "k_pct": 50.0,
       "bb_pct": 0.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 50.0,
+      "contact_pct": 40.0,
+      "z_swing_pct": 40.0,
+      "whiff_pct": 0.0,
+      "z_contact_pct": 100.0,
+      "gb_pct": 100.0
     },
     {
       "id": "奥川_恭伸",
@@ -3479,7 +4673,14 @@
       "sb": 0,
       "k_pct": 50.0,
       "bb_pct": 0.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 20.0,
+      "contact_pct": 80.0,
+      "z_swing_pct": 80.0,
+      "whiff_pct": 0.0,
+      "z_contact_pct": 100.0,
+      "gb_pct": 0.0
     },
     {
       "id": "奥村_光一",
@@ -3500,7 +4701,14 @@
       "sb": 1,
       "k_pct": 15.6,
       "bb_pct": 18.8,
-      "war": null
+      "war": null,
+      "hr_pct": 3.1,
+      "chase_pct": 23.766,
+      "contact_pct": 64.841,
+      "z_swing_pct": 64.841,
+      "whiff_pct": 15.531,
+      "z_contact_pct": 83.1,
+      "gb_pct": 34.4
     },
     {
       "id": "宇佐見_真吾",
@@ -3519,7 +4727,14 @@
       "sb": 0,
       "k_pct": 20.9,
       "bb_pct": 10.4,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 31.677,
+      "contact_pct": 67.605,
+      "z_swing_pct": 67.605,
+      "whiff_pct": 20.717,
+      "z_contact_pct": 88.0,
+      "gb_pct": 59.9
     },
     {
       "id": "宇都宮_葵星",
@@ -3538,7 +4753,14 @@
       "sb": 8,
       "k_pct": 17.0,
       "bb_pct": 9.4,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 26.409,
+      "contact_pct": 66.491,
+      "z_swing_pct": 66.491,
+      "whiff_pct": 18.291,
+      "z_contact_pct": 89.1,
+      "gb_pct": 68.7
     },
     {
       "id": "宇野_真仁朗",
@@ -3559,7 +4781,14 @@
       "sb": 0,
       "k_pct": 46.2,
       "bb_pct": 15.4,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 22.838,
+      "contact_pct": 66.808,
+      "z_swing_pct": 66.808,
+      "whiff_pct": 26.346,
+      "z_contact_pct": 83.8,
+      "gb_pct": 84.6
     },
     {
       "id": "安田_尚憲",
@@ -3580,7 +4809,14 @@
       "sb": 2,
       "k_pct": 16.5,
       "bb_pct": 19.8,
-      "war": null
+      "war": null,
+      "hr_pct": 0.8,
+      "chase_pct": 17.043,
+      "contact_pct": 63.05,
+      "z_swing_pct": 63.05,
+      "whiff_pct": 16.732,
+      "z_contact_pct": 91.7,
+      "gb_pct": 56.9
     },
     {
       "id": "安竹_俊喜",
@@ -3601,7 +4837,14 @@
       "sb": 0,
       "k_pct": 14.8,
       "bb_pct": 1.1,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 21.757,
+      "contact_pct": 58.026,
+      "z_swing_pct": 58.026,
+      "whiff_pct": 10.024,
+      "z_contact_pct": 96.8,
+      "gb_pct": 74.0
     },
     {
       "id": "安藤_銀杜",
@@ -3620,7 +4863,14 @@
       "sb": 0,
       "k_pct": 33.3,
       "bb_pct": 8.3,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 55.942,
+      "contact_pct": 73.625,
+      "z_swing_pct": 73.625,
+      "whiff_pct": 50.233,
+      "z_contact_pct": 75.7,
+      "gb_pct": 81.8
     },
     {
       "id": "宗山_塁",
@@ -3641,7 +4891,14 @@
       "sb": 0,
       "k_pct": 11.8,
       "bb_pct": 5.9,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 29.471,
+      "contact_pct": 79.094,
+      "z_swing_pct": 79.094,
+      "whiff_pct": 13.271,
+      "z_contact_pct": 91.7,
+      "gb_pct": 33.3
     },
     {
       "id": "宜保_翔",
@@ -3662,7 +4919,14 @@
       "sb": 7,
       "k_pct": 16.1,
       "bb_pct": 12.5,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 27.395,
+      "contact_pct": 58.898,
+      "z_swing_pct": 58.898,
+      "whiff_pct": 14.081,
+      "z_contact_pct": 94.7,
+      "gb_pct": 62.4
     },
     {
       "id": "宮下_朝陽",
@@ -3681,7 +4945,14 @@
       "sb": 1,
       "k_pct": 21.1,
       "bb_pct": 6.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.6,
+      "chase_pct": 35.842,
+      "contact_pct": 67.822,
+      "z_swing_pct": 67.822,
+      "whiff_pct": 24.611,
+      "z_contact_pct": 83.8,
+      "gb_pct": 52.1
     },
     {
       "id": "宮原_滉希",
@@ -3700,7 +4971,14 @@
       "sb": 0,
       "k_pct": 29.7,
       "bb_pct": 5.4,
-      "war": null
+      "war": null,
+      "hr_pct": 1.4,
+      "chase_pct": 35.432,
+      "contact_pct": 59.381,
+      "z_swing_pct": 59.381,
+      "whiff_pct": 22.097,
+      "z_contact_pct": 89.0,
+      "gb_pct": 43.6
     },
     {
       "id": "宮崎_一樹",
@@ -3722,7 +5000,14 @@
       "sb": 10,
       "k_pct": 14.4,
       "bb_pct": 16.4,
-      "war": null
+      "war": null,
+      "hr_pct": 1.3,
+      "chase_pct": 21.485,
+      "contact_pct": 55.292,
+      "z_swing_pct": 55.292,
+      "whiff_pct": 15.811,
+      "z_contact_pct": 92.1,
+      "gb_pct": 51.6
     },
     {
       "id": "宮崎_竜成",
@@ -3741,7 +5026,14 @@
       "sb": 2,
       "k_pct": 20.0,
       "bb_pct": 10.0,
-      "war": null
+      "war": null,
+      "hr_pct": 2.3,
+      "chase_pct": 29.21,
+      "contact_pct": 77.325,
+      "z_swing_pct": 77.325,
+      "whiff_pct": 22.999,
+      "z_contact_pct": 83.1,
+      "gb_pct": 45.6
     },
     {
       "id": "宮本_丈",
@@ -3762,7 +5054,14 @@
       "sb": 0,
       "k_pct": 9.7,
       "bb_pct": 3.2,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 18.99,
+      "contact_pct": 81.258,
+      "z_swing_pct": 81.258,
+      "whiff_pct": 17.574,
+      "z_contact_pct": 86.2,
+      "gb_pct": 60.3
     },
     {
       "id": "富山_紘之進",
@@ -3783,7 +5082,14 @@
       "sb": 0,
       "k_pct": 9.5,
       "bb_pct": 2.4,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 23.881,
+      "contact_pct": 75.133,
+      "z_swing_pct": 75.133,
+      "whiff_pct": 13.74,
+      "z_contact_pct": 88.2,
+      "gb_pct": 45.6
     },
     {
       "id": "富田_蓮",
@@ -3802,7 +5108,13 @@
       "sb": 0,
       "k_pct": 100.0,
       "bb_pct": 0.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 0.0,
+      "contact_pct": 33.3,
+      "z_swing_pct": 33.3,
+      "whiff_pct": 100.0,
+      "z_contact_pct": 0.0
     },
     {
       "id": "寺地_隆成",
@@ -3821,7 +5133,14 @@
       "sb": 1,
       "k_pct": 16.9,
       "bb_pct": 6.5,
-      "war": null
+      "war": null,
+      "hr_pct": 2.6,
+      "chase_pct": 31.49,
+      "contact_pct": 54.456,
+      "z_swing_pct": 54.456,
+      "whiff_pct": 15.364,
+      "z_contact_pct": 92.4,
+      "gb_pct": 69.2
     },
     {
       "id": "寺本_聖一",
@@ -3840,7 +5159,14 @@
       "sb": 3,
       "k_pct": 25.9,
       "bb_pct": 3.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.9,
+      "chase_pct": 39.303,
+      "contact_pct": 64.569,
+      "z_swing_pct": 64.569,
+      "whiff_pct": 22.236,
+      "z_contact_pct": 88.8,
+      "gb_pct": 41.0
     },
     {
       "id": "小園_修矢",
@@ -3859,7 +5185,14 @@
       "sb": 3,
       "k_pct": 36.2,
       "bb_pct": 2.1,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 39.47,
+      "contact_pct": 63.094,
+      "z_swing_pct": 63.094,
+      "whiff_pct": 32.647,
+      "z_contact_pct": 75.2,
+      "gb_pct": 57.0
     },
     {
       "id": "小園_海斗",
@@ -3880,7 +5213,14 @@
       "sb": 1,
       "k_pct": 10.7,
       "bb_pct": 8.7,
-      "war": null
+      "war": null,
+      "hr_pct": 2.9,
+      "chase_pct": 30.364,
+      "contact_pct": 77.566,
+      "z_swing_pct": 77.566,
+      "whiff_pct": 15.911,
+      "z_contact_pct": 93.5,
+      "gb_pct": 46.4
     },
     {
       "id": "小幡_竜平",
@@ -3899,7 +5239,14 @@
       "sb": 5,
       "k_pct": 20.3,
       "bb_pct": 7.2,
-      "war": null
+      "war": null,
+      "hr_pct": 0.7,
+      "chase_pct": 31.303,
+      "contact_pct": 70.965,
+      "z_swing_pct": 70.965,
+      "whiff_pct": 20.33,
+      "z_contact_pct": 82.4,
+      "gb_pct": 49.9
     },
     {
       "id": "小林_結太",
@@ -3918,7 +5265,14 @@
       "sb": 0,
       "k_pct": 27.3,
       "bb_pct": 4.5,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 32.63,
+      "contact_pct": 69.066,
+      "z_swing_pct": 69.066,
+      "whiff_pct": 34.325,
+      "z_contact_pct": 78.8,
+      "gb_pct": 29.4
     },
     {
       "id": "小林_誠司",
@@ -3939,7 +5293,14 @@
       "sb": 0,
       "k_pct": 3.2,
       "bb_pct": 9.7,
-      "war": null
+      "war": null,
+      "hr_pct": 3.2,
+      "chase_pct": 28.384,
+      "contact_pct": 60.758,
+      "z_swing_pct": 60.758,
+      "whiff_pct": 10.448,
+      "z_contact_pct": 87.3,
+      "gb_pct": 65.2
     },
     {
       "id": "小森_航大郎",
@@ -3960,7 +5321,14 @@
       "sb": 7,
       "k_pct": 3.4,
       "bb_pct": 5.6,
-      "war": null
+      "war": null,
+      "hr_pct": 5.6,
+      "chase_pct": 38.165,
+      "contact_pct": 79.392,
+      "z_swing_pct": 79.392,
+      "whiff_pct": 12.727,
+      "z_contact_pct": 91.6,
+      "gb_pct": 39.7
     },
     {
       "id": "小深田_大翔",
@@ -3981,7 +5349,14 @@
       "sb": 1,
       "k_pct": 14.3,
       "bb_pct": 0.0,
-      "war": null
+      "war": null,
+      "hr_pct": 14.3,
+      "chase_pct": 18.586,
+      "contact_pct": 56.5,
+      "z_swing_pct": 56.5,
+      "whiff_pct": 8.171,
+      "z_contact_pct": 85.7,
+      "gb_pct": 20.0
     },
     {
       "id": "小濱_佑斗",
@@ -4003,7 +5378,14 @@
       "sb": 19,
       "k_pct": 20.4,
       "bb_pct": 14.0,
-      "war": null
+      "war": null,
+      "hr_pct": 1.4,
+      "chase_pct": 24.093,
+      "contact_pct": 61.599,
+      "z_swing_pct": 61.599,
+      "whiff_pct": 21.014,
+      "z_contact_pct": 85.2,
+      "gb_pct": 53.3
     },
     {
       "id": "小田_康一郎",
@@ -4025,7 +5407,14 @@
       "sb": 18,
       "k_pct": 15.7,
       "bb_pct": 15.0,
-      "war": null
+      "war": null,
+      "hr_pct": 1.2,
+      "chase_pct": 22.665,
+      "contact_pct": 65.865,
+      "z_swing_pct": 65.865,
+      "whiff_pct": 21.316,
+      "z_contact_pct": 84.8,
+      "gb_pct": 53.1
     },
     {
       "id": "小笠原_慎之介",
@@ -4046,7 +5435,14 @@
       "sb": 0,
       "k_pct": 0.0,
       "bb_pct": 0.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 40.0,
+      "contact_pct": 100.0,
+      "z_swing_pct": 100.0,
+      "whiff_pct": 0.0,
+      "z_contact_pct": 100.0,
+      "gb_pct": 50.0
     },
     {
       "id": "小笠原_蒼",
@@ -4067,7 +5463,14 @@
       "sb": 0,
       "k_pct": 38.5,
       "bb_pct": 23.1,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 29.377,
+      "contact_pct": 65.812,
+      "z_swing_pct": 65.812,
+      "whiff_pct": 35.269,
+      "z_contact_pct": 72.5,
+      "gb_pct": 37.9
     },
     {
       "id": "小西_慶治",
@@ -4086,7 +5489,14 @@
       "sb": 10,
       "k_pct": 21.3,
       "bb_pct": 6.7,
-      "war": null
+      "war": null,
+      "hr_pct": 2.5,
+      "chase_pct": 34.794,
+      "contact_pct": 70.714,
+      "z_swing_pct": 70.714,
+      "whiff_pct": 23.351,
+      "z_contact_pct": 87.0,
+      "gb_pct": 41.7
     },
     {
       "id": "小郷_裕哉",
@@ -4107,7 +5517,14 @@
       "sb": 4,
       "k_pct": 12.1,
       "bb_pct": 9.1,
-      "war": null
+      "war": null,
+      "hr_pct": 4.5,
+      "chase_pct": 25.662,
+      "contact_pct": 68.064,
+      "z_swing_pct": 68.064,
+      "whiff_pct": 17.397,
+      "z_contact_pct": 92.6,
+      "gb_pct": 58.0
     },
     {
       "id": "小野_大輔",
@@ -4126,7 +5543,14 @@
       "sb": 10,
       "k_pct": 16.2,
       "bb_pct": 8.6,
-      "war": null
+      "war": null,
+      "hr_pct": 1.0,
+      "chase_pct": 37.618,
+      "contact_pct": 68.084,
+      "z_swing_pct": 68.084,
+      "whiff_pct": 18.748,
+      "z_contact_pct": 85.1,
+      "gb_pct": 66.0
     },
     {
       "id": "小野寺_暖",
@@ -4145,7 +5569,14 @@
       "sb": 1,
       "k_pct": 20.2,
       "bb_pct": 8.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 27.31,
+      "contact_pct": 53.511,
+      "z_swing_pct": 53.511,
+      "whiff_pct": 18.136,
+      "z_contact_pct": 89.4,
+      "gb_pct": 61.9
     },
     {
       "id": "小針_大輝",
@@ -4164,7 +5595,14 @@
       "sb": 1,
       "k_pct": 34.8,
       "bb_pct": 4.3,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 42.183,
+      "contact_pct": 64.543,
+      "z_swing_pct": 64.543,
+      "whiff_pct": 33.143,
+      "z_contact_pct": 81.6,
+      "gb_pct": 59.6
     },
     {
       "id": "尾形_崇斗",
@@ -4183,7 +5621,13 @@
       "sb": 0,
       "k_pct": 100.0,
       "bb_pct": 0.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 100.0,
+      "contact_pct": 60.0,
+      "z_swing_pct": 60.0,
+      "whiff_pct": 75.0,
+      "z_contact_pct": 50.0
     },
     {
       "id": "尾田_剛樹",
@@ -4202,7 +5646,14 @@
       "sb": 3,
       "k_pct": 17.6,
       "bb_pct": 11.8,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 29.379,
+      "contact_pct": 52.561,
+      "z_swing_pct": 52.561,
+      "whiff_pct": 20.32,
+      "z_contact_pct": 89.7,
+      "gb_pct": 53.5
     },
     {
       "id": "山下_恭吾",
@@ -4223,7 +5674,14 @@
       "sb": 3,
       "k_pct": 24.8,
       "bb_pct": 19.3,
-      "war": null
+      "war": null,
+      "hr_pct": 0.9,
+      "chase_pct": 22.233,
+      "contact_pct": 62.109,
+      "z_swing_pct": 62.109,
+      "whiff_pct": 24.717,
+      "z_contact_pct": 86.5,
+      "gb_pct": 52.8
     },
     {
       "id": "山中_稜真",
@@ -4244,7 +5702,14 @@
       "sb": 0,
       "k_pct": 15.0,
       "bb_pct": 10.4,
-      "war": null
+      "war": null,
+      "hr_pct": 0.6,
+      "chase_pct": 33.353,
+      "contact_pct": 61.958,
+      "z_swing_pct": 61.958,
+      "whiff_pct": 14.192,
+      "z_contact_pct": 92.1,
+      "gb_pct": 57.7
     },
     {
       "id": "山口_アタル",
@@ -4263,7 +5728,14 @@
       "sb": 0,
       "k_pct": 16.1,
       "bb_pct": 6.5,
-      "war": null
+      "war": null,
+      "hr_pct": 3.2,
+      "chase_pct": 26.529,
+      "contact_pct": 63.91,
+      "z_swing_pct": 63.91,
+      "whiff_pct": 17.871,
+      "z_contact_pct": 87.8,
+      "gb_pct": 28.7
     },
     {
       "id": "山口_航輝",
@@ -4282,7 +5754,14 @@
       "sb": 0,
       "k_pct": 21.4,
       "bb_pct": 5.4,
-      "war": null
+      "war": null,
+      "hr_pct": 7.1,
+      "chase_pct": 41.052,
+      "contact_pct": 60.732,
+      "z_swing_pct": 60.732,
+      "whiff_pct": 18.764,
+      "z_contact_pct": 88.2,
+      "gb_pct": 41.6
     },
     {
       "id": "山川_穂高",
@@ -4303,7 +5782,14 @@
       "sb": 0,
       "k_pct": 30.3,
       "bb_pct": 12.5,
-      "war": null
+      "war": null,
+      "hr_pct": 7.9,
+      "chase_pct": 37.474,
+      "contact_pct": 71.93,
+      "z_swing_pct": 71.93,
+      "whiff_pct": 32.885,
+      "z_contact_pct": 77.9,
+      "gb_pct": 25.0
     },
     {
       "id": "山本_大斗",
@@ -4325,7 +5811,14 @@
       "sb": 1,
       "k_pct": 12.3,
       "bb_pct": 12.3,
-      "war": null
+      "war": null,
+      "hr_pct": 5.3,
+      "chase_pct": 37.338,
+      "contact_pct": 69.941,
+      "z_swing_pct": 69.941,
+      "whiff_pct": 17.518,
+      "z_contact_pct": 88.7,
+      "gb_pct": 36.5
     },
     {
       "id": "山本_恵大",
@@ -4346,7 +5839,14 @@
       "sb": 3,
       "k_pct": 9.9,
       "bb_pct": 11.3,
-      "war": null
+      "war": null,
+      "hr_pct": 0.7,
+      "chase_pct": 29.47,
+      "contact_pct": 64.137,
+      "z_swing_pct": 64.137,
+      "whiff_pct": 13.937,
+      "z_contact_pct": 92.0,
+      "gb_pct": 59.6
     },
     {
       "id": "山本_泰寛",
@@ -4367,7 +5867,14 @@
       "sb": 4,
       "k_pct": 12.2,
       "bb_pct": 7.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 32.504,
+      "contact_pct": 69.571,
+      "z_swing_pct": 69.571,
+      "whiff_pct": 15.238,
+      "z_contact_pct": 90.4,
+      "gb_pct": 45.9
     },
     {
       "id": "山本_祐大",
@@ -4388,7 +5895,14 @@
       "sb": 0,
       "k_pct": 5.9,
       "bb_pct": 5.9,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 33.571,
+      "contact_pct": 60.159,
+      "z_swing_pct": 60.159,
+      "whiff_pct": 7.459,
+      "z_contact_pct": 96.5,
+      "gb_pct": 57.1
     },
     {
       "id": "山村_崇嘉",
@@ -4409,7 +5923,14 @@
       "sb": 1,
       "k_pct": 10.8,
       "bb_pct": 8.7,
-      "war": null
+      "war": null,
+      "hr_pct": 1.2,
+      "chase_pct": 30.351,
+      "contact_pct": 69.602,
+      "z_swing_pct": 69.602,
+      "whiff_pct": 15.935,
+      "z_contact_pct": 91.3,
+      "gb_pct": 46.9
     },
     {
       "id": "山浅_龍之介",
@@ -4428,7 +5949,14 @@
       "sb": 0,
       "k_pct": 21.0,
       "bb_pct": 11.1,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 27.407,
+      "contact_pct": 57.127,
+      "z_swing_pct": 57.127,
+      "whiff_pct": 17.521,
+      "z_contact_pct": 88.8,
+      "gb_pct": 53.8
     },
     {
       "id": "山瀬_慎之助",
@@ -4447,7 +5975,14 @@
       "sb": 1,
       "k_pct": 22.0,
       "bb_pct": 11.0,
-      "war": null
+      "war": null,
+      "hr_pct": 1.8,
+      "chase_pct": 29.223,
+      "contact_pct": 65.341,
+      "z_swing_pct": 65.341,
+      "whiff_pct": 19.306,
+      "z_contact_pct": 85.9,
+      "gb_pct": 46.8
     },
     {
       "id": "山田_和",
@@ -4468,7 +6003,14 @@
       "sb": 1,
       "k_pct": 9.7,
       "bb_pct": 10.6,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 44.878,
+      "contact_pct": 73.859,
+      "z_swing_pct": 73.859,
+      "whiff_pct": 11.889,
+      "z_contact_pct": 92.6,
+      "gb_pct": 62.8
     },
     {
       "id": "山田_哲人",
@@ -4487,7 +6029,14 @@
       "sb": 0,
       "k_pct": 17.6,
       "bb_pct": 5.9,
-      "war": null
+      "war": null,
+      "hr_pct": 2.9,
+      "chase_pct": 24.285,
+      "contact_pct": 65.744,
+      "z_swing_pct": 65.744,
+      "whiff_pct": 21.956,
+      "z_contact_pct": 83.4,
+      "gb_pct": 52.6
     },
     {
       "id": "山田_脩也",
@@ -4506,7 +6055,14 @@
       "sb": 5,
       "k_pct": 20.3,
       "bb_pct": 7.9,
-      "war": null
+      "war": null,
+      "hr_pct": 1.7,
+      "chase_pct": 27.99,
+      "contact_pct": 58.702,
+      "z_swing_pct": 58.702,
+      "whiff_pct": 16.185,
+      "z_contact_pct": 88.6,
+      "gb_pct": 34.8
     },
     {
       "id": "山縣_秀",
@@ -4527,7 +6083,14 @@
       "sb": 3,
       "k_pct": 11.1,
       "bb_pct": 6.1,
-      "war": null
+      "war": null,
+      "hr_pct": 3.0,
+      "chase_pct": 28.374,
+      "contact_pct": 71.16,
+      "z_swing_pct": 71.16,
+      "whiff_pct": 15.528,
+      "z_contact_pct": 85.3,
+      "gb_pct": 58.2
     },
     {
       "id": "山野辺_翔",
@@ -4546,7 +6109,14 @@
       "sb": 8,
       "k_pct": 16.5,
       "bb_pct": 11.5,
-      "war": null
+      "war": null,
+      "hr_pct": 0.7,
+      "chase_pct": 30.324,
+      "contact_pct": 52.706,
+      "z_swing_pct": 52.706,
+      "whiff_pct": 16.383,
+      "z_contact_pct": 88.7,
+      "gb_pct": 63.2
     },
     {
       "id": "山﨑_剛",
@@ -4567,7 +6137,14 @@
       "sb": 4,
       "k_pct": 12.6,
       "bb_pct": 10.3,
-      "war": null
+      "war": null,
+      "hr_pct": 1.1,
+      "chase_pct": 21.098,
+      "contact_pct": 73.226,
+      "z_swing_pct": 73.226,
+      "whiff_pct": 12.86,
+      "z_contact_pct": 93.2,
+      "gb_pct": 54.3
     },
     {
       "id": "山﨑_照英",
@@ -4586,7 +6163,14 @@
       "sb": 3,
       "k_pct": 25.9,
       "bb_pct": 3.7,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 24.444,
+      "contact_pct": 76.296,
+      "z_swing_pct": 76.296,
+      "whiff_pct": 12.156,
+      "z_contact_pct": 93.3,
+      "gb_pct": 77.5
     },
     {
       "id": "山﨑_福也",
@@ -4607,7 +6191,14 @@
       "sb": 0,
       "k_pct": 0.0,
       "bb_pct": 0.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 100.0,
+      "contact_pct": 50.0,
+      "z_swing_pct": 50.0,
+      "whiff_pct": 0.0,
+      "z_contact_pct": 100.0,
+      "gb_pct": 100.0
     },
     {
       "id": "岡_大海",
@@ -4628,7 +6219,14 @@
       "sb": 6,
       "k_pct": 15.2,
       "bb_pct": 16.7,
-      "war": null
+      "war": null,
+      "hr_pct": 1.0,
+      "chase_pct": 28.971,
+      "contact_pct": 65.816,
+      "z_swing_pct": 65.816,
+      "whiff_pct": 17.66,
+      "z_contact_pct": 88.7,
+      "gb_pct": 53.2
     },
     {
       "id": "岡城_快生",
@@ -4649,7 +6247,14 @@
       "sb": 28,
       "k_pct": 19.1,
       "bb_pct": 7.4,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 36.684,
+      "contact_pct": 74.036,
+      "z_swing_pct": 74.036,
+      "whiff_pct": 23.67,
+      "z_contact_pct": 87.7,
+      "gb_pct": 60.5
     },
     {
       "id": "岡村_了樹",
@@ -4668,7 +6273,14 @@
       "sb": 3,
       "k_pct": 29.4,
       "bb_pct": 1.8,
-      "war": null
+      "war": null,
+      "hr_pct": 1.8,
+      "chase_pct": 41.427,
+      "contact_pct": 77.022,
+      "z_swing_pct": 77.022,
+      "whiff_pct": 29.641,
+      "z_contact_pct": 77.7,
+      "gb_pct": 49.6
     },
     {
       "id": "岡林_勇希",
@@ -4687,7 +6299,14 @@
       "sb": 0,
       "k_pct": 15.8,
       "bb_pct": 5.3,
-      "war": null
+      "war": null,
+      "hr_pct": 5.3,
+      "chase_pct": 25.768,
+      "contact_pct": 50.842,
+      "z_swing_pct": 50.842,
+      "whiff_pct": 12.721,
+      "z_contact_pct": 95.1,
+      "gb_pct": 63.9
     },
     {
       "id": "岡田_悠希",
@@ -4708,7 +6327,14 @@
       "sb": 5,
       "k_pct": 22.4,
       "bb_pct": 13.5,
-      "war": null
+      "war": null,
+      "hr_pct": 1.8,
+      "chase_pct": 29.142,
+      "contact_pct": 65.613,
+      "z_swing_pct": 65.613,
+      "whiff_pct": 21.844,
+      "z_contact_pct": 87.3,
+      "gb_pct": 58.5
     },
     {
       "id": "岸_潤一郎",
@@ -4729,7 +6355,14 @@
       "sb": 1,
       "k_pct": 11.8,
       "bb_pct": 11.8,
-      "war": null
+      "war": null,
+      "hr_pct": 5.9,
+      "chase_pct": 19.612,
+      "contact_pct": 57.835,
+      "z_swing_pct": 57.835,
+      "whiff_pct": 16.853,
+      "z_contact_pct": 85.4,
+      "gb_pct": 51.7
     },
     {
       "id": "岸川_和広",
@@ -4748,7 +6381,14 @@
       "sb": 3,
       "k_pct": 18.4,
       "bb_pct": 7.9,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 39.374,
+      "contact_pct": 51.929,
+      "z_swing_pct": 51.929,
+      "whiff_pct": 17.168,
+      "z_contact_pct": 95.4,
+      "gb_pct": 80.5
     },
     {
       "id": "岸本_佑也",
@@ -4767,7 +6407,14 @@
       "sb": 2,
       "k_pct": 30.1,
       "bb_pct": 6.9,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 44.052,
+      "contact_pct": 71.745,
+      "z_swing_pct": 71.745,
+      "whiff_pct": 32.303,
+      "z_contact_pct": 79.5,
+      "gb_pct": 54.6
     },
     {
       "id": "岸本_大希",
@@ -4789,7 +6436,14 @@
       "sb": 34,
       "k_pct": 14.7,
       "bb_pct": 8.2,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 34.24,
+      "contact_pct": 72.293,
+      "z_swing_pct": 72.293,
+      "whiff_pct": 15.818,
+      "z_contact_pct": 88.3,
+      "gb_pct": 69.3
     },
     {
       "id": "岸田_行倫",
@@ -4808,7 +6462,14 @@
       "sb": 1,
       "k_pct": 19.7,
       "bb_pct": 8.2,
-      "war": null
+      "war": null,
+      "hr_pct": 1.6,
+      "chase_pct": 25.149,
+      "contact_pct": 65.92,
+      "z_swing_pct": 65.92,
+      "whiff_pct": 22.502,
+      "z_contact_pct": 82.6,
+      "gb_pct": 48.4
     },
     {
       "id": "島原_大河",
@@ -4827,7 +6488,14 @@
       "sb": 0,
       "k_pct": 21.4,
       "bb_pct": 10.0,
-      "war": null
+      "war": null,
+      "hr_pct": 1.4,
+      "chase_pct": 29.219,
+      "contact_pct": 59.581,
+      "z_swing_pct": 59.581,
+      "whiff_pct": 18.699,
+      "z_contact_pct": 89.0,
+      "gb_pct": 56.9
     },
     {
       "id": "島田_海吏",
@@ -4848,7 +6516,14 @@
       "sb": 7,
       "k_pct": 17.3,
       "bb_pct": 12.4,
-      "war": null
+      "war": null,
+      "hr_pct": 0.4,
+      "chase_pct": 24.365,
+      "contact_pct": 68.269,
+      "z_swing_pct": 68.269,
+      "whiff_pct": 15.647,
+      "z_contact_pct": 88.0,
+      "gb_pct": 44.7
     },
     {
       "id": "島田_舜也",
@@ -4870,7 +6545,13 @@
       "sb": 0,
       "k_pct": 0.0,
       "bb_pct": 50.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 30.0,
+      "contact_pct": 0.0,
+      "z_swing_pct": 0.0,
+      "whiff_pct": 33.3,
+      "gb_pct": 100.0
     },
     {
       "id": "嶋村_麟士朗",
@@ -4891,7 +6572,14 @@
       "sb": 0,
       "k_pct": 9.9,
       "bb_pct": 7.9,
-      "war": null
+      "war": null,
+      "hr_pct": 2.0,
+      "chase_pct": 27.005,
+      "contact_pct": 67.609,
+      "z_swing_pct": 67.609,
+      "whiff_pct": 13.172,
+      "z_contact_pct": 94.3,
+      "gb_pct": 53.7
     },
     {
       "id": "嶺井_博希",
@@ -4910,7 +6598,14 @@
       "sb": 1,
       "k_pct": 20.9,
       "bb_pct": 6.5,
-      "war": null
+      "war": null,
+      "hr_pct": 0.7,
+      "chase_pct": 35.499,
+      "contact_pct": 74.093,
+      "z_swing_pct": 74.093,
+      "whiff_pct": 23.925,
+      "z_contact_pct": 84.3,
+      "gb_pct": 46.2
     },
     {
       "id": "川上_理偉",
@@ -4931,7 +6626,14 @@
       "sb": 8,
       "k_pct": 21.6,
       "bb_pct": 15.3,
-      "war": null
+      "war": null,
+      "hr_pct": 0.9,
+      "chase_pct": 27.8,
+      "contact_pct": 58.139,
+      "z_swing_pct": 58.139,
+      "whiff_pct": 22.577,
+      "z_contact_pct": 84.4,
+      "gb_pct": 45.0
     },
     {
       "id": "川原田_純平",
@@ -4952,7 +6654,14 @@
       "sb": 8,
       "k_pct": 14.8,
       "bb_pct": 8.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 35.885,
+      "contact_pct": 61.259,
+      "z_swing_pct": 61.259,
+      "whiff_pct": 15.649,
+      "z_contact_pct": 96.5,
+      "gb_pct": 49.4
     },
     {
       "id": "川村_友斗",
@@ -4973,7 +6682,14 @@
       "sb": 4,
       "k_pct": 14.3,
       "bb_pct": 8.6,
-      "war": null
+      "war": null,
+      "hr_pct": 5.7,
+      "chase_pct": 26.166,
+      "contact_pct": 43.143,
+      "z_swing_pct": 43.143,
+      "whiff_pct": 14.417,
+      "z_contact_pct": 77.5,
+      "gb_pct": 15.9
     },
     {
       "id": "川瀬_晃",
@@ -4994,7 +6710,14 @@
       "sb": 0,
       "k_pct": 12.5,
       "bb_pct": 0.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 23.212,
+      "contact_pct": 58.913,
+      "z_swing_pct": 58.913,
+      "whiff_pct": 4.175,
+      "z_contact_pct": 87.5,
+      "gb_pct": 80.0
     },
     {
       "id": "川田_悠慎",
@@ -5016,7 +6739,14 @@
       "sb": 26,
       "k_pct": 22.4,
       "bb_pct": 13.8,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 28.368,
+      "contact_pct": 53.041,
+      "z_swing_pct": 53.041,
+      "whiff_pct": 17.665,
+      "z_contact_pct": 86.6,
+      "gb_pct": 62.1
     },
     {
       "id": "川越_誠司",
@@ -5037,7 +6767,14 @@
       "sb": 0,
       "k_pct": 15.7,
       "bb_pct": 14.2,
-      "war": null
+      "war": null,
+      "hr_pct": 1.6,
+      "chase_pct": 24.602,
+      "contact_pct": 69.193,
+      "z_swing_pct": 69.193,
+      "whiff_pct": 19.749,
+      "z_contact_pct": 85.7,
+      "gb_pct": 50.3
     },
     {
       "id": "川﨑_俊哲",
@@ -5059,7 +6796,14 @@
       "sb": 5,
       "k_pct": 13.2,
       "bb_pct": 22.6,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 27.175,
+      "contact_pct": 65.909,
+      "z_swing_pct": 65.909,
+      "whiff_pct": 10.019,
+      "z_contact_pct": 92.4,
+      "gb_pct": 54.9
     },
     {
       "id": "常谷_拓輝",
@@ -5080,7 +6824,14 @@
       "sb": 1,
       "k_pct": 10.5,
       "bb_pct": 11.0,
-      "war": null
+      "war": null,
+      "hr_pct": 1.6,
+      "chase_pct": 30.31,
+      "contact_pct": 66.369,
+      "z_swing_pct": 66.369,
+      "whiff_pct": 15.868,
+      "z_contact_pct": 89.3,
+      "gb_pct": 47.6
     },
     {
       "id": "幌村_黛汰",
@@ -5099,7 +6850,14 @@
       "sb": 6,
       "k_pct": 15.1,
       "bb_pct": 7.9,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 32.458,
+      "contact_pct": 68.101,
+      "z_swing_pct": 68.101,
+      "whiff_pct": 12.855,
+      "z_contact_pct": 94.1,
+      "gb_pct": 51.3
     },
     {
       "id": "平尾_柊翔",
@@ -5118,7 +6876,14 @@
       "sb": 1,
       "k_pct": 23.3,
       "bb_pct": 7.4,
-      "war": null
+      "war": null,
+      "hr_pct": 0.8,
+      "chase_pct": 35.902,
+      "contact_pct": 81.017,
+      "z_swing_pct": 81.017,
+      "whiff_pct": 22.846,
+      "z_contact_pct": 84.5,
+      "gb_pct": 48.7
     },
     {
       "id": "平山_功太",
@@ -5137,7 +6902,14 @@
       "sb": 10,
       "k_pct": 18.2,
       "bb_pct": 6.1,
-      "war": null
+      "war": null,
+      "hr_pct": 2.3,
+      "chase_pct": 38.102,
+      "contact_pct": 62.773,
+      "z_swing_pct": 62.773,
+      "whiff_pct": 21.611,
+      "z_contact_pct": 84.2,
+      "gb_pct": 36.4
     },
     {
       "id": "平川_蓮",
@@ -5156,7 +6928,14 @@
       "sb": 2,
       "k_pct": 25.3,
       "bb_pct": 7.6,
-      "war": null
+      "war": null,
+      "hr_pct": 2.5,
+      "chase_pct": 40.282,
+      "contact_pct": 73.284,
+      "z_swing_pct": 73.284,
+      "whiff_pct": 31.492,
+      "z_contact_pct": 86.5,
+      "gb_pct": 45.0
     },
     {
       "id": "平沢_大河",
@@ -5177,7 +6956,14 @@
       "sb": 0,
       "k_pct": 16.7,
       "bb_pct": 19.0,
-      "war": null
+      "war": null,
+      "hr_pct": 2.4,
+      "chase_pct": 23.269,
+      "contact_pct": 55.467,
+      "z_swing_pct": 55.467,
+      "whiff_pct": 16.771,
+      "z_contact_pct": 89.8,
+      "gb_pct": 26.0
     },
     {
       "id": "平沼_翔太",
@@ -5199,7 +6985,14 @@
       "sb": 1,
       "k_pct": 8.3,
       "bb_pct": 14.7,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 23.663,
+      "contact_pct": 62.25,
+      "z_swing_pct": 62.25,
+      "whiff_pct": 13.676,
+      "z_contact_pct": 96.8,
+      "gb_pct": 46.8
     },
     {
       "id": "平良_竜哉",
@@ -5220,7 +7013,14 @@
       "sb": 0,
       "k_pct": 0.0,
       "bb_pct": 0.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 25.0,
+      "contact_pct": 71.4,
+      "z_swing_pct": 71.4,
+      "whiff_pct": 0.0,
+      "z_contact_pct": 100.0,
+      "gb_pct": 0.0
     },
     {
       "id": "広瀬_結煌",
@@ -5239,7 +7039,14 @@
       "sb": 0,
       "k_pct": 18.8,
       "bb_pct": 6.2,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 26.238,
+      "contact_pct": 75.244,
+      "z_swing_pct": 75.244,
+      "whiff_pct": 23.944,
+      "z_contact_pct": 93.7,
+      "gb_pct": 90.7
     },
     {
       "id": "庄子_雄大",
@@ -5261,7 +7068,14 @@
       "sb": 2,
       "k_pct": 7.1,
       "bb_pct": 28.6,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 6.686,
+      "contact_pct": 32.857,
+      "z_swing_pct": 32.857,
+      "whiff_pct": 4.086,
+      "z_contact_pct": 100.0,
+      "gb_pct": 25.0
     },
     {
       "id": "廣岡_大志",
@@ -5282,7 +7096,14 @@
       "sb": 0,
       "k_pct": 16.2,
       "bb_pct": 13.5,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 24.759,
+      "contact_pct": 68.616,
+      "z_swing_pct": 68.616,
+      "whiff_pct": 28.549,
+      "z_contact_pct": 87.8,
+      "gb_pct": 60.3
     },
     {
       "id": "廣沢_新太郎",
@@ -5304,7 +7125,14 @@
       "sb": 35,
       "k_pct": 12.3,
       "bb_pct": 5.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.2,
+      "chase_pct": 40.655,
+      "contact_pct": 61.563,
+      "z_swing_pct": 61.563,
+      "whiff_pct": 11.143,
+      "z_contact_pct": 90.1,
+      "gb_pct": 71.1
     },
     {
       "id": "廣瀨_隆太",
@@ -5326,7 +7154,14 @@
       "sb": 1,
       "k_pct": 14.8,
       "bb_pct": 15.2,
-      "war": null
+      "war": null,
+      "hr_pct": 1.7,
+      "chase_pct": 16.797,
+      "contact_pct": 58.934,
+      "z_swing_pct": 58.934,
+      "whiff_pct": 18.341,
+      "z_contact_pct": 90.8,
+      "gb_pct": 45.2
     },
     {
       "id": "德山_俊",
@@ -5345,7 +7180,14 @@
       "sb": 0,
       "k_pct": 44.4,
       "bb_pct": 0.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 37.022,
+      "contact_pct": 58.9,
+      "z_swing_pct": 58.9,
+      "whiff_pct": 23.144,
+      "z_contact_pct": 90.0,
+      "gb_pct": 100.0
     },
     {
       "id": "愛斗",
@@ -5364,7 +7206,14 @@
       "sb": 9,
       "k_pct": 18.0,
       "bb_pct": 6.0,
-      "war": null
+      "war": null,
+      "hr_pct": 3.8,
+      "chase_pct": 40.252,
+      "contact_pct": 62.104,
+      "z_swing_pct": 62.104,
+      "whiff_pct": 22.48,
+      "z_contact_pct": 90.6,
+      "gb_pct": 43.9
     },
     {
       "id": "成瀬_脩人",
@@ -5383,7 +7232,14 @@
       "sb": 4,
       "k_pct": 17.7,
       "bb_pct": 10.9,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 24.618,
+      "contact_pct": 69.396,
+      "z_swing_pct": 69.396,
+      "whiff_pct": 19.245,
+      "z_contact_pct": 85.8,
+      "gb_pct": 62.4
     },
     {
       "id": "戸井_零士",
@@ -5402,7 +7258,14 @@
       "sb": 0,
       "k_pct": 20.4,
       "bb_pct": 8.6,
-      "war": null
+      "war": null,
+      "hr_pct": 1.1,
+      "chase_pct": 29.232,
+      "contact_pct": 60.616,
+      "z_swing_pct": 60.616,
+      "whiff_pct": 14.823,
+      "z_contact_pct": 89.3,
+      "gb_pct": 34.0
     },
     {
       "id": "戸郷_翔征",
@@ -5423,7 +7286,14 @@
       "sb": 0,
       "k_pct": 0.0,
       "bb_pct": 0.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 40.0,
+      "contact_pct": 100.0,
+      "z_swing_pct": 100.0,
+      "whiff_pct": 0.0,
+      "z_contact_pct": 100.0,
+      "gb_pct": 100.0
     },
     {
       "id": "持丸_泰輝",
@@ -5442,7 +7312,14 @@
       "sb": 0,
       "k_pct": 25.9,
       "bb_pct": 11.1,
-      "war": null
+      "war": null,
+      "hr_pct": 3.7,
+      "chase_pct": 28.241,
+      "contact_pct": 62.256,
+      "z_swing_pct": 62.256,
+      "whiff_pct": 24.285,
+      "z_contact_pct": 96.5,
+      "gb_pct": 33.2
     },
     {
       "id": "斉藤_優汰",
@@ -5463,7 +7340,14 @@
       "sb": 0,
       "k_pct": 33.3,
       "bb_pct": 33.3,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 13.333,
+      "contact_pct": 33.333,
+      "z_swing_pct": 33.333,
+      "whiff_pct": 66.667,
+      "z_contact_pct": 33.3,
+      "gb_pct": 100.0
     },
     {
       "id": "新井_唯斗",
@@ -5482,7 +7366,14 @@
       "sb": 1,
       "k_pct": 37.5,
       "bb_pct": 5.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 31.068,
+      "contact_pct": 58.25,
+      "z_swing_pct": 58.25,
+      "whiff_pct": 27.665,
+      "z_contact_pct": 80.6,
+      "gb_pct": 41.7
     },
     {
       "id": "新保_茉良",
@@ -5501,7 +7392,14 @@
       "sb": 8,
       "k_pct": 35.5,
       "bb_pct": 3.7,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 44.163,
+      "contact_pct": 71.605,
+      "z_swing_pct": 71.605,
+      "whiff_pct": 33.279,
+      "z_contact_pct": 80.3,
+      "gb_pct": 49.7
     },
     {
       "id": "日渡_騰輝",
@@ -5520,7 +7418,14 @@
       "sb": 0,
       "k_pct": 20.4,
       "bb_pct": 3.7,
-      "war": null
+      "war": null,
+      "hr_pct": 1.9,
+      "chase_pct": 43.762,
+      "contact_pct": 76.706,
+      "z_swing_pct": 76.706,
+      "whiff_pct": 25.219,
+      "z_contact_pct": 85.6,
+      "gb_pct": 45.5
     },
     {
       "id": "早川_太貴",
@@ -5541,7 +7446,13 @@
       "sb": 0,
       "k_pct": 0.0,
       "bb_pct": 0.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 33.333,
+      "contact_pct": 55.567,
+      "z_swing_pct": 55.567,
+      "whiff_pct": 16.667,
+      "z_contact_pct": 66.7
     },
     {
       "id": "明瀬_諒介",
@@ -5560,7 +7471,14 @@
       "sb": 1,
       "k_pct": 24.0,
       "bb_pct": 4.1,
-      "war": null
+      "war": null,
+      "hr_pct": 3.6,
+      "chase_pct": 51.501,
+      "contact_pct": 83.353,
+      "z_swing_pct": 83.353,
+      "whiff_pct": 31.405,
+      "z_contact_pct": 85.6,
+      "gb_pct": 39.5
     },
     {
       "id": "星野_ひので",
@@ -5579,7 +7497,14 @@
       "sb": 2,
       "k_pct": 35.8,
       "bb_pct": 7.4,
-      "war": null
+      "war": null,
+      "hr_pct": 2.5,
+      "chase_pct": 30.083,
+      "contact_pct": 65.593,
+      "z_swing_pct": 65.593,
+      "whiff_pct": 36.884,
+      "z_contact_pct": 76.5,
+      "gb_pct": 52.4
     },
     {
       "id": "是澤_涼輔",
@@ -5600,7 +7525,14 @@
       "sb": 1,
       "k_pct": 14.0,
       "bb_pct": 9.8,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 34.027,
+      "contact_pct": 73.445,
+      "z_swing_pct": 73.445,
+      "whiff_pct": 18.539,
+      "z_contact_pct": 88.8,
+      "gb_pct": 56.1
     },
     {
       "id": "會澤_翼",
@@ -5619,7 +7551,14 @@
       "sb": 0,
       "k_pct": 18.7,
       "bb_pct": 8.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 36.496,
+      "contact_pct": 58.932,
+      "z_swing_pct": 58.932,
+      "whiff_pct": 16.381,
+      "z_contact_pct": 94.0,
+      "gb_pct": 45.3
     },
     {
       "id": "有薗_直輝",
@@ -5640,7 +7579,14 @@
       "sb": 2,
       "k_pct": 24.0,
       "bb_pct": 18.0,
-      "war": null
+      "war": null,
+      "hr_pct": 3.6,
+      "chase_pct": 22.922,
+      "contact_pct": 58.204,
+      "z_swing_pct": 58.204,
+      "whiff_pct": 23.383,
+      "z_contact_pct": 86.3,
+      "gb_pct": 42.0
     },
     {
       "id": "木下_拓哉",
@@ -5659,7 +7605,14 @@
       "sb": 0,
       "k_pct": 15.4,
       "bb_pct": 10.3,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 26.256,
+      "contact_pct": 52.721,
+      "z_swing_pct": 52.721,
+      "whiff_pct": 16.236,
+      "z_contact_pct": 72.6,
+      "gb_pct": 55.7
     },
     {
       "id": "木下_里都",
@@ -5678,7 +7631,12 @@
       "sb": 0,
       "k_pct": 100.0,
       "bb_pct": 0.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 100.0,
+      "contact_pct": 0.0,
+      "z_swing_pct": 0.0,
+      "whiff_pct": 75.0
     },
     {
       "id": "木浪_聖也",
@@ -5697,7 +7655,14 @@
       "sb": 0,
       "k_pct": 18.3,
       "bb_pct": 9.8,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 26.173,
+      "contact_pct": 66.082,
+      "z_swing_pct": 66.082,
+      "whiff_pct": 19.95,
+      "z_contact_pct": 84.7,
+      "gb_pct": 59.0
     },
     {
       "id": "末包_昇大",
@@ -5716,7 +7681,14 @@
       "sb": 1,
       "k_pct": 15.8,
       "bb_pct": 7.3,
-      "war": null
+      "war": null,
+      "hr_pct": 1.6,
+      "chase_pct": 40.693,
+      "contact_pct": 74.591,
+      "z_swing_pct": 74.591,
+      "whiff_pct": 24.31,
+      "z_contact_pct": 87.3,
+      "gb_pct": 42.7
     },
     {
       "id": "杉山_諒",
@@ -5737,7 +7709,14 @@
       "sb": 16,
       "k_pct": 22.2,
       "bb_pct": 7.8,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 37.655,
+      "contact_pct": 69.109,
+      "z_swing_pct": 69.109,
+      "whiff_pct": 16.516,
+      "z_contact_pct": 88.1,
+      "gb_pct": 71.8
     },
     {
       "id": "杉本_裕太郎",
@@ -5758,7 +7737,14 @@
       "sb": 0,
       "k_pct": 19.2,
       "bb_pct": 12.5,
-      "war": null
+      "war": null,
+      "hr_pct": 5.0,
+      "chase_pct": 32.516,
+      "contact_pct": 64.983,
+      "z_swing_pct": 64.983,
+      "whiff_pct": 28.503,
+      "z_contact_pct": 75.6,
+      "gb_pct": 43.6
     },
     {
       "id": "杉澤_龍",
@@ -5779,7 +7765,14 @@
       "sb": 1,
       "k_pct": 16.1,
       "bb_pct": 19.4,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 25.426,
+      "contact_pct": 73.716,
+      "z_swing_pct": 73.716,
+      "whiff_pct": 18.481,
+      "z_contact_pct": 95.9,
+      "gb_pct": 16.0
     },
     {
       "id": "李_健熙",
@@ -5798,7 +7791,14 @@
       "sb": 0,
       "k_pct": 24.6,
       "bb_pct": 6.2,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 36.197,
+      "contact_pct": 72.912,
+      "z_swing_pct": 72.912,
+      "whiff_pct": 22.003,
+      "z_contact_pct": 86.7,
+      "gb_pct": 43.0
     },
     {
       "id": "村上_喬一朗",
@@ -5819,7 +7819,14 @@
       "sb": 0,
       "k_pct": 8.1,
       "bb_pct": 10.8,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 24.722,
+      "contact_pct": 67.057,
+      "z_swing_pct": 67.057,
+      "whiff_pct": 5.854,
+      "z_contact_pct": 93.1,
+      "gb_pct": 31.2
     },
     {
       "id": "村山_源",
@@ -5838,7 +7845,14 @@
       "sb": 0,
       "k_pct": 25.0,
       "bb_pct": 0.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 22.5,
+      "contact_pct": 60.0,
+      "z_swing_pct": 60.0,
+      "whiff_pct": 34.375,
+      "z_contact_pct": 85.7,
+      "gb_pct": 33.3
     },
     {
       "id": "村松_開人",
@@ -5859,7 +7873,14 @@
       "sb": 1,
       "k_pct": 20.0,
       "bb_pct": 40.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 30.0,
+      "contact_pct": 74.26,
+      "z_swing_pct": 74.26,
+      "whiff_pct": 16.0,
+      "z_contact_pct": 80.0,
+      "gb_pct": 100.0
     },
     {
       "id": "村田_怜音",
@@ -5880,7 +7901,14 @@
       "sb": 0,
       "k_pct": 21.9,
       "bb_pct": 12.1,
-      "war": null
+      "war": null,
+      "hr_pct": 3.0,
+      "chase_pct": 29.043,
+      "contact_pct": 69.771,
+      "z_swing_pct": 69.771,
+      "whiff_pct": 25.689,
+      "z_contact_pct": 85.3,
+      "gb_pct": 41.6
     },
     {
       "id": "来田_涼斗",
@@ -5902,7 +7930,14 @@
       "sb": 2,
       "k_pct": 12.1,
       "bb_pct": 13.6,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 38.445,
+      "contact_pct": 68.835,
+      "z_swing_pct": 68.835,
+      "whiff_pct": 11.277,
+      "z_contact_pct": 95.6,
+      "gb_pct": 61.1
     },
     {
       "id": "東妻_純平",
@@ -5921,7 +7956,14 @@
       "sb": 4,
       "k_pct": 18.6,
       "bb_pct": 9.3,
-      "war": null
+      "war": null,
+      "hr_pct": 2.0,
+      "chase_pct": 34.376,
+      "contact_pct": 70.476,
+      "z_swing_pct": 70.476,
+      "whiff_pct": 19.212,
+      "z_contact_pct": 86.0,
+      "gb_pct": 43.2
     },
     {
       "id": "松下_歩叶",
@@ -5942,7 +7984,14 @@
       "sb": 2,
       "k_pct": 7.5,
       "bb_pct": 5.2,
-      "war": null
+      "war": null,
+      "hr_pct": 1.5,
+      "chase_pct": 27.94,
+      "contact_pct": 70.649,
+      "z_swing_pct": 70.649,
+      "whiff_pct": 13.347,
+      "z_contact_pct": 89.7,
+      "gb_pct": 41.8
     },
     {
       "id": "松尾_汐恩",
@@ -5964,7 +8013,14 @@
       "sb": 0,
       "k_pct": 0.0,
       "bb_pct": 14.3,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 16.893,
+      "contact_pct": 77.371,
+      "z_swing_pct": 77.371,
+      "whiff_pct": 3.571,
+      "z_contact_pct": 100.0,
+      "gb_pct": 72.7
     },
     {
       "id": "松山_竜平",
@@ -5985,7 +8041,14 @@
       "sb": 0,
       "k_pct": 10.5,
       "bb_pct": 4.7,
-      "war": null
+      "war": null,
+      "hr_pct": 1.2,
+      "chase_pct": 36.744,
+      "contact_pct": 62.647,
+      "z_swing_pct": 62.647,
+      "whiff_pct": 11.85,
+      "z_contact_pct": 95.1,
+      "gb_pct": 49.3
     },
     {
       "id": "松川_玲央",
@@ -6007,7 +8070,14 @@
       "sb": 0,
       "k_pct": 0.0,
       "bb_pct": 25.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 10.0,
+      "contact_pct": 50.0,
+      "z_swing_pct": 50.0,
+      "whiff_pct": 0.0,
+      "z_contact_pct": 100.0,
+      "gb_pct": 50.0
     },
     {
       "id": "松川_虎生",
@@ -6028,7 +8098,14 @@
       "sb": 0,
       "k_pct": 16.7,
       "bb_pct": 16.7,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 30.95,
+      "contact_pct": 46.663,
+      "z_swing_pct": 46.663,
+      "whiff_pct": 9.896,
+      "z_contact_pct": 96.1,
+      "gb_pct": 47.4
     },
     {
       "id": "松木平_優太",
@@ -6047,7 +8124,12 @@
       "sb": 0,
       "k_pct": 100.0,
       "bb_pct": 0.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 0.0,
+      "contact_pct": 0.0,
+      "z_swing_pct": 0.0,
+      "whiff_pct": 0.0
     },
     {
       "id": "松本_健吾",
@@ -6068,7 +8150,13 @@
       "sb": 0,
       "k_pct": 0.0,
       "bb_pct": 0.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 50.0,
+      "contact_pct": 0.0,
+      "z_swing_pct": 0.0,
+      "whiff_pct": 0.0,
+      "gb_pct": 0.0
     },
     {
       "id": "松本_直樹",
@@ -6089,7 +8177,14 @@
       "sb": 0,
       "k_pct": 9.7,
       "bb_pct": 8.2,
-      "war": null
+      "war": null,
+      "hr_pct": 1.5,
+      "chase_pct": 33.555,
+      "contact_pct": 60.505,
+      "z_swing_pct": 60.505,
+      "whiff_pct": 14.853,
+      "z_contact_pct": 91.1,
+      "gb_pct": 51.2
     },
     {
       "id": "松本_陣",
@@ -6108,7 +8203,14 @@
       "sb": 0,
       "k_pct": 36.7,
       "bb_pct": 3.3,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 48.047,
+      "contact_pct": 59.333,
+      "z_swing_pct": 59.333,
+      "whiff_pct": 45.673,
+      "z_contact_pct": 74.3,
+      "gb_pct": 55.0
     },
     {
       "id": "松本_龍之介",
@@ -6129,7 +8231,14 @@
       "sb": 15,
       "k_pct": 32.1,
       "bb_pct": 10.7,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 27.168,
+      "contact_pct": 70.1,
+      "z_swing_pct": 70.1,
+      "whiff_pct": 27.997,
+      "z_contact_pct": 78.7,
+      "gb_pct": 50.1
     },
     {
       "id": "松永_将大",
@@ -6148,7 +8257,14 @@
       "sb": 2,
       "k_pct": 17.2,
       "bb_pct": 8.9,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 29.989,
+      "contact_pct": 62.964,
+      "z_swing_pct": 62.964,
+      "whiff_pct": 17.29,
+      "z_contact_pct": 88.9,
+      "gb_pct": 66.8
     },
     {
       "id": "松石_信八",
@@ -6167,7 +8283,14 @@
       "sb": 7,
       "k_pct": 17.6,
       "bb_pct": 8.8,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 36.073,
+      "contact_pct": 68.876,
+      "z_swing_pct": 68.876,
+      "whiff_pct": 18.989,
+      "z_contact_pct": 92.2,
+      "gb_pct": 51.5
     },
     {
       "id": "板山_祐太郎",
@@ -6189,7 +8312,14 @@
       "sb": 0,
       "k_pct": 10.0,
       "bb_pct": 15.0,
-      "war": null
+      "war": null,
+      "hr_pct": 10.0,
+      "chase_pct": 26.06,
+      "contact_pct": 77.26,
+      "z_swing_pct": 77.26,
+      "whiff_pct": 15.65,
+      "z_contact_pct": 91.2,
+      "gb_pct": 52.7
     },
     {
       "id": "林_冠臣",
@@ -6208,7 +8338,14 @@
       "sb": 0,
       "k_pct": 26.8,
       "bb_pct": 4.9,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 38.371,
+      "contact_pct": 64.976,
+      "z_swing_pct": 64.976,
+      "whiff_pct": 28.546,
+      "z_contact_pct": 81.9,
+      "gb_pct": 58.4
     },
     {
       "id": "林_安可",
@@ -6229,7 +8366,14 @@
       "sb": 0,
       "k_pct": 14.9,
       "bb_pct": 9.0,
-      "war": null
+      "war": null,
+      "hr_pct": 11.9,
+      "chase_pct": 37.527,
+      "contact_pct": 62.736,
+      "z_swing_pct": 62.736,
+      "whiff_pct": 15.909,
+      "z_contact_pct": 96.3,
+      "gb_pct": 37.0
     },
     {
       "id": "林_晃汰",
@@ -6248,7 +8392,14 @@
       "sb": 0,
       "k_pct": 15.6,
       "bb_pct": 10.8,
-      "war": null
+      "war": null,
+      "hr_pct": 1.3,
+      "chase_pct": 29.595,
+      "contact_pct": 68.719,
+      "z_swing_pct": 68.719,
+      "whiff_pct": 21.005,
+      "z_contact_pct": 85.7,
+      "gb_pct": 55.4
     },
     {
       "id": "林_琢真",
@@ -6269,7 +8420,14 @@
       "sb": 8,
       "k_pct": 16.0,
       "bb_pct": 12.8,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 28.035,
+      "contact_pct": 68.388,
+      "z_swing_pct": 68.388,
+      "whiff_pct": 20.788,
+      "z_contact_pct": 86.5,
+      "gb_pct": 62.1
     },
     {
       "id": "柘植_世那",
@@ -6288,7 +8446,14 @@
       "sb": 0,
       "k_pct": 31.2,
       "bb_pct": 0.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 39.325,
+      "contact_pct": 63.794,
+      "z_swing_pct": 63.794,
+      "whiff_pct": 19.3,
+      "z_contact_pct": 91.2,
+      "gb_pct": 17.9
     },
     {
       "id": "柳町_達",
@@ -6309,7 +8474,14 @@
       "sb": 0,
       "k_pct": 22.0,
       "bb_pct": 18.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 16.046,
+      "contact_pct": 61.336,
+      "z_swing_pct": 61.336,
+      "whiff_pct": 16.68,
+      "z_contact_pct": 81.6,
+      "gb_pct": 49.3
     },
     {
       "id": "柴田_獅子",
@@ -6328,7 +8500,14 @@
       "sb": 0,
       "k_pct": 28.5,
       "bb_pct": 9.8,
-      "war": null
+      "war": null,
+      "hr_pct": 3.3,
+      "chase_pct": 37.457,
+      "contact_pct": 60.883,
+      "z_swing_pct": 60.883,
+      "whiff_pct": 30.159,
+      "z_contact_pct": 85.1,
+      "gb_pct": 40.6
     },
     {
       "id": "柴田_竜拓",
@@ -6349,7 +8528,14 @@
       "sb": 0,
       "k_pct": 16.7,
       "bb_pct": 26.7,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 23.627,
+      "contact_pct": 53.747,
+      "z_swing_pct": 53.747,
+      "whiff_pct": 13.933,
+      "z_contact_pct": 89.9,
+      "gb_pct": 34.6
     },
     {
       "id": "柿沼_友哉",
@@ -6371,7 +8557,14 @@
       "sb": 0,
       "k_pct": 9.6,
       "bb_pct": 12.3,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 36.944,
+      "contact_pct": 68.13,
+      "z_swing_pct": 68.13,
+      "whiff_pct": 12.673,
+      "z_contact_pct": 92.1,
+      "gb_pct": 49.2
     },
     {
       "id": "栗山_巧",
@@ -6393,7 +8586,14 @@
       "sb": 0,
       "k_pct": 14.7,
       "bb_pct": 19.1,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 17.39,
+      "contact_pct": 57.063,
+      "z_swing_pct": 57.063,
+      "whiff_pct": 16.549,
+      "z_contact_pct": 87.9,
+      "gb_pct": 57.1
     },
     {
       "id": "根岸_辰昇",
@@ -6414,7 +8614,14 @@
       "sb": 0,
       "k_pct": 11.7,
       "bb_pct": 7.4,
-      "war": null
+      "war": null,
+      "hr_pct": 1.1,
+      "chase_pct": 33.283,
+      "contact_pct": 60.127,
+      "z_swing_pct": 60.127,
+      "whiff_pct": 14.717,
+      "z_contact_pct": 92.9,
+      "gb_pct": 64.3
     },
     {
       "id": "桐敷_拓馬",
@@ -6433,7 +8640,12 @@
       "sb": 0,
       "k_pct": 100.0,
       "bb_pct": 0.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 100.0,
+      "contact_pct": 0.0,
+      "z_swing_pct": 0.0,
+      "whiff_pct": 100.0
     },
     {
       "id": "桑原_将志",
@@ -6454,7 +8666,14 @@
       "sb": 1,
       "k_pct": 16.0,
       "bb_pct": 14.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 25.576,
+      "contact_pct": 69.558,
+      "z_swing_pct": 69.558,
+      "whiff_pct": 23.35,
+      "z_contact_pct": 89.1,
+      "gb_pct": 44.3
     },
     {
       "id": "桑原_秀侍",
@@ -6475,7 +8694,14 @@
       "sb": 2,
       "k_pct": 35.5,
       "bb_pct": 12.9,
-      "war": null
+      "war": null,
+      "hr_pct": 3.2,
+      "chase_pct": 32.219,
+      "contact_pct": 63.484,
+      "z_swing_pct": 63.484,
+      "whiff_pct": 36.094,
+      "z_contact_pct": 82.8,
+      "gb_pct": 38.7
     },
     {
       "id": "梅林_優貴",
@@ -6494,7 +8720,14 @@
       "sb": 3,
       "k_pct": 21.3,
       "bb_pct": 8.7,
-      "war": null
+      "war": null,
+      "hr_pct": 1.6,
+      "chase_pct": 32.757,
+      "contact_pct": 75.33,
+      "z_swing_pct": 75.33,
+      "whiff_pct": 22.118,
+      "z_contact_pct": 89.4,
+      "gb_pct": 52.2
     },
     {
       "id": "梅野_隆太郎",
@@ -6513,7 +8746,14 @@
       "sb": 0,
       "k_pct": 28.9,
       "bb_pct": 11.1,
-      "war": null
+      "war": null,
+      "hr_pct": 4.4,
+      "chase_pct": 20.562,
+      "contact_pct": 54.416,
+      "z_swing_pct": 54.416,
+      "whiff_pct": 26.353,
+      "z_contact_pct": 81.1,
+      "gb_pct": 57.4
     },
     {
       "id": "梶原_昂希",
@@ -6534,7 +8774,14 @@
       "sb": 15,
       "k_pct": 19.7,
       "bb_pct": 7.5,
-      "war": null
+      "war": null,
+      "hr_pct": 1.4,
+      "chase_pct": 32.933,
+      "contact_pct": 75.593,
+      "z_swing_pct": 75.593,
+      "whiff_pct": 24.086,
+      "z_contact_pct": 81.1,
+      "gb_pct": 63.4
     },
     {
       "id": "森_友哉",
@@ -6553,7 +8800,14 @@
       "sb": 0,
       "k_pct": 17.6,
       "bb_pct": 11.8,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 19.124,
+      "contact_pct": 79.559,
+      "z_swing_pct": 79.559,
+      "whiff_pct": 19.882,
+      "z_contact_pct": 96.1,
+      "gb_pct": 55.9
     },
     {
       "id": "森_敬斗",
@@ -6575,7 +8829,14 @@
       "sb": 20,
       "k_pct": 19.9,
       "bb_pct": 12.2,
-      "war": null
+      "war": null,
+      "hr_pct": 0.3,
+      "chase_pct": 28.09,
+      "contact_pct": 68.18,
+      "z_swing_pct": 68.18,
+      "whiff_pct": 20.585,
+      "z_contact_pct": 83.9,
+      "gb_pct": 70.5
     },
     {
       "id": "森_翔平",
@@ -6594,7 +8855,13 @@
       "sb": 0,
       "k_pct": 50.0,
       "bb_pct": 0.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 0.0,
+      "contact_pct": 75.0,
+      "z_swing_pct": 75.0,
+      "whiff_pct": 25.0,
+      "z_contact_pct": 50.0
     },
     {
       "id": "森_駿太",
@@ -6613,7 +8880,14 @@
       "sb": 4,
       "k_pct": 35.0,
       "bb_pct": 8.7,
-      "war": null
+      "war": null,
+      "hr_pct": 2.8,
+      "chase_pct": 41.826,
+      "contact_pct": 71.885,
+      "z_swing_pct": 71.885,
+      "whiff_pct": 34.743,
+      "z_contact_pct": 77.6,
+      "gb_pct": 48.5
     },
     {
       "id": "植田_将太",
@@ -6634,7 +8908,14 @@
       "sb": 0,
       "k_pct": 14.3,
       "bb_pct": 0.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 35.714,
+      "contact_pct": 80.971,
+      "z_swing_pct": 80.971,
+      "whiff_pct": 20.571,
+      "z_contact_pct": 82.1,
+      "gb_pct": 50.0
     },
     {
       "id": "楠田_汰朗",
@@ -6655,7 +8936,14 @@
       "sb": 2,
       "k_pct": 32.9,
       "bb_pct": 18.4,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 32.191,
+      "contact_pct": 62.657,
+      "z_swing_pct": 62.657,
+      "whiff_pct": 26.205,
+      "z_contact_pct": 79.7,
+      "gb_pct": 75.5
     },
     {
       "id": "榮枝_裕貴",
@@ -6676,7 +8964,14 @@
       "sb": 3,
       "k_pct": 17.6,
       "bb_pct": 12.8,
-      "war": null
+      "war": null,
+      "hr_pct": 1.1,
+      "chase_pct": 24.509,
+      "contact_pct": 60.836,
+      "z_swing_pct": 60.836,
+      "whiff_pct": 12.679,
+      "z_contact_pct": 90.1,
+      "gb_pct": 41.2
     },
     {
       "id": "樋口_正修",
@@ -6697,7 +8992,14 @@
       "sb": 2,
       "k_pct": 11.5,
       "bb_pct": 0.0,
-      "war": null
+      "war": null,
+      "hr_pct": 3.8,
+      "chase_pct": 27.504,
+      "contact_pct": 53.658,
+      "z_swing_pct": 53.658,
+      "whiff_pct": 11.442,
+      "z_contact_pct": 81.0,
+      "gb_pct": 56.1
     },
     {
       "id": "横山_聖哉",
@@ -6716,7 +9018,14 @@
       "sb": 3,
       "k_pct": 31.2,
       "bb_pct": 11.4,
-      "war": null
+      "war": null,
+      "hr_pct": 1.9,
+      "chase_pct": 28.955,
+      "contact_pct": 58.285,
+      "z_swing_pct": 58.285,
+      "whiff_pct": 29.337,
+      "z_contact_pct": 80.6,
+      "gb_pct": 50.9
     },
     {
       "id": "横田_蒼和",
@@ -6737,7 +9046,14 @@
       "sb": 2,
       "k_pct": 14.7,
       "bb_pct": 5.9,
-      "war": null
+      "war": null,
+      "hr_pct": 1.5,
+      "chase_pct": 41.868,
+      "contact_pct": 73.653,
+      "z_swing_pct": 73.653,
+      "whiff_pct": 17.308,
+      "z_contact_pct": 89.2,
+      "gb_pct": 54.7
     },
     {
       "id": "橋本_星哉",
@@ -6758,7 +9074,14 @@
       "sb": 10,
       "k_pct": 11.0,
       "bb_pct": 7.1,
-      "war": null
+      "war": null,
+      "hr_pct": 1.4,
+      "chase_pct": 32.879,
+      "contact_pct": 70.798,
+      "z_swing_pct": 70.798,
+      "whiff_pct": 14.079,
+      "z_contact_pct": 92.4,
+      "gb_pct": 63.9
     },
     {
       "id": "櫻井_ユウヤ",
@@ -6777,7 +9100,14 @@
       "sb": 2,
       "k_pct": 21.9,
       "bb_pct": 4.6,
-      "war": null
+      "war": null,
+      "hr_pct": 1.4,
+      "chase_pct": 52.984,
+      "contact_pct": 83.284,
+      "z_swing_pct": 83.284,
+      "whiff_pct": 27.009,
+      "z_contact_pct": 88.3,
+      "gb_pct": 51.7
     },
     {
       "id": "正木_智也",
@@ -6798,7 +9128,14 @@
       "sb": 1,
       "k_pct": 9.5,
       "bb_pct": 9.5,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 18.486,
+      "contact_pct": 65.562,
+      "z_swing_pct": 65.562,
+      "whiff_pct": 4.757,
+      "z_contact_pct": 100.0,
+      "gb_pct": 39.0
     },
     {
       "id": "武岡_龍世",
@@ -6819,7 +9156,14 @@
       "sb": 0,
       "k_pct": 23.6,
       "bb_pct": 16.4,
-      "war": null
+      "war": null,
+      "hr_pct": 1.8,
+      "chase_pct": 32.94,
+      "contact_pct": 64.807,
+      "z_swing_pct": 64.807,
+      "whiff_pct": 26.991,
+      "z_contact_pct": 79.1,
+      "gb_pct": 58.1
     },
     {
       "id": "武藤_敦貴",
@@ -6840,7 +9184,14 @@
       "sb": 9,
       "k_pct": 14.2,
       "bb_pct": 11.3,
-      "war": null
+      "war": null,
+      "hr_pct": 1.4,
+      "chase_pct": 31.593,
+      "contact_pct": 72.344,
+      "z_swing_pct": 72.344,
+      "whiff_pct": 19.338,
+      "z_contact_pct": 88.1,
+      "gb_pct": 35.0
     },
     {
       "id": "比嘉_天佑",
@@ -6859,7 +9210,14 @@
       "sb": 0,
       "k_pct": 28.1,
       "bb_pct": 7.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 34.66,
+      "contact_pct": 64.595,
+      "z_swing_pct": 64.595,
+      "whiff_pct": 25.735,
+      "z_contact_pct": 76.4,
+      "gb_pct": 54.6
     },
     {
       "id": "水上_桂",
@@ -6878,7 +9236,14 @@
       "sb": 1,
       "k_pct": 19.0,
       "bb_pct": 6.6,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 32.172,
+      "contact_pct": 68.513,
+      "z_swing_pct": 68.513,
+      "whiff_pct": 16.109,
+      "z_contact_pct": 87.9,
+      "gb_pct": 47.0
     },
     {
       "id": "水谷_瞬",
@@ -6899,7 +9264,14 @@
       "sb": 0,
       "k_pct": 19.7,
       "bb_pct": 12.1,
-      "war": null
+      "war": null,
+      "hr_pct": 10.6,
+      "chase_pct": 31.32,
+      "contact_pct": 76.671,
+      "z_swing_pct": 76.671,
+      "whiff_pct": 23.735,
+      "z_contact_pct": 84.4,
+      "gb_pct": 41.1
     },
     {
       "id": "江崎_歩",
@@ -6918,7 +9290,14 @@
       "sb": 7,
       "k_pct": 21.6,
       "bb_pct": 7.2,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 37.919,
+      "contact_pct": 63.718,
+      "z_swing_pct": 63.718,
+      "whiff_pct": 17.81,
+      "z_contact_pct": 91.3,
+      "gb_pct": 50.6
     },
     {
       "id": "池田_来翔",
@@ -6939,7 +9318,14 @@
       "sb": 1,
       "k_pct": 14.0,
       "bb_pct": 7.0,
-      "war": null
+      "war": null,
+      "hr_pct": 3.5,
+      "chase_pct": 39.489,
+      "contact_pct": 81.496,
+      "z_swing_pct": 81.496,
+      "whiff_pct": 17.712,
+      "z_contact_pct": 92.0,
+      "gb_pct": 38.4
     },
     {
       "id": "池田_栞太",
@@ -6960,7 +9346,14 @@
       "sb": 0,
       "k_pct": 0.0,
       "bb_pct": 0.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 0.0,
+      "contact_pct": 100.0,
+      "z_swing_pct": 100.0,
+      "whiff_pct": 0.0,
+      "z_contact_pct": 100.0,
+      "gb_pct": 0.0
     },
     {
       "id": "池田_陵真",
@@ -6981,7 +9374,14 @@
       "sb": 1,
       "k_pct": 14.6,
       "bb_pct": 9.8,
-      "war": null
+      "war": null,
+      "hr_pct": 2.8,
+      "chase_pct": 23.377,
+      "contact_pct": 71.367,
+      "z_swing_pct": 71.367,
+      "whiff_pct": 16.944,
+      "z_contact_pct": 89.8,
+      "gb_pct": 38.1
     },
     {
       "id": "河野_聡太",
@@ -7002,7 +9402,14 @@
       "sb": 9,
       "k_pct": 15.5,
       "bb_pct": 13.7,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 22.113,
+      "contact_pct": 64.553,
+      "z_swing_pct": 64.553,
+      "whiff_pct": 12.678,
+      "z_contact_pct": 93.6,
+      "gb_pct": 48.0
     },
     {
       "id": "泉口_友汰",
@@ -7023,7 +9430,14 @@
       "sb": 0,
       "k_pct": 0.0,
       "bb_pct": 0.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 0.0,
+      "contact_pct": 60.0,
+      "z_swing_pct": 60.0,
+      "whiff_pct": 0.0,
+      "z_contact_pct": 100.0,
+      "gb_pct": 0.0
     },
     {
       "id": "津田_啓史",
@@ -7042,7 +9456,14 @@
       "sb": 8,
       "k_pct": 25.4,
       "bb_pct": 11.9,
-      "war": null
+      "war": null,
+      "hr_pct": 0.4,
+      "chase_pct": 27.953,
+      "contact_pct": 68.733,
+      "z_swing_pct": 68.733,
+      "whiff_pct": 24.183,
+      "z_contact_pct": 82.2,
+      "gb_pct": 61.8
     },
     {
       "id": "浅井_玲於",
@@ -7061,7 +9482,14 @@
       "sb": 1,
       "k_pct": 24.4,
       "bb_pct": 8.9,
-      "war": null
+      "war": null,
+      "hr_pct": 0.8,
+      "chase_pct": 41.152,
+      "contact_pct": 68.614,
+      "z_swing_pct": 68.614,
+      "whiff_pct": 30.672,
+      "z_contact_pct": 79.2,
+      "gb_pct": 70.3
     },
     {
       "id": "浅村_栄斗",
@@ -7082,7 +9510,14 @@
       "sb": 0,
       "k_pct": 18.4,
       "bb_pct": 18.4,
-      "war": null
+      "war": null,
+      "hr_pct": 2.6,
+      "chase_pct": 26.2,
+      "contact_pct": 77.832,
+      "z_swing_pct": 77.832,
+      "whiff_pct": 23.245,
+      "z_contact_pct": 82.3,
+      "gb_pct": 33.8
     },
     {
       "id": "浅野_翔吾",
@@ -7101,7 +9536,14 @@
       "sb": 7,
       "k_pct": 17.1,
       "bb_pct": 11.8,
-      "war": null
+      "war": null,
+      "hr_pct": 2.8,
+      "chase_pct": 26.519,
+      "contact_pct": 60.264,
+      "z_swing_pct": 60.264,
+      "whiff_pct": 15.565,
+      "z_contact_pct": 91.2,
+      "gb_pct": 45.7
     },
     {
       "id": "淺間_大基",
@@ -7122,7 +9564,14 @@
       "sb": 5,
       "k_pct": 18.5,
       "bb_pct": 14.8,
-      "war": null
+      "war": null,
+      "hr_pct": 3.1,
+      "chase_pct": 25.72,
+      "contact_pct": 64.235,
+      "z_swing_pct": 64.235,
+      "whiff_pct": 22.486,
+      "z_contact_pct": 86.9,
+      "gb_pct": 39.3
     },
     {
       "id": "清宮_幸太郎",
@@ -7144,7 +9593,14 @@
       "sb": 0,
       "k_pct": 15.0,
       "bb_pct": 25.0,
-      "war": null
+      "war": null,
+      "hr_pct": 15.0,
+      "chase_pct": 29.745,
+      "contact_pct": 59.225,
+      "z_swing_pct": 59.225,
+      "whiff_pct": 14.425,
+      "z_contact_pct": 92.6,
+      "gb_pct": 28.9
     },
     {
       "id": "清水_優心",
@@ -7165,7 +9621,14 @@
       "sb": 0,
       "k_pct": 16.2,
       "bb_pct": 16.2,
-      "war": null
+      "war": null,
+      "hr_pct": 1.0,
+      "chase_pct": 24.86,
+      "contact_pct": 61.895,
+      "z_swing_pct": 61.895,
+      "whiff_pct": 16.3,
+      "z_contact_pct": 92.1,
+      "gb_pct": 48.8
     },
     {
       "id": "清水_叶人",
@@ -7184,7 +9647,14 @@
       "sb": 0,
       "k_pct": 18.9,
       "bb_pct": 3.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.6,
+      "chase_pct": 33.595,
+      "contact_pct": 70.6,
+      "z_swing_pct": 70.6,
+      "whiff_pct": 20.901,
+      "z_contact_pct": 85.6,
+      "gb_pct": 63.6
     },
     {
       "id": "清水_武蔵",
@@ -7205,7 +9675,14 @@
       "sb": 0,
       "k_pct": 14.6,
       "bb_pct": 7.3,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 34.812,
+      "contact_pct": 72.946,
+      "z_swing_pct": 72.946,
+      "whiff_pct": 20.517,
+      "z_contact_pct": 93.2,
+      "gb_pct": 48.6
     },
     {
       "id": "清水_詩太",
@@ -7226,7 +9703,14 @@
       "sb": 0,
       "k_pct": 33.3,
       "bb_pct": 22.2,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 43.583,
+      "contact_pct": 83.333,
+      "z_swing_pct": 83.333,
+      "whiff_pct": 30.689,
+      "z_contact_pct": 79.6,
+      "gb_pct": 56.2
     },
     {
       "id": "渡邉_悠斗",
@@ -7245,7 +9729,14 @@
       "sb": 0,
       "k_pct": 19.8,
       "bb_pct": 4.1,
-      "war": null
+      "war": null,
+      "hr_pct": 0.8,
+      "chase_pct": 48.148,
+      "contact_pct": 73.162,
+      "z_swing_pct": 73.162,
+      "whiff_pct": 24.806,
+      "z_contact_pct": 88.2,
+      "gb_pct": 55.2
     },
     {
       "id": "渡邉_諒",
@@ -7266,7 +9757,14 @@
       "sb": 1,
       "k_pct": 22.1,
       "bb_pct": 12.2,
-      "war": null
+      "war": null,
+      "hr_pct": 2.7,
+      "chase_pct": 24.495,
+      "contact_pct": 65.151,
+      "z_swing_pct": 65.151,
+      "whiff_pct": 24.296,
+      "z_contact_pct": 82.1,
+      "gb_pct": 56.6
     },
     {
       "id": "渡邉_陸",
@@ -7285,7 +9783,14 @@
       "sb": 2,
       "k_pct": 26.0,
       "bb_pct": 8.9,
-      "war": null
+      "war": null,
+      "hr_pct": 2.4,
+      "chase_pct": 26.754,
+      "contact_pct": 65.776,
+      "z_swing_pct": 65.776,
+      "whiff_pct": 24.207,
+      "z_contact_pct": 80.4,
+      "gb_pct": 55.0
     },
     {
       "id": "渡邊_佳明",
@@ -7306,7 +9811,14 @@
       "sb": 0,
       "k_pct": 4.3,
       "bb_pct": 0.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 32.935,
+      "contact_pct": 54.5,
+      "z_swing_pct": 54.5,
+      "whiff_pct": 5.8,
+      "z_contact_pct": 100.0,
+      "gb_pct": 25.0
     },
     {
       "id": "渡部_聖弥",
@@ -7328,7 +9840,14 @@
       "sb": 0,
       "k_pct": 12.5,
       "bb_pct": 12.5,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 56.275,
+      "contact_pct": 82.15,
+      "z_swing_pct": 82.15,
+      "whiff_pct": 15.0,
+      "z_contact_pct": 85.7,
+      "gb_pct": 66.7
     },
     {
       "id": "渡部_遼人",
@@ -7349,7 +9868,14 @@
       "sb": 3,
       "k_pct": 21.1,
       "bb_pct": 15.8,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 16.911,
+      "contact_pct": 39.737,
+      "z_swing_pct": 39.737,
+      "whiff_pct": 3.505,
+      "z_contact_pct": 100.0,
+      "gb_pct": 69.4
     },
     {
       "id": "湯浅_大",
@@ -7370,7 +9896,14 @@
       "sb": 10,
       "k_pct": 19.3,
       "bb_pct": 16.6,
-      "war": null
+      "war": null,
+      "hr_pct": 0.5,
+      "chase_pct": 29.834,
+      "contact_pct": 64.649,
+      "z_swing_pct": 64.649,
+      "whiff_pct": 20.78,
+      "z_contact_pct": 85.0,
+      "gb_pct": 45.3
     },
     {
       "id": "滝澤_夏央",
@@ -7391,7 +9924,14 @@
       "sb": 0,
       "k_pct": 0.0,
       "bb_pct": 0.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 29.6,
+      "contact_pct": 75.486,
+      "z_swing_pct": 75.486,
+      "whiff_pct": 0.0,
+      "z_contact_pct": 100.0,
+      "gb_pct": 64.3
     },
     {
       "id": "漁府_輝羽",
@@ -7410,7 +9950,14 @@
       "sb": 2,
       "k_pct": 25.8,
       "bb_pct": 9.7,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 36.744,
+      "contact_pct": 79.255,
+      "z_swing_pct": 79.255,
+      "whiff_pct": 26.565,
+      "z_contact_pct": 87.3,
+      "gb_pct": 44.3
     },
     {
       "id": "漆原_幻汰",
@@ -7432,7 +9979,14 @@
       "sb": 25,
       "k_pct": 17.8,
       "bb_pct": 13.2,
-      "war": null
+      "war": null,
+      "hr_pct": 0.7,
+      "chase_pct": 28.956,
+      "contact_pct": 64.191,
+      "z_swing_pct": 64.191,
+      "whiff_pct": 20.321,
+      "z_contact_pct": 85.1,
+      "gb_pct": 57.5
     },
     {
       "id": "澤井_廉",
@@ -7453,7 +10007,14 @@
       "sb": 0,
       "k_pct": 23.6,
       "bb_pct": 13.5,
-      "war": null
+      "war": null,
+      "hr_pct": 4.8,
+      "chase_pct": 30.819,
+      "contact_pct": 68.853,
+      "z_swing_pct": 68.853,
+      "whiff_pct": 32.982,
+      "z_contact_pct": 80.4,
+      "gb_pct": 46.7
     },
     {
       "id": "澤田_遥斗",
@@ -7474,7 +10035,14 @@
       "sb": 0,
       "k_pct": 0.0,
       "bb_pct": 0.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 33.3,
+      "contact_pct": 75.0,
+      "z_swing_pct": 75.0,
+      "whiff_pct": 25.0,
+      "z_contact_pct": 66.7,
+      "gb_pct": 0.0
     },
     {
       "id": "澤野_聖悠",
@@ -7493,7 +10061,14 @@
       "sb": 8,
       "k_pct": 32.2,
       "bb_pct": 6.2,
-      "war": null
+      "war": null,
+      "hr_pct": 4.8,
+      "chase_pct": 38.283,
+      "contact_pct": 76.423,
+      "z_swing_pct": 76.423,
+      "whiff_pct": 30.945,
+      "z_contact_pct": 78.3,
+      "gb_pct": 48.6
     },
     {
       "id": "濱_将乃介",
@@ -7514,7 +10089,14 @@
       "sb": 17,
       "k_pct": 15.4,
       "bb_pct": 11.7,
-      "war": null
+      "war": null,
+      "hr_pct": 1.4,
+      "chase_pct": 27.054,
+      "contact_pct": 68.729,
+      "z_swing_pct": 68.729,
+      "whiff_pct": 18.22,
+      "z_contact_pct": 89.8,
+      "gb_pct": 48.4
     },
     {
       "id": "濱田_太貴",
@@ -7535,7 +10117,14 @@
       "sb": 0,
       "k_pct": 27.6,
       "bb_pct": 13.1,
-      "war": null
+      "war": null,
+      "hr_pct": 2.8,
+      "chase_pct": 27.223,
+      "contact_pct": 70.574,
+      "z_swing_pct": 70.574,
+      "whiff_pct": 27.083,
+      "z_contact_pct": 81.8,
+      "gb_pct": 42.8
     },
     {
       "id": "濵田_泰希",
@@ -7554,7 +10143,14 @@
       "sb": 0,
       "k_pct": 27.6,
       "bb_pct": 5.5,
-      "war": null
+      "war": null,
+      "hr_pct": 0.7,
+      "chase_pct": 42.568,
+      "contact_pct": 74.729,
+      "z_swing_pct": 74.729,
+      "whiff_pct": 32.777,
+      "z_contact_pct": 76.1,
+      "gb_pct": 56.2
     },
     {
       "id": "炭谷_銀仁朗",
@@ -7575,7 +10171,14 @@
       "sb": 0,
       "k_pct": 14.0,
       "bb_pct": 4.3,
-      "war": null
+      "war": null,
+      "hr_pct": 1.1,
+      "chase_pct": 33.414,
+      "contact_pct": 74.915,
+      "z_swing_pct": 74.915,
+      "whiff_pct": 16.625,
+      "z_contact_pct": 91.6,
+      "gb_pct": 55.8
     },
     {
       "id": "熊谷_敬宥",
@@ -7597,7 +10200,14 @@
       "sb": 1,
       "k_pct": 12.5,
       "bb_pct": 12.5,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 19.8,
+      "contact_pct": 68.35,
+      "z_swing_pct": 68.35,
+      "whiff_pct": 8.35,
+      "z_contact_pct": 87.5,
+      "gb_pct": 40.0
     },
     {
       "id": "牧_秀悟",
@@ -7618,7 +10228,14 @@
       "sb": 0,
       "k_pct": 7.1,
       "bb_pct": 0.0,
-      "war": null
+      "war": null,
+      "hr_pct": 7.1,
+      "chase_pct": 29.729,
+      "contact_pct": 68.679,
+      "z_swing_pct": 68.679,
+      "whiff_pct": 20.543,
+      "z_contact_pct": 88.3,
+      "gb_pct": 39.8
     },
     {
       "id": "牧原_巧汰",
@@ -7637,7 +10254,14 @@
       "sb": 0,
       "k_pct": 28.3,
       "bb_pct": 8.7,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 34.607,
+      "contact_pct": 62.541,
+      "z_swing_pct": 62.541,
+      "whiff_pct": 30.754,
+      "z_contact_pct": 81.2,
+      "gb_pct": 58.5
     },
     {
       "id": "牧野_翔矢",
@@ -7658,7 +10282,14 @@
       "sb": 1,
       "k_pct": 15.8,
       "bb_pct": 14.5,
-      "war": null
+      "war": null,
+      "hr_pct": 1.3,
+      "chase_pct": 28.788,
+      "contact_pct": 58.297,
+      "z_swing_pct": 58.297,
+      "whiff_pct": 16.682,
+      "z_contact_pct": 90.9,
+      "gb_pct": 53.5
     },
     {
       "id": "田中_俊太",
@@ -7679,7 +10310,14 @@
       "sb": 4,
       "k_pct": 15.9,
       "bb_pct": 14.1,
-      "war": null
+      "war": null,
+      "hr_pct": 0.9,
+      "chase_pct": 23.253,
+      "contact_pct": 45.495,
+      "z_swing_pct": 45.495,
+      "whiff_pct": 15.32,
+      "z_contact_pct": 89.3,
+      "gb_pct": 62.8
     },
     {
       "id": "田中_和基",
@@ -7700,7 +10338,14 @@
       "sb": 5,
       "k_pct": 18.6,
       "bb_pct": 14.0,
-      "war": null
+      "war": null,
+      "hr_pct": 1.2,
+      "chase_pct": 31.467,
+      "contact_pct": 72.81,
+      "z_swing_pct": 72.81,
+      "whiff_pct": 26.115,
+      "z_contact_pct": 83.7,
+      "gb_pct": 43.0
     },
     {
       "id": "田中_幹也",
@@ -7721,7 +10366,14 @@
       "sb": 2,
       "k_pct": 3.4,
       "bb_pct": 10.3,
-      "war": null
+      "war": null,
+      "hr_pct": 3.4,
+      "chase_pct": 24.362,
+      "contact_pct": 72.993,
+      "z_swing_pct": 72.993,
+      "whiff_pct": 3.734,
+      "z_contact_pct": 96.4,
+      "gb_pct": 37.7
     },
     {
       "id": "田中_貴也",
@@ -7742,7 +10394,14 @@
       "sb": 0,
       "k_pct": 16.8,
       "bb_pct": 16.8,
-      "war": null
+      "war": null,
+      "hr_pct": 2.0,
+      "chase_pct": 26.352,
+      "contact_pct": 57.26,
+      "z_swing_pct": 57.26,
+      "whiff_pct": 16.714,
+      "z_contact_pct": 85.0,
+      "gb_pct": 64.3
     },
     {
       "id": "田中_陽翔",
@@ -7763,7 +10422,14 @@
       "sb": 2,
       "k_pct": 28.9,
       "bb_pct": 13.8,
-      "war": null
+      "war": null,
+      "hr_pct": 1.3,
+      "chase_pct": 25.565,
+      "contact_pct": 66.412,
+      "z_swing_pct": 66.412,
+      "whiff_pct": 32.319,
+      "z_contact_pct": 75.0,
+      "gb_pct": 57.0
     },
     {
       "id": "田内_真翔",
@@ -7782,7 +10448,14 @@
       "sb": 7,
       "k_pct": 17.7,
       "bb_pct": 7.5,
-      "war": null
+      "war": null,
+      "hr_pct": 0.6,
+      "chase_pct": 35.71,
+      "contact_pct": 73.621,
+      "z_swing_pct": 73.621,
+      "whiff_pct": 20.963,
+      "z_contact_pct": 87.5,
+      "gb_pct": 42.9
     },
     {
       "id": "田島_光祐",
@@ -7803,7 +10476,14 @@
       "sb": 0,
       "k_pct": 7.5,
       "bb_pct": 5.8,
-      "war": null
+      "war": null,
+      "hr_pct": 0.8,
+      "chase_pct": 35.482,
+      "contact_pct": 75.541,
+      "z_swing_pct": 75.541,
+      "whiff_pct": 14.843,
+      "z_contact_pct": 88.1,
+      "gb_pct": 45.3
     },
     {
       "id": "田村_俊介",
@@ -7822,7 +10502,14 @@
       "sb": 0,
       "k_pct": 19.2,
       "bb_pct": 10.7,
-      "war": null
+      "war": null,
+      "hr_pct": 1.9,
+      "chase_pct": 35.18,
+      "contact_pct": 66.668,
+      "z_swing_pct": 66.668,
+      "whiff_pct": 21.667,
+      "z_contact_pct": 88.0,
+      "gb_pct": 55.8
     },
     {
       "id": "田村_龍弘",
@@ -7844,7 +10531,14 @@
       "sb": 1,
       "k_pct": 8.7,
       "bb_pct": 15.2,
-      "war": null
+      "war": null,
+      "hr_pct": 4.3,
+      "chase_pct": 20.041,
+      "contact_pct": 65.543,
+      "z_swing_pct": 65.543,
+      "whiff_pct": 3.743,
+      "z_contact_pct": 97.2,
+      "gb_pct": 34.1
     },
     {
       "id": "田西_誓",
@@ -7865,7 +10559,14 @@
       "sb": 0,
       "k_pct": 39.3,
       "bb_pct": 25.0,
-      "war": null
+      "war": null,
+      "hr_pct": 3.6,
+      "chase_pct": 41.668,
+      "contact_pct": 67.611,
+      "z_swing_pct": 67.611,
+      "whiff_pct": 34.593,
+      "z_contact_pct": 69.8,
+      "gb_pct": 47.4
     },
     {
       "id": "甲斐_拓也",
@@ -7884,7 +10585,14 @@
       "sb": 2,
       "k_pct": 24.6,
       "bb_pct": 11.4,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 22.011,
+      "contact_pct": 61.632,
+      "z_swing_pct": 61.632,
+      "whiff_pct": 22.162,
+      "z_contact_pct": 80.2,
+      "gb_pct": 54.4
     },
     {
       "id": "町田_隼乙",
@@ -7903,7 +10611,14 @@
       "sb": 0,
       "k_pct": 28.2,
       "bb_pct": 5.1,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 24.787,
+      "contact_pct": 66.297,
+      "z_swing_pct": 66.297,
+      "whiff_pct": 24.208,
+      "z_contact_pct": 76.7,
+      "gb_pct": 33.0
     },
     {
       "id": "百﨑_蒼生",
@@ -7922,7 +10637,14 @@
       "sb": 1,
       "k_pct": 17.2,
       "bb_pct": 7.9,
-      "war": null
+      "war": null,
+      "hr_pct": 2.5,
+      "chase_pct": 35.863,
+      "contact_pct": 68.12,
+      "z_swing_pct": 68.12,
+      "whiff_pct": 23.15,
+      "z_contact_pct": 85.0,
+      "gb_pct": 58.7
     },
     {
       "id": "皆川_岳飛",
@@ -7945,7 +10667,14 @@
       "sb": 15,
       "k_pct": 13.2,
       "bb_pct": 12.9,
-      "war": null
+      "war": null,
+      "hr_pct": 0.9,
+      "chase_pct": 25.278,
+      "contact_pct": 60.169,
+      "z_swing_pct": 60.169,
+      "whiff_pct": 16.488,
+      "z_contact_pct": 88.8,
+      "gb_pct": 58.5
     },
     {
       "id": "益子_京右",
@@ -7966,7 +10695,14 @@
       "sb": 2,
       "k_pct": 15.6,
       "bb_pct": 15.1,
-      "war": null
+      "war": null,
+      "hr_pct": 2.2,
+      "chase_pct": 28.941,
+      "contact_pct": 66.494,
+      "z_swing_pct": 66.494,
+      "whiff_pct": 22.387,
+      "z_contact_pct": 84.2,
+      "gb_pct": 58.2
     },
     {
       "id": "盛島_稜大",
@@ -7985,7 +10721,14 @@
       "sb": 0,
       "k_pct": 35.1,
       "bb_pct": 8.5,
-      "war": null
+      "war": null,
+      "hr_pct": 1.1,
+      "chase_pct": 14.576,
+      "contact_pct": 26.46,
+      "z_swing_pct": 26.46,
+      "whiff_pct": 16.686,
+      "z_contact_pct": 72.9,
+      "gb_pct": 5.7
     },
     {
       "id": "相澤_白虎",
@@ -8004,7 +10747,14 @@
       "sb": 0,
       "k_pct": 26.7,
       "bb_pct": 0.0,
-      "war": null
+      "war": null,
+      "hr_pct": 13.3,
+      "chase_pct": 42.373,
+      "contact_pct": 67.787,
+      "z_swing_pct": 67.787,
+      "whiff_pct": 36.647,
+      "z_contact_pct": 67.2,
+      "gb_pct": 24.4
     },
     {
       "id": "矢澤_宏太",
@@ -8025,7 +10775,14 @@
       "sb": 10,
       "k_pct": 14.4,
       "bb_pct": 10.0,
-      "war": null
+      "war": null,
+      "hr_pct": 3.3,
+      "chase_pct": 36.343,
+      "contact_pct": 56.287,
+      "z_swing_pct": 56.287,
+      "whiff_pct": 20.068,
+      "z_contact_pct": 89.7,
+      "gb_pct": 51.7
     },
     {
       "id": "矢野_泰二郎",
@@ -8044,7 +10801,14 @@
       "sb": 4,
       "k_pct": 20.6,
       "bb_pct": 7.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 36.909,
+      "contact_pct": 76.181,
+      "z_swing_pct": 76.181,
+      "whiff_pct": 21.87,
+      "z_contact_pct": 84.3,
+      "gb_pct": 47.4
     },
     {
       "id": "矢野_雅哉",
@@ -8066,7 +10830,14 @@
       "sb": 0,
       "k_pct": 12.2,
       "bb_pct": 22.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 26.427,
+      "contact_pct": 62.166,
+      "z_swing_pct": 62.166,
+      "whiff_pct": 15.029,
+      "z_contact_pct": 89.2,
+      "gb_pct": 59.7
     },
     {
       "id": "知念_大成",
@@ -8087,7 +10858,14 @@
       "sb": 1,
       "k_pct": 5.6,
       "bb_pct": 5.6,
-      "war": null
+      "war": null,
+      "hr_pct": 1.4,
+      "chase_pct": 44.882,
+      "contact_pct": 78.261,
+      "z_swing_pct": 78.261,
+      "whiff_pct": 10.386,
+      "z_contact_pct": 91.4,
+      "gb_pct": 64.5
     },
     {
       "id": "知野_直人",
@@ -8108,7 +10886,14 @@
       "sb": 1,
       "k_pct": 25.6,
       "bb_pct": 14.4,
-      "war": null
+      "war": null,
+      "hr_pct": 2.2,
+      "chase_pct": 20.736,
+      "contact_pct": 60.952,
+      "z_swing_pct": 60.952,
+      "whiff_pct": 24.299,
+      "z_contact_pct": 83.4,
+      "gb_pct": 28.7
     },
     {
       "id": "石上_泰輝",
@@ -8130,7 +10915,14 @@
       "sb": 7,
       "k_pct": 9.9,
       "bb_pct": 19.1,
-      "war": null
+      "war": null,
+      "hr_pct": 1.5,
+      "chase_pct": 23.296,
+      "contact_pct": 60.892,
+      "z_swing_pct": 60.892,
+      "whiff_pct": 19.678,
+      "z_contact_pct": 86.9,
+      "gb_pct": 54.5
     },
     {
       "id": "石井_一成",
@@ -8149,7 +10941,14 @@
       "sb": 1,
       "k_pct": 22.7,
       "bb_pct": 9.3,
-      "war": null
+      "war": null,
+      "hr_pct": 4.0,
+      "chase_pct": 29.037,
+      "contact_pct": 62.391,
+      "z_swing_pct": 62.391,
+      "whiff_pct": 18.807,
+      "z_contact_pct": 86.7,
+      "gb_pct": 36.2
     },
     {
       "id": "石井_巧",
@@ -8170,7 +10969,14 @@
       "sb": 10,
       "k_pct": 15.5,
       "bb_pct": 12.0,
-      "war": null
+      "war": null,
+      "hr_pct": 1.0,
+      "chase_pct": 22.294,
+      "contact_pct": 56.273,
+      "z_swing_pct": 56.273,
+      "whiff_pct": 12.636,
+      "z_contact_pct": 89.9,
+      "gb_pct": 47.1
     },
     {
       "id": "石伊_雄太",
@@ -8191,7 +10997,14 @@
       "sb": 0,
       "k_pct": 20.0,
       "bb_pct": 20.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 37.84,
+      "contact_pct": 30.0,
+      "z_swing_pct": 30.0,
+      "whiff_pct": 10.0,
+      "z_contact_pct": 100.0,
+      "gb_pct": 66.7
     },
     {
       "id": "石原_彪",
@@ -8210,7 +11023,14 @@
       "sb": 0,
       "k_pct": 15.9,
       "bb_pct": 11.6,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 23.333,
+      "contact_pct": 67.278,
+      "z_swing_pct": 67.278,
+      "whiff_pct": 17.423,
+      "z_contact_pct": 90.4,
+      "gb_pct": 23.0
     },
     {
       "id": "石原_貴規",
@@ -8231,7 +11051,14 @@
       "sb": 0,
       "k_pct": 12.5,
       "bb_pct": 8.3,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 35.575,
+      "contact_pct": 67.367,
+      "z_swing_pct": 67.367,
+      "whiff_pct": 12.396,
+      "z_contact_pct": 92.0,
+      "gb_pct": 44.1
     },
     {
       "id": "石垣_勝海",
@@ -8250,7 +11077,14 @@
       "sb": 2,
       "k_pct": 19.3,
       "bb_pct": 9.4,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 28.437,
+      "contact_pct": 68.226,
+      "z_swing_pct": 68.226,
+      "whiff_pct": 22.34,
+      "z_contact_pct": 85.2,
+      "gb_pct": 47.9
     },
     {
       "id": "石塚_綜一郎",
@@ -8271,7 +11105,14 @@
       "sb": 0,
       "k_pct": 19.5,
       "bb_pct": 20.3,
-      "war": null
+      "war": null,
+      "hr_pct": 3.3,
+      "chase_pct": 34.988,
+      "contact_pct": 58.078,
+      "z_swing_pct": 58.078,
+      "whiff_pct": 25.552,
+      "z_contact_pct": 82.8,
+      "gb_pct": 44.7
     },
     {
       "id": "石塚_裕惺",
@@ -8292,7 +11133,14 @@
       "sb": 7,
       "k_pct": 21.6,
       "bb_pct": 16.2,
-      "war": null
+      "war": null,
+      "hr_pct": 3.6,
+      "chase_pct": 22.185,
+      "contact_pct": 61.728,
+      "z_swing_pct": 61.728,
+      "whiff_pct": 21.546,
+      "z_contact_pct": 83.6,
+      "gb_pct": 72.9
     },
     {
       "id": "石川_亮",
@@ -8313,7 +11161,14 @@
       "sb": 0,
       "k_pct": 13.8,
       "bb_pct": 0.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 38.521,
+      "contact_pct": 60.403,
+      "z_swing_pct": 60.403,
+      "whiff_pct": 10.669,
+      "z_contact_pct": 94.6,
+      "gb_pct": 31.1
     },
     {
       "id": "石川_大峨",
@@ -8332,7 +11187,14 @@
       "sb": 1,
       "k_pct": 39.0,
       "bb_pct": 4.0,
-      "war": null
+      "war": null,
+      "hr_pct": 2.0,
+      "chase_pct": 47.913,
+      "contact_pct": 68.313,
+      "z_swing_pct": 68.313,
+      "whiff_pct": 33.035,
+      "z_contact_pct": 85.0,
+      "gb_pct": 46.6
     },
     {
       "id": "石川_慎吾",
@@ -8351,7 +11213,14 @@
       "sb": 1,
       "k_pct": 16.2,
       "bb_pct": 10.1,
-      "war": null
+      "war": null,
+      "hr_pct": 4.5,
+      "chase_pct": 26.606,
+      "contact_pct": 71.53,
+      "z_swing_pct": 71.53,
+      "whiff_pct": 23.905,
+      "z_contact_pct": 80.3,
+      "gb_pct": 36.1
     },
     {
       "id": "石川_昂弥",
@@ -8372,7 +11241,14 @@
       "sb": 1,
       "k_pct": 8.8,
       "bb_pct": 10.8,
-      "war": null
+      "war": null,
+      "hr_pct": 2.0,
+      "chase_pct": 25.595,
+      "contact_pct": 62.942,
+      "z_swing_pct": 62.942,
+      "whiff_pct": 11.73,
+      "z_contact_pct": 90.8,
+      "gb_pct": 40.1
     },
     {
       "id": "石橋_康太",
@@ -8393,7 +11269,14 @@
       "sb": 2,
       "k_pct": 18.1,
       "bb_pct": 18.1,
-      "war": null
+      "war": null,
+      "hr_pct": 5.0,
+      "chase_pct": 26.657,
+      "contact_pct": 59.209,
+      "z_swing_pct": 59.209,
+      "whiff_pct": 20.689,
+      "z_contact_pct": 82.6,
+      "gb_pct": 30.6
     },
     {
       "id": "石見_颯真",
@@ -8414,7 +11297,14 @@
       "sb": 9,
       "k_pct": 16.5,
       "bb_pct": 15.7,
-      "war": null
+      "war": null,
+      "hr_pct": 0.8,
+      "chase_pct": 21.774,
+      "contact_pct": 57.797,
+      "z_swing_pct": 57.797,
+      "whiff_pct": 15.769,
+      "z_contact_pct": 90.6,
+      "gb_pct": 69.0
     },
     {
       "id": "神里_和毅",
@@ -8436,7 +11326,14 @@
       "sb": 1,
       "k_pct": 14.3,
       "bb_pct": 28.6,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 32.857,
+      "contact_pct": 59.2,
+      "z_swing_pct": 59.2,
+      "whiff_pct": 27.057,
+      "z_contact_pct": 100.0,
+      "gb_pct": 66.7
     },
     {
       "id": "福元_悠真",
@@ -8457,7 +11354,14 @@
       "sb": 4,
       "k_pct": 8.1,
       "bb_pct": 4.7,
-      "war": null
+      "war": null,
+      "hr_pct": 1.4,
+      "chase_pct": 39.411,
+      "contact_pct": 83.918,
+      "z_swing_pct": 83.918,
+      "whiff_pct": 13.475,
+      "z_contact_pct": 93.4,
+      "gb_pct": 47.7
     },
     {
       "id": "福尾_遥真",
@@ -8478,7 +11382,14 @@
       "sb": 1,
       "k_pct": 23.7,
       "bb_pct": 12.9,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 34.58,
+      "contact_pct": 63.137,
+      "z_swing_pct": 63.137,
+      "whiff_pct": 21.004,
+      "z_contact_pct": 84.5,
+      "gb_pct": 72.5
     },
     {
       "id": "福島_圭音",
@@ -8499,7 +11410,14 @@
       "sb": 8,
       "k_pct": 15.1,
       "bb_pct": 16.3,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 26.274,
+      "contact_pct": 64.128,
+      "z_swing_pct": 64.128,
+      "whiff_pct": 10.849,
+      "z_contact_pct": 90.5,
+      "gb_pct": 84.1
     },
     {
       "id": "福永_奨",
@@ -8520,7 +11438,14 @@
       "sb": 0,
       "k_pct": 10.5,
       "bb_pct": 11.8,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 31.968,
+      "contact_pct": 68.292,
+      "z_swing_pct": 68.292,
+      "whiff_pct": 15.293,
+      "z_contact_pct": 89.6,
+      "gb_pct": 31.3
     },
     {
       "id": "福永_裕基",
@@ -8542,7 +11467,14 @@
       "sb": 0,
       "k_pct": 13.0,
       "bb_pct": 17.4,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 17.883,
+      "contact_pct": 51.257,
+      "z_swing_pct": 51.257,
+      "whiff_pct": 21.23,
+      "z_contact_pct": 77.1,
+      "gb_pct": 68.8
     },
     {
       "id": "秋山_俊",
@@ -8563,7 +11495,14 @@
       "sb": 6,
       "k_pct": 13.2,
       "bb_pct": 5.5,
-      "war": null
+      "war": null,
+      "hr_pct": 0.6,
+      "chase_pct": 35.563,
+      "contact_pct": 71.454,
+      "z_swing_pct": 71.454,
+      "whiff_pct": 20.003,
+      "z_contact_pct": 89.6,
+      "gb_pct": 54.1
     },
     {
       "id": "秋山_翔吾",
@@ -8584,7 +11523,14 @@
       "sb": 0,
       "k_pct": 7.7,
       "bb_pct": 11.5,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 31.708,
+      "contact_pct": 63.769,
+      "z_swing_pct": 63.769,
+      "whiff_pct": 10.9,
+      "z_contact_pct": 93.9,
+      "gb_pct": 50.3
     },
     {
       "id": "秋広_優人",
@@ -8605,7 +11551,14 @@
       "sb": 0,
       "k_pct": 25.1,
       "bb_pct": 16.6,
-      "war": null
+      "war": null,
+      "hr_pct": 2.9,
+      "chase_pct": 27.157,
+      "contact_pct": 53.737,
+      "z_swing_pct": 53.737,
+      "whiff_pct": 27.16,
+      "z_contact_pct": 82.4,
+      "gb_pct": 49.8
     },
     {
       "id": "窪田_洋祐",
@@ -8624,7 +11577,14 @@
       "sb": 12,
       "k_pct": 36.8,
       "bb_pct": 7.4,
-      "war": null
+      "war": null,
+      "hr_pct": 0.7,
+      "chase_pct": 34.965,
+      "contact_pct": 64.655,
+      "z_swing_pct": 64.655,
+      "whiff_pct": 35.103,
+      "z_contact_pct": 75.4,
+      "gb_pct": 59.2
     },
     {
       "id": "立松_由宇",
@@ -8645,7 +11605,14 @@
       "sb": 1,
       "k_pct": 15.8,
       "bb_pct": 13.1,
-      "war": null
+      "war": null,
+      "hr_pct": 1.5,
+      "chase_pct": 26.896,
+      "contact_pct": 79.628,
+      "z_swing_pct": 79.628,
+      "whiff_pct": 16.67,
+      "z_contact_pct": 88.4,
+      "gb_pct": 54.6
     },
     {
       "id": "立石_正広",
@@ -8664,7 +11631,14 @@
       "sb": 3,
       "k_pct": 26.1,
       "bb_pct": 9.0,
-      "war": null
+      "war": null,
+      "hr_pct": 2.0,
+      "chase_pct": 31.675,
+      "contact_pct": 73.906,
+      "z_swing_pct": 73.906,
+      "whiff_pct": 27.299,
+      "z_contact_pct": 81.1,
+      "gb_pct": 56.3
     },
     {
       "id": "竹下_徠空",
@@ -8685,7 +11659,14 @@
       "sb": 1,
       "k_pct": 17.9,
       "bb_pct": 12.8,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 32.456,
+      "contact_pct": 79.021,
+      "z_swing_pct": 79.021,
+      "whiff_pct": 34.472,
+      "z_contact_pct": 73.0,
+      "gb_pct": 30.6
     },
     {
       "id": "笹原_操希",
@@ -8707,7 +11688,14 @@
       "sb": 4,
       "k_pct": 8.8,
       "bb_pct": 14.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 34.912,
+      "contact_pct": 72.011,
+      "z_swing_pct": 72.011,
+      "whiff_pct": 17.719,
+      "z_contact_pct": 85.6,
+      "gb_pct": 19.6
     },
     {
       "id": "笹川_吉康",
@@ -8728,7 +11716,14 @@
       "sb": 26,
       "k_pct": 22.2,
       "bb_pct": 4.4,
-      "war": null
+      "war": null,
+      "hr_pct": 2.3,
+      "chase_pct": 41.378,
+      "contact_pct": 71.376,
+      "z_swing_pct": 71.376,
+      "whiff_pct": 30.011,
+      "z_contact_pct": 83.3,
+      "gb_pct": 53.6
     },
     {
       "id": "筒香_嘉智",
@@ -8750,7 +11745,14 @@
       "sb": 0,
       "k_pct": 11.1,
       "bb_pct": 22.2,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 12.044,
+      "contact_pct": 63.644,
+      "z_swing_pct": 63.644,
+      "whiff_pct": 24.067,
+      "z_contact_pct": 92.9,
+      "gb_pct": 22.2
     },
     {
       "id": "篠原_玲央",
@@ -8771,7 +11773,14 @@
       "sb": 2,
       "k_pct": 17.8,
       "bb_pct": 12.3,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 20.281,
+      "contact_pct": 61.508,
+      "z_swing_pct": 61.508,
+      "whiff_pct": 20.89,
+      "z_contact_pct": 82.9,
+      "gb_pct": 55.6
     },
     {
       "id": "糸原_健斗",
@@ -8793,7 +11802,14 @@
       "sb": 0,
       "k_pct": 13.0,
       "bb_pct": 19.6,
-      "war": null
+      "war": null,
+      "hr_pct": 1.1,
+      "chase_pct": 22.475,
+      "contact_pct": 55.997,
+      "z_swing_pct": 55.997,
+      "whiff_pct": 17.884,
+      "z_contact_pct": 89.7,
+      "gb_pct": 65.4
     },
     {
       "id": "紅林_弘太郎",
@@ -8814,7 +11830,14 @@
       "sb": 0,
       "k_pct": 0.0,
       "bb_pct": 0.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 0.0,
+      "contact_pct": 50.0,
+      "z_swing_pct": 50.0,
+      "whiff_pct": 0.0,
+      "z_contact_pct": 100.0,
+      "gb_pct": 66.7
     },
     {
       "id": "細川_凌平",
@@ -8836,7 +11859,14 @@
       "sb": 8,
       "k_pct": 10.4,
       "bb_pct": 16.9,
-      "war": null
+      "war": null,
+      "hr_pct": 2.6,
+      "chase_pct": 20.322,
+      "contact_pct": 59.235,
+      "z_swing_pct": 59.235,
+      "whiff_pct": 12.314,
+      "z_contact_pct": 92.1,
+      "gb_pct": 56.3
     },
     {
       "id": "緒方_理貢",
@@ -8855,7 +11885,14 @@
       "sb": 10,
       "k_pct": 22.6,
       "bb_pct": 10.8,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 31.049,
+      "contact_pct": 69.988,
+      "z_swing_pct": 69.988,
+      "whiff_pct": 21.97,
+      "z_contact_pct": 83.6,
+      "gb_pct": 73.8
     },
     {
       "id": "繁永_晟",
@@ -8876,7 +11913,14 @@
       "sb": 8,
       "k_pct": 11.8,
       "bb_pct": 7.7,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 28.189,
+      "contact_pct": 75.683,
+      "z_swing_pct": 75.683,
+      "whiff_pct": 15.626,
+      "z_contact_pct": 87.0,
+      "gb_pct": 49.8
     },
     {
       "id": "能戸_輝夢",
@@ -8895,7 +11939,14 @@
       "sb": 7,
       "k_pct": 28.4,
       "bb_pct": 7.4,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 38.255,
+      "contact_pct": 71.549,
+      "z_swing_pct": 71.549,
+      "whiff_pct": 33.301,
+      "z_contact_pct": 81.8,
+      "gb_pct": 55.6
     },
     {
       "id": "能登_嵩都",
@@ -8914,7 +11965,14 @@
       "sb": 0,
       "k_pct": 80.0,
       "bb_pct": 0.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 40.0,
+      "contact_pct": 16.66,
+      "z_swing_pct": 16.66,
+      "whiff_pct": 43.34,
+      "z_contact_pct": 50.0,
+      "gb_pct": 100.0
     },
     {
       "id": "花田_旭",
@@ -8933,7 +11991,14 @@
       "sb": 5,
       "k_pct": 32.0,
       "bb_pct": 6.9,
-      "war": null
+      "war": null,
+      "hr_pct": 5.1,
+      "chase_pct": 37.58,
+      "contact_pct": 72.391,
+      "z_swing_pct": 72.391,
+      "whiff_pct": 28.978,
+      "z_contact_pct": 76.2,
+      "gb_pct": 49.5
     },
     {
       "id": "若月_健矢",
@@ -8954,7 +12019,14 @@
       "sb": 0,
       "k_pct": 0.0,
       "bb_pct": 0.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 50.0,
+      "contact_pct": 50.0,
+      "z_swing_pct": 50.0,
+      "whiff_pct": 0.0,
+      "z_contact_pct": 100.0,
+      "gb_pct": 100.0
     },
     {
       "id": "若林_楽人",
@@ -8973,7 +12045,14 @@
       "sb": 1,
       "k_pct": 19.6,
       "bb_pct": 5.6,
-      "war": null
+      "war": null,
+      "hr_pct": 3.7,
+      "chase_pct": 32.001,
+      "contact_pct": 65.683,
+      "z_swing_pct": 65.683,
+      "whiff_pct": 23.745,
+      "z_contact_pct": 80.8,
+      "gb_pct": 46.9
     },
     {
       "id": "茂木_栄五郎",
@@ -8994,7 +12073,14 @@
       "sb": 0,
       "k_pct": 14.1,
       "bb_pct": 9.9,
-      "war": null
+      "war": null,
+      "hr_pct": 0.7,
+      "chase_pct": 30.073,
+      "contact_pct": 69.872,
+      "z_swing_pct": 69.872,
+      "whiff_pct": 20.689,
+      "z_contact_pct": 84.1,
+      "gb_pct": 34.5
     },
     {
       "id": "茨木_秀俊",
@@ -9013,7 +12099,14 @@
       "sb": 0,
       "k_pct": 36.4,
       "bb_pct": 0.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 16.664,
+      "contact_pct": 64.391,
+      "z_swing_pct": 64.391,
+      "whiff_pct": 30.309,
+      "z_contact_pct": 67.3,
+      "gb_pct": 74.1
     },
     {
       "id": "茶谷_健太",
@@ -9032,7 +12125,14 @@
       "sb": 0,
       "k_pct": 16.7,
       "bb_pct": 9.5,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 35.545,
+      "contact_pct": 60.638,
+      "z_swing_pct": 60.638,
+      "whiff_pct": 19.179,
+      "z_contact_pct": 84.1,
+      "gb_pct": 42.1
     },
     {
       "id": "茶野_篤政",
@@ -9051,7 +12151,14 @@
       "sb": 5,
       "k_pct": 15.2,
       "bb_pct": 10.6,
-      "war": null
+      "war": null,
+      "hr_pct": 0.7,
+      "chase_pct": 33.656,
+      "contact_pct": 69.919,
+      "z_swing_pct": 69.919,
+      "whiff_pct": 22.145,
+      "z_contact_pct": 90.3,
+      "gb_pct": 41.9
     },
     {
       "id": "荒巻_悠",
@@ -9070,7 +12177,14 @@
       "sb": 1,
       "k_pct": 24.7,
       "bb_pct": 9.4,
-      "war": null
+      "war": null,
+      "hr_pct": 1.6,
+      "chase_pct": 31.193,
+      "contact_pct": 63.813,
+      "z_swing_pct": 63.813,
+      "whiff_pct": 25.0,
+      "z_contact_pct": 84.1,
+      "gb_pct": 42.8
     },
     {
       "id": "萩尾_匡也",
@@ -9091,7 +12205,14 @@
       "sb": 3,
       "k_pct": 13.8,
       "bb_pct": 9.6,
-      "war": null
+      "war": null,
+      "hr_pct": 0.5,
+      "chase_pct": 34.197,
+      "contact_pct": 72.432,
+      "z_swing_pct": 72.432,
+      "whiff_pct": 18.977,
+      "z_contact_pct": 88.9,
+      "gb_pct": 52.7
     },
     {
       "id": "藤井_健翔",
@@ -9110,7 +12231,14 @@
       "sb": 0,
       "k_pct": 37.7,
       "bb_pct": 9.4,
-      "war": null
+      "war": null,
+      "hr_pct": 0.9,
+      "chase_pct": 44.64,
+      "contact_pct": 72.875,
+      "z_swing_pct": 72.875,
+      "whiff_pct": 40.09,
+      "z_contact_pct": 77.9,
+      "gb_pct": 47.3
     },
     {
       "id": "藤原_恭大",
@@ -9131,7 +12259,14 @@
       "sb": 1,
       "k_pct": 20.0,
       "bb_pct": 30.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 20.94,
+      "contact_pct": 53.25,
+      "z_swing_pct": 53.25,
+      "whiff_pct": 4.55,
+      "z_contact_pct": 100.0,
+      "gb_pct": 100.0
     },
     {
       "id": "藤岡_裕大",
@@ -9152,7 +12287,14 @@
       "sb": 0,
       "k_pct": 15.9,
       "bb_pct": 15.9,
-      "war": null
+      "war": null,
+      "hr_pct": 2.4,
+      "chase_pct": 15.381,
+      "contact_pct": 65.992,
+      "z_swing_pct": 65.992,
+      "whiff_pct": 17.707,
+      "z_contact_pct": 83.5,
+      "gb_pct": 29.9
     },
     {
       "id": "藤森_海斗",
@@ -9171,7 +12313,14 @@
       "sb": 1,
       "k_pct": 23.2,
       "bb_pct": 4.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 31.868,
+      "contact_pct": 66.339,
+      "z_swing_pct": 66.339,
+      "whiff_pct": 17.253,
+      "z_contact_pct": 88.7,
+      "gb_pct": 62.9
     },
     {
       "id": "藤田_健斗",
@@ -9190,7 +12339,14 @@
       "sb": 0,
       "k_pct": 16.7,
       "bb_pct": 9.1,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 32.78,
+      "contact_pct": 64.471,
+      "z_swing_pct": 64.471,
+      "whiff_pct": 18.983,
+      "z_contact_pct": 87.7,
+      "gb_pct": 59.6
     },
     {
       "id": "藤田_和樹",
@@ -9209,7 +12365,14 @@
       "sb": 0,
       "k_pct": 17.6,
       "bb_pct": 0.0,
-      "war": null
+      "war": null,
+      "hr_pct": 3.9,
+      "chase_pct": 30.425,
+      "contact_pct": 85.086,
+      "z_swing_pct": 85.086,
+      "whiff_pct": 20.284,
+      "z_contact_pct": 93.1,
+      "gb_pct": 58.8
     },
     {
       "id": "藤田_大清",
@@ -9230,7 +12393,14 @@
       "sb": 0,
       "k_pct": 40.0,
       "bb_pct": 20.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 37.34,
+      "contact_pct": 43.32,
+      "z_swing_pct": 43.32,
+      "whiff_pct": 36.68,
+      "z_contact_pct": 66.7,
+      "gb_pct": 66.7
     },
     {
       "id": "藤田_悠太郎",
@@ -9249,7 +12419,14 @@
       "sb": 0,
       "k_pct": 25.0,
       "bb_pct": 9.8,
-      "war": null
+      "war": null,
+      "hr_pct": 1.1,
+      "chase_pct": 32.563,
+      "contact_pct": 69.474,
+      "z_swing_pct": 69.474,
+      "whiff_pct": 19.153,
+      "z_contact_pct": 87.2,
+      "gb_pct": 32.9
     },
     {
       "id": "藤野_恵音",
@@ -9270,7 +12447,14 @@
       "sb": 7,
       "k_pct": 6.8,
       "bb_pct": 7.4,
-      "war": null
+      "war": null,
+      "hr_pct": 1.4,
+      "chase_pct": 34.643,
+      "contact_pct": 63.176,
+      "z_swing_pct": 63.176,
+      "whiff_pct": 10.15,
+      "z_contact_pct": 94.4,
+      "gb_pct": 49.1
     },
     {
       "id": "蛭間_拓哉",
@@ -9291,7 +12475,14 @@
       "sb": 7,
       "k_pct": 9.0,
       "bb_pct": 9.0,
-      "war": null
+      "war": null,
+      "hr_pct": 1.5,
+      "chase_pct": 28.265,
+      "contact_pct": 69.635,
+      "z_swing_pct": 69.635,
+      "whiff_pct": 10.552,
+      "z_contact_pct": 91.5,
+      "gb_pct": 52.9
     },
     {
       "id": "蝦名_達夫",
@@ -9312,7 +12503,14 @@
       "sb": 0,
       "k_pct": 4.8,
       "bb_pct": 9.5,
-      "war": null
+      "war": null,
+      "hr_pct": 4.8,
+      "chase_pct": 31.59,
+      "contact_pct": 60.971,
+      "z_swing_pct": 60.971,
+      "whiff_pct": 10.333,
+      "z_contact_pct": 98.3,
+      "gb_pct": 19.7
     },
     {
       "id": "西_勇輝",
@@ -9331,7 +12529,14 @@
       "sb": 0,
       "k_pct": 33.3,
       "bb_pct": 0.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 16.667,
+      "contact_pct": 72.233,
+      "z_swing_pct": 72.233,
+      "whiff_pct": 13.883,
+      "z_contact_pct": 80.0,
+      "gb_pct": 100.0
     },
     {
       "id": "西_純矢",
@@ -9350,7 +12555,14 @@
       "sb": 0,
       "k_pct": 29.9,
       "bb_pct": 5.7,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 37.573,
+      "contact_pct": 64.74,
+      "z_swing_pct": 64.74,
+      "whiff_pct": 29.202,
+      "z_contact_pct": 79.2,
+      "gb_pct": 58.3
     },
     {
       "id": "西尾_歩真",
@@ -9372,7 +12584,14 @@
       "sb": 6,
       "k_pct": 13.4,
       "bb_pct": 13.4,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 22.577,
+      "contact_pct": 61.637,
+      "z_swing_pct": 61.637,
+      "whiff_pct": 10.374,
+      "z_contact_pct": 90.9,
+      "gb_pct": 56.6
     },
     {
       "id": "西川_愛也",
@@ -9393,7 +12612,14 @@
       "sb": 5,
       "k_pct": 6.4,
       "bb_pct": 9.0,
-      "war": null
+      "war": null,
+      "hr_pct": 1.3,
+      "chase_pct": 32.223,
+      "contact_pct": 61.968,
+      "z_swing_pct": 61.968,
+      "whiff_pct": 12.15,
+      "z_contact_pct": 94.1,
+      "gb_pct": 42.7
     },
     {
       "id": "西川_篤夢",
@@ -9412,7 +12638,14 @@
       "sb": 2,
       "k_pct": 25.4,
       "bb_pct": 7.5,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 35.152,
+      "contact_pct": 62.477,
+      "z_swing_pct": 62.477,
+      "whiff_pct": 24.47,
+      "z_contact_pct": 80.9,
+      "gb_pct": 53.0
     },
     {
       "id": "西川_遥輝",
@@ -9433,7 +12666,14 @@
       "sb": 0,
       "k_pct": 27.4,
       "bb_pct": 17.8,
-      "war": null
+      "war": null,
+      "hr_pct": 2.2,
+      "chase_pct": 19.221,
+      "contact_pct": 57.582,
+      "z_swing_pct": 57.582,
+      "whiff_pct": 28.351,
+      "z_contact_pct": 78.0,
+      "gb_pct": 50.7
     },
     {
       "id": "西巻_賢二",
@@ -9452,7 +12692,14 @@
       "sb": 14,
       "k_pct": 18.6,
       "bb_pct": 10.3,
-      "war": null
+      "war": null,
+      "hr_pct": 1.0,
+      "chase_pct": 32.78,
+      "contact_pct": 72.342,
+      "z_swing_pct": 72.342,
+      "whiff_pct": 15.76,
+      "z_contact_pct": 83.8,
+      "gb_pct": 50.4
     },
     {
       "id": "西村_瑠伊斗",
@@ -9473,7 +12720,14 @@
       "sb": 2,
       "k_pct": 26.9,
       "bb_pct": 12.3,
-      "war": null
+      "war": null,
+      "hr_pct": 1.8,
+      "chase_pct": 31.358,
+      "contact_pct": 62.358,
+      "z_swing_pct": 62.358,
+      "whiff_pct": 25.657,
+      "z_contact_pct": 81.0,
+      "gb_pct": 57.4
     },
     {
       "id": "西舘_勇陽",
@@ -9492,7 +12746,13 @@
       "sb": 0,
       "k_pct": 50.0,
       "bb_pct": 0.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 33.3,
+      "contact_pct": 0.0,
+      "z_swing_pct": 0.0,
+      "whiff_pct": 50.0,
+      "gb_pct": 100.0
     },
     {
       "id": "西野_真弘",
@@ -9514,7 +12774,14 @@
       "sb": 0,
       "k_pct": 4.3,
       "bb_pct": 13.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 27.933,
+      "contact_pct": 56.996,
+      "z_swing_pct": 56.996,
+      "whiff_pct": 12.902,
+      "z_contact_pct": 91.4,
+      "gb_pct": 44.8
     },
     {
       "id": "角中_勝也",
@@ -9535,7 +12802,14 @@
       "sb": 0,
       "k_pct": 15.7,
       "bb_pct": 14.0,
-      "war": null
+      "war": null,
+      "hr_pct": 2.5,
+      "chase_pct": 26.542,
+      "contact_pct": 68.043,
+      "z_swing_pct": 68.043,
+      "whiff_pct": 26.298,
+      "z_contact_pct": 77.8,
+      "gb_pct": 46.3
     },
     {
       "id": "谷口_朝陽",
@@ -9554,7 +12828,14 @@
       "sb": 0,
       "k_pct": 25.0,
       "bb_pct": 0.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 50.0,
+      "contact_pct": 100.0,
+      "z_swing_pct": 100.0,
+      "whiff_pct": 50.0,
+      "z_contact_pct": 83.3,
+      "gb_pct": 33.3
     },
     {
       "id": "谷川原_健太",
@@ -9575,7 +12856,14 @@
       "sb": 0,
       "k_pct": 0.0,
       "bb_pct": 11.1,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 25.378,
+      "contact_pct": 35.556,
+      "z_swing_pct": 35.556,
+      "whiff_pct": 5.556,
+      "z_contact_pct": 100.0,
+      "gb_pct": 50.0
     },
     {
       "id": "谷村_剛",
@@ -9594,7 +12882,14 @@
       "sb": 0,
       "k_pct": 24.2,
       "bb_pct": 6.5,
-      "war": null
+      "war": null,
+      "hr_pct": 3.2,
+      "chase_pct": 38.037,
+      "contact_pct": 66.948,
+      "z_swing_pct": 66.948,
+      "whiff_pct": 24.826,
+      "z_contact_pct": 86.9,
+      "gb_pct": 47.7
     },
     {
       "id": "谷端_将伍",
@@ -9615,7 +12910,14 @@
       "sb": 3,
       "k_pct": 13.3,
       "bb_pct": 7.5,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 31.094,
+      "contact_pct": 62.364,
+      "z_swing_pct": 62.364,
+      "whiff_pct": 14.941,
+      "z_contact_pct": 91.5,
+      "gb_pct": 54.8
     },
     {
       "id": "豊田_寛",
@@ -9636,7 +12938,14 @@
       "sb": 0,
       "k_pct": 18.2,
       "bb_pct": 19.3,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 17.7,
+      "contact_pct": 62.343,
+      "z_swing_pct": 62.343,
+      "whiff_pct": 19.497,
+      "z_contact_pct": 85.9,
+      "gb_pct": 56.6
     },
     {
       "id": "赤木_晴哉",
@@ -9657,7 +12966,14 @@
       "sb": 0,
       "k_pct": 0.0,
       "bb_pct": 0.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 0.0,
+      "contact_pct": 100.0,
+      "z_swing_pct": 100.0,
+      "whiff_pct": 0.0,
+      "z_contact_pct": 100.0,
+      "gb_pct": 100.0
     },
     {
       "id": "赤羽_由紘",
@@ -9678,7 +12994,14 @@
       "sb": 0,
       "k_pct": 38.5,
       "bb_pct": 15.4,
-      "war": null
+      "war": null,
+      "hr_pct": 3.8,
+      "chase_pct": 33.419,
+      "contact_pct": 67.019,
+      "z_swing_pct": 67.019,
+      "whiff_pct": 39.804,
+      "z_contact_pct": 74.9,
+      "gb_pct": 34.1
     },
     {
       "id": "辰己_涼介",
@@ -9697,7 +13020,14 @@
       "sb": 0,
       "k_pct": 22.7,
       "bb_pct": 9.1,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 10.791,
+      "contact_pct": 63.414,
+      "z_swing_pct": 63.414,
+      "whiff_pct": 9.486,
+      "z_contact_pct": 95.5,
+      "gb_pct": 69.7
     },
     {
       "id": "辰見_鴻之介",
@@ -9716,7 +13046,14 @@
       "sb": 0,
       "k_pct": 23.1,
       "bb_pct": 0.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 33.038,
+      "contact_pct": 63.308,
+      "z_swing_pct": 63.308,
+      "whiff_pct": 8.8,
+      "z_contact_pct": 83.3,
+      "gb_pct": 100.0
     },
     {
       "id": "辻本_倫太郎",
@@ -9735,7 +13072,14 @@
       "sb": 6,
       "k_pct": 17.0,
       "bb_pct": 10.4,
-      "war": null
+      "war": null,
+      "hr_pct": 0.9,
+      "chase_pct": 27.693,
+      "contact_pct": 63.401,
+      "z_swing_pct": 63.401,
+      "whiff_pct": 13.027,
+      "z_contact_pct": 89.5,
+      "gb_pct": 49.9
     },
     {
       "id": "近本_光司",
@@ -9754,7 +13098,14 @@
       "sb": 0,
       "k_pct": 18.2,
       "bb_pct": 9.1,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 22.355,
+      "contact_pct": 65.155,
+      "z_swing_pct": 65.155,
+      "whiff_pct": 19.745,
+      "z_contact_pct": 100.0,
+      "gb_pct": 53.4
     },
     {
       "id": "近藤_大雅",
@@ -9773,7 +13124,14 @@
       "sb": 0,
       "k_pct": 52.9,
       "bb_pct": 0.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 36.641,
+      "contact_pct": 76.476,
+      "z_swing_pct": 76.476,
+      "whiff_pct": 39.935,
+      "z_contact_pct": 85.4,
+      "gb_pct": 88.1
     },
     {
       "id": "進藤_勇也",
@@ -9794,7 +13152,14 @@
       "sb": 1,
       "k_pct": 18.5,
       "bb_pct": 13.0,
-      "war": null
+      "war": null,
+      "hr_pct": 7.4,
+      "chase_pct": 28.663,
+      "contact_pct": 58.543,
+      "z_swing_pct": 58.543,
+      "whiff_pct": 18.409,
+      "z_contact_pct": 95.8,
+      "gb_pct": 39.7
     },
     {
       "id": "遠藤_成",
@@ -9815,7 +13180,14 @@
       "sb": 12,
       "k_pct": 22.2,
       "bb_pct": 18.2,
-      "war": null
+      "war": null,
+      "hr_pct": 1.1,
+      "chase_pct": 21.372,
+      "contact_pct": 57.416,
+      "z_swing_pct": 57.416,
+      "whiff_pct": 17.416,
+      "z_contact_pct": 83.3,
+      "gb_pct": 66.4
     },
     {
       "id": "郡_拓也",
@@ -9834,7 +13206,14 @@
       "sb": 5,
       "k_pct": 20.8,
       "bb_pct": 8.5,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 34.303,
+      "contact_pct": 68.737,
+      "z_swing_pct": 68.737,
+      "whiff_pct": 21.541,
+      "z_contact_pct": 86.4,
+      "gb_pct": 41.0
     },
     {
       "id": "郡司_裕也",
@@ -9855,7 +13234,14 @@
       "sb": 0,
       "k_pct": 20.4,
       "bb_pct": 24.5,
-      "war": null
+      "war": null,
+      "hr_pct": 6.1,
+      "chase_pct": 15.273,
+      "contact_pct": 48.302,
+      "z_swing_pct": 48.302,
+      "whiff_pct": 18.51,
+      "z_contact_pct": 87.4,
+      "gb_pct": 25.0
     },
     {
       "id": "重松_凱人",
@@ -9874,7 +13260,14 @@
       "sb": 1,
       "k_pct": 23.1,
       "bb_pct": 7.7,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 24.615,
+      "contact_pct": 93.846,
+      "z_swing_pct": 93.846,
+      "whiff_pct": 21.785,
+      "z_contact_pct": 81.5,
+      "gb_pct": 76.9
     },
     {
       "id": "野上_士耀",
@@ -9893,7 +13286,14 @@
       "sb": 0,
       "k_pct": 22.0,
       "bb_pct": 8.5,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 31.068,
+      "contact_pct": 68.539,
+      "z_swing_pct": 68.539,
+      "whiff_pct": 22.222,
+      "z_contact_pct": 82.5,
+      "gb_pct": 44.9
     },
     {
       "id": "野口_恭佑",
@@ -9914,7 +13314,14 @@
       "sb": 1,
       "k_pct": 13.0,
       "bb_pct": 7.8,
-      "war": null
+      "war": null,
+      "hr_pct": 1.9,
+      "chase_pct": 34.364,
+      "contact_pct": 67.805,
+      "z_swing_pct": 67.805,
+      "whiff_pct": 18.454,
+      "z_contact_pct": 90.5,
+      "gb_pct": 57.1
     },
     {
       "id": "野口_智哉",
@@ -9933,7 +13340,14 @@
       "sb": 0,
       "k_pct": 18.2,
       "bb_pct": 10.6,
-      "war": null
+      "war": null,
+      "hr_pct": 1.5,
+      "chase_pct": 24.164,
+      "contact_pct": 50.895,
+      "z_swing_pct": 50.895,
+      "whiff_pct": 23.129,
+      "z_contact_pct": 81.8,
+      "gb_pct": 46.0
     },
     {
       "id": "野村_勇",
@@ -9952,7 +13366,14 @@
       "sb": 4,
       "k_pct": 24.7,
       "bb_pct": 8.2,
-      "war": null
+      "war": null,
+      "hr_pct": 2.4,
+      "chase_pct": 31.252,
+      "contact_pct": 67.72,
+      "z_swing_pct": 67.72,
+      "whiff_pct": 32.628,
+      "z_contact_pct": 79.2,
+      "gb_pct": 43.6
     },
     {
       "id": "野村_大樹",
@@ -9973,7 +13394,14 @@
       "sb": 1,
       "k_pct": 23.1,
       "bb_pct": 12.3,
-      "war": null
+      "war": null,
+      "hr_pct": 3.1,
+      "chase_pct": 26.705,
+      "contact_pct": 64.023,
+      "z_swing_pct": 64.023,
+      "whiff_pct": 25.908,
+      "z_contact_pct": 82.7,
+      "gb_pct": 48.2
     },
     {
       "id": "野田_海人",
@@ -9992,7 +13420,14 @@
       "sb": 0,
       "k_pct": 19.2,
       "bb_pct": 6.1,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 31.522,
+      "contact_pct": 63.793,
+      "z_swing_pct": 63.793,
+      "whiff_pct": 12.939,
+      "z_contact_pct": 90.3,
+      "gb_pct": 45.7
     },
     {
       "id": "野間_峻祥",
@@ -10014,7 +13449,14 @@
       "sb": 0,
       "k_pct": 8.5,
       "bb_pct": 14.9,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 29.928,
+      "contact_pct": 53.004,
+      "z_swing_pct": 53.004,
+      "whiff_pct": 5.851,
+      "z_contact_pct": 97.9,
+      "gb_pct": 48.1
     },
     {
       "id": "金子_京介",
@@ -10033,7 +13475,14 @@
       "sb": 0,
       "k_pct": 28.0,
       "bb_pct": 7.3,
-      "war": null
+      "war": null,
+      "hr_pct": 4.3,
+      "chase_pct": 40.258,
+      "contact_pct": 79.392,
+      "z_swing_pct": 79.392,
+      "whiff_pct": 34.404,
+      "z_contact_pct": 78.3,
+      "gb_pct": 47.3
     },
     {
       "id": "金子_功児",
@@ -10054,7 +13503,14 @@
       "sb": 0,
       "k_pct": 11.8,
       "bb_pct": 3.9,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 31.68,
+      "contact_pct": 66.524,
+      "z_swing_pct": 66.524,
+      "whiff_pct": 12.989,
+      "z_contact_pct": 93.9,
+      "gb_pct": 56.3
     },
     {
       "id": "金田_優太",
@@ -10075,7 +13531,14 @@
       "sb": 1,
       "k_pct": 20.0,
       "bb_pct": 13.3,
-      "war": null
+      "war": null,
+      "hr_pct": 2.0,
+      "chase_pct": 24.941,
+      "contact_pct": 65.331,
+      "z_swing_pct": 65.331,
+      "whiff_pct": 18.879,
+      "z_contact_pct": 87.2,
+      "gb_pct": 65.1
     },
     {
       "id": "鈴木_叶",
@@ -10094,7 +13557,14 @@
       "sb": 1,
       "k_pct": 22.1,
       "bb_pct": 8.8,
-      "war": null
+      "war": null,
+      "hr_pct": 1.5,
+      "chase_pct": 33.996,
+      "contact_pct": 68.899,
+      "z_swing_pct": 68.899,
+      "whiff_pct": 20.804,
+      "z_contact_pct": 82.2,
+      "gb_pct": 61.0
     },
     {
       "id": "鈴木_大和",
@@ -10116,7 +13586,14 @@
       "sb": 30,
       "k_pct": 7.1,
       "bb_pct": 10.4,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 33.566,
+      "contact_pct": 62.096,
+      "z_swing_pct": 62.096,
+      "whiff_pct": 10.009,
+      "z_contact_pct": 93.4,
+      "gb_pct": 57.9
     },
     {
       "id": "鈴木_大地",
@@ -10137,7 +13614,14 @@
       "sb": 0,
       "k_pct": 16.5,
       "bb_pct": 14.1,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 29.64,
+      "contact_pct": 66.038,
+      "z_swing_pct": 66.038,
+      "whiff_pct": 21.231,
+      "z_contact_pct": 92.5,
+      "gb_pct": 52.0
     },
     {
       "id": "鈴木_将平",
@@ -10158,7 +13642,14 @@
       "sb": 10,
       "k_pct": 7.2,
       "bb_pct": 7.9,
-      "war": null
+      "war": null,
+      "hr_pct": 0.2,
+      "chase_pct": 27.483,
+      "contact_pct": 61.149,
+      "z_swing_pct": 61.149,
+      "whiff_pct": 6.513,
+      "z_contact_pct": 96.2,
+      "gb_pct": 62.7
     },
     {
       "id": "鈴木_貴大",
@@ -10177,7 +13668,14 @@
       "sb": 0,
       "k_pct": 31.6,
       "bb_pct": 5.3,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 53.972,
+      "contact_pct": 66.563,
+      "z_swing_pct": 66.563,
+      "whiff_pct": 36.547,
+      "z_contact_pct": 78.4,
+      "gb_pct": 46.3
     },
     {
       "id": "長坂_拳弥",
@@ -10198,7 +13696,14 @@
       "sb": 0,
       "k_pct": 21.1,
       "bb_pct": 15.6,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 25.329,
+      "contact_pct": 64.89,
+      "z_swing_pct": 64.89,
+      "whiff_pct": 23.44,
+      "z_contact_pct": 85.0,
+      "gb_pct": 56.4
     },
     {
       "id": "長岡_秀樹",
@@ -10220,7 +13725,14 @@
       "sb": 0,
       "k_pct": 12.5,
       "bb_pct": 12.5,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 25.0,
+      "contact_pct": 57.25,
+      "z_swing_pct": 57.25,
+      "whiff_pct": 17.15,
+      "z_contact_pct": 100.0,
+      "gb_pct": 50.0
     },
     {
       "id": "長谷川_信哉",
@@ -10241,7 +13753,14 @@
       "sb": 2,
       "k_pct": 20.7,
       "bb_pct": 13.8,
-      "war": null
+      "war": null,
+      "hr_pct": 3.4,
+      "chase_pct": 33.955,
+      "contact_pct": 61.517,
+      "z_swing_pct": 61.517,
+      "whiff_pct": 21.814,
+      "z_contact_pct": 88.9,
+      "gb_pct": 24.3
     },
     {
       "id": "門別_啓人",
@@ -10262,7 +13781,13 @@
       "sb": 0,
       "k_pct": 0.0,
       "bb_pct": 0.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 0.0,
+      "contact_pct": 50.0,
+      "z_swing_pct": 50.0,
+      "whiff_pct": 0.0,
+      "z_contact_pct": 100.0
     },
     {
       "id": "門脇_誠",
@@ -10284,7 +13809,14 @@
       "sb": 1,
       "k_pct": 14.3,
       "bb_pct": 14.3,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 13.006,
+      "contact_pct": 49.98,
+      "z_swing_pct": 49.98,
+      "whiff_pct": 6.169,
+      "z_contact_pct": 93.2,
+      "gb_pct": 74.6
     },
     {
       "id": "関根_大気",
@@ -10305,7 +13837,14 @@
       "sb": 6,
       "k_pct": 6.5,
       "bb_pct": 8.9,
-      "war": null
+      "war": null,
+      "hr_pct": 1.2,
+      "chase_pct": 28.7,
+      "contact_pct": 70.161,
+      "z_swing_pct": 70.161,
+      "whiff_pct": 12.785,
+      "z_contact_pct": 93.1,
+      "gb_pct": 56.9
     },
     {
       "id": "阪上_翔也",
@@ -10324,7 +13863,14 @@
       "sb": 5,
       "k_pct": 15.2,
       "bb_pct": 8.3,
-      "war": null
+      "war": null,
+      "hr_pct": 1.6,
+      "chase_pct": 38.926,
+      "contact_pct": 74.375,
+      "z_swing_pct": 74.375,
+      "whiff_pct": 20.058,
+      "z_contact_pct": 88.5,
+      "gb_pct": 42.3
     },
     {
       "id": "阪口_樂",
@@ -10343,7 +13889,14 @@
       "sb": 2,
       "k_pct": 28.4,
       "bb_pct": 11.6,
-      "war": null
+      "war": null,
+      "hr_pct": 1.6,
+      "chase_pct": 32.414,
+      "contact_pct": 68.047,
+      "z_swing_pct": 68.047,
+      "whiff_pct": 27.046,
+      "z_contact_pct": 80.5,
+      "gb_pct": 42.4
     },
     {
       "id": "阿部_寿樹",
@@ -10365,7 +13918,14 @@
       "sb": 1,
       "k_pct": 0.0,
       "bb_pct": 60.0,
-      "war": null
+      "war": null,
+      "hr_pct": 20.0,
+      "chase_pct": 13.86,
+      "contact_pct": 80.02,
+      "z_swing_pct": 80.02,
+      "whiff_pct": 12.0,
+      "z_contact_pct": 100.0,
+      "gb_pct": 0.0
     },
     {
       "id": "陽_岱鋼",
@@ -10384,7 +13944,14 @@
       "sb": 1,
       "k_pct": 23.6,
       "bb_pct": 11.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 27.679,
+      "contact_pct": 61.44,
+      "z_swing_pct": 61.44,
+      "whiff_pct": 28.306,
+      "z_contact_pct": 76.0,
+      "gb_pct": 70.3
     },
     {
       "id": "陽_柏翔",
@@ -10403,7 +13970,14 @@
       "sb": 8,
       "k_pct": 20.6,
       "bb_pct": 7.2,
-      "war": null
+      "war": null,
+      "hr_pct": 1.4,
+      "chase_pct": 31.026,
+      "contact_pct": 71.948,
+      "z_swing_pct": 71.948,
+      "whiff_pct": 25.766,
+      "z_contact_pct": 85.1,
+      "gb_pct": 56.1
     },
     {
       "id": "青野_拓海",
@@ -10422,7 +13996,14 @@
       "sb": 0,
       "k_pct": 23.1,
       "bb_pct": 7.7,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 40.421,
+      "contact_pct": 66.515,
+      "z_swing_pct": 66.515,
+      "whiff_pct": 34.565,
+      "z_contact_pct": 88.7,
+      "gb_pct": 40.2
     },
     {
       "id": "頓宮_裕真",
@@ -10443,7 +14024,14 @@
       "sb": 0,
       "k_pct": 14.3,
       "bb_pct": 7.1,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 25.514,
+      "contact_pct": 64.271,
+      "z_swing_pct": 64.271,
+      "whiff_pct": 14.671,
+      "z_contact_pct": 88.3,
+      "gb_pct": 78.5
     },
     {
       "id": "香月_一也",
@@ -10465,7 +14053,14 @@
       "sb": 1,
       "k_pct": 10.1,
       "bb_pct": 12.1,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 34.136,
+      "contact_pct": 65.944,
+      "z_swing_pct": 65.944,
+      "whiff_pct": 17.756,
+      "z_contact_pct": 90.6,
+      "gb_pct": 47.7
     },
     {
       "id": "高_義博",
@@ -10487,7 +14082,14 @@
       "sb": 48,
       "k_pct": 14.8,
       "bb_pct": 11.0,
-      "war": null
+      "war": null,
+      "hr_pct": 1.1,
+      "chase_pct": 35.111,
+      "contact_pct": 63.996,
+      "z_swing_pct": 63.996,
+      "whiff_pct": 18.394,
+      "z_contact_pct": 86.5,
+      "gb_pct": 55.9
     },
     {
       "id": "高梨_裕稔",
@@ -10506,7 +14108,13 @@
       "sb": 0,
       "k_pct": 100.0,
       "bb_pct": 0.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 66.7,
+      "contact_pct": 33.3,
+      "z_swing_pct": 33.3,
+      "whiff_pct": 66.7,
+      "z_contact_pct": 33.3
     },
     {
       "id": "高橋_周平",
@@ -10528,7 +14136,14 @@
       "sb": 1,
       "k_pct": 9.3,
       "bb_pct": 16.7,
-      "war": null
+      "war": null,
+      "hr_pct": 5.6,
+      "chase_pct": 18.859,
+      "contact_pct": 55.58,
+      "z_swing_pct": 55.58,
+      "whiff_pct": 15.191,
+      "z_contact_pct": 87.1,
+      "gb_pct": 48.3
     },
     {
       "id": "高橋_駿臥",
@@ -10547,7 +14162,14 @@
       "sb": 0,
       "k_pct": 22.7,
       "bb_pct": 0.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 32.877,
+      "contact_pct": 79.091,
+      "z_swing_pct": 79.091,
+      "whiff_pct": 16.968,
+      "z_contact_pct": 96.6,
+      "gb_pct": 64.3
     },
     {
       "id": "高見澤_郁魅",
@@ -10566,7 +14188,14 @@
       "sb": 0,
       "k_pct": 24.9,
       "bb_pct": 9.2,
-      "war": null
+      "war": null,
+      "hr_pct": 0.8,
+      "chase_pct": 34.569,
+      "contact_pct": 62.871,
+      "z_swing_pct": 62.871,
+      "whiff_pct": 23.8,
+      "z_contact_pct": 86.4,
+      "gb_pct": 59.3
     },
     {
       "id": "髙_太一",
@@ -10585,7 +14214,13 @@
       "sb": 0,
       "k_pct": 100.0,
       "bb_pct": 0.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 0.0,
+      "contact_pct": 75.0,
+      "z_swing_pct": 75.0,
+      "whiff_pct": 33.3,
+      "z_contact_pct": 0.0
     },
     {
       "id": "髙山_俊",
@@ -10607,7 +14242,14 @@
       "sb": 1,
       "k_pct": 13.4,
       "bb_pct": 12.4,
-      "war": null
+      "war": null,
+      "hr_pct": 0.5,
+      "chase_pct": 26.619,
+      "contact_pct": 70.695,
+      "z_swing_pct": 70.695,
+      "whiff_pct": 15.033,
+      "z_contact_pct": 85.9,
+      "gb_pct": 57.4
     },
     {
       "id": "髙木_翔斗",
@@ -10626,7 +14268,14 @@
       "sb": 0,
       "k_pct": 18.9,
       "bb_pct": 2.7,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 36.981,
+      "contact_pct": 75.7,
+      "z_swing_pct": 75.7,
+      "whiff_pct": 21.468,
+      "z_contact_pct": 88.8,
+      "gb_pct": 54.9
     },
     {
       "id": "髙松_渡",
@@ -10645,7 +14294,14 @@
       "sb": 12,
       "k_pct": 15.6,
       "bb_pct": 6.2,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 46.717,
+      "contact_pct": 66.267,
+      "z_swing_pct": 66.267,
+      "whiff_pct": 19.858,
+      "z_contact_pct": 89.2,
+      "gb_pct": 50.5
     },
     {
       "id": "髙橋_隆慶",
@@ -10666,7 +14322,14 @@
       "sb": 1,
       "k_pct": 17.2,
       "bb_pct": 13.2,
-      "war": null
+      "war": null,
+      "hr_pct": 0.8,
+      "chase_pct": 26.04,
+      "contact_pct": 55.48,
+      "z_swing_pct": 55.48,
+      "whiff_pct": 18.409,
+      "z_contact_pct": 89.5,
+      "gb_pct": 46.4
     },
     {
       "id": "髙部_瑛斗",
@@ -10687,7 +14350,14 @@
       "sb": 7,
       "k_pct": 7.6,
       "bb_pct": 5.3,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 46.807,
+      "contact_pct": 82.599,
+      "z_swing_pct": 82.599,
+      "whiff_pct": 12.323,
+      "z_contact_pct": 95.8,
+      "gb_pct": 57.8
     },
     {
       "id": "髙野_光海",
@@ -10706,7 +14376,14 @@
       "sb": 1,
       "k_pct": 39.6,
       "bb_pct": 10.4,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 43.692,
+      "contact_pct": 55.05,
+      "z_swing_pct": 55.05,
+      "whiff_pct": 36.196,
+      "z_contact_pct": 75.9,
+      "gb_pct": 58.2
     },
     {
       "id": "髙野_颯太",
@@ -10725,7 +14402,14 @@
       "sb": 1,
       "k_pct": 33.8,
       "bb_pct": 10.1,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 37.376,
+      "contact_pct": 68.425,
+      "z_swing_pct": 68.425,
+      "whiff_pct": 35.097,
+      "z_contact_pct": 76.8,
+      "gb_pct": 40.8
     },
     {
       "id": "鵜飼_航丞",
@@ -10744,7 +14428,14 @@
       "sb": 2,
       "k_pct": 24.1,
       "bb_pct": 8.6,
-      "war": null
+      "war": null,
+      "hr_pct": 2.3,
+      "chase_pct": 34.282,
+      "contact_pct": 71.761,
+      "z_swing_pct": 71.761,
+      "whiff_pct": 27.09,
+      "z_contact_pct": 79.2,
+      "gb_pct": 41.4
     },
     {
       "id": "麦谷_祐介",
@@ -10766,7 +14457,14 @@
       "sb": 13,
       "k_pct": 13.0,
       "bb_pct": 15.1,
-      "war": null
+      "war": null,
+      "hr_pct": 0.7,
+      "chase_pct": 24.301,
+      "contact_pct": 66.686,
+      "z_swing_pct": 66.686,
+      "whiff_pct": 25.877,
+      "z_contact_pct": 81.8,
+      "gb_pct": 61.0
     },
     {
       "id": "齋藤_大翔",
@@ -10785,7 +14483,14 @@
       "sb": 9,
       "k_pct": 16.8,
       "bb_pct": 11.8,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 23.825,
+      "contact_pct": 63.494,
+      "z_swing_pct": 63.494,
+      "whiff_pct": 16.888,
+      "z_contact_pct": 89.7,
+      "gb_pct": 63.7
     },
     {
       "id": "龍山_暖",
@@ -10804,7 +14509,14 @@
       "sb": 0,
       "k_pct": 33.3,
       "bb_pct": 0.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0,
+      "chase_pct": 40.0,
+      "contact_pct": 56.489,
+      "z_swing_pct": 56.489,
+      "whiff_pct": 35.178,
+      "z_contact_pct": 50.0,
+      "gb_pct": 77.8
     }
   ]
 }
