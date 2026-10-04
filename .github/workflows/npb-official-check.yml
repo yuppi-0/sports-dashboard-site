@@ -1,0 +1,30 @@
+name: NPB成績をYahoo!の公式記録と突き合わせ
+
+# 当サイトのNPB打者・投手のシーズン成績を、Yahoo!プロ野球の選手ページ（公式の記録）と全選手突き合わせる。データは書き換えない（読み取り専用）。
+on:
+  workflow_dispatch:
+    inputs:
+      year:
+        description: '対象年'
+        required: false
+        default: '2026'
+      max_games:
+        description: '試験用: 選手IDを集める試合数の上限（0=全試合）'
+        required: false
+        default: '0'
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -r requirements.txt
+      - name: 突き合わせ
+        run: python baseball/scripts/check_npb_official.py --year "${{ inputs.year }}" --max-games "${{ inputs.max_games }}" 2>&1 | grep -v "FutureWarning\|google\|genai\|README\|updates or bug"
