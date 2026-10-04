@@ -2176,13 +2176,30 @@ def build_game_batter_stats(df: pd.DataFrame) -> pd.DataFrame:
 _BOX_CACHE: dict = {}
 
 
+def _merge_box_stats(a: dict | None, b: dict) -> dict:
+    """箱スコアの成績dict同士を合算する（数値は足し、投球回は「整数.アウト」として足す。文字列などは先の値を残す）。"""
+    if not a:
+        return b
+    out = dict(a)
+    for k, v in b.items():
+        if k == "inningsPitched":
+            def _o(x):
+                i, _, f = str(x or "0").partition(".")
+                return int(i or 0) * 3 + int(f or 0)
+            t = _o(a.get(k)) + _o(v)
+            out[k] = f"{t // 3}.{t % 3}"
+        elif isinstance(v, (int, float)) and not isinstance(v, bool) and isinstance(a.get(k), (int, float)):
+            out[k] = a[k] + v
+    return out
+
+
 def fetch_boxscore(game_pk) -> dict:
     """公式の箱スコア（statsapi）から {"pitching": {選手ID: 成績dict}, "batting": {選手ID: 成績dict}} を返す。
     取得できなければ空の辞書（呼び出し側は従来の再集計値を使う）。同じ試合は1回しか取りに行かない。"""
     key = str(game_pk)
     if key in _BOX_CACHE:
         return _BOX_CACHE[key]
-    out: dict = {"pitching": {}, "batting": {}}
+    out: dict = {"pitching": {}, "batting": {}, "side": {}, "name": {}}
     if _REQUESTS_AVAILABLE:
         for attempt in range(4):
             try:
@@ -2194,10 +2211,14 @@ def fetch_boxscore(game_pk) -> dict:
                         pid = (pdata.get("person", {}) or {}).get("id")
                         if not pid:
                             continue
+                        out["side"].setdefault(int(pid), side)
+                        out["name"].setdefault(int(pid), (pdata.get("person", {}) or {}).get("fullName"))
                         for grp in ("pitching", "batting"):
                             st = (pdata.get("stats", {}) or {}).get(grp, {}) or {}
                             if st:
-                                out[grp][int(pid)] = st
+                                # 中断（サスペンデッド）試合の再開時に両チームで出場した選手（例: Danny Jansen）は、
+                                # 箱スコアの両チーム側に同じ選手が載る。片方（0打席の側）で上書きしないよう合算する。
+                                out[grp][int(pid)] = _merge_box_stats(out[grp].get(int(pid)), st)
                 break
             except Exception as e:  # noqa: BLE001
                 if attempt == 3:
@@ -2303,7 +2324,35 @@ def build_game_pitcher_stats(df: pd.DataFrame) -> pd.DataFrame:
         rows.append({"試合ID":str(gid),"試合日":str(row0["game_date"])[:10],
                      "選手名":name,"投手ID":int(pid),"チーム":team,"ホーム/アウェイ":ha,
                      "役割":_role(g,df,gid),"勝敗成績":"",**stats})
+    if not is_statsapi:
+        rows.extend(_boxscore_only_pitcher_rows(df, rows))
     return pd.DataFrame(rows)
+
+
+def _boxscore_only_pitcher_rows(df: pd.DataFrame, rows: list) -> list:
+    """Statcastに1球も無い登板（牽制・盗塁死で1アウトを取っただけ等）を、公式の箱スコアから補う。
+    投球データは無いので、同じ試合の他の投手の行を雛形に、数値を0・率をNaNにして、公式の値だけを入れる。"""
+    extra = []
+    for gid in df["game_pk"].dropna().unique():
+        have = {r["投手ID"] for r in rows if r["試合ID"] == str(gid)}
+        tmpl = next((r for r in rows if r["試合ID"] == str(gid)), None)
+        if tmpl is None:
+            continue
+        box = fetch_boxscore(gid)
+        for pid, st in box["pitching"].items():
+            if pid in have or str(st.get("inningsPitched") or "0.0") in ("0.0", "0") and not int(st.get("battersFaced") or 0):
+                continue
+            side = box["side"].get(pid)
+            g0 = df[df["game_pk"] == gid].iloc[0]
+            team = g0.get("home_team", "") if side == "home" else g0.get("away_team", "")
+            row = {k: (0 if isinstance(v, (int, np.integer)) and not isinstance(v, bool) else
+                       float("nan") if isinstance(v, (float, np.floating)) else v) for k, v in tmpl.items()}
+            full = box["name"].get(pid) or str(pid)
+            first, _, last = full.partition(" ")
+            row.update({"試合ID": str(gid), "試合日": tmpl["試合日"], "選手名": f"{last}, {first}".lower() if last else full.lower(),
+                        "投手ID": int(pid), "チーム": team, "ホーム/アウェイ": side or "", "役割": "中継ぎ", "勝敗成績": ""})
+            extra.append({**row, **apply_official_pitching(row, st)})
+    return extra
 
 
 def _calc_pitcher_stats_from_statsapi(g: pd.DataFrame) -> dict:
