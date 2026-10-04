@@ -17,7 +17,8 @@
       "sb": 10,
       "k_pct": 17.8,
       "bb_pct": 7.2,
-      "war": null
+      "war": null,
+      "hr_pct": 2.4
     },
     {
       "id": "アルナエス",
@@ -36,7 +37,8 @@
       "sb": 1,
       "k_pct": 12.8,
       "bb_pct": 6.4,
-      "war": null
+      "war": null,
+      "hr_pct": 0.5
     },
     {
       "id": "イヒネ_イツア",
@@ -55,7 +57,8 @@
       "sb": 30,
       "k_pct": 21.3,
       "bb_pct": 12.7,
-      "war": null
+      "war": null,
+      "hr_pct": 1.1
     },
     {
       "id": "オケム",
@@ -74,7 +77,8 @@
       "sb": 0,
       "k_pct": 0.0,
       "bb_pct": 0.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "オコエ_瑠偉",
@@ -93,7 +97,8 @@
       "sb": 2,
       "k_pct": 19.1,
       "bb_pct": 5.9,
-      "war": null
+      "war": null,
+      "hr_pct": 4.4
     },
     {
       "id": "オスーナ",
@@ -112,7 +117,8 @@
       "sb": 0,
       "k_pct": 50.0,
       "bb_pct": 0.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "オリバレス",
@@ -131,7 +137,8 @@
       "sb": 7,
       "k_pct": 12.7,
       "bb_pct": 12.1,
-      "war": null
+      "war": null,
+      "hr_pct": 1.2
     },
     {
       "id": "オースティン",
@@ -150,7 +157,8 @@
       "sb": 0,
       "k_pct": 12.5,
       "bb_pct": 16.7,
-      "war": null
+      "war": null,
+      "hr_pct": 4.2
     },
     {
       "id": "カリステ",
@@ -169,7 +177,8 @@
       "sb": 0,
       "k_pct": 17.4,
       "bb_pct": 7.2,
-      "war": null
+      "war": null,
+      "hr_pct": 1.4
     },
     {
       "id": "ガルシア",
@@ -188,7 +197,8 @@
       "sb": 1,
       "k_pct": 35.4,
       "bb_pct": 15.2,
-      "war": null
+      "war": null,
+      "hr_pct": 2.5
     },
     {
       "id": "キャベッジ",
@@ -207,7 +217,8 @@
       "sb": 0,
       "k_pct": 25.0,
       "bb_pct": 0.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "コンスエグラ",
@@ -226,7 +237,8 @@
       "sb": 0,
       "k_pct": 29.8,
       "bb_pct": 3.5,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "ゴンザレス",
@@ -245,7 +257,8 @@
       "sb": 1,
       "k_pct": 15.8,
       "bb_pct": 9.2,
-      "war": null
+      "war": null,
+      "hr_pct": 1.3
     },
     {
       "id": "ザイレン",
@@ -264,7 +277,8 @@
       "sb": 0,
       "k_pct": 100.0,
       "bb_pct": 0.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "シモン",
@@ -283,7 +297,8 @@
       "sb": 0,
       "k_pct": 50.0,
       "bb_pct": 0.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "セデーニョ",
@@ -302,7 +317,8 @@
       "sb": 0,
       "k_pct": 18.4,
       "bb_pct": 7.6,
-      "war": null
+      "war": null,
+      "hr_pct": 5.1
     },
     {
       "id": "ソト",
@@ -321,7 +337,8 @@
       "sb": 0,
       "k_pct": 25.0,
       "bb_pct": 25.0,
-      "war": null
+      "war": null,
+      "hr_pct": 25.0
     },
     {
       "id": "ダウンズ",
@@ -340,7 +357,8 @@
       "sb": 1,
       "k_pct": 11.5,
       "bb_pct": 12.0,
-      "war": null
+      "war": null,
+      "hr_pct": 2.6
     },
     {
       "id": "チェイビス",
@@ -359,7 +377,8 @@
       "sb": 0,
       "k_pct": 10.9,
       "bb_pct": 8.7,
-      "war": null
+      "war": null,
+      "hr_pct": 2.2
     },
     {
       "id": "ティマ",
@@ -378,7 +397,8 @@
       "sb": 0,
       "k_pct": 21.3,
       "bb_pct": 5.2,
-      "war": null
+      "war": null,
+      "hr_pct": 2.1
     },
     {
       "id": "デービス",
@@ -397,7 +417,8 @@
       "sb": 0,
       "k_pct": 11.8,
       "bb_pct": 5.9,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "デール",
@@ -416,7 +437,8 @@
       "sb": 1,
       "k_pct": 10.9,
       "bb_pct": 6.2,
-      "war": null
+      "war": null,
+      "hr_pct": 1.6
     },
     {
       "id": "ビシエド",
@@ -435,7 +457,8 @@
       "sb": 0,
       "k_pct": 0.0,
       "bb_pct": 0.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "フェリス",
@@ -454,7 +477,8 @@
       "sb": 0,
       "k_pct": 50.0,
       "bb_pct": 0.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "フォード",
@@ -473,7 +497,8 @@
       "sb": 0,
       "k_pct": 10.0,
       "bb_pct": 4.4,
-      "war": null
+      "war": null,
+      "hr_pct": 4.4
     },
     {
       "id": "フランコ",
@@ -492,7 +517,8 @@
       "sb": 0,
       "k_pct": 12.8,
       "bb_pct": 0.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "フルプ",
@@ -511,7 +537,8 @@
       "sb": 8,
       "k_pct": 26.4,
       "bb_pct": 7.1,
-      "war": null
+      "war": null,
+      "hr_pct": 2.2
     },
     {
       "id": "ブライト_健太",
@@ -530,7 +557,8 @@
       "sb": 2,
       "k_pct": 16.7,
       "bb_pct": 9.5,
-      "war": null
+      "war": null,
+      "hr_pct": 2.4
     },
     {
       "id": "ヘルナンデス",
@@ -549,7 +577,8 @@
       "sb": 3,
       "k_pct": 16.8,
       "bb_pct": 6.6,
-      "war": null
+      "war": null,
+      "hr_pct": 2.6
     },
     {
       "id": "ボイト",
@@ -568,7 +597,8 @@
       "sb": 0,
       "k_pct": 35.7,
       "bb_pct": 21.4,
-      "war": null
+      "war": null,
+      "hr_pct": 7.1
     },
     {
       "id": "ボスラー",
@@ -587,7 +617,8 @@
       "sb": 0,
       "k_pct": 20.0,
       "bb_pct": 0.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "ポランコ",
@@ -606,7 +637,8 @@
       "sb": 0,
       "k_pct": 25.0,
       "bb_pct": 11.7,
-      "war": null
+      "war": null,
+      "hr_pct": 10.0
     },
     {
       "id": "マイカ与那嶺",
@@ -625,7 +657,8 @@
       "sb": 0,
       "k_pct": 31.1,
       "bb_pct": 3.7,
-      "war": null
+      "war": null,
+      "hr_pct": 2.2
     },
     {
       "id": "マルティネス",
@@ -644,7 +677,8 @@
       "sb": 1,
       "k_pct": 7.9,
       "bb_pct": 9.6,
-      "war": null
+      "war": null,
+      "hr_pct": 7.9
     },
     {
       "id": "マーティン",
@@ -663,7 +697,8 @@
       "sb": 2,
       "k_pct": 36.1,
       "bb_pct": 3.6,
-      "war": null
+      "war": null,
+      "hr_pct": 1.2
     },
     {
       "id": "モイセエフ_ニキータ",
@@ -682,7 +717,8 @@
       "sb": 1,
       "k_pct": 30.9,
       "bb_pct": 7.4,
-      "war": null
+      "war": null,
+      "hr_pct": 2.3
     },
     {
       "id": "モニエル",
@@ -701,7 +737,8 @@
       "sb": 2,
       "k_pct": 25.4,
       "bb_pct": 11.9,
-      "war": null
+      "war": null,
+      "hr_pct": 2.5
     },
     {
       "id": "モンテル",
@@ -720,7 +757,8 @@
       "sb": 8,
       "k_pct": 19.1,
       "bb_pct": 3.8,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "モンテロ",
@@ -739,7 +777,8 @@
       "sb": 0,
       "k_pct": 12.5,
       "bb_pct": 0.0,
-      "war": null
+      "war": null,
+      "hr_pct": 12.5
     },
     {
       "id": "ラミレス",
@@ -758,7 +797,8 @@
       "sb": 0,
       "k_pct": 34.3,
       "bb_pct": 3.5,
-      "war": null
+      "war": null,
+      "hr_pct": 1.7
     },
     {
       "id": "リチャード",
@@ -777,7 +817,8 @@
       "sb": 0,
       "k_pct": 29.9,
       "bb_pct": 4.7,
-      "war": null
+      "war": null,
+      "hr_pct": 5.5
     },
     {
       "id": "ロドリゲス",
@@ -796,7 +837,8 @@
       "sb": 4,
       "k_pct": 14.0,
       "bb_pct": 9.1,
-      "war": null
+      "war": null,
+      "hr_pct": 0.6
     },
     {
       "id": "ロベルト",
@@ -815,7 +857,8 @@
       "sb": 1,
       "k_pct": 42.3,
       "bb_pct": 0.9,
-      "war": null
+      "war": null,
+      "hr_pct": 2.7
     },
     {
       "id": "ワォーターズ_璃海ジュミル",
@@ -834,7 +877,8 @@
       "sb": 8,
       "k_pct": 25.6,
       "bb_pct": 3.3,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "三塚_琉生",
@@ -853,7 +897,8 @@
       "sb": 4,
       "k_pct": 18.2,
       "bb_pct": 4.7,
-      "war": null
+      "war": null,
+      "hr_pct": 3.6
     },
     {
       "id": "三森_大貴",
@@ -872,7 +917,8 @@
       "sb": 0,
       "k_pct": 0.0,
       "bb_pct": 0.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "上川畑_大悟",
@@ -891,7 +937,8 @@
       "sb": 3,
       "k_pct": 6.7,
       "bb_pct": 14.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.5
     },
     {
       "id": "上本_崇司",
@@ -910,7 +957,8 @@
       "sb": 1,
       "k_pct": 15.6,
       "bb_pct": 10.4,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "上田_希由翔",
@@ -929,7 +977,8 @@
       "sb": 3,
       "k_pct": 10.2,
       "bb_pct": 4.5,
-      "war": null
+      "war": null,
+      "hr_pct": 0.6
     },
     {
       "id": "上甲_凌大",
@@ -948,7 +997,8 @@
       "sb": 0,
       "k_pct": 29.3,
       "bb_pct": 10.1,
-      "war": null
+      "war": null,
+      "hr_pct": 3.0
     },
     {
       "id": "並木_秀尊",
@@ -967,7 +1017,8 @@
       "sb": 2,
       "k_pct": 8.8,
       "bb_pct": 8.8,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "中山_礼都",
@@ -986,7 +1037,8 @@
       "sb": 0,
       "k_pct": 9.7,
       "bb_pct": 6.5,
-      "war": null
+      "war": null,
+      "hr_pct": 3.2
     },
     {
       "id": "中島_卓也",
@@ -1005,7 +1057,8 @@
       "sb": 5,
       "k_pct": 16.9,
       "bb_pct": 13.8,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "中島_大輔",
@@ -1024,7 +1077,8 @@
       "sb": 5,
       "k_pct": 8.5,
       "bb_pct": 0.0,
-      "war": null
+      "war": null,
+      "hr_pct": 3.4
     },
     {
       "id": "中川_勇斗",
@@ -1043,7 +1097,8 @@
       "sb": 1,
       "k_pct": 22.0,
       "bb_pct": 9.1,
-      "war": null
+      "war": null,
+      "hr_pct": 1.5
     },
     {
       "id": "中川_拓真",
@@ -1062,7 +1117,8 @@
       "sb": 0,
       "k_pct": 26.5,
       "bb_pct": 6.0,
-      "war": null
+      "war": null,
+      "hr_pct": 1.7
     },
     {
       "id": "中村_健人",
@@ -1081,7 +1137,8 @@
       "sb": 4,
       "k_pct": 22.1,
       "bb_pct": 10.7,
-      "war": null
+      "war": null,
+      "hr_pct": 1.7
     },
     {
       "id": "中村_剛也",
@@ -1100,7 +1157,8 @@
       "sb": 0,
       "k_pct": 25.0,
       "bb_pct": 9.4,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "中村_奈一輝",
@@ -1119,7 +1177,8 @@
       "sb": 2,
       "k_pct": 25.4,
       "bb_pct": 2.8,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "中村_奨吾",
@@ -1138,7 +1197,8 @@
       "sb": 4,
       "k_pct": 15.1,
       "bb_pct": 17.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.6
     },
     {
       "id": "中村_奨成",
@@ -1157,7 +1217,8 @@
       "sb": 2,
       "k_pct": 13.3,
       "bb_pct": 6.7,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "中村_晃",
@@ -1176,7 +1237,8 @@
       "sb": 0,
       "k_pct": 33.3,
       "bb_pct": 33.3,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "中村_貴浩",
@@ -1195,7 +1257,8 @@
       "sb": 4,
       "k_pct": 22.0,
       "bb_pct": 8.5,
-      "war": null
+      "war": null,
+      "hr_pct": 1.8
     },
     {
       "id": "中澤_恒貴",
@@ -1214,7 +1277,8 @@
       "sb": 2,
       "k_pct": 13.8,
       "bb_pct": 6.9,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "中田_歩夢",
@@ -1233,7 +1297,8 @@
       "sb": 1,
       "k_pct": 18.6,
       "bb_pct": 9.3,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "中田_翔",
@@ -1252,7 +1317,8 @@
       "sb": 0,
       "k_pct": 12.8,
       "bb_pct": 6.4,
-      "war": null
+      "war": null,
+      "hr_pct": 4.3
     },
     {
       "id": "丸_佳浩",
@@ -1271,7 +1337,8 @@
       "sb": 0,
       "k_pct": 0.0,
       "bb_pct": 0.0,
-      "war": null
+      "war": null,
+      "hr_pct": 5.6
     },
     {
       "id": "丸山_和郁",
@@ -1290,7 +1357,8 @@
       "sb": 6,
       "k_pct": 17.7,
       "bb_pct": 8.8,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "久保_修",
@@ -1309,7 +1377,8 @@
       "sb": 9,
       "k_pct": 16.6,
       "bb_pct": 6.5,
-      "war": null
+      "war": null,
+      "hr_pct": 0.4
     },
     {
       "id": "乙坂_智",
@@ -1328,7 +1397,8 @@
       "sb": 0,
       "k_pct": 13.3,
       "bb_pct": 6.7,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "九鬼_隆平",
@@ -1347,7 +1417,8 @@
       "sb": 4,
       "k_pct": 18.9,
       "bb_pct": 12.1,
-      "war": null
+      "war": null,
+      "hr_pct": 2.5
     },
     {
       "id": "亀田_啓太",
@@ -1366,7 +1437,8 @@
       "sb": 0,
       "k_pct": 21.4,
       "bb_pct": 7.1,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "二俣_翔一",
@@ -1385,7 +1457,8 @@
       "sb": 1,
       "k_pct": 20.7,
       "bb_pct": 11.2,
-      "war": null
+      "war": null,
+      "hr_pct": 2.6
     },
     {
       "id": "井上_広大",
@@ -1404,7 +1477,8 @@
       "sb": 1,
       "k_pct": 30.8,
       "bb_pct": 9.9,
-      "war": null
+      "war": null,
+      "hr_pct": 2.6
     },
     {
       "id": "井上_朋也",
@@ -1423,7 +1497,8 @@
       "sb": 3,
       "k_pct": 18.2,
       "bb_pct": 6.4,
-      "war": null
+      "war": null,
+      "hr_pct": 1.5
     },
     {
       "id": "井上_絢登",
@@ -1442,7 +1517,8 @@
       "sb": 5,
       "k_pct": 17.5,
       "bb_pct": 6.8,
-      "war": null
+      "war": null,
+      "hr_pct": 2.4
     },
     {
       "id": "井坪_陽生",
@@ -1461,7 +1537,8 @@
       "sb": 6,
       "k_pct": 8.7,
       "bb_pct": 6.7,
-      "war": null
+      "war": null,
+      "hr_pct": 0.7
     },
     {
       "id": "今坂_幸暉",
@@ -1480,7 +1557,8 @@
       "sb": 0,
       "k_pct": 33.3,
       "bb_pct": 8.3,
-      "war": null
+      "war": null,
+      "hr_pct": 2.1
     },
     {
       "id": "今宮_健太",
@@ -1499,7 +1577,8 @@
       "sb": 0,
       "k_pct": 5.4,
       "bb_pct": 12.5,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "今川_優馬",
@@ -1518,7 +1597,8 @@
       "sb": 2,
       "k_pct": 10.6,
       "bb_pct": 9.9,
-      "war": null
+      "war": null,
+      "hr_pct": 4.3
     },
     {
       "id": "仲三河_優太",
@@ -1537,7 +1617,8 @@
       "sb": 5,
       "k_pct": 21.2,
       "bb_pct": 7.8,
-      "war": null
+      "war": null,
+      "hr_pct": 4.6
     },
     {
       "id": "仲田_侑仁",
@@ -1556,7 +1637,8 @@
       "sb": 0,
       "k_pct": 27.3,
       "bb_pct": 5.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "仲田_慶介",
@@ -1575,7 +1657,8 @@
       "sb": 1,
       "k_pct": 6.2,
       "bb_pct": 4.2,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "伊藤_光",
@@ -1594,7 +1677,8 @@
       "sb": 2,
       "k_pct": 16.9,
       "bb_pct": 8.5,
-      "war": null
+      "war": null,
+      "hr_pct": 0.8
     },
     {
       "id": "伊藤_琉偉",
@@ -1613,7 +1697,8 @@
       "sb": 1,
       "k_pct": 22.5,
       "bb_pct": 7.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "伊藤_裕季也",
@@ -1632,7 +1717,8 @@
       "sb": 2,
       "k_pct": 15.0,
       "bb_pct": 10.0,
-      "war": null
+      "war": null,
+      "hr_pct": 1.2
     },
     {
       "id": "伏見_寅威",
@@ -1651,7 +1737,8 @@
       "sb": 0,
       "k_pct": 33.3,
       "bb_pct": 0.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "佐々木_俊輔",
@@ -1670,7 +1757,8 @@
       "sb": 12,
       "k_pct": 18.1,
       "bb_pct": 7.7,
-      "war": null
+      "war": null,
+      "hr_pct": 0.5
     },
     {
       "id": "佐々木_泰",
@@ -1689,7 +1777,8 @@
       "sb": 1,
       "k_pct": 0.0,
       "bb_pct": 7.4,
-      "war": null
+      "war": null,
+      "hr_pct": 3.7
     },
     {
       "id": "佐倉_俠史朗",
@@ -1708,7 +1797,8 @@
       "sb": 0,
       "k_pct": 20.0,
       "bb_pct": 20.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "佐藤_啓介",
@@ -1727,7 +1817,8 @@
       "sb": 3,
       "k_pct": 11.9,
       "bb_pct": 8.1,
-      "war": null
+      "war": null,
+      "hr_pct": 0.7
     },
     {
       "id": "佐藤_太陽",
@@ -1746,7 +1837,8 @@
       "sb": 8,
       "k_pct": 18.4,
       "bb_pct": 7.9,
-      "war": null
+      "war": null,
+      "hr_pct": 0.7
     },
     {
       "id": "佐藤_直樹",
@@ -1765,7 +1857,8 @@
       "sb": 4,
       "k_pct": 22.1,
       "bb_pct": 11.7,
-      "war": null
+      "war": null,
+      "hr_pct": 2.6
     },
     {
       "id": "佐藤_航太",
@@ -1784,7 +1877,8 @@
       "sb": 3,
       "k_pct": 27.8,
       "bb_pct": 4.1,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "佐藤_都志也",
@@ -1803,7 +1897,8 @@
       "sb": 0,
       "k_pct": 22.4,
       "bb_pct": 6.1,
-      "war": null
+      "war": null,
+      "hr_pct": 2.0
     },
     {
       "id": "佐藤_龍世",
@@ -1822,7 +1917,8 @@
       "sb": 1,
       "k_pct": 20.4,
       "bb_pct": 9.8,
-      "war": null
+      "war": null,
+      "hr_pct": 2.0
     },
     {
       "id": "佐野_大陽",
@@ -1841,7 +1937,8 @@
       "sb": 5,
       "k_pct": 13.8,
       "bb_pct": 8.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "佐野_皓大",
@@ -1860,7 +1957,8 @@
       "sb": 2,
       "k_pct": 24.7,
       "bb_pct": 9.7,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "元_謙太",
@@ -1879,7 +1977,8 @@
       "sb": 2,
       "k_pct": 10.5,
       "bb_pct": 11.3,
-      "war": null
+      "war": null,
+      "hr_pct": 0.8
     },
     {
       "id": "元山_飛優",
@@ -1898,7 +1997,8 @@
       "sb": 1,
       "k_pct": 11.4,
       "bb_pct": 13.6,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "児玉_亮涼",
@@ -1917,7 +2017,8 @@
       "sb": 2,
       "k_pct": 7.5,
       "bb_pct": 6.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "入江_大樹",
@@ -1936,7 +2037,8 @@
       "sb": 6,
       "k_pct": 14.7,
       "bb_pct": 2.7,
-      "war": null
+      "war": null,
+      "hr_pct": 0.7
     },
     {
       "id": "内山_壮真",
@@ -1955,7 +2057,8 @@
       "sb": 0,
       "k_pct": 19.1,
       "bb_pct": 6.4,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "内田_湘大",
@@ -1974,7 +2077,8 @@
       "sb": 0,
       "k_pct": 24.2,
       "bb_pct": 3.2,
-      "war": null
+      "war": null,
+      "hr_pct": 0.7
     },
     {
       "id": "内藤_鵬",
@@ -1993,7 +2097,8 @@
       "sb": 0,
       "k_pct": 16.8,
       "bb_pct": 7.9,
-      "war": null
+      "war": null,
+      "hr_pct": 0.6
     },
     {
       "id": "前川_右京",
@@ -2012,7 +2117,8 @@
       "sb": 0,
       "k_pct": 17.5,
       "bb_pct": 12.7,
-      "war": null
+      "war": null,
+      "hr_pct": 1.2
     },
     {
       "id": "前川_誠太",
@@ -2031,7 +2137,8 @@
       "sb": 2,
       "k_pct": 8.0,
       "bb_pct": 8.8,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "前田_銀治",
@@ -2050,7 +2157,8 @@
       "sb": 0,
       "k_pct": 25.0,
       "bb_pct": 6.2,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "加藤_匠馬",
@@ -2069,7 +2177,8 @@
       "sb": 0,
       "k_pct": 0.0,
       "bb_pct": 0.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "加藤_晴空",
@@ -2088,7 +2197,8 @@
       "sb": 0,
       "k_pct": 0.0,
       "bb_pct": 0.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "加藤_竜馬",
@@ -2107,7 +2217,8 @@
       "sb": 0,
       "k_pct": 49.0,
       "bb_pct": 4.1,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "加藤_響",
@@ -2126,7 +2237,8 @@
       "sb": 3,
       "k_pct": 12.8,
       "bb_pct": 6.8,
-      "war": null
+      "war": null,
+      "hr_pct": 1.5
     },
     {
       "id": "勝又_温史",
@@ -2145,7 +2257,8 @@
       "sb": 4,
       "k_pct": 11.6,
       "bb_pct": 3.9,
-      "war": null
+      "war": null,
+      "hr_pct": 1.2
     },
     {
       "id": "勝又_琉偉",
@@ -2164,7 +2277,8 @@
       "sb": 1,
       "k_pct": 12.7,
       "bb_pct": 3.2,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "勝連_大稀",
@@ -2183,7 +2297,8 @@
       "sb": 0,
       "k_pct": 27.6,
       "bb_pct": 0.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "北村_恵吾",
@@ -2202,7 +2317,8 @@
       "sb": 2,
       "k_pct": 15.6,
       "bb_pct": 8.2,
-      "war": null
+      "war": null,
+      "hr_pct": 0.8
     },
     {
       "id": "北村_拓己",
@@ -2221,7 +2337,8 @@
       "sb": 0,
       "k_pct": 15.0,
       "bb_pct": 5.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "原口_文仁",
@@ -2240,7 +2357,8 @@
       "sb": 1,
       "k_pct": 18.2,
       "bb_pct": 7.1,
-      "war": null
+      "war": null,
+      "hr_pct": 1.9
     },
     {
       "id": "友杉_篤輝",
@@ -2259,7 +2377,8 @@
       "sb": 0,
       "k_pct": 42.9,
       "bb_pct": 0.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "古川_裕大",
@@ -2278,7 +2397,8 @@
       "sb": 0,
       "k_pct": 26.2,
       "bb_pct": 9.7,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "古川_雄大",
@@ -2297,7 +2417,8 @@
       "sb": 6,
       "k_pct": 19.3,
       "bb_pct": 5.4,
-      "war": null
+      "war": null,
+      "hr_pct": 1.3
     },
     {
       "id": "古市_尊",
@@ -2316,7 +2437,8 @@
       "sb": 2,
       "k_pct": 13.3,
       "bb_pct": 8.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "古賀_優大",
@@ -2335,7 +2457,8 @@
       "sb": 0,
       "k_pct": 0.0,
       "bb_pct": 0.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "古賀_輝希",
@@ -2354,7 +2477,8 @@
       "sb": 0,
       "k_pct": 51.1,
       "bb_pct": 2.2,
-      "war": null
+      "war": null,
+      "hr_pct": 2.2
     },
     {
       "id": "吉川_尚輝",
@@ -2373,7 +2497,8 @@
       "sb": 0,
       "k_pct": 11.1,
       "bb_pct": 0.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "吉田_賢吾",
@@ -2392,7 +2517,8 @@
       "sb": 0,
       "k_pct": 12.4,
       "bb_pct": 9.3,
-      "war": null
+      "war": null,
+      "hr_pct": 3.1
     },
     {
       "id": "吉納_翼",
@@ -2411,7 +2537,8 @@
       "sb": 5,
       "k_pct": 26.5,
       "bb_pct": 11.8,
-      "war": null
+      "war": null,
+      "hr_pct": 1.5
     },
     {
       "id": "吉野_創士",
@@ -2430,7 +2557,8 @@
       "sb": 4,
       "k_pct": 23.7,
       "bb_pct": 5.4,
-      "war": null
+      "war": null,
+      "hr_pct": 0.8
     },
     {
       "id": "名原_典彦",
@@ -2449,7 +2577,8 @@
       "sb": 6,
       "k_pct": 6.5,
       "bb_pct": 6.5,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "周東_佑京",
@@ -2468,7 +2597,8 @@
       "sb": 1,
       "k_pct": 14.3,
       "bb_pct": 0.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "味谷_大誠",
@@ -2487,7 +2617,8 @@
       "sb": 0,
       "k_pct": 14.6,
       "bb_pct": 0.8,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "和田_康士朗",
@@ -2506,7 +2637,8 @@
       "sb": 14,
       "k_pct": 16.4,
       "bb_pct": 8.8,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "喜多_隆介",
@@ -2525,7 +2657,8 @@
       "sb": 0,
       "k_pct": 11.6,
       "bb_pct": 4.2,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "土田_龍空",
@@ -2544,7 +2677,8 @@
       "sb": 9,
       "k_pct": 19.2,
       "bb_pct": 7.5,
-      "war": null
+      "war": null,
+      "hr_pct": 2.0
     },
     {
       "id": "坂倉_将吾",
@@ -2563,7 +2697,8 @@
       "sb": 0,
       "k_pct": 7.1,
       "bb_pct": 7.1,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "坂本_勇人",
@@ -2582,7 +2717,8 @@
       "sb": 0,
       "k_pct": 18.0,
       "bb_pct": 8.2,
-      "war": null
+      "war": null,
+      "hr_pct": 1.6
     },
     {
       "id": "坂本_達也",
@@ -2601,7 +2737,8 @@
       "sb": 1,
       "k_pct": 18.6,
       "bb_pct": 7.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "堀_柊那",
@@ -2620,7 +2757,8 @@
       "sb": 2,
       "k_pct": 16.6,
       "bb_pct": 4.7,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "堀内_謙伍",
@@ -2639,7 +2777,8 @@
       "sb": 0,
       "k_pct": 6.6,
       "bb_pct": 13.1,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "堂林_翔太",
@@ -2658,7 +2797,8 @@
       "sb": 0,
       "k_pct": 16.5,
       "bb_pct": 8.8,
-      "war": null
+      "war": null,
+      "hr_pct": 1.1
     },
     {
       "id": "増田_大輝",
@@ -2677,7 +2817,8 @@
       "sb": 0,
       "k_pct": 33.3,
       "bb_pct": 0.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "増田_珠",
@@ -2696,7 +2837,8 @@
       "sb": 0,
       "k_pct": 27.3,
       "bb_pct": 9.1,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "増田_陸",
@@ -2715,7 +2857,8 @@
       "sb": 2,
       "k_pct": 17.2,
       "bb_pct": 1.6,
-      "war": null
+      "war": null,
+      "hr_pct": 1.6
     },
     {
       "id": "大下_誠一郎",
@@ -2734,7 +2877,8 @@
       "sb": 0,
       "k_pct": 14.3,
       "bb_pct": 11.2,
-      "war": null
+      "war": null,
+      "hr_pct": 1.0
     },
     {
       "id": "大友_宗",
@@ -2753,7 +2897,8 @@
       "sb": 3,
       "k_pct": 21.2,
       "bb_pct": 7.7,
-      "war": null
+      "war": null,
+      "hr_pct": 1.0
     },
     {
       "id": "大城_卓三",
@@ -2772,7 +2917,8 @@
       "sb": 0,
       "k_pct": 14.5,
       "bb_pct": 9.1,
-      "war": null
+      "war": null,
+      "hr_pct": 5.5
     },
     {
       "id": "大城_滉二",
@@ -2791,7 +2937,8 @@
       "sb": 0,
       "k_pct": 25.0,
       "bb_pct": 8.3,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "大島_洋平",
@@ -2810,7 +2957,8 @@
       "sb": 3,
       "k_pct": 6.8,
       "bb_pct": 20.5,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "大泉_周也",
@@ -2829,7 +2977,8 @@
       "sb": 1,
       "k_pct": 13.9,
       "bb_pct": 8.9,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "大津_綾也",
@@ -2848,7 +2997,8 @@
       "sb": 0,
       "k_pct": 0.0,
       "bb_pct": 100.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "大盛_穂",
@@ -2867,7 +3017,8 @@
       "sb": 1,
       "k_pct": 21.7,
       "bb_pct": 0.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "大里_昂生",
@@ -2886,7 +3037,8 @@
       "sb": 1,
       "k_pct": 11.2,
       "bb_pct": 13.3,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "太田_椋",
@@ -2905,7 +3057,8 @@
       "sb": 0,
       "k_pct": 66.7,
       "bb_pct": 33.3,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "太田_賢吾",
@@ -2924,7 +3077,8 @@
       "sb": 1,
       "k_pct": 13.1,
       "bb_pct": 8.8,
-      "war": null
+      "war": null,
+      "hr_pct": 1.5
     },
     {
       "id": "奈良間_大己",
@@ -2943,7 +3097,8 @@
       "sb": 0,
       "k_pct": 20.0,
       "bb_pct": 20.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "奥村_光一",
@@ -2962,7 +3117,8 @@
       "sb": 9,
       "k_pct": 15.2,
       "bb_pct": 15.2,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "宇佐見_真吾",
@@ -2981,7 +3137,8 @@
       "sb": 0,
       "k_pct": 23.4,
       "bb_pct": 9.6,
-      "war": null
+      "war": null,
+      "hr_pct": 0.6
     },
     {
       "id": "宇草_孔基",
@@ -3000,7 +3157,8 @@
       "sb": 4,
       "k_pct": 20.7,
       "bb_pct": 8.6,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "宇都宮_葵星",
@@ -3019,7 +3177,8 @@
       "sb": 20,
       "k_pct": 15.2,
       "bb_pct": 7.4,
-      "war": null
+      "war": null,
+      "hr_pct": 0.4
     },
     {
       "id": "宇野_真仁朗",
@@ -3038,7 +3197,8 @@
       "sb": 1,
       "k_pct": 14.3,
       "bb_pct": 3.6,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "安田_尚憲",
@@ -3057,7 +3217,8 @@
       "sb": 0,
       "k_pct": 13.8,
       "bb_pct": 11.7,
-      "war": null
+      "war": null,
+      "hr_pct": 1.1
     },
     {
       "id": "安田_悠馬",
@@ -3076,7 +3237,8 @@
       "sb": 0,
       "k_pct": 44.4,
       "bb_pct": 22.2,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "安竹_俊喜",
@@ -3095,7 +3257,8 @@
       "sb": 0,
       "k_pct": 25.0,
       "bb_pct": 16.7,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "宗_佑磨",
@@ -3114,7 +3277,8 @@
       "sb": 3,
       "k_pct": 14.1,
       "bb_pct": 17.6,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "宜保_翔",
@@ -3133,7 +3297,8 @@
       "sb": 5,
       "k_pct": 9.3,
       "bb_pct": 10.3,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "宮崎_一樹",
@@ -3152,7 +3317,8 @@
       "sb": 5,
       "k_pct": 11.7,
       "bb_pct": 5.3,
-      "war": null
+      "war": null,
+      "hr_pct": 0.7
     },
     {
       "id": "宮崎_竜成",
@@ -3171,7 +3337,8 @@
       "sb": 5,
       "k_pct": 22.3,
       "bb_pct": 9.7,
-      "war": null
+      "war": null,
+      "hr_pct": 1.9
     },
     {
       "id": "宮本_丈",
@@ -3190,7 +3357,8 @@
       "sb": 0,
       "k_pct": 42.9,
       "bb_pct": 0.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "宮﨑_敏郎",
@@ -3209,7 +3377,8 @@
       "sb": 0,
       "k_pct": 12.5,
       "bb_pct": 0.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "富山_紘之進",
@@ -3228,7 +3397,8 @@
       "sb": 1,
       "k_pct": 22.2,
       "bb_pct": 10.1,
-      "war": null
+      "war": null,
+      "hr_pct": 1.0
     },
     {
       "id": "寺地_隆成",
@@ -3247,7 +3417,8 @@
       "sb": 0,
       "k_pct": 0.0,
       "bb_pct": 0.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "寺本_聖一",
@@ -3266,7 +3437,8 @@
       "sb": 0,
       "k_pct": 25.0,
       "bb_pct": 3.6,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "小川_龍成",
@@ -3285,7 +3457,8 @@
       "sb": 1,
       "k_pct": 14.3,
       "bb_pct": 0.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "小幡_竜平",
@@ -3304,7 +3477,8 @@
       "sb": 3,
       "k_pct": 20.6,
       "bb_pct": 5.9,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "小林_誠司",
@@ -3323,7 +3497,8 @@
       "sb": 0,
       "k_pct": 8.1,
       "bb_pct": 13.5,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "小森_航大郎",
@@ -3342,7 +3517,8 @@
       "sb": 9,
       "k_pct": 11.1,
       "bb_pct": 5.6,
-      "war": null
+      "war": null,
+      "hr_pct": 0.9
     },
     {
       "id": "小深田_大翔",
@@ -3361,7 +3537,8 @@
       "sb": 0,
       "k_pct": 0.0,
       "bb_pct": 0.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "小笠原_蒼",
@@ -3380,7 +3557,8 @@
       "sb": 0,
       "k_pct": 53.3,
       "bb_pct": 6.7,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "小郷_裕哉",
@@ -3399,7 +3577,8 @@
       "sb": 2,
       "k_pct": 28.4,
       "bb_pct": 17.9,
-      "war": null
+      "war": null,
+      "hr_pct": 1.5
     },
     {
       "id": "小野寺_暖",
@@ -3418,7 +3597,8 @@
       "sb": 4,
       "k_pct": 17.1,
       "bb_pct": 12.4,
-      "war": null
+      "war": null,
+      "hr_pct": 0.9
     },
     {
       "id": "小針_大輝",
@@ -3437,7 +3617,8 @@
       "sb": 3,
       "k_pct": 28.9,
       "bb_pct": 5.2,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "尾田_剛樹",
@@ -3456,7 +3637,8 @@
       "sb": 25,
       "k_pct": 18.7,
       "bb_pct": 11.8,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "山下_恭吾",
@@ -3475,7 +3657,8 @@
       "sb": 1,
       "k_pct": 15.6,
       "bb_pct": 14.1,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "山中_稜真",
@@ -3494,7 +3677,8 @@
       "sb": 4,
       "k_pct": 18.8,
       "bb_pct": 9.6,
-      "war": null
+      "war": null,
+      "hr_pct": 0.9
     },
     {
       "id": "山口_アタル",
@@ -3513,7 +3697,8 @@
       "sb": 1,
       "k_pct": 18.8,
       "bb_pct": 7.9,
-      "war": null
+      "war": null,
+      "hr_pct": 0.5
     },
     {
       "id": "山口_航輝",
@@ -3532,7 +3717,8 @@
       "sb": 2,
       "k_pct": 20.0,
       "bb_pct": 14.4,
-      "war": null
+      "war": null,
+      "hr_pct": 3.9
     },
     {
       "id": "山本_大斗",
@@ -3551,7 +3737,8 @@
       "sb": 1,
       "k_pct": 11.1,
       "bb_pct": 11.1,
-      "war": null
+      "war": null,
+      "hr_pct": 6.9
     },
     {
       "id": "山本_恵大",
@@ -3570,7 +3757,8 @@
       "sb": 1,
       "k_pct": 14.2,
       "bb_pct": 10.3,
-      "war": null
+      "war": null,
+      "hr_pct": 2.3
     },
     {
       "id": "山本_泰寛",
@@ -3589,7 +3777,8 @@
       "sb": 0,
       "k_pct": 10.0,
       "bb_pct": 20.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "山村_崇嘉",
@@ -3608,7 +3797,8 @@
       "sb": 0,
       "k_pct": 11.6,
       "bb_pct": 7.5,
-      "war": null
+      "war": null,
+      "hr_pct": 2.7
     },
     {
       "id": "山浅_龍之介",
@@ -3627,7 +3817,8 @@
       "sb": 1,
       "k_pct": 21.1,
       "bb_pct": 21.1,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "山瀬_慎之助",
@@ -3646,7 +3837,8 @@
       "sb": 0,
       "k_pct": 19.2,
       "bb_pct": 9.8,
-      "war": null
+      "war": null,
+      "hr_pct": 1.1
     },
     {
       "id": "山田_哲人",
@@ -3665,7 +3857,8 @@
       "sb": 0,
       "k_pct": 12.0,
       "bb_pct": 4.0,
-      "war": null
+      "war": null,
+      "hr_pct": 4.0
     },
     {
       "id": "山田_脩也",
@@ -3684,7 +3877,8 @@
       "sb": 8,
       "k_pct": 17.0,
       "bb_pct": 11.4,
-      "war": null
+      "war": null,
+      "hr_pct": 1.0
     },
     {
       "id": "山田_遥楓",
@@ -3703,7 +3897,8 @@
       "sb": 1,
       "k_pct": 16.3,
       "bb_pct": 9.1,
-      "war": null
+      "war": null,
+      "hr_pct": 0.5
     },
     {
       "id": "山縣_秀",
@@ -3722,7 +3917,8 @@
       "sb": 1,
       "k_pct": 10.5,
       "bb_pct": 5.3,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "山足_達也",
@@ -3741,7 +3937,8 @@
       "sb": 2,
       "k_pct": 8.6,
       "bb_pct": 10.4,
-      "war": null
+      "war": null,
+      "hr_pct": 0.6
     },
     {
       "id": "山野辺_翔",
@@ -3760,7 +3957,8 @@
       "sb": 6,
       "k_pct": 10.9,
       "bb_pct": 6.1,
-      "war": null
+      "war": null,
+      "hr_pct": 1.2
     },
     {
       "id": "岡_大海",
@@ -3779,7 +3977,8 @@
       "sb": 0,
       "k_pct": 7.9,
       "bb_pct": 13.2,
-      "war": null
+      "war": null,
+      "hr_pct": 2.6
     },
     {
       "id": "岡島_豪郎",
@@ -3798,7 +3997,8 @@
       "sb": 0,
       "k_pct": 17.5,
       "bb_pct": 8.5,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "岡本_和真",
@@ -3817,7 +4017,8 @@
       "sb": 0,
       "k_pct": 14.3,
       "bb_pct": 4.8,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "岡田_悠希",
@@ -3836,7 +4037,8 @@
       "sb": 8,
       "k_pct": 23.0,
       "bb_pct": 13.2,
-      "war": null
+      "war": null,
+      "hr_pct": 3.1
     },
     {
       "id": "岩田_幸宏",
@@ -3855,7 +4057,8 @@
       "sb": 4,
       "k_pct": 11.1,
       "bb_pct": 11.1,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "岸_潤一郎",
@@ -3874,7 +4077,8 @@
       "sb": 4,
       "k_pct": 13.5,
       "bb_pct": 9.6,
-      "war": null
+      "war": null,
+      "hr_pct": 2.9
     },
     {
       "id": "岸本_佑也",
@@ -3893,7 +4097,8 @@
       "sb": 0,
       "k_pct": 25.0,
       "bb_pct": 12.5,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "岸田_行倫",
@@ -3912,7 +4117,8 @@
       "sb": 0,
       "k_pct": 21.4,
       "bb_pct": 21.4,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "島内_宏明",
@@ -3931,7 +4137,8 @@
       "sb": 0,
       "k_pct": 14.7,
       "bb_pct": 20.7,
-      "war": null
+      "war": null,
+      "hr_pct": 0.7
     },
     {
       "id": "島田_海吏",
@@ -3950,7 +4157,8 @@
       "sb": 8,
       "k_pct": 12.7,
       "bb_pct": 9.6,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "嶋村_麟士朗",
@@ -3969,7 +4177,8 @@
       "sb": 0,
       "k_pct": 11.7,
       "bb_pct": 7.1,
-      "war": null
+      "war": null,
+      "hr_pct": 0.6
     },
     {
       "id": "嶺井_博希",
@@ -3988,7 +4197,8 @@
       "sb": 0,
       "k_pct": 0.0,
       "bb_pct": 10.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "川上_理偉",
@@ -4007,7 +4217,8 @@
       "sb": 15,
       "k_pct": 22.7,
       "bb_pct": 12.8,
-      "war": null
+      "war": null,
+      "hr_pct": 0.3
     },
     {
       "id": "川原田_純平",
@@ -4026,7 +4237,8 @@
       "sb": 0,
       "k_pct": 0.0,
       "bb_pct": 50.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "川村_友斗",
@@ -4045,7 +4257,8 @@
       "sb": 6,
       "k_pct": 13.2,
       "bb_pct": 7.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "川端_慎吾",
@@ -4064,7 +4277,8 @@
       "sb": 0,
       "k_pct": 6.8,
       "bb_pct": 6.8,
-      "war": null
+      "war": null,
+      "hr_pct": 1.0
     },
     {
       "id": "川越_誠司",
@@ -4083,7 +4297,8 @@
       "sb": 1,
       "k_pct": 23.3,
       "bb_pct": 12.6,
-      "war": null
+      "war": null,
+      "hr_pct": 2.4
     },
     {
       "id": "川野_涼太",
@@ -4102,7 +4317,8 @@
       "sb": 1,
       "k_pct": 23.5,
       "bb_pct": 8.8,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "川﨑_俊哲",
@@ -4121,7 +4337,8 @@
       "sb": 2,
       "k_pct": 12.3,
       "bb_pct": 8.8,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "平山_功太",
@@ -4140,7 +4357,8 @@
       "sb": 0,
       "k_pct": 0.0,
       "bb_pct": 0.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "平沢_大河",
@@ -4159,7 +4377,8 @@
       "sb": 5,
       "k_pct": 14.7,
       "bb_pct": 16.8,
-      "war": null
+      "war": null,
+      "hr_pct": 3.3
     },
     {
       "id": "平沼_翔太",
@@ -4178,7 +4397,8 @@
       "sb": 3,
       "k_pct": 6.7,
       "bb_pct": 13.3,
-      "war": null
+      "war": null,
+      "hr_pct": 2.7
     },
     {
       "id": "平田_大樹",
@@ -4197,7 +4417,8 @@
       "sb": 3,
       "k_pct": 31.0,
       "bb_pct": 3.4,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "平良_竜哉",
@@ -4216,7 +4437,8 @@
       "sb": 15,
       "k_pct": 7.3,
       "bb_pct": 5.2,
-      "war": null
+      "war": null,
+      "hr_pct": 0.5
     },
     {
       "id": "広瀬_結煌",
@@ -4235,7 +4457,8 @@
       "sb": 0,
       "k_pct": 0.0,
       "bb_pct": 0.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "庄子_雄大",
@@ -4254,7 +4477,8 @@
       "sb": 7,
       "k_pct": 19.4,
       "bb_pct": 9.9,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "度会_隆輝",
@@ -4273,7 +4497,8 @@
       "sb": 1,
       "k_pct": 7.7,
       "bb_pct": 7.1,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "廣岡_大志",
@@ -4292,7 +4517,8 @@
       "sb": 0,
       "k_pct": 14.3,
       "bb_pct": 14.3,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "廣瀨_隆太",
@@ -4311,7 +4537,8 @@
       "sb": 4,
       "k_pct": 18.0,
       "bb_pct": 13.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.2
     },
     {
       "id": "愛斗",
@@ -4330,7 +4557,8 @@
       "sb": 9,
       "k_pct": 14.1,
       "bb_pct": 6.3,
-      "war": null
+      "war": null,
+      "hr_pct": 1.0
     },
     {
       "id": "戸井_零士",
@@ -4349,7 +4577,8 @@
       "sb": 2,
       "k_pct": 17.4,
       "bb_pct": 11.1,
-      "war": null
+      "war": null,
+      "hr_pct": 1.0
     },
     {
       "id": "戸柱_恭孝",
@@ -4368,7 +4597,8 @@
       "sb": 0,
       "k_pct": 0.0,
       "bb_pct": 0.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "持丸_泰輝",
@@ -4387,7 +4617,8 @@
       "sb": 1,
       "k_pct": 26.2,
       "bb_pct": 3.2,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "日渡_騰輝",
@@ -4406,7 +4637,8 @@
       "sb": 0,
       "k_pct": 27.0,
       "bb_pct": 2.7,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "明瀬_諒介",
@@ -4425,7 +4657,8 @@
       "sb": 1,
       "k_pct": 22.2,
       "bb_pct": 6.1,
-      "war": null
+      "war": null,
+      "hr_pct": 1.1
     },
     {
       "id": "星野_ひので",
@@ -4444,7 +4677,8 @@
       "sb": 3,
       "k_pct": 44.4,
       "bb_pct": 7.9,
-      "war": null
+      "war": null,
+      "hr_pct": 0.7
     },
     {
       "id": "星野_真生",
@@ -4463,7 +4697,8 @@
       "sb": 0,
       "k_pct": 41.0,
       "bb_pct": 2.6,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "是澤_涼輔",
@@ -4482,7 +4717,8 @@
       "sb": 0,
       "k_pct": 14.3,
       "bb_pct": 5.1,
-      "war": null
+      "war": null,
+      "hr_pct": 1.0
     },
     {
       "id": "有薗_直輝",
@@ -4501,7 +4737,8 @@
       "sb": 2,
       "k_pct": 22.1,
       "bb_pct": 11.7,
-      "war": null
+      "war": null,
+      "hr_pct": 4.9
     },
     {
       "id": "木下_拓哉",
@@ -4520,7 +4757,8 @@
       "sb": 0,
       "k_pct": 18.5,
       "bb_pct": 3.7,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "木浪_聖也",
@@ -4539,7 +4777,8 @@
       "sb": 1,
       "k_pct": 10.4,
       "bb_pct": 5.2,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "末包_昇大",
@@ -4558,7 +4797,8 @@
       "sb": 0,
       "k_pct": 25.0,
       "bb_pct": 0.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "杉澤_龍",
@@ -4577,7 +4817,8 @@
       "sb": 7,
       "k_pct": 19.6,
       "bb_pct": 9.5,
-      "war": null
+      "war": null,
+      "hr_pct": 1.8
     },
     {
       "id": "村上_喬一朗",
@@ -4596,7 +4837,8 @@
       "sb": 0,
       "k_pct": 12.5,
       "bb_pct": 18.8,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "村上_宗隆",
@@ -4615,7 +4857,8 @@
       "sb": 1,
       "k_pct": 17.9,
       "bb_pct": 15.4,
-      "war": null
+      "war": null,
+      "hr_pct": 5.1
     },
     {
       "id": "村山_源",
@@ -4634,7 +4877,8 @@
       "sb": 0,
       "k_pct": 18.2,
       "bb_pct": 9.1,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "村松_開人",
@@ -4653,7 +4897,8 @@
       "sb": 2,
       "k_pct": 16.9,
       "bb_pct": 12.3,
-      "war": null
+      "war": null,
+      "hr_pct": 0.8
     },
     {
       "id": "村田_怜音",
@@ -4672,7 +4917,8 @@
       "sb": 1,
       "k_pct": 22.3,
       "bb_pct": 6.9,
-      "war": null
+      "war": null,
+      "hr_pct": 1.1
     },
     {
       "id": "来田_涼斗",
@@ -4691,7 +4937,8 @@
       "sb": 4,
       "k_pct": 17.2,
       "bb_pct": 8.6,
-      "war": null
+      "war": null,
+      "hr_pct": 1.3
     },
     {
       "id": "東妻_純平",
@@ -4710,7 +4957,8 @@
       "sb": 7,
       "k_pct": 23.5,
       "bb_pct": 9.0,
-      "war": null
+      "war": null,
+      "hr_pct": 1.2
     },
     {
       "id": "松原_聖弥",
@@ -4729,7 +4977,8 @@
       "sb": 5,
       "k_pct": 18.2,
       "bb_pct": 10.2,
-      "war": null
+      "war": null,
+      "hr_pct": 0.6
     },
     {
       "id": "松尾_汐恩",
@@ -4748,7 +4997,8 @@
       "sb": 1,
       "k_pct": 7.6,
       "bb_pct": 3.0,
-      "war": null
+      "war": null,
+      "hr_pct": 3.0
     },
     {
       "id": "松山_竜平",
@@ -4767,7 +5017,8 @@
       "sb": 0,
       "k_pct": 12.8,
       "bb_pct": 9.2,
-      "war": null
+      "war": null,
+      "hr_pct": 0.9
     },
     {
       "id": "松川_虎生",
@@ -4786,7 +5037,8 @@
       "sb": 0,
       "k_pct": 16.3,
       "bb_pct": 8.5,
-      "war": null
+      "war": null,
+      "hr_pct": 0.8
     },
     {
       "id": "松本_剛",
@@ -4805,7 +5057,8 @@
       "sb": 2,
       "k_pct": 3.0,
       "bb_pct": 11.0,
-      "war": null
+      "war": null,
+      "hr_pct": 2.0
     },
     {
       "id": "松本_直樹",
@@ -4824,7 +5077,8 @@
       "sb": 0,
       "k_pct": 10.6,
       "bb_pct": 5.3,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "松本_龍之介",
@@ -4843,7 +5097,8 @@
       "sb": 13,
       "k_pct": 37.8,
       "bb_pct": 13.4,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "松石_信八",
@@ -4862,7 +5117,8 @@
       "sb": 5,
       "k_pct": 18.7,
       "bb_pct": 4.9,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "板山_祐太郎",
@@ -4881,7 +5137,8 @@
       "sb": 1,
       "k_pct": 15.4,
       "bb_pct": 5.1,
-      "war": null
+      "war": null,
+      "hr_pct": 2.6
     },
     {
       "id": "林_冠臣",
@@ -4900,7 +5157,8 @@
       "sb": 0,
       "k_pct": 21.7,
       "bb_pct": 3.6,
-      "war": null
+      "war": null,
+      "hr_pct": 0.7
     },
     {
       "id": "林_晃汰",
@@ -4919,7 +5177,8 @@
       "sb": 0,
       "k_pct": 23.0,
       "bb_pct": 12.8,
-      "war": null
+      "war": null,
+      "hr_pct": 2.9
     },
     {
       "id": "林_琢真",
@@ -4938,7 +5197,8 @@
       "sb": 3,
       "k_pct": 3.7,
       "bb_pct": 3.7,
-      "war": null
+      "war": null,
+      "hr_pct": 7.4
     },
     {
       "id": "柘植_世那",
@@ -4957,7 +5217,8 @@
       "sb": 1,
       "k_pct": 17.1,
       "bb_pct": 5.9,
-      "war": null
+      "war": null,
+      "hr_pct": 0.7
     },
     {
       "id": "柳田_悠岐",
@@ -4976,7 +5237,8 @@
       "sb": 0,
       "k_pct": 13.3,
       "bb_pct": 8.9,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "柳町_達",
@@ -4995,7 +5257,8 @@
       "sb": 0,
       "k_pct": 14.3,
       "bb_pct": 3.6,
-      "war": null
+      "war": null,
+      "hr_pct": 3.6
     },
     {
       "id": "柴田_獅子",
@@ -5014,7 +5277,8 @@
       "sb": 0,
       "k_pct": 30.4,
       "bb_pct": 4.0,
-      "war": null
+      "war": null,
+      "hr_pct": 1.6
     },
     {
       "id": "柴田_竜拓",
@@ -5033,7 +5297,8 @@
       "sb": 1,
       "k_pct": 12.0,
       "bb_pct": 4.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "柿沼_友哉",
@@ -5052,7 +5317,8 @@
       "sb": 0,
       "k_pct": 19.7,
       "bb_pct": 3.3,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "栗原_陵矢",
@@ -5071,7 +5337,8 @@
       "sb": 0,
       "k_pct": 11.3,
       "bb_pct": 18.9,
-      "war": null
+      "war": null,
+      "hr_pct": 1.9
     },
     {
       "id": "栗山_巧",
@@ -5090,7 +5357,8 @@
       "sb": 0,
       "k_pct": 14.4,
       "bb_pct": 14.9,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "根岸_辰昇",
@@ -5109,7 +5377,8 @@
       "sb": 0,
       "k_pct": 18.6,
       "bb_pct": 6.4,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "桑原_将志",
@@ -5128,7 +5397,8 @@
       "sb": 0,
       "k_pct": 14.3,
       "bb_pct": 0.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "桑原_秀侍",
@@ -5147,7 +5417,8 @@
       "sb": 2,
       "k_pct": 12.5,
       "bb_pct": 4.7,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "梅林_優貴",
@@ -5166,7 +5437,8 @@
       "sb": 1,
       "k_pct": 8.5,
       "bb_pct": 3.8,
-      "war": null
+      "war": null,
+      "hr_pct": 3.1
     },
     {
       "id": "梶原_昂希",
@@ -5185,7 +5457,8 @@
       "sb": 11,
       "k_pct": 23.7,
       "bb_pct": 4.3,
-      "war": null
+      "war": null,
+      "hr_pct": 2.4
     },
     {
       "id": "森_友哉",
@@ -5204,7 +5477,8 @@
       "sb": 0,
       "k_pct": 17.1,
       "bb_pct": 19.5,
-      "war": null
+      "war": null,
+      "hr_pct": 2.4
     },
     {
       "id": "森_敬斗",
@@ -5223,7 +5497,8 @@
       "sb": 4,
       "k_pct": 15.2,
       "bb_pct": 9.4,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "森_駿太",
@@ -5242,7 +5517,8 @@
       "sb": 2,
       "k_pct": 27.5,
       "bb_pct": 7.5,
-      "war": null
+      "war": null,
+      "hr_pct": 4.5
     },
     {
       "id": "植田_将太",
@@ -5261,7 +5537,8 @@
       "sb": 0,
       "k_pct": 15.1,
       "bb_pct": 3.5,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "植田_海",
@@ -5280,7 +5557,8 @@
       "sb": 1,
       "k_pct": 0.0,
       "bb_pct": 25.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "楠本_泰史",
@@ -5299,7 +5577,8 @@
       "sb": 1,
       "k_pct": 21.2,
       "bb_pct": 10.9,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "榮枝_裕貴",
@@ -5318,7 +5597,8 @@
       "sb": 3,
       "k_pct": 11.8,
       "bb_pct": 9.2,
-      "war": null
+      "war": null,
+      "hr_pct": 2.6
     },
     {
       "id": "樋口_正修",
@@ -5337,7 +5617,8 @@
       "sb": 5,
       "k_pct": 18.2,
       "bb_pct": 6.1,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "横山_聖哉",
@@ -5356,7 +5637,8 @@
       "sb": 5,
       "k_pct": 24.7,
       "bb_pct": 7.3,
-      "war": null
+      "war": null,
+      "hr_pct": 0.5
     },
     {
       "id": "橋本_星哉",
@@ -5375,7 +5657,8 @@
       "sb": 7,
       "k_pct": 10.6,
       "bb_pct": 7.9,
-      "war": null
+      "war": null,
+      "hr_pct": 0.6
     },
     {
       "id": "正木_智也",
@@ -5394,7 +5677,8 @@
       "sb": 0,
       "k_pct": 17.9,
       "bb_pct": 12.8,
-      "war": null
+      "war": null,
+      "hr_pct": 5.1
     },
     {
       "id": "武岡_龍世",
@@ -5413,7 +5697,8 @@
       "sb": 4,
       "k_pct": 21.2,
       "bb_pct": 12.0,
-      "war": null
+      "war": null,
+      "hr_pct": 1.0
     },
     {
       "id": "武田_陸玖",
@@ -5432,7 +5717,8 @@
       "sb": 0,
       "k_pct": 29.2,
       "bb_pct": 5.7,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "武藤_敦貴",
@@ -5451,7 +5737,8 @@
       "sb": 13,
       "k_pct": 16.5,
       "bb_pct": 10.8,
-      "war": null
+      "war": null,
+      "hr_pct": 2.3
     },
     {
       "id": "水上_桂",
@@ -5470,7 +5757,8 @@
       "sb": 2,
       "k_pct": 23.8,
       "bb_pct": 11.6,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "水谷_瞬",
@@ -5489,7 +5777,8 @@
       "sb": 1,
       "k_pct": 16.3,
       "bb_pct": 6.5,
-      "war": null
+      "war": null,
+      "hr_pct": 1.1
     },
     {
       "id": "水野_達稀",
@@ -5508,7 +5797,8 @@
       "sb": 4,
       "k_pct": 6.2,
       "bb_pct": 6.2,
-      "war": null
+      "war": null,
+      "hr_pct": 3.1
     },
     {
       "id": "永田_颯太郎",
@@ -5527,7 +5817,8 @@
       "sb": 0,
       "k_pct": 10.4,
       "bb_pct": 8.7,
-      "war": null
+      "war": null,
+      "hr_pct": 0.6
     },
     {
       "id": "江川_侑斗",
@@ -5546,7 +5837,8 @@
       "sb": 0,
       "k_pct": 27.5,
       "bb_pct": 3.3,
-      "war": null
+      "war": null,
+      "hr_pct": 1.1
     },
     {
       "id": "池田_来翔",
@@ -5565,7 +5857,8 @@
       "sb": 1,
       "k_pct": 14.7,
       "bb_pct": 10.8,
-      "war": null
+      "war": null,
+      "hr_pct": 2.0
     },
     {
       "id": "池田_陵真",
@@ -5584,7 +5877,8 @@
       "sb": 0,
       "k_pct": 22.8,
       "bb_pct": 9.2,
-      "war": null
+      "war": null,
+      "hr_pct": 1.3
     },
     {
       "id": "河野_聡太",
@@ -5603,7 +5897,8 @@
       "sb": 3,
       "k_pct": 11.5,
       "bb_pct": 13.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "泉口_友汰",
@@ -5622,7 +5917,8 @@
       "sb": 1,
       "k_pct": 7.7,
       "bb_pct": 7.7,
-      "war": null
+      "war": null,
+      "hr_pct": 3.8
     },
     {
       "id": "津田_啓史",
@@ -5641,7 +5937,8 @@
       "sb": 5,
       "k_pct": 20.2,
       "bb_pct": 9.5,
-      "war": null
+      "war": null,
+      "hr_pct": 0.4
     },
     {
       "id": "浅村_栄斗",
@@ -5660,7 +5957,8 @@
       "sb": 0,
       "k_pct": 9.9,
       "bb_pct": 9.9,
-      "war": null
+      "war": null,
+      "hr_pct": 7.4
     },
     {
       "id": "浅野_翔吾",
@@ -5679,7 +5977,8 @@
       "sb": 1,
       "k_pct": 15.3,
       "bb_pct": 7.3,
-      "war": null
+      "war": null,
+      "hr_pct": 1.6
     },
     {
       "id": "浦田_俊輔",
@@ -5698,7 +5997,8 @@
       "sb": 20,
       "k_pct": 11.9,
       "bb_pct": 10.5,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "淺間_大基",
@@ -5717,7 +6017,8 @@
       "sb": 3,
       "k_pct": 9.7,
       "bb_pct": 14.8,
-      "war": null
+      "war": null,
+      "hr_pct": 3.2
     },
     {
       "id": "清水_優心",
@@ -5736,7 +6037,8 @@
       "sb": 0,
       "k_pct": 17.9,
       "bb_pct": 8.7,
-      "war": null
+      "war": null,
+      "hr_pct": 1.2
     },
     {
       "id": "清水_叶人",
@@ -5755,7 +6057,8 @@
       "sb": 0,
       "k_pct": 17.7,
       "bb_pct": 8.8,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "清水_武蔵",
@@ -5774,7 +6077,8 @@
       "sb": 0,
       "k_pct": 14.9,
       "bb_pct": 8.1,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "渡邉_悠斗",
@@ -5793,7 +6097,8 @@
       "sb": 0,
       "k_pct": 17.9,
       "bb_pct": 3.4,
-      "war": null
+      "war": null,
+      "hr_pct": 0.5
     },
     {
       "id": "渡邉_諒",
@@ -5812,7 +6117,8 @@
       "sb": 1,
       "k_pct": 16.7,
       "bb_pct": 14.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.5
     },
     {
       "id": "渡邉_陸",
@@ -5831,7 +6137,8 @@
       "sb": 0,
       "k_pct": 24.4,
       "bb_pct": 10.0,
-      "war": null
+      "war": null,
+      "hr_pct": 2.2
     },
     {
       "id": "渡部_健人",
@@ -5850,7 +6157,8 @@
       "sb": 2,
       "k_pct": 22.5,
       "bb_pct": 8.7,
-      "war": null
+      "war": null,
+      "hr_pct": 2.3
     },
     {
       "id": "渡部_聖弥",
@@ -5869,7 +6177,8 @@
       "sb": 0,
       "k_pct": 5.3,
       "bb_pct": 10.5,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "渡部_遼人",
@@ -5888,7 +6197,8 @@
       "sb": 6,
       "k_pct": 6.9,
       "bb_pct": 17.2,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "湯浅_大",
@@ -5907,7 +6217,8 @@
       "sb": 11,
       "k_pct": 23.2,
       "bb_pct": 11.2,
-      "war": null
+      "war": null,
+      "hr_pct": 0.4
     },
     {
       "id": "源田_壮亮",
@@ -5926,7 +6237,8 @@
       "sb": 0,
       "k_pct": 27.8,
       "bb_pct": 5.6,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "滝澤_夏央",
@@ -5945,7 +6257,8 @@
       "sb": 0,
       "k_pct": 0.0,
       "bb_pct": 9.1,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "漁府_輝羽",
@@ -5964,7 +6277,8 @@
       "sb": 0,
       "k_pct": 0.0,
       "bb_pct": 0.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "澤井_廉",
@@ -5983,7 +6297,8 @@
       "sb": 2,
       "k_pct": 25.2,
       "bb_pct": 9.8,
-      "war": null
+      "war": null,
+      "hr_pct": 3.1
     },
     {
       "id": "澤野_聖悠",
@@ -6002,7 +6317,8 @@
       "sb": 9,
       "k_pct": 34.4,
       "bb_pct": 4.6,
-      "war": null
+      "war": null,
+      "hr_pct": 0.8
     },
     {
       "id": "濱_将乃介",
@@ -6021,7 +6337,8 @@
       "sb": 15,
       "k_pct": 18.7,
       "bb_pct": 11.7,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "濱田_太貴",
@@ -6040,7 +6357,8 @@
       "sb": 1,
       "k_pct": 25.1,
       "bb_pct": 7.8,
-      "war": null
+      "war": null,
+      "hr_pct": 2.3
     },
     {
       "id": "濵田_泰希",
@@ -6059,7 +6377,8 @@
       "sb": 0,
       "k_pct": 33.5,
       "bb_pct": 1.9,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "熊谷_敬宥",
@@ -6078,7 +6397,8 @@
       "sb": 2,
       "k_pct": 10.0,
       "bb_pct": 0.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "牧原_巧汰",
@@ -6097,7 +6417,8 @@
       "sb": 1,
       "k_pct": 25.0,
       "bb_pct": 10.2,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "牧野_翔矢",
@@ -6116,7 +6437,8 @@
       "sb": 0,
       "k_pct": 26.0,
       "bb_pct": 5.5,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "田中_和基",
@@ -6135,7 +6457,8 @@
       "sb": 8,
       "k_pct": 16.2,
       "bb_pct": 5.4,
-      "war": null
+      "war": null,
+      "hr_pct": 0.7
     },
     {
       "id": "田中_幹也",
@@ -6154,7 +6477,8 @@
       "sb": 1,
       "k_pct": 0.0,
       "bb_pct": 11.1,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "田中_広輔",
@@ -6173,7 +6497,8 @@
       "sb": 6,
       "k_pct": 11.1,
       "bb_pct": 20.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.9
     },
     {
       "id": "田中_貴也",
@@ -6192,7 +6517,8 @@
       "sb": 0,
       "k_pct": 15.6,
       "bb_pct": 6.7,
-      "war": null
+      "war": null,
+      "hr_pct": 2.2
     },
     {
       "id": "田中_陽翔",
@@ -6211,7 +6537,8 @@
       "sb": 1,
       "k_pct": 23.7,
       "bb_pct": 9.5,
-      "war": null
+      "war": null,
+      "hr_pct": 0.7
     },
     {
       "id": "田内_真翔",
@@ -6230,7 +6557,8 @@
       "sb": 1,
       "k_pct": 16.7,
       "bb_pct": 4.8,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "田宮_裕涼",
@@ -6249,7 +6577,8 @@
       "sb": 0,
       "k_pct": 6.1,
       "bb_pct": 12.1,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "田島_光祐",
@@ -6268,7 +6597,8 @@
       "sb": 0,
       "k_pct": 16.9,
       "bb_pct": 11.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "田村_俊介",
@@ -6287,7 +6617,8 @@
       "sb": 4,
       "k_pct": 24.1,
       "bb_pct": 11.2,
-      "war": null
+      "war": null,
+      "hr_pct": 0.4
     },
     {
       "id": "田村_龍弘",
@@ -6306,7 +6637,8 @@
       "sb": 1,
       "k_pct": 6.9,
       "bb_pct": 13.8,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "町田_隼乙",
@@ -6325,7 +6657,8 @@
       "sb": 0,
       "k_pct": 23.3,
       "bb_pct": 9.6,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "百﨑_蒼生",
@@ -6344,7 +6677,8 @@
       "sb": 3,
       "k_pct": 20.4,
       "bb_pct": 7.2,
-      "war": null
+      "war": null,
+      "hr_pct": 0.4
     },
     {
       "id": "益子_京右",
@@ -6363,7 +6697,8 @@
       "sb": 0,
       "k_pct": 16.2,
       "bb_pct": 11.0,
-      "war": null
+      "war": null,
+      "hr_pct": 2.4
     },
     {
       "id": "盛島_稜大",
@@ -6382,7 +6717,8 @@
       "sb": 0,
       "k_pct": 31.6,
       "bb_pct": 5.3,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "矢澤_宏太",
@@ -6401,7 +6737,8 @@
       "sb": 2,
       "k_pct": 17.4,
       "bb_pct": 8.7,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "矢野_泰二郎",
@@ -6420,7 +6757,8 @@
       "sb": 2,
       "k_pct": 14.2,
       "bb_pct": 8.8,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "矢野_雅哉",
@@ -6439,7 +6777,8 @@
       "sb": 0,
       "k_pct": 50.0,
       "bb_pct": 0.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "知野_直人",
@@ -6458,7 +6797,8 @@
       "sb": 10,
       "k_pct": 18.2,
       "bb_pct": 11.2,
-      "war": null
+      "war": null,
+      "hr_pct": 1.9
     },
     {
       "id": "石上_泰輝",
@@ -6477,7 +6817,8 @@
       "sb": 4,
       "k_pct": 13.5,
       "bb_pct": 13.5,
-      "war": null
+      "war": null,
+      "hr_pct": 0.8
     },
     {
       "id": "石井_一成",
@@ -6496,7 +6837,8 @@
       "sb": 1,
       "k_pct": 10.3,
       "bb_pct": 6.9,
-      "war": null
+      "war": null,
+      "hr_pct": 6.9
     },
     {
       "id": "石伊_雄太",
@@ -6515,7 +6857,8 @@
       "sb": 0,
       "k_pct": 26.9,
       "bb_pct": 7.7,
-      "war": null
+      "war": null,
+      "hr_pct": 7.7
     },
     {
       "id": "石原_彪",
@@ -6534,7 +6877,8 @@
       "sb": 2,
       "k_pct": 21.4,
       "bb_pct": 10.7,
-      "war": null
+      "war": null,
+      "hr_pct": 4.9
     },
     {
       "id": "石原_貴規",
@@ -6553,7 +6897,8 @@
       "sb": 0,
       "k_pct": 16.7,
       "bb_pct": 0.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "石垣_雅海",
@@ -6572,7 +6917,8 @@
       "sb": 0,
       "k_pct": 17.6,
       "bb_pct": 7.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.8
     },
     {
       "id": "石塚_綜一郎",
@@ -6591,7 +6937,8 @@
       "sb": 1,
       "k_pct": 13.6,
       "bb_pct": 7.7,
-      "war": null
+      "war": null,
+      "hr_pct": 1.8
     },
     {
       "id": "石塚_裕惺",
@@ -6610,7 +6957,8 @@
       "sb": 4,
       "k_pct": 9.9,
       "bb_pct": 13.0,
-      "war": null
+      "war": null,
+      "hr_pct": 1.6
     },
     {
       "id": "石川_亮",
@@ -6629,7 +6977,8 @@
       "sb": 0,
       "k_pct": 17.1,
       "bb_pct": 5.7,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "石川_慎吾",
@@ -6648,7 +6997,8 @@
       "sb": 1,
       "k_pct": 23.6,
       "bb_pct": 9.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.9
     },
     {
       "id": "石川_昂弥",
@@ -6667,7 +7017,8 @@
       "sb": 1,
       "k_pct": 15.2,
       "bb_pct": 8.5,
-      "war": null
+      "war": null,
+      "hr_pct": 1.8
     },
     {
       "id": "石橋_康太",
@@ -6686,7 +7037,8 @@
       "sb": 0,
       "k_pct": 15.5,
       "bb_pct": 11.8,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "石見_颯真",
@@ -6705,7 +7057,8 @@
       "sb": 1,
       "k_pct": 22.1,
       "bb_pct": 18.3,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "磯村_嘉孝",
@@ -6724,7 +7077,8 @@
       "sb": 1,
       "k_pct": 8.9,
       "bb_pct": 8.9,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "神里_和毅",
@@ -6743,7 +7097,8 @@
       "sb": 5,
       "k_pct": 20.3,
       "bb_pct": 18.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "福元_悠真",
@@ -6762,7 +7117,8 @@
       "sb": 2,
       "k_pct": 11.5,
       "bb_pct": 3.3,
-      "war": null
+      "war": null,
+      "hr_pct": 1.6
     },
     {
       "id": "福尾_遥真",
@@ -6781,7 +7137,8 @@
       "sb": 0,
       "k_pct": 30.0,
       "bb_pct": 0.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "福島_圭音",
@@ -6800,7 +7157,8 @@
       "sb": 33,
       "k_pct": 9.8,
       "bb_pct": 12.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.7
     },
     {
       "id": "福永_奨",
@@ -6819,7 +7177,8 @@
       "sb": 0,
       "k_pct": 40.0,
       "bb_pct": 0.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "福永_裕基",
@@ -6838,7 +7197,8 @@
       "sb": 0,
       "k_pct": 16.0,
       "bb_pct": 8.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "福田_周平",
@@ -6857,7 +7217,8 @@
       "sb": 4,
       "k_pct": 6.3,
       "bb_pct": 13.9,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "秋山_翔吾",
@@ -6876,7 +7237,8 @@
       "sb": 0,
       "k_pct": 0.0,
       "bb_pct": 15.4,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "秋広_優人",
@@ -6895,7 +7257,8 @@
       "sb": 0,
       "k_pct": 15.3,
       "bb_pct": 16.1,
-      "war": null
+      "war": null,
+      "hr_pct": 0.8
     },
     {
       "id": "立松_由宇",
@@ -6914,7 +7277,8 @@
       "sb": 1,
       "k_pct": 8.7,
       "bb_pct": 8.7,
-      "war": null
+      "war": null,
+      "hr_pct": 0.9
     },
     {
       "id": "竹下_徠空",
@@ -6933,7 +7297,8 @@
       "sb": 0,
       "k_pct": 0.0,
       "bb_pct": 0.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "笹原_操希",
@@ -6952,7 +7317,8 @@
       "sb": 15,
       "k_pct": 17.4,
       "bb_pct": 10.9,
-      "war": null
+      "war": null,
+      "hr_pct": 0.9
     },
     {
       "id": "笹川_吉康",
@@ -6971,7 +7337,8 @@
       "sb": 10,
       "k_pct": 24.2,
       "bb_pct": 7.5,
-      "war": null
+      "war": null,
+      "hr_pct": 3.1
     },
     {
       "id": "筒香_嘉智",
@@ -6990,7 +7357,8 @@
       "sb": 0,
       "k_pct": 22.2,
       "bb_pct": 13.0,
-      "war": null
+      "war": null,
+      "hr_pct": 1.9
     },
     {
       "id": "粟飯原_龍之介",
@@ -7009,7 +7377,8 @@
       "sb": 5,
       "k_pct": 19.4,
       "bb_pct": 10.2,
-      "war": null
+      "war": null,
+      "hr_pct": 1.0
     },
     {
       "id": "糸原_健斗",
@@ -7028,7 +7397,8 @@
       "sb": 0,
       "k_pct": 18.5,
       "bb_pct": 18.5,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "紅林_弘太郎",
@@ -7047,7 +7417,8 @@
       "sb": 0,
       "k_pct": 16.7,
       "bb_pct": 11.1,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "細川_凌平",
@@ -7066,7 +7437,8 @@
       "sb": 17,
       "k_pct": 11.4,
       "bb_pct": 9.6,
-      "war": null
+      "war": null,
+      "hr_pct": 0.4
     },
     {
       "id": "細川_成也",
@@ -7085,7 +7457,8 @@
       "sb": 0,
       "k_pct": 22.2,
       "bb_pct": 11.1,
-      "war": null
+      "war": null,
+      "hr_pct": 11.1
     },
     {
       "id": "緒方_理貢",
@@ -7104,7 +7477,8 @@
       "sb": 3,
       "k_pct": 5.9,
       "bb_pct": 11.8,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "羽月_隆太郎",
@@ -7123,7 +7497,8 @@
       "sb": 3,
       "k_pct": 8.7,
       "bb_pct": 21.7,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "舟越_秀虎",
@@ -7142,7 +7517,8 @@
       "sb": 2,
       "k_pct": 50.0,
       "bb_pct": 5.6,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "若林_晃弘",
@@ -7161,7 +7537,8 @@
       "sb": 0,
       "k_pct": 22.6,
       "bb_pct": 12.2,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "若林_楽人",
@@ -7180,7 +7557,8 @@
       "sb": 0,
       "k_pct": 11.1,
       "bb_pct": 11.1,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "茶谷_健太",
@@ -7199,7 +7577,8 @@
       "sb": 0,
       "k_pct": 22.4,
       "bb_pct": 9.6,
-      "war": null
+      "war": null,
+      "hr_pct": 0.6
     },
     {
       "id": "茶野_篤政",
@@ -7218,7 +7597,8 @@
       "sb": 28,
       "k_pct": 9.6,
       "bb_pct": 8.8,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "荒巻_悠",
@@ -7237,7 +7617,8 @@
       "sb": 1,
       "k_pct": 20.1,
       "bb_pct": 13.0,
-      "war": null
+      "war": null,
+      "hr_pct": 1.8
     },
     {
       "id": "荻野_貴司",
@@ -7256,7 +7637,8 @@
       "sb": 0,
       "k_pct": 5.5,
       "bb_pct": 16.4,
-      "war": null
+      "war": null,
+      "hr_pct": 1.4
     },
     {
       "id": "萩尾_匡也",
@@ -7275,7 +7657,8 @@
       "sb": 3,
       "k_pct": 22.0,
       "bb_pct": 5.1,
-      "war": null
+      "war": null,
+      "hr_pct": 2.8
     },
     {
       "id": "蓮",
@@ -7294,7 +7677,8 @@
       "sb": 0,
       "k_pct": 20.7,
       "bb_pct": 9.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.9
     },
     {
       "id": "藤原_恭大",
@@ -7313,7 +7697,8 @@
       "sb": 0,
       "k_pct": 22.2,
       "bb_pct": 11.1,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "藤田_健斗",
@@ -7332,7 +7717,8 @@
       "sb": 1,
       "k_pct": 22.2,
       "bb_pct": 6.9,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "藤田_和樹",
@@ -7351,7 +7737,8 @@
       "sb": 0,
       "k_pct": 27.2,
       "bb_pct": 5.6,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "藤田_大清",
@@ -7370,7 +7757,8 @@
       "sb": 0,
       "k_pct": 22.7,
       "bb_pct": 3.8,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "藤田_悠太郎",
@@ -7389,7 +7777,8 @@
       "sb": 0,
       "k_pct": 19.5,
       "bb_pct": 11.5,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "藤野_恵音",
@@ -7408,7 +7797,8 @@
       "sb": 4,
       "k_pct": 12.9,
       "bb_pct": 6.9,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "蛭間_拓哉",
@@ -7427,7 +7817,8 @@
       "sb": 8,
       "k_pct": 15.1,
       "bb_pct": 7.7,
-      "war": null
+      "war": null,
+      "hr_pct": 0.6
     },
     {
       "id": "蝦名_達夫",
@@ -7446,7 +7837,8 @@
       "sb": 0,
       "k_pct": 15.4,
       "bb_pct": 0.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "西尾_歩真",
@@ -7465,7 +7857,8 @@
       "sb": 0,
       "k_pct": 9.6,
       "bb_pct": 9.6,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "西川_史礁",
@@ -7484,7 +7877,8 @@
       "sb": 0,
       "k_pct": 12.4,
       "bb_pct": 5.6,
-      "war": null
+      "war": null,
+      "hr_pct": 1.1
     },
     {
       "id": "西川_愛也",
@@ -7503,7 +7897,8 @@
       "sb": 1,
       "k_pct": 0.0,
       "bb_pct": 0.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "西川_遥輝",
@@ -7522,7 +7917,8 @@
       "sb": 1,
       "k_pct": 18.8,
       "bb_pct": 23.2,
-      "war": null
+      "war": null,
+      "hr_pct": 0.7
     },
     {
       "id": "西川_龍馬",
@@ -7541,7 +7937,8 @@
       "sb": 0,
       "k_pct": 15.4,
       "bb_pct": 0.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "西巻_賢二",
@@ -7560,7 +7957,8 @@
       "sb": 16,
       "k_pct": 16.8,
       "bb_pct": 8.7,
-      "war": null
+      "war": null,
+      "hr_pct": 1.6
     },
     {
       "id": "西村_瑠伊斗",
@@ -7579,7 +7977,8 @@
       "sb": 5,
       "k_pct": 24.8,
       "bb_pct": 6.4,
-      "war": null
+      "war": null,
+      "hr_pct": 1.2
     },
     {
       "id": "西野_真弘",
@@ -7598,7 +7997,8 @@
       "sb": 1,
       "k_pct": 12.3,
       "bb_pct": 7.7,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "角中_勝也",
@@ -7617,7 +8017,8 @@
       "sb": 0,
       "k_pct": 7.6,
       "bb_pct": 13.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.8
     },
     {
       "id": "谷川原_健太",
@@ -7636,7 +8037,8 @@
       "sb": 3,
       "k_pct": 10.3,
       "bb_pct": 9.4,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "谷村_剛",
@@ -7655,7 +8057,8 @@
       "sb": 0,
       "k_pct": 34.0,
       "bb_pct": 1.9,
-      "war": null
+      "war": null,
+      "hr_pct": 0.9
     },
     {
       "id": "豊田_寛",
@@ -7674,7 +8077,8 @@
       "sb": 1,
       "k_pct": 11.8,
       "bb_pct": 8.4,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "赤羽_由紘",
@@ -7693,7 +8097,8 @@
       "sb": 1,
       "k_pct": 13.0,
       "bb_pct": 17.4,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "辰己_涼介",
@@ -7712,7 +8117,8 @@
       "sb": 1,
       "k_pct": 19.0,
       "bb_pct": 17.2,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "辰見_鴻之介",
@@ -7731,7 +8137,8 @@
       "sb": 31,
       "k_pct": 15.9,
       "bb_pct": 5.3,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "辻本_倫太郎",
@@ -7750,7 +8157,8 @@
       "sb": 6,
       "k_pct": 7.6,
       "bb_pct": 6.8,
-      "war": null
+      "war": null,
+      "hr_pct": 2.5
     },
     {
       "id": "近藤_健介",
@@ -7769,7 +8177,8 @@
       "sb": 0,
       "k_pct": 0.0,
       "bb_pct": 14.3,
-      "war": null
+      "war": null,
+      "hr_pct": 14.3
     },
     {
       "id": "近藤_大雅",
@@ -7788,7 +8197,8 @@
       "sb": 0,
       "k_pct": 20.0,
       "bb_pct": 6.7,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "進藤_勇也",
@@ -7807,7 +8217,8 @@
       "sb": 1,
       "k_pct": 17.5,
       "bb_pct": 4.1,
-      "war": null
+      "war": null,
+      "hr_pct": 1.8
     },
     {
       "id": "遠藤_成",
@@ -7826,7 +8237,8 @@
       "sb": 21,
       "k_pct": 21.5,
       "bb_pct": 17.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.4
     },
     {
       "id": "郡_拓也",
@@ -7845,7 +8257,8 @@
       "sb": 3,
       "k_pct": 11.1,
       "bb_pct": 3.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.7
     },
     {
       "id": "重信_慎之介",
@@ -7864,7 +8277,8 @@
       "sb": 9,
       "k_pct": 19.3,
       "bb_pct": 11.9,
-      "war": null
+      "war": null,
+      "hr_pct": 0.9
     },
     {
       "id": "重松_凱人",
@@ -7883,7 +8297,8 @@
       "sb": 4,
       "k_pct": 25.6,
       "bb_pct": 10.5,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "野口_恭佑",
@@ -7902,7 +8317,8 @@
       "sb": 4,
       "k_pct": 11.3,
       "bb_pct": 8.8,
-      "war": null
+      "war": null,
+      "hr_pct": 0.4
     },
     {
       "id": "野口_智哉",
@@ -7921,7 +8337,8 @@
       "sb": 2,
       "k_pct": 26.4,
       "bb_pct": 17.1,
-      "war": null
+      "war": null,
+      "hr_pct": 0.4
     },
     {
       "id": "野村_佑希",
@@ -7940,7 +8357,8 @@
       "sb": 0,
       "k_pct": 12.5,
       "bb_pct": 6.2,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "野村_和輝",
@@ -7959,7 +8377,8 @@
       "sb": 0,
       "k_pct": 66.7,
       "bb_pct": 0.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "野村_大樹",
@@ -7978,7 +8397,8 @@
       "sb": 0,
       "k_pct": 16.9,
       "bb_pct": 6.8,
-      "war": null
+      "war": null,
+      "hr_pct": 5.1
     },
     {
       "id": "野田_海人",
@@ -7997,7 +8417,8 @@
       "sb": 0,
       "k_pct": 18.8,
       "bb_pct": 18.8,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "野間_峻祥",
@@ -8016,7 +8437,8 @@
       "sb": 0,
       "k_pct": 14.3,
       "bb_pct": 14.3,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "金子_功児",
@@ -8035,7 +8457,8 @@
       "sb": 1,
       "k_pct": 17.0,
       "bb_pct": 8.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "金田_優太",
@@ -8054,7 +8477,8 @@
       "sb": 0,
       "k_pct": 16.7,
       "bb_pct": 5.6,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "鈴木_叶",
@@ -8073,7 +8497,8 @@
       "sb": 1,
       "k_pct": 29.2,
       "bb_pct": 9.0,
-      "war": null
+      "war": null,
+      "hr_pct": 1.1
     },
     {
       "id": "鈴木_大和",
@@ -8092,7 +8517,8 @@
       "sb": 7,
       "k_pct": 15.9,
       "bb_pct": 3.7,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "鈴木_大地",
@@ -8111,7 +8537,8 @@
       "sb": 0,
       "k_pct": 20.0,
       "bb_pct": 40.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "長坂_拳弥",
@@ -8130,7 +8557,8 @@
       "sb": 1,
       "k_pct": 24.2,
       "bb_pct": 18.3,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "長岡_秀樹",
@@ -8149,7 +8577,8 @@
       "sb": 0,
       "k_pct": 12.5,
       "bb_pct": 12.5,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "長野_久義",
@@ -8168,7 +8597,8 @@
       "sb": 1,
       "k_pct": 18.8,
       "bb_pct": 3.4,
-      "war": null
+      "war": null,
+      "hr_pct": 0.9
     },
     {
       "id": "門脇_誠",
@@ -8187,7 +8617,8 @@
       "sb": 1,
       "k_pct": 17.4,
       "bb_pct": 15.2,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "関根_大気",
@@ -8206,7 +8637,8 @@
       "sb": 11,
       "k_pct": 6.7,
       "bb_pct": 6.7,
-      "war": null
+      "war": null,
+      "hr_pct": 0.6
     },
     {
       "id": "阪口_樂",
@@ -8225,7 +8657,8 @@
       "sb": 3,
       "k_pct": 28.2,
       "bb_pct": 7.0,
-      "war": null
+      "war": null,
+      "hr_pct": 1.8
     },
     {
       "id": "阿部_寿樹",
@@ -8244,7 +8677,8 @@
       "sb": 0,
       "k_pct": 15.1,
       "bb_pct": 7.6,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "陽_柏翔",
@@ -8263,7 +8697,8 @@
       "sb": 13,
       "k_pct": 19.7,
       "bb_pct": 2.6,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "青野_拓海",
@@ -8282,7 +8717,8 @@
       "sb": 0,
       "k_pct": 22.3,
       "bb_pct": 5.1,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "韮澤_雄也",
@@ -8301,7 +8737,8 @@
       "sb": 0,
       "k_pct": 9.5,
       "bb_pct": 4.4,
-      "war": null
+      "war": null,
+      "hr_pct": 0.7
     },
     {
       "id": "頓宮_裕真",
@@ -8320,7 +8757,8 @@
       "sb": 0,
       "k_pct": 33.3,
       "bb_pct": 0.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "香月_一也",
@@ -8339,7 +8777,8 @@
       "sb": 2,
       "k_pct": 18.3,
       "bb_pct": 11.9,
-      "war": null
+      "war": null,
+      "hr_pct": 0.9
     },
     {
       "id": "駿太",
@@ -8358,7 +8797,8 @@
       "sb": 0,
       "k_pct": 15.7,
       "bb_pct": 15.7,
-      "war": null
+      "war": null,
+      "hr_pct": 1.3
     },
     {
       "id": "高橋_周平",
@@ -8377,7 +8817,8 @@
       "sb": 1,
       "k_pct": 14.3,
       "bb_pct": 11.4,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "高見澤_郁魅",
@@ -8396,7 +8837,8 @@
       "sb": 0,
       "k_pct": 23.0,
       "bb_pct": 5.7,
-      "war": null
+      "war": null,
+      "hr_pct": 1.1
     },
     {
       "id": "髙寺_望夢",
@@ -8415,7 +8857,8 @@
       "sb": 2,
       "k_pct": 15.6,
       "bb_pct": 4.4,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "髙木_翔斗",
@@ -8434,7 +8877,8 @@
       "sb": 0,
       "k_pct": 14.8,
       "bb_pct": 7.4,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "髙松_渡",
@@ -8453,7 +8897,8 @@
       "sb": 10,
       "k_pct": 20.4,
       "bb_pct": 2.0,
-      "war": null
+      "war": null,
+      "hr_pct": 2.0
     },
     {
       "id": "髙部_瑛斗",
@@ -8472,7 +8917,8 @@
       "sb": 1,
       "k_pct": 15.4,
       "bb_pct": 7.7,
-      "war": null
+      "war": null,
+      "hr_pct": 3.8
     },
     {
       "id": "髙野_光海",
@@ -8491,7 +8937,8 @@
       "sb": 0,
       "k_pct": 50.0,
       "bb_pct": 2.4,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "髙野_颯太",
@@ -8510,7 +8957,8 @@
       "sb": 2,
       "k_pct": 27.6,
       "bb_pct": 4.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "鵜飼_航丞",
@@ -8529,7 +8977,8 @@
       "sb": 10,
       "k_pct": 17.0,
       "bb_pct": 8.8,
-      "war": null
+      "war": null,
+      "hr_pct": 2.2
     },
     {
       "id": "麦谷_祐介",
@@ -8548,7 +8997,8 @@
       "sb": 4,
       "k_pct": 28.3,
       "bb_pct": 4.3,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "黒川_史陽",
@@ -8567,7 +9017,8 @@
       "sb": 1,
       "k_pct": 17.1,
       "bb_pct": 14.6,
-      "war": null
+      "war": null,
+      "hr_pct": 2.4
     },
     {
       "id": "齋藤_大翔",
@@ -8586,7 +9037,8 @@
       "sb": 7,
       "k_pct": 17.9,
       "bb_pct": 8.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     },
     {
       "id": "龍山_暖",
@@ -8605,7 +9057,8 @@
       "sb": 0,
       "k_pct": 36.4,
       "bb_pct": 0.0,
-      "war": null
+      "war": null,
+      "hr_pct": 0.0
     }
   ]
 }

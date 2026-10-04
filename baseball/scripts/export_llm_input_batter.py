@@ -63,6 +63,7 @@ import pandas as pd
 
 # 日別JSONの読み込みロジックは投手版と完全に共通のため使い回す
 from export_llm_input import load_daily_games
+from index_fields import batter_index_extra
 from player_identity import disambiguate_same_name, canonicalize_by_id, same_name_conflicts, _entries as _player_entries
 from jsonio import read_json, write_json, exists_json, prune_orphan_cards
 
@@ -1887,6 +1888,7 @@ def export_llm_input_batter_xlsx(games_json_dir: str, out_path: str, min_pa: flo
                 "hr": full_card.get("hr"), "rbi": full_card.get("rbi"), "sb": full_card.get("sb"),
                 "k_pct": full_card.get("k_pct_season"), "bb_pct": full_card.get("bb_pct_season"),
                 "war": latest_overall.get("war"),
+                **batter_index_extra(latest_overall),   # 順位の付け直し（画面）用の追加指標
             })
         with open(os.path.join(numeric_json_dir, "index.json"), "w", encoding="utf-8") as f:
             json.dump({"players": index_players}, f, ensure_ascii=False, indent=2)
