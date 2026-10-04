@@ -16677,15 +16677,15 @@
       "name": "Joe Smith",
       "team": "SEA",
       "role": "中継ぎ",
-      "innings": "39.1",
-      "innings_num": 39.3,
+      "innings": "39.2",
+      "innings_num": 39.7,
       "categories": [
         "ゴロピッチャー",
         "シンカーピッチャー",
         "スライダーピッチャー",
         "フォーシームピッチャー"
       ],
-      "era": 5.03,
+      "era": 4.99,
       "war": 0.22,
       "k_bb_pct": 15.0,
       "k_pct": 19.7,
