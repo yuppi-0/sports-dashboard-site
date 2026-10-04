@@ -101,9 +101,9 @@ def run_one(level: str, date: str, timeout: int) -> bool:
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("target")
-    ap.add_argument("--days", type=int, default=21)
+    ap.add_argument("--days", type=int, default=3, help="日程と突き合わせる日数（毎日実行しているので、直近の前日＋数日で足りる。広く調べたいときは手動実行で増やす）")
     ap.add_argument("--max-dates", type=int, default=4, help="1回の実行で取り直す 日付×リーグ の上限")
-    ap.add_argument("--correction-days", type=int, default=7, help="この日数以内の保存済み試合を現在のページと比べ、公式記録の訂正があれば取り直す（0で無効）")
+    ap.add_argument("--correction-days", type=int, default=3, help="この日数以内の保存済み試合を現在のページと比べ、公式記録の訂正があれば取り直す（0で無効）")
     ap.add_argument("--budget-sec", type=int, default=600, help="この秒数を超えたら新しい取り直しを始めない")
     ap.add_argument("--run-timeout", type=int, default=300, help="1回の取り直し（run.py）の制限時間（秒）")
     ap.add_argument("--base", default=str(DEFAULT_BASE))
