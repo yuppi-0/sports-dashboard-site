@@ -53,6 +53,28 @@ def game_ids(year: str) -> list:
     return ids
 
 
+def multi_team_names(year: str) -> dict:
+    """シーズン中に2球団以上で出場した選手名 {"bat": {名前}, "pit": {名前}}（移籍した選手）。
+    Yahoo!の選手ページの今季の行は球団別（現在の球団の分だけ）なので、当サイトの全球団合計とは合わない。比較の対象外にするために使う。"""
+    teams = {"bat": {}, "pit": {}}
+    for f in sorted(glob.glob(str(ROOT / "docs/baseball/data/プロ野球" / f"{year}年" / "1軍" / "レギュラーシーズン" / "games" / "json" / "*.json*"))):
+        d = json.load(gzip.open(f, "rt", encoding="utf-8")) if f.endswith(".gz") else json.load(open(f, encoding="utf-8"))
+        for v in d.values():
+            if not isinstance(v, list):
+                continue
+            for g in v:
+                if not isinstance(g, dict):
+                    continue
+                for kind, key in (("bat", "batters"), ("pit", "pitchers")):
+                    if not isinstance(g.get(key), dict):
+                        continue
+                    for side in ("home", "away"):
+                        for p in g[key].get(side) or []:
+                            if isinstance(p, dict) and p.get("name") and g.get(side):
+                                teams[kind].setdefault(norm(p["name"]), set()).add(g[side])
+    return {k: {n for n, t in v.items() if len(t) >= 2} for k, v in teams.items()}
+
+
 def player_ids(gids: list) -> set:
     out: set = set()
     for i, gid in enumerate(gids):
@@ -66,6 +88,10 @@ def player_ids(gids: list) -> set:
             print(f"  試合ページ {i}/{len(gids)}: 選手 {len(out)}人", flush=True)
         time.sleep(0.15)
     return out
+
+
+def mine_games(card: dict, kind: str):
+    return card.get("games")
 
 
 def season_rows(soup) -> dict:
@@ -96,13 +122,14 @@ def main() -> None:
         for p in json.load(open(base / d / "index.json", encoding="utf-8"))["players"]:
             card = json.load(gzip.open(base / d / f"{p['id']}.json.gz", "rt", encoding="utf-8"))
             cards[kind].setdefault(norm(card["name"]), []).append(card)
+    traded = multi_team_names(args.year)
     gids = game_ids(args.year)
     if args.max_games:
         gids = gids[:args.max_games]
     print(f"試合 {len(gids)} 件から選手IDを集めます")
     pids = sorted(player_ids(gids))
     print(f"選手ID {len(pids)}人 → 選手ページを確認します")
-    stat = {"bat": [0, 0, 0], "pit": [0, 0, 0]}   # 照合, 不一致, カード無し
+    stat = {"bat": [0, 0, 0, 0], "pit": [0, 0, 0, 0]}   # 照合, 不一致, カード無し, 移籍で比較対象外
     for i, pid in enumerate(pids):
         soup = npb.get_soup(f"{npb.BASE_URL}/player/{pid}/top")
         time.sleep(0.15)
@@ -138,14 +165,18 @@ def main() -> None:
                 if abs(o - m) > tol:
                     diffs.append(f"{jp} 当サイト{mine}/公式{off}")
             stat[kind][0] += 1
+            if diffs and name in traded[kind] and (num(mine_games(card, kind)) or 0) >= (g_official or 0):
+                stat[kind][3] += 1       # 移籍した選手：球団別の公式と全球団合計の当サイトは合わないので不一致に数えない
+                print(f"  [{'打者' if kind == 'bat' else '投手'}] {name} (ID {pid}): 移籍のため球団別の公式とは比べられません（" + ", ".join(diffs[:2]) + "…）")
+                continue
             if diffs:
                 stat[kind][1] += 1
                 print(f"  [{'打者' if kind == 'bat' else '投手'}] {name} (ID {pid}): " + ", ".join(diffs))
         if i % 100 == 0:
             print(f"  選手ページ {i}/{len(pids)}", flush=True)
     for kind, label in (("bat", "打者"), ("pit", "投手")):
-        c, b, n = stat[kind]
-        print(f"\n===== {label}: 照合 {c}人 / ずれ {b}人 / サイトにカードが無い {n}人 =====")
+        c, b, n, t = stat[kind]
+        print(f"\n===== {label}: 照合 {c}人 / ずれ {b}人 / 移籍で比較対象外 {t}人 / サイトにカードが無い {n}人 =====")
 
 
 if __name__ == "__main__":
