@@ -2165,7 +2165,7 @@ def build_game_batter_stats(df: pd.DataFrame) -> pd.DataFrame:
         except (ValueError, TypeError):
             pos_val = ""
         rows.append({"試合ID":str(gid),"試合日":str(row0["game_date"])[:10],
-                     "選手名":name,"チーム":team,"ホーム/アウェイ":ha,
+                     "選手名":name,"打者ID":int(bid),"チーム":team,"ホーム/アウェイ":ha,
                      "打順":0,"守備位置":pos_val,"stand":_stand,**stats})
     return pd.DataFrame(rows)
 
@@ -2274,11 +2274,13 @@ def apply_official_pitching(stats: dict, box: dict | None) -> dict:
         "被安打": _i("hits"), "被本塁打": _i("homeRuns"),
         "与四球": bb, "与死球": _i("hitBatsmen"), "奪三振": so,
     })
-    if tbf > 0:
+    if box.get("battersFaced") is not None:
+        # 0でも公式の値を使う（打席の途中で降板すると、その打席は救援投手の対戦打者数になり、先発は0になる）。
+        # 以前は0を無視して投球データからの再集計値（1人）を残していたため、シーズンの対戦打者数が1多く、K%・BB%が低く出ていた。
         new["対戦打者数"] = tbf
         new["K%"] = _pct(so, tbf)
         new["BB%"] = _pct(bb, tbf)
-        new["K-BB%"] = _round(_safe(_pct(so, tbf), 0) - _safe(_pct(bb, tbf), 0), 1)
+        new["K-BB%"] = _round(_safe(_pct(so, tbf), 0) - _safe(_pct(bb, tbf), 0), 1) if tbf > 0 else np.nan
     return new
 
 
@@ -2299,7 +2301,7 @@ def build_game_pitcher_stats(df: pd.DataFrame) -> pd.DataFrame:
             stats = apply_official_pitching(stats, fetch_pitching_boxscore(gid).get(int(pid)))
 
         rows.append({"試合ID":str(gid),"試合日":str(row0["game_date"])[:10],
-                     "選手名":name,"チーム":team,"ホーム/アウェイ":ha,
+                     "選手名":name,"投手ID":int(pid),"チーム":team,"ホーム/アウェイ":ha,
                      "役割":_role(g,df,gid),"勝敗成績":"",**stats})
     return pd.DataFrame(rows)
 
@@ -4248,6 +4250,7 @@ def _build_game_json(dm_path: str, date: str,
         fb_n = _iv(r.get("FB")) or 0
         return {
             "name":    name,
+            "id":      (_iv(r.get("投手ID")) or None),   # MLBAM ID（シーズン集計で同一選手を判定する）
             "role":    _nv(r.get("役割"), ""),
             "hand":    hand_idx.get((gid, name), "R"),  # 利き手 (R/L)
             "result":  _nv(r.get("勝敗成績"), ""),
@@ -4304,6 +4307,7 @@ def _build_game_json(dm_path: str, date: str,
         return {
             "order":  _iv(r.get("打順")),
             "name":   _nv(r.get("選手名"), ""),
+            "id":     (_iv(r.get("打者ID")) or None),   # MLBAM ID（シーズン集計で同一選手を判定する）
             "pos":    _nv(r.get("守備位置"), ""),
             "bats":   bats,
             "abs":    abs_list,

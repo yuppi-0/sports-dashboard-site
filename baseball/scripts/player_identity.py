@@ -1,4 +1,11 @@
-"""同じシーズンに同姓同名の別人がいる選手（例: Max Muncy=LAD/ATH、Luis García、Will Smith）を別カードに分けるヘルパー。
+"""選手の同一性（同じ人は1枚、別人は別カード）をそろえるヘルパー。
+
+[選手IDがあるとき] 試合JSONの選手エントリに MLBAM ID（"id"）があれば、IDで同一選手を判定する。
+  ・表記が途中で変わる選手（Statcastの名前が "Zach" → "Zac" に変わる、アクセント有無の違い）は、最新の表記に統一して1枚にまとめる
+  ・同じ表記の別人（Max Muncy=LAD/ATH など）は、IDが違うので「名前 (チーム)」に分ける
+[選手IDが無いとき（古いデータ・NPB）] 下の日付の重なりで判定する。
+
+同じシーズンに同姓同名の別人がいる選手（例: Max Muncy=LAD/ATH、Luis García、Will Smith）を別カードに分けるヘルパー。
 
 試合JSONの選手エントリは名前しか持たないため、名前だけで集計すると別人の成績が1枚のカードに合算されてしまう
 （公式との突き合わせで、打席・打点・投球回が数十〜200単位でずれていた）。
@@ -60,3 +67,49 @@ def disambiguate_same_name(all_data: dict, key: str) -> dict:
                     if nk in conflict:
                         p["name"] = f"{_normalize(p['name'])} ({team})"
     return {k: sorted(v) for k, v in conflict.items()}
+
+
+def _entries(all_data: dict, key: str):
+    """(日付, 試合dict, チーム, 選手エントリ) を順に返す。"""
+    for date, games in all_data.items():
+        if date == "highlights" or str(date).startswith("_"):
+            continue
+        for g in games:
+            if not isinstance(g, dict) or not isinstance(g.get(key), dict):
+                continue
+            for side in ("home", "away"):
+                for p in (g[key].get(side) or []):
+                    if isinstance(p, dict) and p.get("name"):
+                        yield date, g, g.get(side), p
+
+
+def canonicalize_by_id(all_data: dict, key: str) -> dict:
+    """選手IDを持つエントリの名前を、IDごとに最新の表記へ統一し、同じ表記の別ID（別人）は「名前 (チーム)」に分ける（in-place）。
+    IDを持たないエントリには触らない。分けた名前の {名前キー: [チーム,...]} を返す。"""
+    latest: dict = {}     # id -> (日付, 名前)
+    for date, _g, _team, p in _entries(all_data, key):
+        pid = p.get("id")
+        if pid is None:
+            continue
+        nm = _normalize(p["name"])
+        cur = latest.get(pid)
+        if cur is None or (date, sum(ord(c) > 127 for c in nm)) >= (cur[0], sum(ord(c) > 127 for c in cur[1])):
+            latest[pid] = (date, nm)
+    if not latest:
+        return {}
+    ids_by_fold: dict = {}
+    for pid, (_d, nm) in latest.items():
+        ids_by_fold.setdefault(fold_name(nm), set()).add(pid)
+    clash = {k for k, v in ids_by_fold.items() if len(v) >= 2}
+    teams_of: dict = {}
+    for _date, _g, team, p in _entries(all_data, key):
+        pid = p.get("id")
+        if pid is None:
+            continue
+        nm = latest[pid][1]
+        if fold_name(nm) in clash and team:
+            p["name"] = f"{nm} ({team})"
+            teams_of.setdefault(fold_name(nm), set()).add(team)
+        else:
+            p["name"] = nm
+    return {k: sorted(v) for k, v in teams_of.items()}
