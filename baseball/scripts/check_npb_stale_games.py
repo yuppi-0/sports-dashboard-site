@@ -48,8 +48,14 @@ def diff_sheet(old: pd.DataFrame, new: pd.DataFrame, cols: list, with_cells: boo
             continue
         for c in use:
             a, b = str(r.get(c)).strip(), str(n.get(c)).strip()
-            if a != b and not (a in ("", "nan") and b in ("", "nan")):
-                out.append((k, c, a, b))
+            if a == b or (a in ("", "nan") and b in ("", "nan")):
+                continue
+            try:   # xlsx保存で「6」が「6.0」になる等の数値表記の違いは同じ値として扱う
+                if float(a) == float(b):
+                    continue
+            except ValueError:
+                pass
+            out.append((k, c, a, b))
     return out
 
 
