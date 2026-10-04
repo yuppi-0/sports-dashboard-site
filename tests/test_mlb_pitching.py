@@ -48,3 +48,11 @@ def test_official_batting_falls_back():
     assert mlb.apply_official_batting(stats, {}) is stats
     assert mlb.apply_official_batting(stats, {"rbi": 2})["打点"] == 2     # 必須項目が無ければ打点だけ
     assert mlb.apply_official_batting(stats, {"rbi": None}) is stats
+
+
+def test_official_zero_batters_faced_is_respected():
+    # 打席の途中で降板した先発は公式の対戦打者数が0（その打席は救援投手に付く）。再集計値（1）を残さない
+    box = {"inningsPitched": "0.0", "runs": 0, "earnedRuns": 0, "hits": 0, "homeRuns": 0,
+           "baseOnBalls": 0, "hitByPitch": 0, "strikeOuts": 0, "battersFaced": 0}
+    out = mlb.apply_official_pitching({**RECOMPUTED, "対戦打者数": 1}, box)
+    assert out["対戦打者数"] == 0
