@@ -214,14 +214,70 @@ def _pct(n, d):
     return round(n / d * 100, 1) if d else None
 
 
+RANK_MIN_PA = 100                      # 順位の母集団に入る打席数（export_llm_input_batter.RANK_MIN_PA と同じ）
+QUALIFYING_PA_PER_GAME = 3.1           # 規定打席＝チーム試合数×3.1
+RANK_MIN_IP = {"先発": 15.0, "中継ぎ": 10.0}   # 投手の順位は役割別、この投球回以上が母集団（export_llm_input と同じ）
+BAT_RANK_SPECS = [("avg", True), ("obp", True), ("slg", True), ("ops", True), ("hr", True), ("sb", True),
+                  ("k_pct", False), ("bb_pct", True)]
+PIT_RANK_SPECS = [("era", False), ("k_bb_pct", True), ("k_pct", True), ("bb_pct", False)]
+
+
+def _rank_pool(values: dict, higher_is_better: bool) -> dict:
+    """{名前: 値} → {名前: {rank, total}}（同値は同順位にせず並び順で付ける＝本編と同じ）。"""
+    valid = sorted(((n, v) for n, v in values.items() if v is not None), key=lambda x: -x[1] if higher_is_better else x[1])
+    return {n: {"rank": i, "total": len(valid)} for i, (n, _) in enumerate(valid, start=1)}
+
+
+def team_games_of(batters: dict) -> dict:
+    """球団ごとのチーム試合数の推定＝その球団の打者の最大出場試合数（フル出場の選手が必ずいる）。"""
+    out: dict = {}
+    for b in batters.values():
+        out[b["team"]] = max(out.get(b["team"], 0), b["試合"])
+    return out
+
+
+def batter_rankings(batters: dict, names: list) -> tuple:
+    """({名前: {all30:{指標:{rank,total}}, qualified:{…}}}, {名前: (規定打席到達か, 規定打席)})。
+    all30 は打席100以上の全打者、qualified は規定打席到達者だけを母集団にする（2026年のカードと同じ2母集団）。"""
+    tg = team_games_of(batters)
+    thr = {n: round(tg.get(batters[n]["team"], 0) * QUALIFYING_PA_PER_GAME, 1) for n in names}
+    qual = {n: bool(thr[n]) and batters[n]["打席"] >= thr[n] for n in names}
+    rows = {n: {**batters[n], "k_pct": _pct(batters[n]["三振"], batters[n]["打席"]),
+                "bb_pct": _pct(batters[n]["四球"], batters[n]["打席"]),
+                "hr": batters[n]["本塁打"], "sb": batters[n]["盗塁"]} for n in names}
+    res = {n: {"all30": {}, "qualified": {}} for n in names}
+    for pool_name, ok in (("all30", lambda n: rows[n]["打席"] >= RANK_MIN_PA), ("qualified", lambda n: qual[n])):
+        members = [n for n in names if ok(n)]
+        for key, hib in BAT_RANK_SPECS:
+            for n, r in _rank_pool({n: rows[n].get(key) for n in members}, hib).items():
+                res[n][pool_name][key] = r
+    return res, {n: (qual[n], thr[n] or None) for n in names}, tg
+
+
+def pitcher_rankings(pitchers: dict) -> dict:
+    """役割（先発/中継ぎ）別、資格投球回以上を母集団にした {名前: {era:{rank,total,role}, …}}。
+    資格未満の選手は rank=None（カードは「-」を表示）。"""
+    res = {n: {} for n in pitchers}
+    for role, thr in RANK_MIN_IP.items():
+        role_rows = {n: p for n, p in pitchers.items() if p["role"] == role}
+        qualified = {n: p for n, p in role_rows.items() if p["outs"] / 3 >= thr}
+        vals = {n: {"era": p["era"], "k_pct": _pct(p["三振"], p["打者"]), "bb_pct": _pct(p["四球"], p["打者"]),
+                    "k_bb_pct": _pct(p["三振"] - p["四球"], p["打者"])} for n, p in qualified.items()}
+        for key, hib in PIT_RANK_SPECS:
+            ranked = _rank_pool({n: v[key] for n, v in vals.items()}, hib)
+            for n in role_rows:
+                r = ranked.get(n)
+                res[n][key] = {"rank": r["rank"] if r else None, "total": len(qualified), "role": role}
+    return res
+
+
 def build_batter_cards(batters: dict, pitchers: dict, year: int) -> tuple:
     """([index行], {id: カードJSON}) を返す。投手（投手成績に載る選手）は打席が少なければ打者カードを作らない。"""
     idx, cards = [], {}
-    for name, b in sorted(batters.items()):
-        if b["打席"] <= 0:
-            continue
-        if name in pitchers and b["打席"] < MIN_PA_TWO_WAY:
-            continue
+    names = [n for n, b in sorted(batters.items()) if b["打席"] > 0 and not (n in pitchers and b["打席"] < MIN_PA_TWO_WAY)]
+    ranks, qinfo, tgames = batter_rankings(batters, names)
+    for name in names:
+        b = batters[name]
         pid = slug(name)
         k_pct, bb_pct = _pct(b["三振"], b["打席"]), _pct(b["四球"], b["打席"])
         overall = {"games": b["試合"], "pa": b["打席"], "ab": b["打数"], "h": b["安打"], "hr": b["本塁打"], "bb": b["四球"],
@@ -232,7 +288,9 @@ def build_batter_cards(batters: dict, pitchers: dict, year: int) -> tuple:
             **{k: overall[k] for k in ("games", "pa", "ab", "h", "hr", "bb", "k", "rbi", "sb", "avg", "obp", "slg", "ops")},
             "k_pct_season": k_pct, "bb_pct_season": bb_pct,
             "rankings": {}, "game_log": [], "categories": [],
-            "seasons": {str(year): {"team": b["team"], "pos": None, "bats": None, "overall": overall, "splits": {}}},
+            "seasons": {str(year): {"team": b["team"], "pos": None, "bats": None, "overall": overall, "splits": {},
+                                    "qualifiedPA": qinfo[name][0], "qualifiedPAThreshold": qinfo[name][1],
+                                    "teamGames": tgames.get(b["team"]), "rankings": ranks[name]}},
             "source": "npb.jp", "d2": b["二塁打"], "d3": b["三塁打"], "hbp": b["死球"], "sf": b["犠飛"], "sh": b["犠打"],
         }
         idx.append({"id": pid, "name": name, "team": b["team"], "pos": None, "categories": [], "games": b["試合"], "pa": b["打席"],
@@ -243,6 +301,7 @@ def build_batter_cards(batters: dict, pitchers: dict, year: int) -> tuple:
 
 def build_pitcher_cards(pitchers: dict, year: int) -> tuple:
     idx, cards = [], {}
+    prk = pitcher_rankings(pitchers)
     for name, p in sorted(pitchers.items()):
         if p["outs"] <= 0 and p["登板"] <= 0:
             continue
@@ -255,7 +314,7 @@ def build_pitcher_cards(pitchers: dict, year: int) -> tuple:
             "era": p["era"], "war": None, "k_bb_pct": kbb, "gb_pct": None, "k": p["三振"], "bb": p["四球"],
             "k_pct_season": k_pct, "bb_pct_season": bb_pct, "kbb_pct_season": kbb,
             "pitch_evaluations_numeric": [], "season_pitch_detail": {}, "season_totals": {}, "season_course_detail": {},
-            "season_course_locs": {}, "game_log": [], "vs_batters": [], "rankings": {}, "rankings_by_hand": {}, "categories": [],
+            "season_course_locs": {}, "game_log": [], "vs_batters": [], "rankings": prk[name], "rankings_by_hand": {}, "categories": [],
             "source": "npb.jp", "h": p["安打"], "hr": p["本塁打"], "hbp": p["死球"], "r": p["失点"], "er": p["自責点"], "tbf": tbf,
             "w": p["勝利"], "l": p["敗北"], "sv": p["セーブ"], "hld": p["ホールド"], "whip": p["whip"], "k9": p["k9"],
         }

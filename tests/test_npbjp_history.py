@@ -99,3 +99,23 @@ def test_parse_2024_pitching_with_header_row_named_pitcher():
     assert len(rows) == 1
     r = rows[0]
     assert r["選手"] == "アドゥワ誠" and r["投球回"] == "106.1" and r["三振"] == "61" and r["防御率"] == "3.13" and r["セーブ"] == "0"
+
+
+def test_rankings_for_batters_and_pitchers():
+    def bat(team, g, pa, avg, so, bb, hr=1):
+        return {"team": team, "試合": g, "打席": pa, "打数": pa - bb, "安打": 1, "二塁打": 0, "三塁打": 0, "本塁打": hr, "塁打": 1,
+                "打点": 1, "盗塁": 0, "盗塁刺": 0, "三振": so, "四球": bb, "死球": 0, "犠飛": 0, "犠打": 0, "avg": avg, "obp": avg, "slg": avg, "ops": avg * 2}
+    batters = {"A": bat("巨人", 143, 600, .300, 100, 60), "B": bat("巨人", 140, 450, .280, 50, 30), "C": bat("巨人", 60, 150, .250, 40, 10),
+               "D": bat("巨人", 10, 50, .400, 5, 5)}
+    _, cards = nh.build_batter_cards(batters, {}, 2024)
+    sa = cards[nh.slug("A")]["seasons"]["2024"]
+    assert sa["qualifiedPA"] is True and sa["rankings"]["all30"]["avg"] == {"rank": 1, "total": 3}      # D(打席50)は母集団外
+    assert sa["rankings"]["qualified"]["avg"] == {"rank": 1, "total": 2}                                # A,Bが規定(443.3)到達
+    assert cards[nh.slug("C")]["seasons"]["2024"]["qualifiedPA"] is False and cards[nh.slug("C")]["seasons"]["2024"]["rankings"]["qualified"] == {}
+    assert sa["rankings"]["all30"]["k_pct"]["rank"] == 2                                                # K%は低いほど良い（A=16.7% < C=26.7%、B=11.1%が1位）
+    assert cards[nh.slug("D")]["seasons"]["2024"]["rankings"]["all30"] == {}
+    pit = {n: {"role": "先発", "outs": o, "era": e, "三振": k, "四球": b, "打者": 400, "登板": 20} for n, o, e, k, b in
+           (("P1", 540, 2.0, 150, 30), ("P2", 450, 3.0, 100, 40), ("P3", 30, 1.0, 10, 1))}
+    r = nh.pitcher_rankings(pit)
+    assert r["P1"]["era"] == {"rank": 1, "total": 2, "role": "先発"} and r["P2"]["bb_pct"]["rank"] == 2
+    assert r["P3"]["era"] == {"rank": None, "total": 2, "role": "先発"}
