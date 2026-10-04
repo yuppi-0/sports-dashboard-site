@@ -71,30 +71,50 @@ def _num(s: str):
 
 
 def parse_table(soup, kind: str) -> list:
-    """個人成績ページから [{見出し: 値}] を返す。kind='bat'（打率の列がある表）/'pit'（防御率の列がある表）。"""
+    """個人成績ページから [{見出し: 値}] を返す。kind='bat'（打率の列がある表）/'pit'（防御率の列がある表）。
+
+    ページの形は年度で違う:
+      ・2025年: 見出しの先頭が「選手」、行の先頭が選手名。投球回は1つのセル（<span>で整数部と小数部）
+      ・2021年: 見出しの先頭に左右打の記号の空の列があり、行も先頭に記号の列
+      ・2024年の投手: 行が <tr class="ststats"> で、選手名は <td class="stplayer">。投球回は整数部と小数部の2つのセルに分かれる
+    見出し・名前の位置から値のセルを数え直して、どの形でも同じ辞書にする。"""
     key = "打率" if kind == "bat" else "防御率"
     best = None
     for t in soup.find_all("table"):
         rows = t.find_all("tr")
-        heads = None
         for i, tr in enumerate(rows):
             cells = [_norm(c.get_text()) for c in tr.find_all(["th", "td"])]
-            if key in cells and "選手" in cells:
-                heads, start = cells, i + 1
+            if key in cells:
+                if best is None or len(rows) > best[2]:
+                    best = (cells, rows[i + 1:], len(rows))
                 break
-        if heads and (best is None or len(rows) > best[2]):
-            best = (heads, [r for r in rows[start:]], len(rows))
     if not best:
         return []
     heads, rows, _ = best
+    name_i = heads.index("選手") if "選手" in heads else 0
+    heads_after = heads[name_i + 1:]
     out = []
     for tr in rows:
-        cells = [c.get_text(strip=True) for c in tr.find_all(["th", "td"])]
-        if len(cells) != len(heads) or not cells[heads.index("選手")]:
+        tds = tr.find_all(["th", "td"])
+        texts = [c.get_text(strip=True) for c in tds]
+        named = tr.find("td", class_="stplayer")
+        if named is not None:
+            pos = tds.index(named)
+        else:
+            pos = name_i
+        if len(texts) <= pos + 1:
             continue
-        row = dict(zip(heads, cells))
-        row["選手"] = clean_name(row["選手"])
-        if row["選手"] and row.get("試合" if kind == "bat" else "登板") not in (None, ""):
+        name = clean_name(texts[pos])
+        vals = texts[pos + 1:]
+        if "投球回" in heads_after and len(vals) == len(heads_after) + 1:
+            i = heads_after.index("投球回")           # 投球回が整数部と小数部の2セルに分かれているページ
+            frac = vals[i + 1] if vals[i + 1].startswith(".") else ""
+            vals = vals[:i] + [vals[i] + frac] + vals[i + 2:]
+        if not name or len(vals) != len(heads_after):
+            continue
+        row = dict(zip(heads_after, vals))
+        row["選手"] = name
+        if row.get("試合" if kind == "bat" else "登板") not in (None, ""):
             out.append(row)
     return out
 

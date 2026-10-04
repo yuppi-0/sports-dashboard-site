@@ -65,3 +65,17 @@ def test_pitchers_and_cards():
     bi, bc = nh.build_batter_cards(nh.merge_batters(brows), p, 2025)
     assert {x["id"] for x in bi} == {"秋山_翔吾", "會澤_翼"}
     assert bc["秋山_翔吾"]["seasons"]["2025"]["overall"]["pa"] == 157
+
+
+PIT_2024 = """<table><tr><td>*左投</td><td>ホール：ホールド</td></tr>
+<tr><th></th><th>選手</th><th>登板</th><th>勝利</th><th>敗北</th><th>セーブ</th><th>ホールド</th><th>ＨＰ</th><th>完投</th><th>完封勝</th><th>無四球</th><th>勝率</th><th>打者</th><th colspan="2">投球回</th><th>安打</th><th>本塁打</th><th>四球</th><th>故意四</th><th>死球</th><th>三振</th><th>暴投</th><th>ボーク</th><th>失点</th><th>自責点</th><th>防御率</th></tr>
+<tr class="ststats"><td><br /></td><td class="stplayer">大瀬良　大地</td><td>25</td><td>6</td><td>6</td><td>0</td><td>0</td><td>0</td><td>2</td><td>1</td><td>0</td><td>.500</td><td>627</td><td align="right">155</td><td align="left"><br /></td><td>118</td><td>5</td><td>49</td><td>3</td><td>3</td><td>98</td><td>0</td><td>0</td><td>37</td><td>32</td><td>1.86</td></tr>
+<tr class="ststats"><td>*</td><td class="stplayer">森浦　大輔</td><td>50</td><td>2</td><td>3</td><td>0</td><td>10</td><td>0</td><td>0</td><td>0</td><td>0</td><td>.400</td><td>200</td><td align="right">47</td><td align="left">.1</td><td>40</td><td>2</td><td>15</td><td>1</td><td>2</td><td>40</td><td>0</td><td>0</td><td>12</td><td>11</td><td>2.10</td></tr></table>"""
+
+
+def test_parse_2024_pitching_layout_with_split_innings_cells():
+    rows = nh.parse_table(soup(PIT_2024), "pit")
+    assert [r["選手"] for r in rows] == ["大瀬良 大地", "森浦 大輔"]
+    assert (rows[0]["投球回"], rows[0]["打者"], rows[0]["防御率"]) == ("155", "627", "1.86")
+    assert rows[1]["投球回"] == "47.1" and rows[1]["自責点"] == "11"
+    assert nh.merge_pitchers([dict(r, team="広島") for r in rows])["大瀬良 大地"]["innings"] == "155.0"
