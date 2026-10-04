@@ -219,6 +219,10 @@ QUALIFYING_PA_PER_GAME = 3.1           # 規定打席＝チーム試合数×3.1
 RANK_MIN_IP = {"先発": 15.0, "中継ぎ": 10.0}   # 投手の順位は役割別、この投球回以上が母集団（export_llm_input と同じ）
 BAT_RANK_SPECS = [("avg", True), ("obp", True), ("slg", True), ("ops", True), ("hr", True), ("sb", True),
                   ("k_pct", False), ("bb_pct", True)]
+# 「シーズン打撃成績」（年度別の一覧）が使う順位。season.splitRankings[母集団]["all"]。母集団は
+# all30＝打席30以上（未満は rank=None）、qualified＝規定打席到達者（export_llm_input_batter と同じ）
+SPLIT_RANK_SPECS = BAT_RANK_SPECS[:4] + [("rbi", True), ("hr", True), ("hr_pct", True), ("sb", True), ("k_pct", False), ("bb_pct", True)]
+SPLIT_RANK_MIN_PA = 30
 PIT_RANK_SPECS = [("era", False), ("k_bb_pct", True), ("k_pct", True), ("bb_pct", False)]
 
 
@@ -251,7 +255,17 @@ def batter_rankings(batters: dict, names: list) -> tuple:
         for key, hib in BAT_RANK_SPECS:
             for n, r in _rank_pool({n: rows[n].get(key) for n in members}, hib).items():
                 res[n][pool_name][key] = r
-    return res, {n: (qual[n], thr[n] or None) for n in names}, tg
+    split = {n: {"all30": {"all": {}}, "qualified": {"all": {}}} for n in names}
+    srows = {n: {**rows[n], "rbi": batters[n]["打点"], "hr_pct": _pct(batters[n]["本塁打"], batters[n]["打席"])} for n in names}
+    for pool_name, members in (("all30", names), ("qualified", [n for n in names if qual[n]])):
+        for key, hib in SPLIT_RANK_SPECS:
+            ranked_in = [n for n in members if pool_name == "qualified" or srows[n]["打席"] >= SPLIT_RANK_MIN_PA]
+            ranked = _rank_pool({n: srows[n].get(key) for n in ranked_in}, hib)
+            total = len(ranked)
+            for n in members:
+                if n in ranked or (pool_name == "all30" and srows[n]["打席"] < SPLIT_RANK_MIN_PA):
+                    split[n][pool_name]["all"][key] = {"rank": ranked[n]["rank"] if n in ranked else None, "total": total}
+    return res, {n: (qual[n], thr[n] or None) for n in names}, tg, split
 
 
 def pitcher_rankings(pitchers: dict) -> dict:
@@ -275,7 +289,7 @@ def build_batter_cards(batters: dict, pitchers: dict, year: int) -> tuple:
     """([index行], {id: カードJSON}) を返す。投手（投手成績に載る選手）は打席が少なければ打者カードを作らない。"""
     idx, cards = [], {}
     names = [n for n, b in sorted(batters.items()) if b["打席"] > 0 and not (n in pitchers and b["打席"] < MIN_PA_TWO_WAY)]
-    ranks, qinfo, tgames = batter_rankings(batters, names)
+    ranks, qinfo, tgames, split = batter_rankings(batters, names)
     for name in names:
         b = batters[name]
         pid = slug(name)
@@ -290,7 +304,8 @@ def build_batter_cards(batters: dict, pitchers: dict, year: int) -> tuple:
             "rankings": {}, "game_log": [], "categories": [],
             "seasons": {str(year): {"team": b["team"], "pos": None, "bats": None, "overall": overall, "splits": {},
                                     "qualifiedPA": qinfo[name][0], "qualifiedPAThreshold": qinfo[name][1],
-                                    "teamGames": tgames.get(b["team"]), "rankings": ranks[name]}},
+                                    "teamGames": tgames.get(b["team"]), "rankings": ranks[name],
+                                    "splitRankings": split[name]}},
             "source": "npb.jp", "d2": b["二塁打"], "d3": b["三塁打"], "hbp": b["死球"], "sf": b["犠飛"], "sh": b["犠打"],
         }
         idx.append({"id": pid, "name": name, "team": b["team"], "pos": None, "categories": [], "games": b["試合"], "pa": b["打席"],
