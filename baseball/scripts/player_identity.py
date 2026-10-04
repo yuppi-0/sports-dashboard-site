@@ -30,10 +30,8 @@ def _normalize(name: str) -> str:
     return name
 
 
-def disambiguate_same_name(all_data: dict, key: str) -> dict:
-    """all_data[日付] = [試合dict, ...]（試合dict[key]["home"/"away"] = 選手エントリのリスト）を調べ、
-    同じ日に別チームで同名の選手がいる名前だけ、エントリのnameを「名前 (チーム)」に書き換える（in-place）。
-    key は "pitchers" か "batters"。書き換えた {名前の小文字キー: [チーム,...]} を返す。"""
+def same_name_conflicts(all_data: dict, key: str) -> dict:
+    """同じ日に別チームで同名の選手がいる名前 {名前の小文字キー: {チーム,...}}（書き換えはしない）。"""
     teams_by_date: dict = {}   # (名前キー, 日付) -> {チーム}
     for date, games in all_data.items():
         if date == "highlights" or str(date).startswith("_"):
@@ -50,6 +48,18 @@ def disambiguate_same_name(all_data: dict, key: str) -> dict:
     for (nk, _date), teams in teams_by_date.items():
         if len(teams) >= 2:
             conflict.setdefault(nk, set()).update(teams)
+    return conflict
+
+
+def disambiguate_same_name(all_data: dict, key: str, extra_conflicts: dict | None = None) -> dict:
+    """all_data[日付] = [試合dict, ...]（試合dict[key]["home"/"away"] = 選手エントリのリスト）を調べ、
+    同じ日に別チームで同名の選手がいる名前だけ、エントリのnameを「名前 (チーム)」に書き換える（in-place）。
+    key は "pitchers" か "batters"。書き換えた {名前の小文字キー: [チーム,...]} を返す。
+    extra_conflicts: 反対側（投手↔打者）で同姓同名の別人と分かった {名前キー: {チーム}}。投手側だけでは同じ日に
+    重ならない別人（例: 投手のオスナ=ソフトバンクと、野手登板が1試合だけのヤクルトのオスナ）も、これで分けられる。"""
+    conflict = same_name_conflicts(all_data, key)
+    for nk, teams in (extra_conflicts or {}).items():
+        conflict.setdefault(nk, set()).update(teams)
     if not conflict:
         return {}
     for date, games in all_data.items():

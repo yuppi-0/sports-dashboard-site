@@ -54,3 +54,22 @@ def test_id_less_entries_are_left_alone():
     data = {"2026-05-21": [gid("NYM", "CIN", [{"name": "Thornton, Zach"}], [])]}
     assert pi.canonicalize_by_id(data, "pitchers") == {}
     assert data["2026-05-21"][0]["pitchers"]["home"][0]["name"] == "Thornton, Zach"
+
+
+def test_pitcher_namesake_is_split_using_batter_side_conflict():
+    """投手側だけでは同じ日に重ならない別人（野手登板が1試合だけのヤクルトのオスナ）も、打者側で同日に別チームと分かれば分ける。"""
+    from player_identity import disambiguate_same_name, same_name_conflicts
+    def game(date, home, away, batters, pitchers):
+        return {"home": home, "away": away, "batters": {"home": [{"name": n} for n in batters.get("home", [])], "away": [{"name": n} for n in batters.get("away", [])]},
+                "pitchers": {"home": [{"name": n} for n in pitchers.get("home", [])], "away": [{"name": n} for n in pitchers.get("away", [])]}}
+    all_data = {
+        "2026-05-01": [game("2026-05-01", "ヤクルト", "ソフトバンク", {"home": ["オスナ"], "away": ["オスナ"]}, {"away": ["オスナ"]})],
+        "2026-05-02": [game("2026-05-02", "ヤクルト", "巨人", {}, {"home": ["オスナ"]})],      # 野手のオスナの登板（ヤクルト）
+    }
+    extra = same_name_conflicts(all_data, "batters")
+    assert extra == {"オスナ": {"ヤクルト", "ソフトバンク"}}
+    split = disambiguate_same_name(all_data, "pitchers", extra)
+    assert "オスナ" in split
+    names = {p["name"] for d in all_data.values() for g in d for side in ("home", "away") for p in g["pitchers"][side]}
+    assert names == {"オスナ (ソフトバンク)", "オスナ (ヤクルト)"}
+    assert disambiguate_same_name({"d": []}, "pitchers") == {}                                          # 余計な引数なしでも従来どおり

@@ -1,0 +1,29 @@
+name: NPB箱スコアのセル書式の調査
+
+# 打席別結果セルの書式（同じイニングに複数打席が入る場合など）を調べる読み取り専用ワークフロー。
+on:
+  workflow_dispatch:
+    inputs:
+      year:
+        description: '対象年'
+        required: false
+        default: '2026'
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: yuppi-0/sports-dashboard-data
+          token: ${{ secrets.DATA_REPO_TOKEN }}
+          path: data
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install pandas openpyxl
+      - run: python baseball/scripts/probe_npb_cells.py "data/baseball/プロ野球/${{ inputs.year }}年/1軍/レギュラーシーズン/raw" 2>&1 | cut -c1-3000
