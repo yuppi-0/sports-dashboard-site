@@ -281,6 +281,28 @@ def build_appearances_batter(all_data: dict, player_name: str) -> list[dict]:
     return appearances
 
 
+def count_pitching_only_games(all_data: dict, player_name: str) -> int:
+    """打席に立たず（打撃成績に行が無く）投手としてだけ出場した試合の数。
+    二刀流の選手（NPB: 柴田獅子・矢澤宏太など）は、公式の打者成績の「試合」に投手としての出場も含まれる
+    （Yahoo!の選手ページ: 柴田獅子 16試合、当サイトは打撃成績のある10試合）。打席の無い試合なので、他の打撃指標には影響しない。"""
+    name_norm = _fold_name(_normalize_name(player_name))
+    n = 0
+    for date, games in all_data.items():
+        if date == "highlights" or str(date).startswith("_"):
+            continue
+        for g in games:
+            if not isinstance(g, dict):
+                continue
+            for side in ("home", "away"):
+                bats = (g.get("batters") or {}).get(side) or []
+                pits = (g.get("pitchers") or {}).get(side) or []
+                in_pit = any(isinstance(p, dict) and _fold_name(_normalize_name(p.get("name") or "")) == name_norm for p in pits)
+                in_bat = any(isinstance(b, dict) and _fold_name(_normalize_name(b.get("name") or "")) == name_norm for b in bats)
+                if in_pit and not in_bat:
+                    n += 1
+    return n
+
+
 # ==================================================
 # Section 2. シーズン集計
 # ==================================================
@@ -1471,6 +1493,7 @@ def export_llm_input_batter_xlsx(games_json_dir: str, out_path: str, min_pa: flo
 
             season = calc_season_batter_stats(appearances)
             season["選手名"] = name
+            season["試合数"] += count_pitching_only_games(all_data, name)   # 二刀流: 投手だけで出た試合も公式の「試合」に含まれる
             # 盗塁・盗塁死のシーズン合計はStatsAPIの公式値を使う（Statcastの投球データには盗塁イベントが
             # 無く、試合から数えると常に0になるため）。守備キャッシュ(Runningシート)が無ければ従来のまま。
             _run = defense_cache.get(_normalize_name(name).lower(), {})

@@ -1430,7 +1430,7 @@ def box_batting_counts(row) -> dict | None:
     打数や出塁率・長打率がずれることがあったため、公式の数字を使う。
       打数・安打・本塁打・四球・死球・犠打・三振・打点: 箱スコアの列そのもの
       二塁打・三塁打・犠飛: 箱スコアに列が無いので、打席別結果（1回〜）の文字（左２・中３・右犠飛 等）から数える
-      打席 = 打数 + 四球 + 死球 + 犠打 + 犠飛（公式の定義）
+      打席 = 打数 + 四球 + 死球 + 犠打 + 犠飛 + 打撃妨害（公式の定義）
     必要な列が数値で読めなければ None（呼び出し側は従来の集計にフォールバックする）。
     """
     def n(col):
@@ -1445,10 +1445,13 @@ def box_batting_counts(row) -> dict | None:
     d2 = sum(1 for c in cells if re.search(r"[２2]$", c))
     d3 = sum(1 for c in cells if re.search(r"[３3]$", c))
     sf = sum(1 for c in cells if "犠飛" in c)
+    # 打撃妨害（打妨・捕妨など。走塁妨害＝走…は除く）は打数に入らないが、公式の打席数には数える
+    # （箱スコアに専用の列が無いので打席別結果の文字から数える。以前は数えておらず、該当選手の打席が公式より1少なかった）
+    intf = sum(1 for c in cells if "妨" in c and not c.startswith("走"))
     return {
         "ab": ab, "h": h, "hr": hr, "bb": bb, "hbp": hbp, "sh": sh, "sf": sf,
         "d2": d2, "d3": d3, "k": n("三振"), "rbi": n("打点"),
-        "pa": ab + bb + hbp + sh + sf,
+        "pa": ab + bb + hbp + sh + sf + intf,
     }
 
 
