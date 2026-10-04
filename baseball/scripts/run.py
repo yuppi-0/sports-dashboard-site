@@ -1147,15 +1147,19 @@ def run_pitch_scraper(target_game_ids: list[str] | None = None) -> str:
             if not ids:
                 print("この日の試合はありません。")
                 return ""
-        saved = known_game_folders()
-        if saved:
-            dropped = [g for g in ids if str(g) not in saved]
-            if dropped:
-                print(f"  [除外] この日の保存済み試合に無い試合IDは投球データを取得しません: {dropped}")
-            ids = [g for g in ids if str(g) in saved]
-            if not ids:
-                print("保存済みの試合がありません。")
-                return ""
+
+    # games ステップで保存済みの（この日の）試合だけを対象にする。試合IDを明示した再取得でも同じ。
+    # 以前は明示指定のときこの絞り込みが無く、日付範囲を指定して試合IDを渡すと、その試合の投球データが
+    # 範囲内の全日付のフォルダ（日程に無い試合＝練習試合扱いのフォルダ）に保存されていた。
+    saved = known_game_folders()
+    if saved or target_game_ids:
+        dropped = [g for g in ids if str(g) not in saved]
+        if dropped:
+            print(f"  [除外] この日の保存済み試合に無い試合IDは投球データを取得しません: {dropped}")
+        ids = [g for g in ids if str(g) in saved]
+        if not ids:
+            print("保存済みの試合がありません。")
+            return ""
 
     known = known_game_folders()
     sched = schedule_folder_map(game_ids=ids) if is_regular_folder(default_folder) else {}
