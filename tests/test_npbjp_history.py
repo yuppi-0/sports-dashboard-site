@@ -87,3 +87,15 @@ def test_parse_falls_back_to_default_columns_when_header_row_is_unreadable():
     rows = nh.parse_table(soup(html), "pit")
     assert [r["選手"] for r in rows] == ["大瀬良 大地", "森浦 大輔"]
     assert rows[1]["投球回"] == "47.1" and rows[1]["防御率"] == "2.10"
+
+
+PIT_2024_HEAD = """<table><tr><td>*左投</td></tr>
+<tr><th></th><th>投手</th><th>登板</th><th>勝利</th><th>敗北</th><th>セ｜ブ</th><th>ホ｜ル</th><th>ＨＰ</th><th>完投</th><th>完封勝</th><th>無四球</th><th>勝率</th><th>打者</th><th>投球回</th><th></th><th>安打</th><th>本塁打</th><th>四球</th><th>故意四</th><th>死球</th><th>三振</th><th>暴投</th><th>ボ｜ク</th><th>失点</th><th>自責点</th><th>防御率</th></tr>
+<tr class="ststats"><td></td><td class="stplayer">アドゥワ誠</td><td>20</td><td>6</td><td>4</td><td>0</td><td>0</td><td>0</td><td>1</td><td>1</td><td>0</td><td>.600</td><td>452</td><td>106</td><td>.1</td><td>102</td><td>9</td><td>29</td><td>2</td><td>5</td><td>61</td><td>0</td><td>0</td><td>43</td><td>37</td><td>3.13</td></tr></table>"""
+
+
+def test_parse_2024_pitching_with_header_row_named_pitcher():
+    rows = nh.parse_table(soup(PIT_2024_HEAD), "pit")
+    assert len(rows) == 1
+    r = rows[0]
+    assert r["選手"] == "アドゥワ誠" and r["投球回"] == "106.1" and r["三振"] == "61" and r["防御率"] == "3.13" and r["セーブ"] == "0"
