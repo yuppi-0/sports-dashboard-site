@@ -1,0 +1,32 @@
+name: MLB選手の試合別の公式突き合わせ（原因調査）
+
+# シーズン合計が公式とずれた選手について、どの試合がずれているかを出す読み取り専用ワークフロー。
+on:
+  workflow_dispatch:
+    inputs:
+      cases:
+        description: '「種別:年:選手名」をカンマ区切り（種別は pitching / hitting）。例: pitching:2021:Joe Smith,hitting:2024:Danny Jansen'
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install requests
+      - name: 突き合わせ
+        env:
+          CASES: ${{ inputs.cases }}
+        run: |
+          IFS=',' read -ra ARR <<< "$CASES"
+          for c in "${ARR[@]}"; do
+            IFS=':' read -r kind year name <<< "$c"
+            echo "##### $kind $year $name"
+            python baseball/scripts/diagnose_mlb_player.py --kind "$kind" --year "$year" "$name" || true
+          done
