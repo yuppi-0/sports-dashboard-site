@@ -14,6 +14,10 @@ on:
         description: '実行ステップ（games/highlights/datamart/llm_input/batter_llm_input/defense/all。スペース区切りで複数可。defenseは守備OAA・スプリントスピード・捕手フレーミング/PopTimeを取得するシーズン単位のステップで、allには含まれない）'
         required: false
         default: 'all'
+      refetch:
+        description: 'true にすると、保存済みのRAWキャッシュを使わずStatcastを取り直す（欠けた試合を補う。通常は空欄）'
+        required: false
+        default: ''
       years:
         description: 'defenseステップ専用：対象年をスペース区切りで複数指定（例: 2024 2025 2026。並列取得する）。空欄なら日付の年'
         required: false
@@ -99,7 +103,22 @@ jobs:
         run: |
           YEARS_ARG=""
           if [ -n "${{ inputs.years }}" ]; then YEARS_ARG="--year ${{ inputs.years }}"; fi
-          python baseball/scripts/run_mlb.py --date ${{ steps.date.outputs.date }} --steps ${{ steps.steps.outputs.steps }} ${{ steps.steps.outputs.skip_flags }} $YEARS_ARG
+          REFETCH_ARG=""
+          if [ "${{ inputs.refetch }}" = "true" ]; then REFETCH_ARG="--refetch"; fi
+          python baseball/scripts/run_mlb.py --date ${{ steps.date.outputs.date }} --steps ${{ steps.steps.outputs.steps }} ${{ steps.steps.outputs.skip_flags }} $YEARS_ARG $REFETCH_ARG
+
+      - name: 取りこぼした試合の自動取り直し（公式日程で終了済みなのにデータが無い試合）
+        if: steps.check.outputs.skip != 'true'
+        continue-on-error: true
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: |
+          STEPS_NOW="${{ inputs.steps || 'all' }}"
+          if echo " $STEPS_NOW " | grep -Eqw "all|games"; then
+            python baseball/scripts/backfill_missing_mlb_games.py "${{ steps.date.outputs.date }}" 2>&1 | tail -n 40
+          else
+            echo "games を含まないためスキップ"
+          fi
 
       - name: 活躍選手0件の日付がないか確認
         if: steps.check.outputs.skip != 'true'
