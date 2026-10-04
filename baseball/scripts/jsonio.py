@@ -67,3 +67,20 @@ def list_json_stems(json_dir: str) -> list[str]:
         if n.endswith(".json") and n != "index.json" and not n.startswith("season_"):
             names.add(n)
     return sorted(names)
+
+
+def prune_orphan_cards(json_dir: str, keep_ids, protect_prefixes=("pivot_population_",)) -> list[str]:
+    """選手カードJSON置き場から、選手一覧(index.json)に載らない古いファイルを削除して、削除した論理名を返す。
+    選手名の表記ゆれ・ID解決の失敗で出来た旧ファイル（例: josé_a_ferrer と jose_a_ferrer、数字だけの名前）が
+    残り続けないようにする。index.json と protect_prefixes で始まる補助ファイルは消さない。"""
+    keep = set(keep_ids)
+    removed = []
+    for f in os.listdir(json_dir):
+        stem = plain_path(f)
+        if not stem.endswith(".json") or stem == "index.json" or stem.startswith(tuple(protect_prefixes)):
+            continue
+        sid = stem[:-5]
+        if sid not in keep:
+            os.remove(os.path.join(json_dir, f))
+            removed.append(sid)
+    return sorted(set(removed))

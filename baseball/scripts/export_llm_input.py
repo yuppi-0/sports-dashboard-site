@@ -49,7 +49,8 @@ from collections import defaultdict
 
 import pandas as pd
 
-from jsonio import read_json, write_json, list_json_stems
+from player_identity import disambiguate_same_name
+from jsonio import read_json, write_json, list_json_stems, prune_orphan_cards
 
 
 # ==================================================
@@ -1542,6 +1543,9 @@ def export_llm_input_xlsx(games_json_dir: str, out_path: str, min_ip: float = 0.
     LLM出力（バッチJSON）とブラウザ内でマージして使う。
     """
     all_data = load_daily_games(games_json_dir)
+    _split = disambiguate_same_name(all_data, "pitchers")   # 同姓同名の別人を別カードに分ける
+    if _split:
+        print(f"  同姓同名の別人を分離: {', '.join(f'{k}={v}' for k, v in _split.items())}")
     names = set(target_names) if target_names else build_all_pitcher_names(all_data)
     pitcher_war = load_pitcher_war(mlb_defense_xlsx)   # {小文字の"first last": WAR}（MLBのみ。無ければ空）
 
@@ -1793,6 +1797,10 @@ def export_llm_input_xlsx(games_json_dir: str, out_path: str, min_ip: float = 0.
             })
         with open(os.path.join(numeric_json_dir, "index.json"), "w", encoding="utf-8") as f:
             json.dump({"players": index_players}, f, ensure_ascii=False, indent=2)
+        if not target_names:   # 全選手を出力したときだけ、一覧に載らない古いカードJSONを掃除する
+            _gone = prune_orphan_cards(numeric_json_dir, {p_["id"] for p_ in index_players})
+            if _gone:
+                print(f"  一覧に無い古いカードJSONを削除: {len(_gone)}件")
         print(f"  数値JSON: {len(index_players)}選手分を {numeric_json_dir} に出力")
 
     return out_path
