@@ -1,0 +1,19 @@
+name: npb.jp 成績ページの構造調査
+
+# npb.jp（NPB公式）の過去シーズン成績ページの構造を調べる読み取り専用ワークフロー。データは書き換えない。
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install requests beautifulsoup4 lxml
+      - run: python baseball/scripts/probe_npbjp.py 2>&1 || true
