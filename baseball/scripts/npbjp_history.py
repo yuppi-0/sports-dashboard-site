@@ -1,4 +1,4 @@
-"""過去シーズン（2021〜）のNPB1軍の打者・投手のシーズン成績を npb.jp（NPB公式）から取得し、既存の画面が読むカードJSONを作る。
+"""過去シーズン（2021〜）のNPB1軍の打者・投手のシーズン成績を npb.jp（NPB公式）から取得し、既存の画面が読むカードJSONを作る（--level 2 でファーム＝2軍）。
 
   python baseball/scripts/npbjp_history.py --years 2025 2024 --docs docs --raw data/baseball/プロ野球
 
@@ -134,11 +134,11 @@ def parse_table(soup, kind: str) -> list:
     return out
 
 
-def fetch_year(year: int) -> dict:
+def fetch_year(year: int, level: int = 1) -> dict:
     """球団別ページ（打撃・投手）を取得して {'batters': [...], 'pitchers': [...]} を返す（各行に team を付ける）。"""
     res = {"year": year, "batters": [], "pitchers": []}
     for code, team in TEAMS:
-        for kind, page, outkey in (("bat", "idb1", "batters"), ("pit", "idp1", "pitchers")):
+        for kind, page, outkey in (("bat", f"idb{level}", "batters"), ("pit", f"idp{level}", "pitchers")):
             soup = get_html(f"{BASE}/{year}/stats/{page}_{code}.html")
             time.sleep(0.4)
             if not soup:
@@ -339,8 +339,14 @@ def build_pitcher_cards(pitchers: dict, year: int) -> tuple:
     return idx, cards
 
 
-def write_cards(docs: Path, year: int, kind: str, idx: list, cards: dict) -> None:
-    d = docs / "baseball/data/プロ野球" / f"{year}年" / "1軍" / "レギュラーシーズン" / f"{kind}_cards_numeric"
+def level_dir(level: int) -> tuple:
+    """(階層名, 大会名)。1軍は 1軍/レギュラーシーズン、2軍は 2軍/公式戦（Yahoo!由来の既存データと同じ置き場所）。"""
+    return ("1軍", "レギュラーシーズン") if level == 1 else ("2軍", "公式戦")
+
+
+def write_cards(docs: Path, year: int, kind: str, idx: list, cards: dict, level: int = 1) -> None:
+    lv, comp = level_dir(level)
+    d = docs / "baseball/data/プロ野球" / f"{year}年" / lv / comp / f"{kind}_cards_numeric"
     d.mkdir(parents=True, exist_ok=True)
     for f in d.glob("*.json.gz"):      # 古いカードが残らないよう、その年のカードは作り直す
         f.unlink()
@@ -355,15 +361,17 @@ def main() -> None:
     ap.add_argument("--years", nargs="+", type=int, default=[2025, 2024, 2023, 2022, 2021])
     ap.add_argument("--docs", default="docs")
     ap.add_argument("--raw", default="data/baseball/プロ野球")
+    ap.add_argument("--level", type=int, choices=[1, 2], default=1, help="1=1軍（既定）、2=2軍（ファーム）")
     ap.add_argument("--from-raw", action="store_true", help="取得せず、保存済みの生データからカードだけ作り直す")
     args = ap.parse_args()
     for year in args.years:
-        raw_path = Path(args.raw) / f"{year}年" / "1軍" / "レギュラーシーズン" / "npbjp" / f"season_{year}.json"
+        lv, comp = level_dir(args.level)
+        raw_path = Path(args.raw) / f"{year}年" / lv / comp / "npbjp" / f"season_{year}.json"
         if args.from_raw and raw_path.exists():
             data = json.loads(raw_path.read_text(encoding="utf-8"))
         else:
-            print(f"{year}年を取得します")
-            data = fetch_year(year)
+            print(f"{year}年（{lv}）を取得します")
+            data = fetch_year(year, args.level)
             raw_path.parent.mkdir(parents=True, exist_ok=True)
             raw_path.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
         print(f"  {year}年: 打者の行 {len(data['batters'])} / 投手の行 {len(data['pitchers'])}")
@@ -373,8 +381,8 @@ def main() -> None:
         b, p = merge_batters(data["batters"]), merge_pitchers(data["pitchers"])
         bi, bc = build_batter_cards(b, p, year)
         pi, pc = build_pitcher_cards(p, year)
-        write_cards(Path(args.docs), year, "batter", bi, bc)
-        write_cards(Path(args.docs), year, "pitcher", pi, pc)
+        write_cards(Path(args.docs), year, "batter", bi, bc, args.level)
+        write_cards(Path(args.docs), year, "pitcher", pi, pc, args.level)
 
 
 if __name__ == "__main__":
