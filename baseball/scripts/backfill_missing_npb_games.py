@@ -1,4 +1,5 @@
-"""日程ページにあるのにRAWに無い試合（取得が丸ごと抜けた日・中止後の振替試合）を自動で取り直す。
+"""点検（find_incomplete_npb_games.py）で問題が見つかった試合を、その試合だけ自動で取り直す。
+日程ページにあるのにRAWに無い試合（取得が丸ごと抜けた日・中止後の振替試合）も含む。
 
   python baseball/scripts/backfill_missing_npb_games.py 2026-10-03 [--days 45] [--max-dates 10] [--dry-run]
 
@@ -7,7 +8,8 @@
 
 対象日の直近 --days 日について find_incomplete_npb_games.py --schedule で「日程にあるのにRAWに無い」試合を探し、
 該当する 日付×リーグ ごとに run.py（games pitch datamart）を実行する。取りこぼしは翌日以降の自動更新で自己修復される。
-未完了試合の再取得までは行わない（コールドゲーム等の誤検知で毎日取り直しになるのを避けるため）。
+点検で問題が出た試合は、取り直す（試合状態が終了でない・成績やスコアボードが無い・投球データの有無／最終回／過不足／重複・スコア不一致など）。
+取り直しは前日分だけを1回なので、コールドゲーム等で同じ問題が出続ける試合も、取り直しは1日1回で済む。
 
 実行時間を抑えるための仕組み（以前は取り直しを毎回10件×2軍まで走らせ、数十分〜数時間かかることがあった）:
   ・時間予算（--budget-sec、既定600秒）を超えたら新しい取り直しを始めない（残りは次回以降）
@@ -78,13 +80,39 @@ def find_missing(target: str, days: int, timeout: int = 300) -> list:
         if not out.exists():
             return []
         data = json.loads(out.read_text(encoding="utf-8"))
-    need: dict = {}
-    for p in data.get("problems", []):
-        if any(MARK in x for x in p.get("problems", [])):
-            gids = need.setdefault((p["level"], p["date"]), [])
-            if p.get("gid") and str(p["gid"]) not in gids:
-                gids.append(str(p["gid"]))
-    return [(lv, d, gids) for (lv, d), gids in sorted(need.items(), key=lambda x: (x[0][1], x[0][0]))]
+    return group_problems(data.get("problems", []))
+
+
+def group_problems(problems: list) -> list:
+    """点検で見つかった問題を、(リーグ, 日付) ごとに [(リーグ, 日付, [問題のある試合ID], [理由])] にまとめる。
+    試合IDがある問題は、その試合だけを取り直す対象にする（日程にあるのにRAWが無い・最後まで取れていない・投球データ不足や重複・
+    スコア不一致・成績が無い など、点検が出す問題すべて）。
+    試合IDが無い問題のうち、その日の all_games が無い／読めない場合は、その日を丸ごと取り直す対象（IDなし）にする。
+    それ以外のID無しの問題（別の日付と同じ試合を保存 など）は、日付単位の問題で試合を特定できないので、取り直さず警告に出すだけ。"""
+    groups: dict = {}
+    for p in problems:
+        if p.get("cancelled"):
+            continue
+        key = (p["level"], p["date"])
+        g = groups.setdefault(key, {"gids": [], "reasons": [], "whole_day": False})
+        reasons = p.get("problems", [])
+        if p.get("gid"):
+            gid = str(p["gid"])
+            if gid not in g["gids"]:
+                g["gids"].append(gid)
+            g["reasons"] += [f"{gid}: {x}" for x in reasons]
+        elif any(x.startswith("all_games") for x in reasons):
+            g["whole_day"] = True
+            g["reasons"] += reasons
+        else:
+            print(f"::warning::取り直せない問題（試合を特定できない）: {key[0]} {key[1]} {' / '.join(reasons)}")
+    out = []
+    for (lv, d), g in sorted(groups.items(), key=lambda x: (x[0][1], x[0][0])):
+        if g["whole_day"]:
+            out.append((lv, d, [], g["reasons"]))           # IDなし＝その日を丸ごと
+        elif g["gids"]:
+            out.append((lv, d, g["gids"], g["reasons"]))
+    return out
 
 
 def find_corrected(target: str, days: int) -> list:
@@ -131,11 +159,13 @@ def main() -> None:
         return time.monotonic() - t0 > args.budget_sec
 
     t_phase = time.monotonic()
-    found3 = find_missing(args.target, args.days, timeout=min(300, args.budget_sec))
-    print(f"[所要] 日程との突き合わせ {int(time.monotonic() - t_phase)}秒")
-    gids_of = {(lv, d): g for lv, d, g in found3}
-    found = [(lv, d) for lv, d, _g in found3]
-    print(f"取りこぼし（日程にあるのにRAWに無い）: {len(found)}件 {found}")
+    found4 = find_missing(args.target, args.days, timeout=min(300, args.budget_sec))
+    print(f"[所要] 点検（日程との突き合わせ含む） {int(time.monotonic() - t_phase)}秒")
+    gids_of = {(lv, d): g for lv, d, g, _r in found4}
+    found = [(lv, d) for lv, d, _g, _r in found4]
+    print(f"取り直す対象（点検で問題があった試合）: {len(found)}件")
+    for lv, d, g, reasons in found4:
+        print(f"  {lv} {d} 試合ID={g or '（その日を丸ごと）'} :: {' / '.join(reasons)[:300]}")
     # 出来なかった日を諦める（取り直しても生成されない日＝中止などは、毎日取り直し続けない）
     gave_up = [(lv, d) for lv, d in found if not eligible(state, lv, d, now) and state.get(f"{lv}|{d}", {}).get("tries", 0) >= MAX_TRIES]
     if gave_up:
@@ -152,13 +182,13 @@ def main() -> None:
             break
         if not args.dry_run:
             t_run = time.monotonic()
-            run_one(lv, d, args.run_timeout, gids_of.get((lv, d)))   # 抜けている試合だけ取得する
+            run_one(lv, d, args.run_timeout, gids_of.get((lv, d)))   # 問題があった試合だけ取得する
             print(f"[所要] 取り直し {lv} {d} {int(time.monotonic() - t_run)}秒")
             key = f"{lv}|{d}"
-            if raw_exists(base, year, lv, d):
-                state.pop(key, None)                     # 取れた
+            if gids_of.get((lv, d)) == [] and raw_exists(base, year, lv, d):
+                state.pop(key, None)                     # その日を丸ごと取り直して、RAWが出来た
             else:
-                st = state.setdefault(key, {"tries": 0})
+                st = state.setdefault(key, {"tries": 0})   # 試合単位の取り直しは直ったか分からないので、試した回数を数える（2回で諦める）
                 st["tries"] += 1
                 st["last"] = now
             save_state(state_path, state)
