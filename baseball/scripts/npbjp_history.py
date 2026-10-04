@@ -109,7 +109,11 @@ def fetch_year(year: int) -> dict:
             if not soup:
                 print(f"  [WARN] {year} {team} {outkey}: ページなし")
                 continue
-            for row in parse_table(soup, kind):
+            rows = parse_table(soup, kind)
+            if not rows:   # 解析できない形のページ：構造を調べられるよう見出しを出す
+                heads = [[_norm(c.get_text()) for c in (t.find("tr") or t).find_all(["th", "td"])][:8] for t in soup.find_all("table")[:4]]
+                print(f"  [WARN] {year} {team} {outkey}: 表を解析できません title={soup.title.get_text(strip=True) if soup.title else None} 表の見出し={heads}")
+            for row in rows:
                 row["team"] = team
                 res[outkey].append(row)
     return res
