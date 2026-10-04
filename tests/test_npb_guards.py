@@ -124,3 +124,28 @@ def test_explicit_game_ids_only_for_saved_games_of_the_date(monkeypatch):
     monkeypatch.setattr(npb, "known_game_folders", lambda *a, **k: {})
     assert npb.run_pitch_scraper(target_game_ids=["2021039035"]) == ""
     assert seen == []
+
+
+# ── 取りこぼし取り直しの打ち切り（実行時間を抑える） ──
+def test_backfill_gives_up_dates_that_never_get_generated():
+    import backfill_missing_npb_games as bf
+    now = 1_000_000.0
+    assert bf.eligible({}, "2軍", "2026-09-01", now)                                    # 初めては取り直す
+    st = {"2軍|2026-09-01": {"tries": 1, "last": now - 3600}}
+    assert not bf.eligible(st, "2軍", "2026-09-01", now)                                # 直後は間隔を空ける
+    assert bf.eligible(st, "2軍", "2026-09-01", now + 21 * 3600)                        # 間隔が空けばもう1回
+    st = {"2軍|2026-09-01": {"tries": bf.MAX_TRIES, "last": now - 99 * 3600}}
+    assert not bf.eligible(st, "2軍", "2026-09-01", now)                                # 2回試して出来なければ諦める
+
+
+def test_backfill_state_roundtrip_and_raw_exists(tmp_path):
+    import backfill_missing_npb_games as bf
+    sp = tmp_path / "_backfill_state.json"
+    assert bf.load_state(sp) == {}
+    bf.save_state(sp, {"1軍|2026-09-01": {"tries": 1, "last": 1.0}})
+    assert bf.load_state(sp)["1軍|2026-09-01"]["tries"] == 1
+    d = tmp_path / "2026年" / "2軍" / "公式戦" / "raw" / "2026-09-02"
+    d.mkdir(parents=True)
+    assert not bf.raw_exists(tmp_path, 2026, "2軍", "2026-09-02")
+    (d / "all_games_2026-09-02.xlsx").write_bytes(b"x")
+    assert bf.raw_exists(tmp_path, 2026, "2軍", "2026-09-02")
