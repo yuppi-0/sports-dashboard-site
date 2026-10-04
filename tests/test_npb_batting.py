@@ -67,3 +67,13 @@ def test_interference_counts_as_a_plate_appearance():
     # 走塁妨害（走…）は打席に数えない
     row2 = box(**{"打数": 4, "1回": "走妨"})
     assert npb.box_batting_counts(row2)["pa"] == 4
+
+
+def test_merge_extra_base_hits_fills_in_missing_second_plate_appearance():
+    from run import merge_extra_base_hits
+    # 箱スコアのセルから二塁打0（同じイニングの2打席目が落ちている）、投球データには二塁打1 → 1にする
+    assert merge_extra_base_hits(0, 0, 1, 0, h=2, hr=0) == (1, 0)
+    # 両方一致なら変えない
+    assert merge_extra_base_hits(2, 1, 2, 1, h=5, hr=1) == (2, 1)
+    # 投球データのほうが多くても、安打数を超える内訳は採らない（箱スコアを優先）
+    assert merge_extra_base_hits(1, 0, 2, 1, h=2, hr=0) == (1, 0)
