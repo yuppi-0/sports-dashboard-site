@@ -12,9 +12,9 @@
 取り直しは前日分だけを1回なので、コールドゲーム等で同じ問題が出続ける試合も、取り直しは1日1回で済む。
 
 実行時間を抑えるための仕組み（以前は取り直しを毎回10件×2軍まで走らせ、数十分〜数時間かかることがあった）:
-  ・時間予算（--budget-sec、既定600秒）を超えたら新しい取り直しを始めない（残りは次回以降）
-  ・取り直しても生成されない日（中止などで試合が無い）を記録（_backfill_state.json）し、2回試して出来なければ諦める＝毎日取り直し続けない
-  ・1回の取り直しにも時間制限（--run-timeout、既定300秒）
+  ・時間予算（--budget-sec、既定は制限なし）。毎日の対象は前日分の問題のある試合だけで少ない。手動で広く調べるときに指定できる
+  ・取り直しても生成されない日（中止などで試合が無い）を記録（_backfill_state.json）し、1回試して直らなければ諦める＝毎日取り直し続けない
+  ・1回の取り直しにも時間制限（--run-timeout、既定1800秒。その日を丸ごと取り直すと10分以上かかることがある）
   ・1軍を優先し、新しい日付から取り直す
 """
 from __future__ import annotations
@@ -30,7 +30,7 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 MARK = "日程にあるのにRAWに無い"
 DEFAULT_BASE = Path("data/baseball/プロ野球")
-MAX_TRIES = 2          # 取り直しても生成されなかった日は、これだけ試したら諦める
+MAX_TRIES = 1          # 取り直しは1回だけ（もう一度取り直しても変わらないので、再試行しない）
 RETRY_AFTER_H = 20     # 同じ日を取り直す最短間隔（時間）
 
 
@@ -143,8 +143,8 @@ def main() -> None:
     ap.add_argument("--days", type=int, default=1, help="確認する日数（対象日の前日からさかのぼる。1＝前日だけ。毎日実行しているので1で足りる。広く調べたいときは手動実行で増やす）")
     ap.add_argument("--max-dates", type=int, default=4, help="1回の実行で取り直す 日付×リーグ の上限")
     ap.add_argument("--correction-days", type=int, default=1, help="対象日の前日からこの日数ぶんの保存済み試合を現在のページと比べ、公式記録の訂正があれば取り直す（0で無効）")
-    ap.add_argument("--budget-sec", type=int, default=600, help="この秒数を超えたら新しい取り直しを始めない")
-    ap.add_argument("--run-timeout", type=int, default=300, help="1回の取り直し（run.py）の制限時間（秒）")
+    ap.add_argument("--budget-sec", type=int, default=0, help="この秒数を超えたら新しい取り直しを始めない（0＝制限なし。毎日の件数は前日分の問題のある試合だけで少ないので既定は制限しない）")
+    ap.add_argument("--run-timeout", type=int, default=1800, help="1回の取り直し（run.py）の制限時間（秒）。その日を丸ごと取り直すと10分以上かかることがあるので長めにしてある")
     ap.add_argument("--base", default=str(DEFAULT_BASE))
     ap.add_argument("--dry-run", action="store_true")
     args = ap.parse_args()
@@ -156,10 +156,10 @@ def main() -> None:
     now = time.time()
 
     def over_budget() -> bool:
-        return time.monotonic() - t0 > args.budget_sec
+        return args.budget_sec > 0 and time.monotonic() - t0 > args.budget_sec
 
     t_phase = time.monotonic()
-    found4 = find_missing(args.target, args.days, timeout=min(300, args.budget_sec))
+    found4 = find_missing(args.target, args.days, timeout=1800)
     print(f"[所要] 点検（日程との突き合わせ含む） {int(time.monotonic() - t_phase)}秒")
     gids_of = {(lv, d): g for lv, d, g, _r in found4}
     found = [(lv, d) for lv, d, _g, _r in found4]

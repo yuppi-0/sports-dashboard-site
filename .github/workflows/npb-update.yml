@@ -238,7 +238,7 @@ jobs:
       - name: 取りこぼした試合の自動取り直し（日程にあるのにRAWが無い日・振替試合）
         if: steps.check.outputs.skip != 'true' && inputs.game_ids == ''
         continue-on-error: true
-        timeout-minutes: 20    # 万一長引いても、ここで打ち切って次のコミット手順に進む（残りは次回以降）
+        timeout-minutes: 45    # 万一長引いても、ここで打ち切って次のコミット手順に進む（通常は前日分の問題のある試合だけなので、これに達しない）
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           BACKFILL_ARGS: ${{ inputs.backfill_days && format('--days {0} --correction-days {0}', inputs.backfill_days) || '' }}
