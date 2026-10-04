@@ -32,6 +32,27 @@ def outs(ip) -> int:
     return int(a) * 3 + int(b or 0)
 
 
+def _sum_stats(stats: list, kind: str) -> dict:
+    """同じ日の公式の複数試合（ダブルヘッダー）を合算する。"""
+    out: dict = {}
+    keys = (["inningsPitched", "strikeOuts", "baseOnBalls", "hits", "earnedRuns"] if kind == "pitching" else
+            ["plateAppearances", "atBats", "hits", "baseOnBalls", "strikeOuts", "homeRuns", "rbi", "stolenBases"])
+    for k in keys:
+        if k == "inningsPitched":
+            out[k] = sum(outs(x.get(k)) for x in stats)
+        else:
+            out[k] = sum(int(x.get(k) or 0) for x in stats)
+    return out
+
+
+def _sum_site(games: list, kind: str) -> dict:
+    keys = ["ip", "k", "bb", "h", "er"] if kind == "pitching" else ["pa", "ab", "h", "bb", "k", "hr", "rbi"]
+    out: dict = {}
+    for k in keys:
+        out[k] = sum(outs(g.get(k)) if k == "ip" else int(g.get(k) or 0) for g in games)
+    return out
+
+
 def load_card(year: str, kind: str, name: str):
     sub = "pitcher" if kind == "pitching" else "batter"
     d = ROOT / "docs/baseball/data/MLB" / f"{year}年" / "公式戦" / f"{sub}_cards_numeric"
@@ -80,8 +101,12 @@ def main() -> None:
         print(f"\n=== {nm} id={pid} 公式 {len(splits)}試合 / 当サイト {sum(len(v) for v in site.values())}試合 ===")
         seen = seen_all
         missing = 0
+        by_date: dict = {}
         for sp in splits:
-            d, st = sp["date"], sp["stat"]
+            by_date.setdefault(sp["date"], []).append(sp)
+        for d, sps in sorted(by_date.items()):
+            sp = sps[0]
+            st = _sum_stats([x["stat"] for x in sps], a.kind)
             seen.add(d)
             gs = site.get(d)
             if not gs:
@@ -92,10 +117,10 @@ def main() -> None:
                       (f"IP {st.get('inningsPitched')} K {st.get('strikeOuts')} BB {st.get('baseOnBalls')} H {st.get('hits')} ER {st.get('earnedRuns')}"
                        if a.kind == "pitching" else f"PA {st.get('plateAppearances')} AB {st.get('atBats')} H {st.get('hits')} BB {st.get('baseOnBalls')} SB {st.get('stolenBases')}"))
                 continue
-            g = gs[0]
+            g = _sum_site(gs, a.kind)
             if a.kind == "pitching":
-                o = (outs(st.get("inningsPitched")), st.get("strikeOuts"), st.get("baseOnBalls"), st.get("hits"), st.get("earnedRuns"))
-                m = (outs(g.get("ip")), g.get("k"), g.get("bb"), g.get("h"), g.get("er"))
+                o = (st.get("inningsPitched"), st.get("strikeOuts"), st.get("baseOnBalls"), st.get("hits"), st.get("earnedRuns"))
+                m = (g.get("ip"), g.get("k"), g.get("bb"), g.get("h"), g.get("er"))
             else:
                 o = (st.get("plateAppearances"), st.get("atBats"), st.get("hits"), st.get("baseOnBalls"), st.get("strikeOuts"), st.get("homeRuns"), st.get("rbi"))
                 m = (g.get("pa"), g.get("ab"), g.get("h"), g.get("bb"), g.get("k"), g.get("hr"), g.get("rbi"))
