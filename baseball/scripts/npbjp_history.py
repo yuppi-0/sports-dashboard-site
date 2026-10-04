@@ -29,6 +29,11 @@ HEADERS = {"User-Agent": "Mozilla/5.0 (compatible; sports-dashboard)"}
 # npb.jp のファイル名の球団コード → 当サイトの球団名
 TEAMS = [("g", "巨人"), ("t", "阪神"), ("db", "DeNA"), ("c", "広島"), ("s", "ヤクルト"), ("d", "中日"),
          ("h", "ソフトバンク"), ("f", "日本ハム"), ("m", "ロッテ"), ("e", "楽天"), ("b", "オリックス"), ("l", "西武")]
+# 見出しの行が見つからないページ用の既定の列順（2021〜2025年のページで共通）
+BAT_HEADS = ["選手", "試合", "打席", "打数", "得点", "安打", "二塁打", "三塁打", "本塁打", "塁打", "打点", "盗塁", "盗塁刺", "犠打", "犠飛",
+             "四球", "故意四", "死球", "三振", "併殺打", "打率", "長打率", "出塁率"]
+PIT_HEADS = ["選手", "登板", "勝利", "敗北", "セーブ", "ホールド", "ＨＰ", "完投", "完封勝", "無四球", "勝率", "打者", "投球回", "安打", "本塁打",
+             "四球", "故意四", "死球", "三振", "暴投", "ボーク", "失点", "自責点", "防御率"]
 BAT_INT = ["試合", "打席", "打数", "得点", "安打", "二塁打", "三塁打", "本塁打", "塁打", "打点", "盗塁", "盗塁刺", "犠打", "犠飛", "四球", "故意四", "死球", "三振", "併殺打"]
 PIT_INT = ["登板", "勝利", "敗北", "セーブ", "ホールド", "ＨＰ", "完投", "完封勝", "無四球", "打者", "安打", "本塁打", "四球", "故意四", "死球", "三振", "暴投", "ボーク", "失点", "自責点"]
 MIN_PA_TWO_WAY = 100     # 投手でもこの打席数以上なら打者カードも作る（二刀流）
@@ -88,10 +93,15 @@ def parse_table(soup, kind: str) -> list:
                 if best is None or len(rows) > best[2]:
                     best = (cells, rows[i + 1:], len(rows))
                 break
-    if not best:
-        return []
-    heads, rows, _ = best
-    name_i = heads.index("選手") if "選手" in heads else 0
+    if best:
+        heads, rows, _ = best
+        name_i = heads.index("選手") if "選手" in heads else 0
+    else:
+        # 見出しの行を読めないページ（2024年以前の投手成績など）は、データ行（tr.ststats）と既定の列順で読む
+        rows = soup.find_all("tr", class_="ststats")
+        heads, name_i = (BAT_HEADS if kind == "bat" else PIT_HEADS), 0
+        if not rows:
+            return []
     heads_after = heads[name_i + 1:]
     out = []
     for tr in rows:
