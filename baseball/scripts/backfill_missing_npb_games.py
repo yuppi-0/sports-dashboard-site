@@ -58,10 +58,16 @@ def eligible(state: dict, level: str, date: str, now: float) -> bool:
     return (now - st.get("last", 0)) >= RETRY_AFTER_H * 3600
 
 
+def check_range(target: str, days: int) -> tuple:
+    """確認する日付の範囲 (開始, 終了)。対象日の「前日」から days 日ぶんさかのぼる。
+    対象日（当日）は、この実行の主な取得手順がちょうど取っている日なので含めない（翌日の実行が前日として確認する）。"""
+    last = datetime.date.fromisoformat(target.split(":")[-1]) - datetime.timedelta(days=1)
+    return last - datetime.timedelta(days=max(days, 1) - 1), last
+
+
 def find_missing(target: str, days: int, timeout: int = 300) -> list:
     """[(リーグ, 日付)] を返す。"""
-    end = datetime.date.fromisoformat(target.split(":")[-1])
-    start = end - datetime.timedelta(days=days)
+    start, end = check_range(target, days)
     with tempfile.TemporaryDirectory() as td:
         out = Path(td) / "r.json"
         try:
@@ -85,8 +91,7 @@ def find_corrected(target: str, days: int) -> list:
     """直近 days 日の保存済み1軍試合のうち、現在のYahoo!のページと違う（後日の公式記録の訂正が未反映の）日付を返す。"""
     sys.path.insert(0, str(HERE))
     import check_npb_stale_games as stale  # noqa: WPS433
-    end = datetime.date.fromisoformat(target.split(":")[-1])
-    start = end - datetime.timedelta(days=days)
+    start, end = check_range(target, days)
     root = Path(stale.BASE) / f"{end.year}年" / "1軍" / "レギュラーシーズン" / "raw"
     return stale.changed_dates(root, start.isoformat(), end.isoformat())
 
@@ -107,9 +112,9 @@ def run_one(level: str, date: str, timeout: int, game_ids: list | None = None) -
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("target")
-    ap.add_argument("--days", type=int, default=1, help="日程と突き合わせる日数（毎日実行しているので、前日で足りる。広く調べたいときは手動実行で増やす）")
+    ap.add_argument("--days", type=int, default=1, help="確認する日数（対象日の前日からさかのぼる。1＝前日だけ。毎日実行しているので1で足りる。広く調べたいときは手動実行で増やす）")
     ap.add_argument("--max-dates", type=int, default=4, help="1回の実行で取り直す 日付×リーグ の上限")
-    ap.add_argument("--correction-days", type=int, default=1, help="この日数以内の保存済み試合を現在のページと比べ、公式記録の訂正があれば取り直す（0で無効）")
+    ap.add_argument("--correction-days", type=int, default=1, help="対象日の前日からこの日数ぶんの保存済み試合を現在のページと比べ、公式記録の訂正があれば取り直す（0で無効）")
     ap.add_argument("--budget-sec", type=int, default=600, help="この秒数を超えたら新しい取り直しを始めない")
     ap.add_argument("--run-timeout", type=int, default=300, help="1回の取り直し（run.py）の制限時間（秒）")
     ap.add_argument("--base", default=str(DEFAULT_BASE))

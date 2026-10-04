@@ -22,8 +22,11 @@ FINAL = ("Final", "Game Over", "Completed Early")
 
 
 def missing_labels(target: str, days: int) -> list:
-    end = datetime.date.fromisoformat(target.split(":")[-1])
-    start = end - datetime.timedelta(days=days)
+    # target は日本時間の「今日」のラベル。この実行の主な取得手順は、米国日付 target-1日（ラベル target）の試合を取っているので、
+    # それは含めず、その前の日（米国日付 target-2日＝ラベル target-1日。日本時間の前日分）から days 日ぶんさかのぼって確認する
+    # （当日分は翌日の実行が前日として確認する）。
+    end = datetime.date.fromisoformat(target.split(":")[-1]) - datetime.timedelta(days=2)
+    start = end - datetime.timedelta(days=max(days, 1) - 1)
     ours = gap.our_games(str(end.year))
     labels = set()
     for g in gap.official(str(end.year)):
@@ -38,7 +41,7 @@ def missing_labels(target: str, days: int) -> list:
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("target")
-    ap.add_argument("--days", type=int, default=1, help="公式日程と突き合わせる日数（毎日実行しているので、前日で足りる。広く調べたいときは手動実行で増やす）")
+    ap.add_argument("--days", type=int, default=1, help="確認する日数（日本時間の前日からさかのぼる。1＝前日だけ。毎日実行しているので1で足りる。広く調べたいときは手動実行で増やす）")
     ap.add_argument("--max-dates", type=int, default=4)
     ap.add_argument("--dry-run", action="store_true")
     args = ap.parse_args()
