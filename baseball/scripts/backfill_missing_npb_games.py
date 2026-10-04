@@ -142,7 +142,7 @@ def main() -> None:
     ap.add_argument("target")
     ap.add_argument("--days", type=int, default=1, help="確認する日数（対象日の前日からさかのぼる。1＝前日だけ。毎日実行しているので1で足りる。広く調べたいときは手動実行で増やす）")
     ap.add_argument("--max-dates", type=int, default=4, help="1回の実行で取り直す 日付×リーグ の上限")
-    ap.add_argument("--correction-days", type=int, default=1, help="対象日の前日からこの日数ぶんの保存済み試合を現在のページと比べ、公式記録の訂正があれば取り直す（0で無効）")
+    ap.add_argument("--correction-days", type=int, default=0, help="対象日の前日からこの日数ぶんの保存済み試合を現在のページと比べ、公式記録の訂正があれば取り直す（0で無効＝既定）。公式記録の訂正は前日のうちには入らないことが多いので、毎日の実行では見ない。調べたいときは手動実行で日数を指定する")
     ap.add_argument("--budget-sec", type=int, default=0, help="この秒数を超えたら新しい取り直しを始めない（0＝制限なし。毎日の件数は前日分の問題のある試合だけで少ないので既定は制限しない）")
     ap.add_argument("--run-timeout", type=int, default=1800, help="1回の取り直し（run.py）の制限時間（秒）。その日を丸ごと取り直すと10分以上かかることがあるので長めにしてある")
     ap.add_argument("--base", default=str(DEFAULT_BASE))
