@@ -2086,8 +2086,9 @@ const sortDirBtnEl = el("#sortDirBtn");
 const aiOnlyFilterEl = el("#aiOnlyFilter");
 const minIpFilterEl = el("#minIpFilter");
 const yearSelectEl = el("#yearSelect");
-let filterYear = "";   // 年度フィルタ（空＝全年度）
+let filterYear = YEAR;   // 年度フィルタ（既定は最新年度。?year=で指定した年度ならその年度。空＝全年度）
 fillYearSelect(yearSelectEl);
+yearSelectEl.value = filterYear;
 yearSelectEl.addEventListener("change", () => { filterYear = yearSelectEl.value; renderPlayerList(applyFilters()); });
 const levelToggleEl = el("#levelToggle");
 const sidebarEl = el("#sidebar");
@@ -4925,8 +4926,9 @@ const sortDirBtnEl = el("#sortDirBtn");
 const aiOnlyFilterEl = el("#aiOnlyFilter");
 const minPaFilterEl = el("#minPaFilter");
 const yearSelectEl = el("#yearSelect");
-let filterYear = "";   // 年度フィルタ（空＝全年度）
+let filterYear = YEAR;   // 年度フィルタ（既定は最新年度。?year=で指定した年度ならその年度。空＝全年度）
 fillYearSelect(yearSelectEl);
+yearSelectEl.value = filterYear;
 yearSelectEl.addEventListener("change", () => { filterYear = yearSelectEl.value; renderPlayerList(); });
 const sidebarEl = el("#sidebar");
 const bodyLayoutEl = document.querySelector(".body-layout");
