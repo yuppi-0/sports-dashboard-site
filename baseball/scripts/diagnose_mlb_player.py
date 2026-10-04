@@ -88,10 +88,21 @@ def main() -> None:
     print("公式の該当選手:", ids)
     cards = list(load_card(a.year, a.kind, a.name))
     print("当サイトのカード:", [(f, c.get("team")) for f, c in cards])
+    # 当サイトの日付が米国の試合日そのままか、その翌日（日本時間表記）かは、公式の試合日と合う件数が多い方を採る
+    first = next(iter(ids), None)
+    official_dates: set = set()
+    for pid in ids:
+        gl0 = requests.get(f"{API}/people/{pid}/stats", params={"stats": "gameLog", "group": a.kind, "season": a.year,
+                                                                 "gameType": "R"}, timeout=60).json()
+        official_dates |= {sp["date"] for sp in ((gl0.get("stats") or [{}])[0].get("splits") or [])}
+    site_dates = [g["date"] for _f, c in cards for g in site_games(c, a.kind, a.year)]
+    shifts = {sh: sum((dt.date.fromisoformat(d) - dt.timedelta(days=sh)).isoformat() in official_dates for d in site_dates) for sh in (0, 1)}
+    shift = max(shifts, key=shifts.get)
+    print(f"日付のずらし（当サイトの日付−N日＝米国の試合日）: N={shift}（一致 {shifts}）")
     site = {}
     for _f, c in cards:
         for g in site_games(c, a.kind, a.year):
-            us = (dt.date.fromisoformat(g["date"]) - dt.timedelta(days=1)).isoformat()
+            us = (dt.date.fromisoformat(g["date"]) - dt.timedelta(days=shift)).isoformat()
             site.setdefault(us, []).append(g)
     seen_all: set = set()
     for pid, nm in ids.items():
