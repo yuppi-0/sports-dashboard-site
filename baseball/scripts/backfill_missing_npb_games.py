@@ -87,30 +87,26 @@ def group_problems(problems: list) -> list:
     """点検で見つかった問題を、(リーグ, 日付) ごとに [(リーグ, 日付, [問題のある試合ID], [理由])] にまとめる。
     試合IDがある問題は、その試合だけを取り直す対象にする（日程にあるのにRAWが無い・最後まで取れていない・投球データ不足や重複・
     スコア不一致・成績が無い など、点検が出す問題すべて）。
-    試合IDが無い問題のうち、その日の all_games が無い／読めない場合は、その日を丸ごと取り直す対象（IDなし）にする。
-    それ以外のID無しの問題（別の日付と同じ試合を保存 など）は、日付単位の問題で試合を特定できないので、取り直さず警告に出すだけ。"""
+    試合IDが無い問題（その日の all_games が無い・別の日付と同じ試合を保存 など）は、試合を特定できないので取り直さず、警告に出すだけ。
+    とくに「all_games無し」は、2軍のシーズン終了後や試合の無い日のフォルダにも出る（2026年は10月2〜4日の2軍など）ので、取り直しても意味がない。
+    本当に取りこぼした試合は、日程との突き合わせ（日程にあるのにRAWに無い）が試合IDつきで拾う。"""
     groups: dict = {}
     for p in problems:
         if p.get("cancelled"):
             continue
         key = (p["level"], p["date"])
-        g = groups.setdefault(key, {"gids": [], "reasons": [], "whole_day": False})
+        g = groups.setdefault(key, {"gids": [], "reasons": []})
         reasons = p.get("problems", [])
         if p.get("gid"):
             gid = str(p["gid"])
             if gid not in g["gids"]:
                 g["gids"].append(gid)
             g["reasons"] += [f"{gid}: {x}" for x in reasons]
-        elif any(x.startswith("all_games") for x in reasons):
-            g["whole_day"] = True
-            g["reasons"] += reasons
         else:
             print(f"::warning::取り直せない問題（試合を特定できない）: {key[0]} {key[1]} {' / '.join(reasons)}")
     out = []
     for (lv, d), g in sorted(groups.items(), key=lambda x: (x[0][1], x[0][0])):
-        if g["whole_day"]:
-            out.append((lv, d, [], g["reasons"]))           # IDなし＝その日を丸ごと
-        elif g["gids"]:
+        if g["gids"]:
             out.append((lv, d, g["gids"], g["reasons"]))
     return out
 
@@ -185,12 +181,9 @@ def main() -> None:
             run_one(lv, d, args.run_timeout, gids_of.get((lv, d)))   # 問題があった試合だけ取得する
             print(f"[所要] 取り直し {lv} {d} {int(time.monotonic() - t_run)}秒")
             key = f"{lv}|{d}"
-            if gids_of.get((lv, d)) == [] and raw_exists(base, year, lv, d):
-                state.pop(key, None)                     # その日を丸ごと取り直して、RAWが出来た
-            else:
-                st = state.setdefault(key, {"tries": 0})   # 試合単位の取り直しは直ったか分からないので、試した回数を数える（2回で諦める）
-                st["tries"] += 1
-                st["last"] = now
+            st = state.setdefault(key, {"tries": 0})       # 試合単位の取り直しは直ったか分からないので、試した回数を数える（1回で打ち止め）
+            st["tries"] += 1
+            st["last"] = now
             save_state(state_path, state)
         done.append((lv, d))
     if args.correction_days > 0 and not over_budget():

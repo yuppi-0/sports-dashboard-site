@@ -172,9 +172,9 @@ def test_backfill_groups_every_problem_game_by_id():
         {"level": "1軍", "date": "2026-10-03", "gid": "2026040001", "problems": ["投球データ最終回不一致(8回表/スコアボード9回)"]},
         {"level": "1軍", "date": "2026-10-03", "gid": "2026040002", "problems": ["日程にあるのにRAWに無い"]},
         {"level": "1軍", "date": "2026-10-03", "gid": "2026040001", "problems": ["投球データ不足(成績120/データ100)"]},     # 同じ試合は1つにまとめる
-        {"level": "2軍", "date": "2026-10-03", "gid": None, "problems": ["all_games無し"]},                              # その日が丸ごと無い
+        {"level": "2軍", "date": "2026-10-03", "gid": None, "problems": ["all_games無し"]},                              # 試合の無い日にも出る＝取り直さない
         {"level": "2軍", "date": "2026-10-02", "gid": None, "problems": ["別の日付(2026-10-01)と同じ試合を保存（3試合中3試合）"]},   # 試合を特定できない＝取り直さない
         {"level": "1軍", "date": "2026-10-03", "gid": "2026040003", "cancelled": True, "problems": []},                  # 中止は対象外
     ]
     got = bf.group_problems(problems)
-    assert [(lv, d, g) for lv, d, g, _ in got] == [("1軍", "2026-10-03", ["2026040001", "2026040002"]), ("2軍", "2026-10-03", [])]
+    assert [(lv, d, g) for lv, d, g, _ in got] == [("1軍", "2026-10-03", ["2026040001", "2026040002"])]
