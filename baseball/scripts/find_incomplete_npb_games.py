@@ -252,7 +252,8 @@ def main() -> None:
     scope = _date_scope(args.date)
     window = None
     if scope:
-        window = (scope[0] - datetime.timedelta(days=14), scope[1] + datetime.timedelta(days=14))
+        # 範囲の前後のRAWも読む（同じ試合が別の日付に保存されていないかの照合用）。あまり広げると毎日の実行が遅くなるので7日
+        window = (scope[0] - datetime.timedelta(days=7), scope[1] + datetime.timedelta(days=7))
     results = []
     raw_ids_by_key: dict = {}
     ids_by_type: dict = {}   # (リーグ, 試合種別) -> {日付: 試合IDの集合}
@@ -302,7 +303,9 @@ def main() -> None:
                                for (lv2, _gt), by_date in ids_by_type.items() if lv2 == lv for d in by_date)
             if not raw_dates:
                 continue
-            start, end = (window[0], scope[1]) if scope else (raw_dates[0], raw_dates[-1])
+            # 日程ページの取得は1日ごとに通信が要るので、日付指定のときは指定範囲だけにする
+            # （以前は前後の読み込み範囲まで日程と突き合わせていて、1日だけ指定しても十数日ぶん取りに行っていた）
+            start, end = (scope[0], scope[1]) if scope else (raw_dates[0], raw_dates[-1])
             start = max(start, raw_dates[0])
             end = min(end, datetime.date.today())
             d = start

@@ -125,7 +125,9 @@ def main() -> None:
     def over_budget() -> bool:
         return time.monotonic() - t0 > args.budget_sec
 
+    t_phase = time.monotonic()
     found3 = find_missing(args.target, args.days, timeout=min(300, args.budget_sec))
+    print(f"[所要] 日程との突き合わせ {int(time.monotonic() - t_phase)}秒")
     gids_of = {(lv, d): g for lv, d, g in found3}
     found = [(lv, d) for lv, d, _g in found3]
     print(f"取りこぼし（日程にあるのにRAWに無い）: {len(found)}件 {found}")
@@ -144,7 +146,9 @@ def main() -> None:
             print(f"::warning::時間予算（{args.budget_sec}秒）を超えたため、残りの取り直しは次回以降に回します")
             break
         if not args.dry_run:
+            t_run = time.monotonic()
             run_one(lv, d, args.run_timeout, gids_of.get((lv, d)))   # 抜けている試合だけ取得する
+            print(f"[所要] 取り直し {lv} {d} {int(time.monotonic() - t_run)}秒")
             key = f"{lv}|{d}"
             if raw_exists(base, year, lv, d):
                 state.pop(key, None)                     # 取れた
@@ -155,7 +159,9 @@ def main() -> None:
             save_state(state_path, state)
         done.append((lv, d))
     if args.correction_days > 0 and not over_budget():
+        t_phase = time.monotonic()
         corrected = find_corrected(args.target, args.correction_days)
+        print(f"[所要] 訂正の確認 {int(time.monotonic() - t_phase)}秒")
         print(f"公式記録の訂正が未反映の日（1軍）: {len(corrected)}件 {corrected}")
         for d in corrected[:args.max_dates]:
             if over_budget():
