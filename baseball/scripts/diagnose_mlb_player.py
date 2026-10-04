@@ -72,17 +72,22 @@ def main() -> None:
         for g in site_games(c, a.kind, a.year):
             us = (dt.date.fromisoformat(g["date"]) - dt.timedelta(days=1)).isoformat()
             site.setdefault(us, []).append(g)
+    seen_all: set = set()
     for pid, nm in ids.items():
         gl = requests.get(f"{API}/people/{pid}/stats", params={"stats": "gameLog", "group": a.kind, "season": a.year,
                                                                 "gameType": "R"}, timeout=60).json()
         splits = (gl.get("stats") or [{}])[0].get("splits") or []
         print(f"\n=== {nm} id={pid} 公式 {len(splits)}試合 / 当サイト {sum(len(v) for v in site.values())}試合 ===")
-        seen = set()
+        seen = seen_all
+        missing = 0
         for sp in splits:
             d, st = sp["date"], sp["stat"]
             seen.add(d)
             gs = site.get(d)
             if not gs:
+                missing += 1
+                if missing > 12:
+                    continue
                 print(f"  [当サイトに無い] {d} {sp.get('opponent', {}).get('name')} 公式: " +
                       (f"IP {st.get('inningsPitched')} K {st.get('strikeOuts')} BB {st.get('baseOnBalls')} H {st.get('hits')} ER {st.get('earnedRuns')}"
                        if a.kind == "pitching" else f"PA {st.get('plateAppearances')} AB {st.get('atBats')} H {st.get('hits')} BB {st.get('baseOnBalls')} SB {st.get('stolenBases')}"))
@@ -96,8 +101,10 @@ def main() -> None:
                 m = (g.get("pa"), g.get("ab"), g.get("h"), g.get("bb"), g.get("k"), g.get("hr"), g.get("rbi"))
             if tuple(o) != tuple(m):
                 print(f"  [値が違う] {d} 公式{o} / 当サイト{m}")
-        for d in sorted(set(site) - seen):
-            print(f"  [公式に無い] {d}")
+        if missing > 12:
+            print(f"  …（当サイトに無い試合は計{missing}件、同姓同名の別人の試合を含む可能性）")
+    extra = sorted(set(site) - seen_all)
+    print(f"\n当サイトにあって公式（上の全選手のgameLog）に無い試合: {len(extra)}件 {extra[:10]}")
 
 
 if __name__ == "__main__":
