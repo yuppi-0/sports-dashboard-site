@@ -2,6 +2,9 @@
 
   python baseball/scripts/backfill_missing_npb_games.py 2026-10-03 [--days 45] [--max-dates 10] [--dry-run]
 
+対象日の直近 --correction-days 日の保存済み試合は、現在のYahoo!のページと比べ、後日の公式記録の訂正（安打↔失策の判定変更など）が
+未反映なら、その日を取り直す。
+
 対象日の直近 --days 日について find_incomplete_npb_games.py --schedule で「日程にあるのにRAWに無い」試合を探し、
 該当する 日付×リーグ ごとに run.py（games pitch datamart）を実行する。取りこぼしは翌日以降の自動更新で自己修復される。
 未完了試合の再取得までは行わない（コールドゲーム等の誤検知で毎日取り直しになるのを避けるため）。
@@ -34,11 +37,22 @@ def find_missing(target: str, days: int) -> list:
     return sorted(need, key=lambda x: (x[1], x[0]))
 
 
+def find_corrected(target: str, days: int) -> list:
+    """直近 days 日の保存済み1軍試合のうち、現在のYahoo!のページと違う（後日の公式記録の訂正が未反映の）日付を返す。"""
+    sys.path.insert(0, str(HERE))
+    import check_npb_stale_games as stale  # noqa: WPS433
+    end = datetime.date.fromisoformat(target.split(":")[-1])
+    start = end - datetime.timedelta(days=days)
+    root = Path(stale.BASE) / f"{end.year}年" / "1軍" / "レギュラーシーズン" / "raw"
+    return stale.changed_dates(root, start.isoformat(), end.isoformat())
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("target")
     ap.add_argument("--days", type=int, default=45)
     ap.add_argument("--max-dates", type=int, default=10)
+    ap.add_argument("--correction-days", type=int, default=14, help="この日数以内の保存済み試合を現在のページと比べ、公式記録の訂正があれば取り直す（0で無効）")
     ap.add_argument("--dry-run", action="store_true")
     args = ap.parse_args()
     need = find_missing(args.target, args.days)
@@ -52,6 +66,16 @@ def main() -> None:
         print("実行:", " ".join(cmd))
         if not args.dry_run:
             subprocess.run(cmd, check=False)
+    if args.correction_days > 0:
+        corrected = find_corrected(args.target, args.correction_days)
+        print(f"公式記録の訂正が未反映の日（1軍）: {len(corrected)}件 {corrected}")
+        for d in corrected[:args.max_dates]:
+            cmd = [sys.executable, str(HERE / "run.py"), "--date", d, "--steps", "games", "pitch", "datamart", "--1軍"]
+            print("実行:", " ".join(cmd))
+            if not args.dry_run:
+                subprocess.run(cmd, check=False)
+        if corrected:
+            print(f"::warning::公式記録の訂正が未反映だった日を取り直しました: {', '.join(corrected)}")
     if need:
         print(f"::warning::取りこぼした試合を自動で取り直しました: {', '.join(f'{lv} {d}' for lv, d in need)}")
 
