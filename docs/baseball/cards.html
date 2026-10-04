@@ -1437,6 +1437,9 @@
           <button type="button" data-level="2">2軍</button>
         </div>
         <div class="filter-panel-row">
+          <select id="yearSelect" class="filter-select" title="年度"></select>
+        </div>
+        <div class="filter-panel-row">
           <select id="teamSelect" class="filter-select">
             <option value="">全チーム</option>
           </select>
@@ -1520,6 +1523,9 @@
           <button type="button" data-farm-level="ni">2軍</button>
         </div>
         <div class="filter-panel-row">
+          <select id="yearSelect" class="filter-select" title="年度"></select>
+        </div>
+        <div class="filter-panel-row">
           <div id="teamSelect" class="msel filter-msel"></div>
           <div id="posSelect" class="msel filter-msel"></div>
         </div>
@@ -1580,6 +1586,18 @@ const SHARED_PATHS = buildPaths(YEAR);
 const PATHS_BY_YEAR = {};
 AVAILABLE_YEARS.forEach(y => { PATHS_BY_YEAR[y] = buildPaths(y); });
 
+// 年度フィルタ：選んだ年度に成績がある選手だけにし、一覧の数値（OPS・防御率など）もその年度のものに差し替える。
+// yearが空なら全年度（最新年度の値）のまま。
+function entryForYear(p, year){
+  if(!year) return p;
+  if(!(p._years || []).includes(year)) return null;
+  const y = p._byYear && p._byYear[year];
+  return y ? { ...p, ...y, id: p.id, _years: p._years, _byYear: p._byYear } : p;
+}
+function fillYearSelect(selectEl){
+  selectEl.innerHTML = '<option value="">全年度</option>' + AVAILABLE_YEARS.map(y => `<option value="${y}">${y}年</option>`).join("");
+}
+
 // ── 2軍（ファーム）の複数年対応 ──
 // 1軍は年度ごとのフォルダから選手カードを集めて年度別成績を出すが、2軍も同じ年度構成（プロ野球/{年}年/2軍/公式戦）で
 // 持っている。2軍の一覧・カードも全年度ぶんを名前で集める（年度によってidの付け方が違っても、名前で突き合わせる）。
@@ -1601,8 +1619,8 @@ async function fetchUnionedFarmIndex(playerTypeKey, league){
   const byName = new Map();
   for(const { year, idx } of results){   // 新しい年度が先
     for(const p of ((idx && idx.players) || [])){
-      if(!byName.has(p.name)) byName.set(p.name, { ...p, _years: [year] });
-      else byName.get(p.name)._years.push(year);
+      if(!byName.has(p.name)) byName.set(p.name, { ...p, _years: [year], _byYear: { [year]: p } });
+      else { const e = byName.get(p.name); e._years.push(year); e._byYear[year] = p; }
     }
   }
   return byName.size ? { players: Array.from(byName.values()) } : null;
@@ -1641,8 +1659,8 @@ async function fetchUnionedPlayerIndex(playerTypeKey, league){
   const byId = new Map();
   for(const { year, players } of results){ // resultsはAVAILABLE_YEARSの順（新しい年度が先）
     for(const p of players){
-      if(!byId.has(p.id)) byId.set(p.id, { ...p, _years: [year] });
-      else byId.get(p.id)._years.push(year);
+      if(!byId.has(p.id)) byId.set(p.id, { ...p, _years: [year], _byYear: { [year]: p } });
+      else { const e = byId.get(p.id); e._years.push(year); e._byYear[year] = p; }
     }
   }
   if(byId.size === 0) throw new Error("index.json の取得に失敗しました");
@@ -2067,6 +2085,10 @@ const sortFieldEl = el("#sortField");
 const sortDirBtnEl = el("#sortDirBtn");
 const aiOnlyFilterEl = el("#aiOnlyFilter");
 const minIpFilterEl = el("#minIpFilter");
+const yearSelectEl = el("#yearSelect");
+let filterYear = "";   // 年度フィルタ（空＝全年度）
+fillYearSelect(yearSelectEl);
+yearSelectEl.addEventListener("change", () => { filterYear = yearSelectEl.value; renderPlayerList(applyFilters()); });
 const levelToggleEl = el("#levelToggle");
 const sidebarEl = el("#sidebar");
 const bodyLayoutEl = document.querySelector(".body-layout");
@@ -2442,12 +2464,13 @@ async function getFarmIndex(league){
 
 // 2軍の投手カードを全年度ぶん集めて、1軍と同じ形（_allYearCards・_availableYears・年度別シーズン成績）で返す。
 function buildFarmPitcherCard(cards, years){
-  const merged = mergeCardData(cards[years[0]], {});
+  const ay = (filterYear && years.includes(filterYear)) ? filterYear : years[0];   // 年度フィルタ中はその年度を開く
+  const merged = mergeCardData(cards[ay], {});
   merged._allYearCards = cards;
   merged._availableYears = years;
-  merged._activeYear = years[0];
+  merged._activeYear = ay;
   merged._llmRaw = null;
-  merged._llmYear = years[0];
+  merged._llmYear = ay;
   merged._seasonEntriesByYear = buildSeasonEntriesByYear(cards, years);
   merged.game_log = mergeGameLogsAcrossYears(cards, years);
   return merged;
@@ -2528,7 +2551,7 @@ async function selectPlayer(id, name){
     }));
     if(myToken !== selectPlayerToken) return;
     const availableYears = years.filter(y => allYearCards[y]);
-    const activeYear = availableYears[0];
+    const activeYear = (filterYear && availableYears.includes(filterYear)) ? filterYear : availableYears[0];   // 年度フィルタ中はその年度を開く
     const numeric = allYearCards[activeYear];
     if(!numeric) throw new Error(`選手データの取得に失敗しました`);
     const { data: llm, debugLog } = await findLlmDataForPlayer(name || numeric.name, numeric.team, numeric.role);
@@ -2594,7 +2617,7 @@ function applyFilters(){
   const team = teamSelectEl.value;
   const aiOnly = aiOnlyFilterEl.checked && selectedLevel !== "2";
   const minIp = parseFloat(minIpFilterEl.value);
-  const filtered = allPlayers.filter(p => {
+  const filtered = allPlayers.map(p => entryForYear(p, filterYear)).filter(Boolean).filter(p => {
     const matchesQuery = !q || (p.name || "").toLowerCase().includes(q);
     const matchesTeam = !team || p.team === team;
     const matchesAi = !aiOnly || playersWithLlmData.has(p.name);
@@ -4410,7 +4433,10 @@ let compareHand = "all"; // 複数選択時の球種比較テーブルで使う 
 let compareCountHand = "all"; // 行クリック／比較パネル内のカウント別配球で使う 全体/対右/対左
 
 function buildGameLogTable(d){
-  if(!d.game_log || !d.game_log.length) return { season: "", game: "" };
+  // 試合ログ（game_log）が無いカード（npb.jpから取り込んだ過去年度のカード等）でも、年度別のシーズン成績は必ず出す。
+  // 試合別（試合ログ）は試合データがあるときだけ出す。
+  const hasGameLog = !!(d.game_log && d.game_log.length);
+  d = hasGameLog ? d : { ...d, game_log: [] };
   const cols = [
     { key: "swstr_pct", label: "空振り率", good: "high", th: 12 },
     { key: "chase_pct", label: "ボール球SW%", good: "high", th: 30 },
@@ -4451,7 +4477,7 @@ function buildGameLogTable(d){
           const gy = dateYear(g.date);
           return gy && (!y || gy > y) ? gy : y;
         }, null);
-        return [{ year: latestYear || (d.season_label || "シーズン"), data: d, gidx: "season" }];
+        return [{ year: latestYear || d.latestYear || (d.years && d.years[0]) || (d.season_label || "シーズン"), data: d, gidx: "season" }];
       })();
   // シーズン別の表：結果（登板・防御率など）→ K-BB% → K% → BB% → ゴロ率 → 空振り率 → ボール球SW% → ストライク率 → ゾーン率 の順。
   // 各指標にその年度の順位と色を付ける。比較用チェックや行クリックでの移動は無し（年度比較は選手名横の年度選択で行う）。
@@ -4550,7 +4576,7 @@ function buildGameLogTable(d){
         ${seasonTabHtml}
       </div>
     </div>`,
-    game: `
+    game: !hasGameLog ? "" : `
     <div class="section section-gamelog">
       ${sectionHeader({ bar:"var(--amber)", label:"試合ログ", labelColor:"var(--text-bright)", sub:"試合別" })}
       <div class="section-body">
@@ -4898,6 +4924,10 @@ const sortFieldEl = el("#sortField");
 const sortDirBtnEl = el("#sortDirBtn");
 const aiOnlyFilterEl = el("#aiOnlyFilter");
 const minPaFilterEl = el("#minPaFilter");
+const yearSelectEl = el("#yearSelect");
+let filterYear = "";   // 年度フィルタ（空＝全年度）
+fillYearSelect(yearSelectEl);
+yearSelectEl.addEventListener("change", () => { filterYear = yearSelectEl.value; renderPlayerList(); });
 const sidebarEl = el("#sidebar");
 const bodyLayoutEl = document.querySelector(".body-layout");
 const sidebarSummaryNameEl = el("#sidebarSummaryName");
@@ -5188,7 +5218,7 @@ document.getElementById("farmLevelToggle").addEventListener("click", async (e) =
 });
 
 function filteredSortedPlayers(){
-  let list = allPlayers.slice();
+  let list = allPlayers.map(p => entryForYear(p, filterYear)).filter(Boolean);
   const q = searchInputEl.value.trim().toLowerCase();
   if(q) list = list.filter(p => (p.name || "").toLowerCase().includes(q));
   const teamSel = multiSelectValuesForFilter(teamSelectEl);
@@ -5369,6 +5399,7 @@ async function selectPlayer(id, name){
     activeCardData = card;
     currentSeasonYear = null;  // 選手が変わったら最新シーズンをデフォルト表示にリセット
     selectedYears = [];
+    { const sm = getSeasonsMap(card); if(filterYear && sm[filterYear]){ currentSeasonYear = filterYear; selectedYears = [filterYear]; } }   // 年度フィルタ中はその年度を開く
     currentRankPool = "all30";  // 選手が変わったら順位基準も既定値にリセット
     updateSidebarSummary(card.name, card.team || "");
     renderPlayerCard(card, llm);
