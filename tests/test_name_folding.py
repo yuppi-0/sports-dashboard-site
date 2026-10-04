@@ -27,3 +27,16 @@ def test_batter_accent_variants_are_one_player():
 def test_different_players_stay_separate():
     data = _data("pitchers", ["Luis Garcia", "Luis Gil"])
     assert ep.build_all_pitcher_names(data) == {"Luis Garcia", "Luis Gil"}
+
+
+def test_pitching_only_games_are_counted_for_two_way_players():
+    data = {
+        "2026-06-01": [{"home": "日本ハム", "away": "楽天",
+                        "batters": {"home": [{"name": "柴田 獅子"}], "away": []},
+                        "pitchers": {"home": [{"name": "柴田 獅子"}], "away": []}}],          # 打席あり＝数えない
+        "2026-06-02": [{"home": "日本ハム", "away": "楽天",
+                        "batters": {"home": [{"name": "別の 選手"}], "away": []},
+                        "pitchers": {"home": [{"name": "柴田 獅子"}], "away": []}}],          # 投手だけ＝数える
+    }
+    assert eb.count_pitching_only_games(data, "柴田 獅子") == 1
+    assert eb.count_pitching_only_games(data, "別の 選手") == 0

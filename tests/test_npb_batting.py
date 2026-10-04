@@ -56,3 +56,14 @@ def test_ops_sums_unrounded_obp_and_slg():
     r = eb.calc_season_batter_stats([{"player": one}])
     exact = (164 + 69) / (523 + 69) + (164 + 22 + 2 + 120) / 523
     assert r["OPS"] == round(exact, 3)
+
+
+def test_interference_counts_as_a_plate_appearance():
+    # 万波中正・松尾汐恩: 打妨（打撃妨害）は打数に入らないが、公式の打席数には数える
+    row = box(**{"打数": 3, "安打": 1, "四球": 1, "1回": "中安", "3回": "打妨", "5回": "四球", "7回": "空三振", "8回": "遊ゴ"})
+    c = npb.box_batting_counts(row)
+    assert c["pa"] == 3 + 1 + 0 + 0 + 0 + 1
+    assert c["ab"] == 3
+    # 走塁妨害（走…）は打席に数えない
+    row2 = box(**{"打数": 4, "1回": "走妨"})
+    assert npb.box_batting_counts(row2)["pa"] == 4
