@@ -109,3 +109,18 @@ def test_cross_date_problems_flags_only_the_later_dates():
     assert [g[0] for g in got] == ["2026-09-28", "2026-10-01"]
     scoped = chk.cross_date_problems(ids, (datetime.date(2026, 10, 1), datetime.date(2026, 10, 1)))
     assert [g[0] for g in scoped] == ["2026-10-01"]
+
+
+def test_explicit_game_ids_only_for_saved_games_of_the_date(monkeypatch):
+    """試合IDを明示した再取得でも、その日に保存済みの試合だけ投球データを取る（日付範囲＋試合ID指定で全日付に保存されていた）。"""
+    import run as npb
+    monkeypatch.setattr(npb, "known_game_folders", lambda *a, **k: {"2021044743": "レギュラーシーズン"})
+    monkeypatch.setattr(npb, "schedule_folder_map", lambda *a, **k: {})
+    seen = []
+    monkeypatch.setattr(npb, "_run_pitch_scraper_impl", lambda gids, retry: seen.append(list(gids)) or "p")
+    npb.run_pitch_scraper(target_game_ids=["2021044743", "2021039035"])
+    assert seen == [["2021044743"]]
+    seen.clear()
+    monkeypatch.setattr(npb, "known_game_folders", lambda *a, **k: {})
+    assert npb.run_pitch_scraper(target_game_ids=["2021039035"]) == ""
+    assert seen == []
