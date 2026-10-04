@@ -1,0 +1,68 @@
+name: NPB過去シーズン成績の取り込み（npb.jp）
+
+# Yahoo!は現在のシーズンしか表示できないため、過去シーズン（2021〜2025）の1軍の打者・投手のシーズン成績を
+# npb.jp（NPB公式）から取り込み、既存の画面が読むカードJSON（成績のみ。投球データ系の項目は空）を作る。
+on:
+  workflow_dispatch:
+    inputs:
+      years:
+        description: '対象年（スペース区切り）'
+        required: false
+        default: '2025 2024 2023 2022 2021'
+      from_raw:
+        description: 'true にすると取得せず、保存済みの生データからカードだけ作り直す'
+        required: false
+        default: 'false'
+
+permissions:
+  contents: write
+
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: データ側リポジトリを取得（非公開のsports-dashboard-data。data/配下に展開）
+        uses: actions/checkout@v4
+        with:
+          repository: yuppi-0/sports-dashboard-data
+          token: ${{ secrets.DATA_REPO_TOKEN }}
+          path: data
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - run: pip install -r requirements.txt
+
+      - name: npb.jp から取得してカードJSONを作る
+        run: |
+          EXTRA=""
+          if [ "${{ inputs.from_raw }}" = "true" ]; then EXTRA="--from-raw"; fi
+          python baseball/scripts/npbjp_history.py --years ${{ inputs.years }} --docs docs --raw data/baseball/プロ野球 $EXTRA
+
+      - name: データ側をコミット&push（生データ）
+        working-directory: data
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add .
+          if git diff --cached --quiet; then
+            echo "更新なし"
+          else
+            git commit -m "NPB過去シーズン成績の取り込み（npb.jp）: ${{ inputs.years }}"
+            bash "$GITHUB_WORKSPACE/baseball/scripts/push_with_retry.sh"
+          fi
+
+      - name: サイト側（docs/）をコミット&push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add docs
+          if git diff --cached --quiet; then
+            echo "更新なし"
+          else
+            git commit -m "NPB過去シーズン成績の取り込み（npb.jp）: ${{ inputs.years }}"
+            ADD_PATHS=docs bash baseball/scripts/push_with_retry.sh "python baseball/scripts/rebuild_index.py"
+          fi
