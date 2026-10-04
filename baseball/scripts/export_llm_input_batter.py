@@ -63,7 +63,7 @@ import pandas as pd
 
 # 日別JSONの読み込みロジックは投手版と完全に共通のため使い回す
 from export_llm_input import load_daily_games
-from jsonio import read_json, write_json, exists_json
+from jsonio import read_json, write_json, exists_json, prune_orphan_cards
 
 
 # ==================================================
@@ -1829,6 +1829,10 @@ def export_llm_input_batter_xlsx(games_json_dir: str, out_path: str, min_pa: flo
             })
         with open(os.path.join(numeric_json_dir, "index.json"), "w", encoding="utf-8") as f:
             json.dump({"players": index_players}, f, ensure_ascii=False, indent=2)
+        if not target_names:   # 全選手を出力したときだけ、一覧に載らない古いカードJSONを掃除する
+            _gone = prune_orphan_cards(numeric_json_dir, {p_["id"] for p_ in index_players})
+            if _gone:
+                print(f"  一覧に無い古いカードJSONを削除: {len(_gone)}件")
         print(f"  数値JSON: {len(index_players)}選手分を {numeric_json_dir} に出力（対象シーズン: {season_year}）")
 
         # シーズン成績ピボット表用のリーダーボード（build_pitch_category_band_grid参照）。
