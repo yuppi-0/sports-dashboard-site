@@ -1456,6 +1456,18 @@ def box_batting_counts(row) -> dict | None:
 
 
 
+def merge_extra_base_hits(box_d2: int, box_d3: int, pitch_d2: int, pitch_d3: int, h: int, hr: int) -> tuple:
+    """二塁打・三塁打の数を、箱スコアのセルと投球データの打席完了結果の多い方で決める。
+    箱スコアは同じイニングに2度打席に立つと2打席目のセルが無いため、セルから数えた二塁打・三塁打が足りないことがある
+    （2026年は121人・試合で打席数よりセルが少なかった）。投球データ側は全打席の結果を持つので、足りない分を補う。
+    ただし安打の内訳（二塁打＋三塁打＋本塁打）が安打数を超えないようにする（安打数は箱スコアの列が正）。"""
+    d2, d3 = max(box_d2, pitch_d2), max(box_d3, pitch_d3)
+    over = d2 + d3 + hr - h
+    if over > 0:                    # 超えるときは投球データ側の増分を取り消す（箱スコアのセルを優先）
+        d2, d3 = box_d2, box_d3
+    return d2, d3
+
+
 def ab_result_flags(category: str, result: str) -> tuple[int, int, int]:
     """打席完了球の (打数, 安打, 長打[2塁打以上]) を 0/1 で返す。打数に数えない結果は全て0。"""
     res = str(result or "").strip()
@@ -2686,7 +2698,7 @@ def run_datamart(
         if _box:
             ab, h_cnt, hr_cnt = _box["ab"], _box["h"], _box["hr"]
             bb_cnt, hbp_cnt, sac_cnt, sf_cnt = _box["bb"], _box["hbp"], _box["sh"], _box["sf"]
-            dbl_cnt, tpl_cnt = _box["d2"], _box["d3"]
+            dbl_cnt, tpl_cnt = merge_extra_base_hits(_box["d2"], _box["d3"], dbl_cnt, tpl_cnt, h_cnt, hr_cnt)
             if _box["k"] is not None:
                 k_cnt = _box["k"]
             sgl_cnt = max(h_cnt - dbl_cnt - tpl_cnt - hr_cnt, 0)
