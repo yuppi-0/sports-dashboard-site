@@ -72,8 +72,13 @@ def find_missing(target: str, days: int, timeout: int = 300) -> list:
         if not out.exists():
             return []
         data = json.loads(out.read_text(encoding="utf-8"))
-    need = {(p["level"], p["date"]) for p in data.get("problems", []) if any(MARK in x for x in p.get("problems", []))}
-    return sorted(need, key=lambda x: (x[1], x[0]))
+    need: dict = {}
+    for p in data.get("problems", []):
+        if any(MARK in x for x in p.get("problems", [])):
+            gids = need.setdefault((p["level"], p["date"]), [])
+            if p.get("gid") and str(p["gid"]) not in gids:
+                gids.append(str(p["gid"]))
+    return [(lv, d, gids) for (lv, d), gids in sorted(need.items(), key=lambda x: (x[0][1], x[0][0]))]
 
 
 def find_corrected(target: str, days: int) -> list:
@@ -86,9 +91,10 @@ def find_corrected(target: str, days: int) -> list:
     return stale.changed_dates(root, start.isoformat(), end.isoformat())
 
 
-def run_one(level: str, date: str, timeout: int) -> bool:
+def run_one(level: str, date: str, timeout: int, game_ids: list | None = None) -> bool:
+    """その日の games・pitch・datamart を取り直す。game_ids があれば、その試合だけ取得する（日全体は取り直さない）。"""
     flag = "--1軍" if level == "1軍" else "--2軍"
-    cmd = [sys.executable, str(HERE / "run.py"), "--date", date, "--steps", "games", "pitch", "datamart", flag]
+    cmd = [sys.executable, str(HERE / "run.py"), "--date", date, "--steps", "games", "pitch", "datamart", *(game_ids or []), flag]
     print("実行:", " ".join(cmd), flush=True)
     try:
         subprocess.run(cmd, check=False, timeout=timeout)
@@ -119,7 +125,9 @@ def main() -> None:
     def over_budget() -> bool:
         return time.monotonic() - t0 > args.budget_sec
 
-    found = find_missing(args.target, args.days, timeout=min(300, args.budget_sec))
+    found3 = find_missing(args.target, args.days, timeout=min(300, args.budget_sec))
+    gids_of = {(lv, d): g for lv, d, g in found3}
+    found = [(lv, d) for lv, d, _g in found3]
     print(f"取りこぼし（日程にあるのにRAWに無い）: {len(found)}件 {found}")
     # 出来なかった日を諦める（取り直しても生成されない日＝中止などは、毎日取り直し続けない）
     gave_up = [(lv, d) for lv, d in found if not eligible(state, lv, d, now) and state.get(f"{lv}|{d}", {}).get("tries", 0) >= MAX_TRIES]
@@ -136,7 +144,7 @@ def main() -> None:
             print(f"::warning::時間予算（{args.budget_sec}秒）を超えたため、残りの取り直しは次回以降に回します")
             break
         if not args.dry_run:
-            run_one(lv, d, args.run_timeout)
+            run_one(lv, d, args.run_timeout, gids_of.get((lv, d)))   # 抜けている試合だけ取得する
             key = f"{lv}|{d}"
             if raw_exists(base, year, lv, d):
                 state.pop(key, None)                     # 取れた
