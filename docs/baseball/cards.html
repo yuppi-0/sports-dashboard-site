@@ -1598,6 +1598,74 @@ function fillYearSelect(selectEl){
   selectEl.innerHTML = '<option value="">全年度</option>' + AVAILABLE_YEARS.map(y => `<option value="${y}">${y}年</option>`).join("");
 }
 
+
+// ── 順位の母数を、一覧の「打席／投球回 以上」フィルタに合わせてその場で作り直す ──
+// 順位は、その年度の一覧（index.json）に載っている全選手のうち、しきい値（打者=打席、投手=投球回）以上の選手を母集団にして
+// 付け直す（投手は先発/中継ぎの役割別）。一覧(index.json)にある指標だけが対象で、無い指標（WAR・Z-Swing%など）は元の順位のまま。
+const _popCache = {}, _popResolved = {};
+async function ensurePopulation(typeKey, league, isFarm){
+  const key = `${typeKey}:${league}:${isFarm ? "2" : "1"}`;
+  if(!_popCache[key]){
+    _popCache[key] = (isFarm ? fetchUnionedFarmIndex(typeKey, league).then(d => (d && d.players) || []) : fetchUnionedPlayerIndex(typeKey, league))
+      .then(list => { _popResolved[key] = list; return list; }).catch(() => { _popResolved[key] = []; return []; });
+  }
+  return _popCache[key];
+}
+function populationNow(typeKey, league, isFarm){ return _popResolved[`${typeKey}:${league}:${isFarm ? "2" : "1"}`] || null; }
+// pop: 一覧の選手（_byYear付き）。year年度の成績行で順位を付け直す。戻り値 {指標: {rank,total[,role]}}
+function liveRanksFor(pop, year, selfName, specs, meets, byRole){
+  const rows = [];
+  let self = null;
+  for(const p of pop){
+    const r = p._byYear && p._byYear[year];
+    if(!r) continue;
+    rows.push(r);
+    if(p.name === selfName) self = r;
+  }
+  const out = {};
+  if(!self) return out;
+  const group = rows.filter(r => meets(r) && (!byRole || r.role === self.role));
+  for(const [key, higher] of specs){
+    if(self[key] === undefined) continue;                  // 一覧に無い指標は元の順位のまま
+    const valid = group.filter(r => r[key] != null).sort((a, b) => higher ? b[key] - a[key] : a[key] - b[key]);
+    const idx = (meets(self) && self[key] != null) ? valid.indexOf(self) : -1;
+    const o = { rank: idx >= 0 ? idx + 1 : null, total: valid.length };
+    if(byRole) o.role = self.role;
+    out[key] = o;
+  }
+  return out;
+}
+const BAT_LIVE_SPECS = [["avg", true], ["obp", true], ["slg", true], ["ops", true], ["hr", true], ["rbi", true], ["sb", true], ["k_pct", false], ["bb_pct", true]];
+const PIT_LIVE_SPECS = [["era", false], ["k_bb_pct", true], ["k_pct", true], ["bb_pct", false], ["gb_pct", true], ["swstr_pct", true],
+                        ["chase_pct", true], ["strike_pct", true], ["zone_pct", true], ["hit_pct", false], ["xbh_pct", false]];
+function applyLiveRanksBatter(card, league, minPa){
+  const pop = populationNow("batter", league, !!card._isFarm);
+  if(!pop || !card.seasons) return;
+  Object.keys(card.seasons).forEach(y => {
+    const live = liveRanksFor(pop, y, card.name, BAT_LIVE_SPECS, r => (r.pa || 0) >= minPa, false);
+    if(!Object.keys(live).length) return;
+    const se = card.seasons[y];
+    se.rankings = se.rankings || {};
+    se.rankings.all30 = { ...(se.rankings.all30 || {}), ...live };
+    se.splitRankings = se.splitRankings || {};
+    se.splitRankings.all30 = se.splitRankings.all30 || {};
+    se.splitRankings.all30.all = { ...(se.splitRankings.all30.all || {}), ...live };
+  });
+}
+function applyLiveRanksPitcher(d, league, minIp){
+  const pop = populationNow("pitcher", league, !!d._isFarm);
+  if(!pop) return;
+  const years = d._availableYears || (d._activeYear ? [d._activeYear] : []);
+  years.forEach(y => {
+    const live = liveRanksFor(pop, y, d.name, PIT_LIVE_SPECS, r => r.innings_num != null && r.innings_num >= (isNaN(minIp) ? 0 : minIp), true);
+    if(!Object.keys(live).length) return;
+    const targets = [];
+    if(y === d._activeYear) targets.push(d);
+    if(d._seasonEntriesByYear && d._seasonEntriesByYear[y]) targets.push(d._seasonEntriesByYear[y]);
+    targets.forEach(t => { t.rankings = { ...(t.rankings || {}), ...live }; });
+  });
+}
+
 // ── 2軍（ファーム）の複数年対応 ──
 // 1軍は年度ごとのフォルダから選手カードを集めて年度別成績を出すが、2軍も同じ年度構成（プロ野球/{年}年/2軍/公式戦）で
 // 持っている。2軍の一覧・カードも全年度ぶんを名前で集める（年度によってidの付け方が違っても、名前で突き合わせる）。
@@ -2519,6 +2587,7 @@ async function selectPlayer(id, name){
     if(id.startsWith("farm:") && !firstCounterpart){
       const farmId = id.slice("farm:".length);
       const farmNumeric = LEAGUE_PATHS[currentLeague] && LEAGUE_PATHS[currentLeague].farmNumeric;
+      await Promise.all([ensurePopulation("pitcher", currentLeague, false), ensurePopulation("pitcher", currentLeague, true)]);
       const farmName = name || ((farmPlayers.find(p => p.id === id) || {}).name);
       const multi = farmName ? await fetchFarmCardsAcrossYears("pitcher", currentLeague, farmName) : { years: [], cards: {} };
       let merged;
@@ -2537,6 +2606,7 @@ async function selectPlayer(id, name){
       renderCard(merged);
       return;
     }
+    await Promise.all([ensurePopulation("pitcher", currentLeague, false), ensurePopulation("pitcher", currentLeague, true)]);   // 順位の母数用（一覧）
     const firstId = firstCounterpart ? firstCounterpart.id : id;
     // この選手が登場する年度ぶん、それぞれのフォルダから並行取得する（年度切り替えUI用にキャッシュしておく）
     const listEntry = firstCounterpart || firstPlayers.find(p => p.id === firstId);
@@ -2826,6 +2896,7 @@ function yearBlocksHtml(d, renderFn){
 function renderCard(d){
   const initial = (d.name || "?").trim().charAt(0);
   const minIp = parseFloat(minIpFilterEl.value);
+  applyLiveRanksPitcher(d, currentLeague, minIp);   // 順位の母数を「投球回 以上」フィルタに合わせる
   // 2軍表示中は1軍選手一覧(allPlayers)を母集団にしたライブ順位を出すと数値と噛み合わなくなるため、
   // その場合はJSONに焼き込み済みのd.rankings（あれば）を使う
   // 順位はその年度のカードに焼き込み済みのrankings（その年度の母集団）を使う。
@@ -5291,6 +5362,12 @@ function renderPlayerList(){
   elm.addEventListener("input", renderPlayerList);
   elm.addEventListener("change", renderPlayerList);
 });
+// 打席のしきい値を変えたら、開いているカードの順位（母数）も付け直す
+let _minPaRerenderTimer = null;
+["input", "change"].forEach(evt => minPaFilterEl.addEventListener(evt, () => {
+  clearTimeout(_minPaRerenderTimer);
+  _minPaRerenderTimer = setTimeout(() => { if(activeCardData) renderPlayerCard(activeCardData, activeCardData._currentLlm); }, 250);
+}));
 sortFieldEl.addEventListener("change", () => { sortField = sortFieldEl.value; renderPlayerList(); });
 sortDirBtnEl.addEventListener("click", () => {
   sortDir = sortDir === "asc" ? "desc" : "asc";
@@ -5329,6 +5406,7 @@ async function selectPlayer(id, name){
     // 一覧は currentFarmLevel（1軍/2軍）ごとに完全に差し替わっているので、
     // idは常にその時点のレベルのindex.jsonから来たもの。そのレベルの数値JSONを読む。
     const isFarmList = currentFarmLevel === "ni";
+    await Promise.all([ensurePopulation("batter", currentLeague, false), ensurePopulation("batter", currentLeague, true)]);   // 順位の母数用（一覧）
     let card;
     if(isFarmList){
       // 2軍も1軍と同じく全年度ぶんを名前で集めて年度別成績にする
@@ -7030,6 +7108,7 @@ function renderDefenseSection(seasonsMap, ys){
 
 function renderPlayerCard(card, llm){
   card._currentLlm = llm;  // シーズンタブ切り替え時の再描画で使う
+  applyLiveRanksBatter(card, currentLeague, Number(minPaFilterEl.value || 0));   // 順位の母数を「打席 以上」フィルタに合わせる
 
   const seasonsMap = getSeasonsMap(card);
   const years = Object.keys(seasonsMap).sort((a, b) => b.localeCompare(a));
