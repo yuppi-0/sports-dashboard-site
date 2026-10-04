@@ -9,25 +9,23 @@ import run as npb  # noqa: E402
 
 
 def main() -> None:
-    """球団ページ・成績ページから、選手成績一覧につながるリンクを洗い出す（URLの形が分からないため）。"""
+    """公式の個人成績ページ（リーグ別の一覧と選手ページ）の表の形を調べる。"""
     import re
-    seeds = [f"{npb.BASE_URL}/teams/1/top", f"{npb.BASE_URL}/stats/", f"{npb.BASE_URL}/stats/individual/",
-             f"{npb.BASE_URL}/teams/1/memberlist", f"{npb.BASE_URL}/teams/1/stats"]
-    for url in seeds:
+    urls = [f"{npb.BASE_URL}/stats/batter?gameKindId=1&type=avg",
+            f"{npb.BASE_URL}/stats/batter?gameKindId=1&type=avg&page=2",
+            f"{npb.BASE_URL}/stats/pitcher?gameKindId=1&type=era",
+            f"{npb.BASE_URL}/player/2000051/top",
+            f"{npb.BASE_URL}/player/2000051/stats"]
+    for url in urls:
         soup = npb.get_soup(url)
         print("===", url)
         if not soup:
             print("取得失敗")
             continue
         print("title:", soup.title.text.strip() if soup.title else None)
-        seen = set()
-        for a in soup.find_all("a", href=True):
-            h = a["href"]
-            if re.search(r"memberlist|/stats|/player/|individual|leaders|成績", h) and h not in seen:
-                seen.add(h)
-                if len(seen) <= 40:
-                    print("  link:", h, "|", a.get_text(strip=True)[:20])
-        for t in soup.find_all("table")[:2]:
+        pg = [a["href"] for a in soup.find_all("a", href=True) if re.search(r"[?&]page=|規定|all", a["href"])]
+        print("  paging/links:", pg[:8])
+        for t in soup.find_all("table")[:4]:
             rows = t.find_all("tr")
             print(f"--- table rows={len(rows)}")
             for tr in rows[:4]:
