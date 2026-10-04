@@ -1,24 +1,27 @@
-"""npb.jp の2024年投手成績ページの生HTMLを調べる読み取り専用スクリプト（表が解析できない原因の調査）。"""
+"""npb.jp の2024年投手成績ページが解析できない原因の調査（読み取り専用）。parse_table の内部状態を出す。"""
 from __future__ import annotations
-import re
-
-import requests
-
-HEADERS = {"User-Agent": "Mozilla/5.0 (compatible; sports-dashboard-probe)"}
+import sys
+sys.path.insert(0, "baseball/scripts")
+import npbjp_history as nh
 
 
 def main() -> None:
-    for url in ("https://npb.jp/bis/2024/stats/idp1_c.html", "https://npb.jp/bis/2025/stats/idp1_c.html"):
-        r = requests.get(url, headers=HEADERS, timeout=30)
-        html = r.content.decode("utf-8", errors="replace")
-        print("===", url, r.status_code, len(html), "<table:", html.count("<table"), "</table:", html.count("</table"))
-        for m in list(re.finditer(r"防御率", html))[:2]:
-            s = max(0, m.start() - 700)
-            print("--- 防御率の周辺 ---")
-            print(html[s:m.start() + 500].replace("\n", " ")[:1400])
-        i = html.find("大瀬良")
-        print("--- 大瀬良の周辺 ---")
-        print(html[max(0, i - 300):i + 500].replace("\n", " "))
+    soup = nh.get_html("https://npb.jp/bis/2024/stats/idp1_c.html")
+    print("soup:", bool(soup))
+    if not soup:
+        return
+    print("tables:", len(soup.find_all("table")), "ststats rows:", len(soup.find_all("tr", class_="ststats")))
+    for t in soup.find_all("table"):
+        rows = t.find_all("tr")
+        print("table rows", len(rows), "防御率" in t.get_text())
+        for tr in rows[:3]:
+            print("  ", [nh._norm(c.get_text()) for c in tr.find_all(["th", "td"])][:30])
+    r = nh.parse_table(soup, "pit")
+    print("parsed:", len(r), r[:1])
+    row = soup.find("tr", class_="ststats")
+    if row is not None:
+        tds = row.find_all(["th", "td"])
+        print("first ststats row cells:", len(tds), [c.get_text(strip=True) for c in tds], "PIT_HEADS", len(nh.PIT_HEADS), nh.PIT_HEADS)
 
 
 if __name__ == "__main__":

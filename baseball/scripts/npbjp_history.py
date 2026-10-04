@@ -95,7 +95,8 @@ def parse_table(soup, kind: str) -> list:
                 break
     if best:
         heads, rows, _ = best
-        name_i = heads.index("選手") if "選手" in heads else 0
+        heads = [h.replace("｜", "ー") for h in heads]            # 2024年以前は「セ｜ブ」「ボ｜ク」のように縦線が入る
+        name_i = next((heads.index(k) for k in ("選手", "投手") if k in heads), 0)   # 2024年以前の投手表は先頭が「投手」
     else:
         # 見出しの行を読めないページ（2024年以前の投手成績など）は、データ行（tr.ststats）と既定の列順で読む
         rows = soup.find_all("tr", class_="ststats")
@@ -103,6 +104,10 @@ def parse_table(soup, kind: str) -> list:
         if not rows:
             return []
     heads_after = heads[name_i + 1:]
+    if "投球回" in heads_after:
+        j = heads_after.index("投球回") + 1
+        if j < len(heads_after) and heads_after[j] == "":     # 投球回の小数部の列（見出しが空）
+            heads_after = heads_after[:j] + heads_after[j + 1:]
     out = []
     for tr in rows:
         tds = tr.find_all(["th", "td"])
