@@ -119,3 +119,15 @@ def test_rankings_for_batters_and_pitchers():
     r = nh.pitcher_rankings(pit)
     assert r["P1"]["era"] == {"rank": 1, "total": 2, "role": "先発"} and r["P2"]["bb_pct"]["rank"] == 2
     assert r["P3"]["era"] == {"rank": None, "total": 2, "role": "先発"}
+
+
+def test_split_rankings_for_season_summary_table():
+    def bat(g, pa, avg, rbi):
+        return {"team": "巨人", "試合": g, "打席": pa, "打数": pa - 5, "安打": 1, "二塁打": 0, "三塁打": 0, "本塁打": 1, "塁打": 1, "打点": rbi,
+                "盗塁": 0, "盗塁刺": 0, "三振": 10, "四球": 5, "死球": 0, "犠飛": 0, "犠打": 0, "avg": avg, "obp": avg, "slg": avg, "ops": avg * 2}
+    batters = {"A": bat(143, 600, .300, 90), "B": bat(140, 450, .280, 50), "C": bat(60, 150, .250, 40), "D": bat(5, 20, .400, 9)}
+    _, cards = nh.build_batter_cards(batters, {}, 2024)
+    sr = cards[nh.slug("A")]["seasons"]["2024"]["splitRankings"]
+    assert sr["all30"]["all"]["avg"] == {"rank": 1, "total": 3} and sr["all30"]["all"]["rbi"] == {"rank": 1, "total": 3}
+    assert sr["qualified"]["all"]["ops"] == {"rank": 1, "total": 2}
+    assert cards[nh.slug("D")]["seasons"]["2024"]["splitRankings"]["all30"]["all"]["avg"] == {"rank": None, "total": 3}
