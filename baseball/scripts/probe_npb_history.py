@@ -17,24 +17,18 @@ def title(gid: str) -> str:
 
 
 def main() -> None:
-    print("== 試合IDのサンプル（2021接頭辞）")
-    for gid in [2021000001, 2021002000, 2021005000, 2021010000, 2021015000, 2021020000, 2021025000, 2021030000,
-                2021034000, 2021036000, 2021038000, 2021038622]:
-        print(gid, title(str(gid)))
-    print("== 他の接頭辞")
-    for pre in (2018, 2019, 2020, 2022, 2023, 2024, 2025):
-        gid = f"{pre}000001"
-        gid = f"{pre}0000001"[:10]
-        print(gid, title(gid))
-    print("== 過去日付の日程ページ")
-    for d in ("2025-06-01", "2024-06-01", "2023-06-01", "2021-06-01"):
-        soup = npb.get_soup(f"{npb.BASE_URL}/schedule/first/all?date={d}")
-        if not soup:
-            print(d, "取得失敗")
-            continue
-        h = soup.select_one(".bb-head01__title")
-        ids = [m.group(1) for a in soup.select("#gm_card a[href]") for m in [re.search(r"/npb/game/(\d+)/", a["href"])] if m]
-        print(d, "見出し:", h.get_text(strip=True) if h else None, "試合ID:", ids[:4])
+    """2021接頭辞の試合IDを粗く走査して、2026年開幕（2021038622）より前の試合ページが残っているかを調べる。"""
+    hits = []
+    for gid in range(2021038600, 2021000000, -150):
+        t = title(str(gid))
+        if t != "取得失敗":
+            hits.append((gid, t))
+            print("hit", gid, t, flush=True)
+    print("ヒット数:", len(hits))
+    # 1軍以外（2軍・オープン戦など）が混ざる可能性があるので、ヒットの前後も確認する
+    for gid, _ in hits[:3]:
+        for d in (-3, -2, -1, 1, 2, 3):
+            print(gid + d, title(str(gid + d)))
 
 
 if __name__ == "__main__":
