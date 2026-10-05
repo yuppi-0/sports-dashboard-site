@@ -218,24 +218,7 @@ jobs:
           STEPS_ARG: ${{ inputs.steps || 'all' }}
           TARGET_DATE: ${{ steps.date.outputs.date }}
 
-      - name: 取得データの自動チェック（前日分：別の日付と同じ試合・重複投球・最後まで取れていない試合など）
-        if: steps.check.outputs.skip != 'true'
-        continue-on-error: true
-        run: |
-          # 取得系のステップ（games / pitch / datamart / all）を実行したときだけ、前日分のRAWを点検する。
-          # 当日分は、この実行がちょうど取得している最中の日なので見ない（翌日の実行が前日として点検する）。
-          # 問題があれば Actions の警告（::warning::）として出す（失敗にはしない）。
-          STEPS_NOW="${{ inputs.steps || 'all' }}"
-          if echo " $STEPS_NOW " | grep -Eqw "all|games|pitch|datamart"; then
-            TARGET="${{ steps.date.outputs.date }}"
-            PREV=$(date -d "$TARGET -1 day" +%Y-%m-%d)
-            echo "点検する日付（前日）: $PREV"
-            python baseball/scripts/find_incomplete_npb_games.py --year "${PREV:0:4}" --date "$PREV" --gh-warning 2>&1 | grep -v "FutureWarning\|google\|genai\|README\|updates or bug" | tail -n 60
-          else
-            echo "取得系ステップではないためスキップ"
-          fi
-
-      - name: 取りこぼした試合の自動取り直し（日程にあるのにRAWが無い日・振替試合）
+      - name: 前日分の点検と、問題があった試合の自動取り直し（日程にあるのにRAWが無い・最後まで取れていない・投球データ不足など）
         if: steps.check.outputs.skip != 'true' && inputs.game_ids == ''
         continue-on-error: true
         timeout-minutes: 45    # 万一長引いても、ここで打ち切って次のコミット手順に進む（通常は前日分の問題のある試合だけなので、これに達しない）
