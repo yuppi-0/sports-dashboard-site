@@ -218,7 +218,36 @@ jobs:
           STEPS_ARG: ${{ inputs.steps || 'all' }}
           TARGET_DATE: ${{ steps.date.outputs.date }}
 
-      - name: 前日分の点検と、問題があった試合の自動取り直し（日程にあるのにRAWが無い・最後まで取れていない・投球データ不足など）
+      - name: 当日分：データ側をコミット&push（sports-dashboard-data）
+        if: steps.check.outputs.skip != 'true'
+        working-directory: data
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add .
+          if git diff --cached --quiet; then
+            echo "更新なし（データ変化なし）"
+          else
+            git commit -m "NPB自動更新: ${{ steps.date.outputs.date }} (steps: ${{ inputs.steps || 'all' }})"
+            # 並列ジョブの同時pushでも取りこぼさないよう、競合解消・再試行つきのヘルパーでpushする（失敗時はステップも失敗）
+            bash "$GITHUB_WORKSPACE/baseball/scripts/push_with_retry.sh"
+          fi
+
+      - name: 当日分：サイト側（docs/）をコミット&push（このリポジトリ自身）
+        if: steps.check.outputs.skip != 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add docs
+          if git diff --cached --quiet; then
+            echo "更新なし（docs変化なし）"
+          else
+            git commit -m "NPB自動更新: ${{ steps.date.outputs.date }} (steps: ${{ inputs.steps || 'all' }})"
+            # index.jsonは並列ジョブ同士で競合しやすいので、競合解消後に実在ファイルから再生成する
+            ADD_PATHS=docs bash baseball/scripts/push_with_retry.sh "python baseball/scripts/rebuild_index.py"
+          fi
+
+      - name: 前日分の点検と、問題があった試合の自動取り直し（当日分をpushしたあとに実行）
         if: steps.check.outputs.skip != 'true' && inputs.game_ids == ''
         continue-on-error: true
         timeout-minutes: 45    # 万一長引いても、ここで打ち切って次のコミット手順に進む（通常は前日分の問題のある試合だけなので、これに達しない）
@@ -234,7 +263,7 @@ jobs:
             echo "games を含まないためスキップ"
           fi
 
-      - name: データ側をコミット&push（sports-dashboard-data）
+      - name: 前日分の取り直し：データ側をコミット&push（sports-dashboard-data）
         if: steps.check.outputs.skip != 'true'
         working-directory: data
         run: |
@@ -242,23 +271,23 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add .
           if git diff --cached --quiet; then
-            echo "更新なし（データ変化なし）"
+            echo "更新なし（前日分に取り直しなし）"
           else
-            git commit -m "NPB自動更新: ${{ steps.date.outputs.date }} (steps: ${{ inputs.steps || 'all' }})"
+            git commit -m "NPB自動更新（前日分の点検・取り直し）: ${{ steps.date.outputs.date }} (steps: ${{ inputs.steps || 'all' }})"
             # 並列ジョブの同時pushでも取りこぼさないよう、競合解消・再試行つきのヘルパーでpushする（失敗時はステップも失敗）
             bash "$GITHUB_WORKSPACE/baseball/scripts/push_with_retry.sh"
           fi
 
-      - name: サイト側（docs/）をコミット&push（このリポジトリ自身）
+      - name: 前日分の取り直し：サイト側（docs/）をコミット&push（このリポジトリ自身）
         if: steps.check.outputs.skip != 'true'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add docs
           if git diff --cached --quiet; then
-            echo "更新なし（docs変化なし）"
+            echo "更新なし（前日分に取り直しなし）"
           else
-            git commit -m "NPB自動更新: ${{ steps.date.outputs.date }} (steps: ${{ inputs.steps || 'all' }})"
+            git commit -m "NPB自動更新（前日分の点検・取り直し）: ${{ steps.date.outputs.date }} (steps: ${{ inputs.steps || 'all' }})"
             # index.jsonは並列ジョブ同士で競合しやすいので、競合解消後に実在ファイルから再生成する
             ADD_PATHS=docs bash baseball/scripts/push_with_retry.sh "python baseball/scripts/rebuild_index.py"
           fi
