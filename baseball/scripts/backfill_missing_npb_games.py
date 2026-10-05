@@ -74,7 +74,7 @@ def find_missing(target: str, days: int, timeout: int = 300) -> list:
         out = Path(td) / "r.json"
         try:
             subprocess.run([sys.executable, str(HERE / "find_incomplete_npb_games.py"), "--year", str(end.year),
-                            "--schedule", "--date", f"{start}:{end}", "--out", str(out)], check=False, timeout=timeout)
+                            "--schedule", "--date", f"{start}:{end}", "--gh-warning", "--out", str(out)], check=False, timeout=timeout)
         except subprocess.TimeoutExpired:
             print("::warning::日程との突き合わせが時間切れになりました（次回以降に持ち越し）")
         if not out.exists():
