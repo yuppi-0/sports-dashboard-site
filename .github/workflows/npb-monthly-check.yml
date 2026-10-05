@@ -1,0 +1,54 @@
+name: NPB 総合チェック（公式照合＋訂正漏れ）
+
+# 月1回などの手動確認用。次の2つを続けて実行する（どちらも読み取り専用でデータは書き換えない）。
+#   ① 公式照合   : 当サイトの選手ごとのシーズン成績を、Yahoo!の選手ページの成績と全選手突き合わせる（最終的な数字の確認）
+#   ② 訂正漏れ   : 保存済みの試合の箱スコアを、Yahoo!の現在のページと比べる（①でずれが出たとき、原因が「公式記録の訂正が未反映」か切り分け、直す日を特定する）
+# 結果は実行ログの最後（まとめ）に出る。直すときは「NPBデータ自動更新」を手動実行し、backfill_days に調べた期間の日数（例: 35）を入れる。
+on:
+  workflow_dispatch:
+    inputs:
+      year:
+        description: '対象年'
+        required: false
+        default: '2026'
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: yuppi-0/sports-dashboard-data
+          token: ${{ secrets.DATA_REPO_TOKEN }}
+          path: data
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -r requirements.txt
+
+      - name: ① 公式照合（選手ごとの成績 ↔ Yahoo!の選手ページ）
+        continue-on-error: true
+        run: |
+          python baseball/scripts/check_npb_official.py --year "${{ inputs.year }}" --max-games 0 2>&1 | grep -v "FutureWarning\|google\|genai\|README\|updates or bug" | tee official.log
+
+      - name: ② 訂正漏れ（保存済みの箱スコア ↔ Yahoo!の現在のページ）
+        continue-on-error: true
+        run: |
+          python baseball/scripts/check_npb_stale_games.py --year "${{ inputs.year }}" --limit 0 2>&1 | grep -v "FutureWarning\|google\|genai\|README\|updates or bug\|試合データ取得中" | tee stale.log
+
+      - name: まとめ
+        run: |
+          echo "================ まとめ ================"
+          echo "① 公式照合:"; grep "=====" official.log || echo "  （結果の行が見つかりません）"
+          echo "② 訂正漏れ:"; grep "=====" stale.log || echo "  （結果の行が見つかりません）"
+          {
+            echo "### NPB 総合チェック"; echo
+            echo "**① 公式照合（選手ごとの成績 ↔ Yahoo!の選手ページ）**"; echo '```'; grep "=====" official.log; echo '```'
+            echo "**② 訂正漏れ（保存済みの箱スコア ↔ Yahoo!の現在のページ）**"; echo '```'; grep "=====" stale.log; echo '```'
+            echo "ずれの一覧は各手順のログを参照。②で違いのあった日は、「NPBデータ自動更新」を手動実行（backfill_days に日数を指定）で取り直せる。"
+          } >> "$GITHUB_STEP_SUMMARY"
