@@ -23,7 +23,7 @@ on:
         required: false
         default: ''
       backfill_days:
-        description: '取りこぼし確認の遡り日数（空欄なら既定の1日＝前日だけ確認。広く調べ直したいときだけ 21 などを指定）'
+        description: '取りこぼし確認の遡り日数（空欄なら既定の1日＝前日だけ確認。月1回など広く調べ直すときだけ 35 などを指定（NPBは公式記録の訂正も確認し、取り直す日の上限は20に広がる））'
         required: false
         default: ''
       source:
@@ -117,7 +117,7 @@ jobs:
         timeout-minutes: 20    # 万一長引いても、ここで打ち切って次のコミット手順に進む
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          BACKFILL_ARGS: ${{ inputs.backfill_days && format('--days {0}', inputs.backfill_days) || '' }}
+          BACKFILL_ARGS: ${{ inputs.backfill_days && format('--days {0} --max-dates 20', inputs.backfill_days) || '' }}
         run: |
           STEPS_NOW="${{ inputs.steps || 'all' }}"
           if echo " $STEPS_NOW " | grep -Eqw "all|games"; then
