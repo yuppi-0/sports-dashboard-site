@@ -1,0 +1,53 @@
+name: NPB 取りこぼしチェックの所要時間の計測
+
+# 前日分の取りこぼしチェックにかかる時間を測る読み取り専用ワークフロー（データは書き換えない）。
+# 同じ条件を2回ずつ実行し（1回目は読み込みの冷え、2回目は温まった状態）、前後の読み込み日数 3日 と 7日 の差も比べる。
+on:
+  workflow_dispatch:
+    inputs:
+      date:
+        description: '前日として確認する日付'
+        required: false
+        default: '2026-10-03'
+
+permissions:
+  contents: read
+
+jobs:
+  bench:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: yuppi-0/sports-dashboard-data
+          token: ${{ secrets.DATA_REPO_TOKEN }}
+          path: data
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -r requirements.txt
+      - name: 計測
+        env:
+          D: ${{ inputs.date }}
+        run: |
+          timeit() {  # 名前 コマンド...
+            local name="$1"; shift
+            local s=$(date +%s.%N)
+            "$@" > /tmp/out.log 2>&1
+            local e=$(date +%s.%N)
+            printf "%-58s %6.1f 秒\n" "$name" "$(echo "$e - $s" | bc)" | tee -a bench.txt
+            grep -E "調査した試合|問題のある試合:" /tmp/out.log | sed 's/^/      /' | tee -a bench.txt
+          }
+          for round in 1 2; do
+            echo "---- ${round}回目 ----" | tee -a bench.txt
+            for W in 3 7; do
+              timeit "[点検のみ] $D（前後${W}日を読む）" python baseball/scripts/find_incomplete_npb_games.py --year "${D:0:4}" --date "$D" --window-days $W
+              timeit "[点検＋日程との突き合わせ] $D（前後${W}日を読む）" python baseball/scripts/find_incomplete_npb_games.py --year "${D:0:4}" --schedule --date "$D" --window-days $W
+            done
+          done
+          echo "---- 取りこぼし手順そのもの（取り直しは実行しない dry-run。10/4の23:20に動く条件＝対象日 $(date -d "$D +1 day" +%F)） ----" | tee -a bench.txt
+          T=$(date -d "$D +1 day" +%F)
+          timeit "[取りこぼし手順 dry-run] 対象日 $T（前日=$D）" python baseball/scripts/backfill_missing_npb_games.py "$T" --dry-run
+          grep -E "所要|取り直す対象|\[所要\]" /tmp/out.log | sed 's/^/      /' | tee -a bench.txt
+          { echo '### 取りこぼしチェックの所要時間'; echo '```'; cat bench.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
