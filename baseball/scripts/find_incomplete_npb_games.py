@@ -247,13 +247,13 @@ def main() -> None:
     ap.add_argument("--gh-warning", action="store_true", help="問題をGitHub Actionsの警告（::warning::）としても出す")
     ap.add_argument("--diagnose", action="store_true", help="問題のある試合について原因の手掛かりを出す")
     ap.add_argument("--out", default="", help="結果をJSONで保存するパス")
-    ap.add_argument("--window-days", type=int, default=3, help="--date 指定時、範囲の前後この日数ぶんの保存データも読む（同じ試合が別の日付にも保存されていないかの照合用）")
+    ap.add_argument("--window-days", type=int, default=7, help="--date 指定時、範囲の前後この日数ぶんの保存データも読む（同じ試合が別の日付にも保存されていないかの照合用）")
     args = ap.parse_args()
 
     scope = _date_scope(args.date)
     window = None
     if scope:
-        # 範囲の前後のRAWも読む（同じ試合が別の日付に保存されていないかの照合用）。あまり広げると毎日の実行が遅くなるので3日
+        # 範囲の前後のRAWも読む（同じ試合が別の日付に保存されていないかの照合用）。計測では3日と7日で差は1秒程度（前日分の確認全体で数秒）なので7日
         window = (scope[0] - datetime.timedelta(days=args.window_days), scope[1] + datetime.timedelta(days=args.window_days))
     results = []
     raw_ids_by_key: dict = {}
