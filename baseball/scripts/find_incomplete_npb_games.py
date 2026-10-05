@@ -252,8 +252,8 @@ def main() -> None:
     scope = _date_scope(args.date)
     window = None
     if scope:
-        # 範囲の前後のRAWも読む（同じ試合が別の日付に保存されていないかの照合用）。あまり広げると毎日の実行が遅くなるので7日
-        window = (scope[0] - datetime.timedelta(days=7), scope[1] + datetime.timedelta(days=7))
+        # 範囲の前後のRAWも読む（同じ試合が別の日付に保存されていないかの照合用）。あまり広げると毎日の実行が遅くなるので3日
+        window = (scope[0] - datetime.timedelta(days=3), scope[1] + datetime.timedelta(days=3))
     results = []
     raw_ids_by_key: dict = {}
     ids_by_type: dict = {}   # (リーグ, 試合種別) -> {日付: 試合IDの集合}
