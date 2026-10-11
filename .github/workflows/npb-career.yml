@@ -1,0 +1,80 @@
+name: NPB公式の年度別成績の取得（ドラフト候補の活躍判定用）
+
+# npb.jp（NPB公式）の1軍の年度別の個人成績（打撃・投手）を、年ごとにCSVにして、
+# 非公開のデータ側リポジトリ（sports-dashboard-data / draft/npb/）に保存する。
+# 取得と解析には、このリポジトリの baseball/scripts/npbjp_history.py をそのまま使う。
+# 公開側（docs/）には何も書かない。ログには件数と警告しか出さない。
+
+on:
+  workflow_dispatch:
+    inputs:
+      years:
+        description: '対象年（スペース区切り）'
+        required: false
+        default: '2010 2011 2012 2013 2014 2015 2016 2017 2018 2019 2020 2021 2022 2023 2024 2025 2026'
+      data_ref:
+        description: 'データ側リポジトリのブランチ（スクリプトを置いてある場所。結果もここにpushする）'
+        required: false
+        default: 'main'
+      force:
+        description: 'true にすると取得済みの年も取り直す'
+        required: false
+        default: 'false'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: npb-career
+  cancel-in-progress: false
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: データ側リポジトリを取得（非公開。draft/だけ）
+        uses: actions/checkout@v4
+        with:
+          repository: yuppi-0/sports-dashboard-data
+          token: ${{ secrets.DATA_REPO_TOKEN }}
+          ref: ${{ inputs.data_ref }}
+          sparse-checkout: draft
+          path: data
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - run: pip install requests beautifulsoup4
+
+      - name: npb.jp から取得して、年ごとのCSVを作る
+        env:
+          YEARS: ${{ inputs.years }}
+          FORCE: ${{ inputs.force }}
+          NPBJP_DIR: ${{ github.workspace }}/baseball/scripts
+        run: |
+          set -eu
+          case "$YEARS" in (*[!0-9\ ]*) echo "年は数字とスペースのみ"; exit 1;; esac
+          EXTRA=""; if [ "$FORCE" = "true" ]; then EXTRA="--force"; fi
+          python data/draft/scrape_npb_career.py --years $YEARS --outdir data/draft/npb $EXTRA
+
+      - name: データ側にコミット&push
+        working-directory: data
+        env:
+          DATA_REF: ${{ inputs.data_ref }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add draft/npb
+          if git diff --cached --quiet; then
+            echo "変更なし"
+          else
+            git commit -q -m "NPB公式の1軍年度別成績を取得(npb-career)"
+            for n in 1 2 3 4; do
+              git push -q origin "HEAD:refs/heads/$DATA_REF" && break
+              git pull -q --rebase origin "$DATA_REF"; sleep $((n*3))
+            done
+          fi
