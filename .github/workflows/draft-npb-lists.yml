@@ -1,0 +1,72 @@
+name: NPBドラフト指名結果の取得（取り込み漏れの確認用）
+
+# 各年のNPBドラフト会議の指名結果(Wikipedia「YYYY年度新人選手選択会議 (日本プロ野球)」)のHTMLを、
+# 非公開のデータ側リポジトリ(sports-dashboard-data / draft/_html_npbdraft/)に保存する。
+# draft-repo.com から取り込んだ選手に、プロ入りした選手の抜けがないかを照合するためのもの。
+# このリポジトリは公開なので、ログには年とステータス・サイズしか出さない。
+
+on:
+  workflow_dispatch:
+    inputs:
+      years:
+        description: '年(カンマ区切り。例: 2015,2016)'
+        required: true
+        default: '2010,2011,2012,2013,2014,2015,2016,2017,2018,2019,2020,2021,2022,2023,2024,2025'
+      data_ref:
+        description: 'データ側リポジトリのブランチ(結果もここにpushする)'
+        required: false
+        default: 'main'
+
+permissions:
+  contents: read
+
+jobs:
+  save:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: データ側リポジトリを取得(非公開。draft/だけ)
+        uses: actions/checkout@v4
+        with:
+          repository: yuppi-0/sports-dashboard-data
+          token: ${{ secrets.DATA_REPO_TOKEN }}
+          ref: ${{ inputs.data_ref }}
+          sparse-checkout: draft
+          path: data
+
+      - name: ページを取得(間隔2秒)
+        env:
+          YEARS: ${{ inputs.years }}
+        run: |
+          mkdir -p data/draft/_html_npbdraft
+          UA="sports-dashboard-data-research/1.0 (personal use; github.com/yuppi-0)"
+          for y in $(echo "$YEARS" | tr ',' ' '); do
+            case "$y" in (*[!0-9]*|'') echo "不正な年: skip"; continue;; esac
+            ok=0
+            for t in "${y}年度新人選手選択会議_(日本プロ野球)" "${y}年新人選手選択会議_(日本プロ野球)" "${y}年度新人選手選択会議" "${y}年の日本プロ野球ドラフト会議"; do
+              enc=$(python3 -c "import sys,urllib.parse;print(urllib.parse.quote(sys.argv[1]))" "$t")
+              code=$(curl -sS -m 30 -L -A "$UA" -o "data/draft/_html_npbdraft/${y}.html" -w "%{http_code}" "https://ja.wikipedia.org/wiki/${enc}" || echo "curl_error")
+              if [ "$code" = "200" ]; then ok=1; echo "年=${y} status=200 bytes=$(wc -c < "data/draft/_html_npbdraft/${y}.html") 題名の型=$(echo "$t" | sed "s/${y}/YYYY/")"; break; fi
+              sleep 2
+            done
+            [ "$ok" = "1" ] || { echo "年=${y} 取得できず"; rm -f "data/draft/_html_npbdraft/${y}.html"; }
+            sleep 2
+          done
+
+      - name: データ側にコミット&push(非公開リポジトリのみ)
+        working-directory: data
+        env:
+          DATA_REF: ${{ inputs.data_ref }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add draft/_html_npbdraft
+          if git diff --cached --quiet; then
+            echo "変更なし"
+          else
+            git commit -q -m "NPBドラフト指名結果のHTMLを保存(取り込み漏れの確認用)"
+            for n in 1 2 3 4; do
+              git push -q origin "HEAD:refs/heads/$DATA_REF" && break
+              git pull -q --rebase origin "$DATA_REF"; sleep $((n*3))
+            done
+          fi
