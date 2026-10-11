@@ -16,6 +16,10 @@ on:
         description: 'データ側のIDリスト（draft/ からの相対パス）'
         required: false
         default: 'pitcher_ids.txt'
+      outdir:
+        description: '結果の保存先フォルダ名（draft/ からの相対。既存のチャンクはスキップされるので、別のIDリストは別のフォルダに）'
+        required: false
+        default: 'rescrape'
       chunk:
         description: '何人ごとにxlsxに保存してpushするか'
         required: false
@@ -57,19 +61,21 @@ jobs:
         env:
           IDS_FILE: ${{ inputs.ids_file }}
           CHUNK: ${{ inputs.chunk }}
+          OUTDIR: ${{ inputs.outdir }}
           SLEEP: ${{ inputs.sleep }}
           DATA_REF: ${{ inputs.data_ref }}
         run: |
           set -eu
           case "$CHUNK$SLEEP" in (*[!0-9.]*) echo "入力は数字のみ"; exit 1;; esac
           case "$IDS_FILE" in (*[!A-Za-z0-9._/-]*|*..*) echo "不正なIDファイル名"; exit 1;; esac
+          case "$OUTDIR" in (*[!A-Za-z0-9_-]*|"") echo "不正な保存先"; exit 1;; esac
           cd data
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          mkdir -p draft/rescrape
+          mkdir -p "draft/$OUTDIR"
           split -l "$CHUNK" -d -a 3 "draft/$IDS_FILE" /tmp/rs_chunk_
           for f in /tmp/rs_chunk_*; do
-            out="draft/rescrape/$(basename "$f" | sed 's/rs_chunk_/chunk_/').xlsx"
+            out="draft/$OUTDIR/$(basename "$f" | sed 's/rs_chunk_/chunk_/').xlsx"
             if [ -f "$out" ]; then echo "$(basename "$out"): 取得済みのためスキップ"; continue; fi
             python draft/scraper/run_rescrape.py "$f" "$out" "$SLEEP"
             git add "$out"
