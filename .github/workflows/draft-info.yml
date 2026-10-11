@@ -1,0 +1,91 @@
+name: ドラフト情報の取得（draft-repo.com）
+
+# draft-repo.com の選手ページから、ドラフト年・球団・順位・契約金などを取得し、
+# 非公開のデータ側リポジトリ（sports-dashboard-data / draft/draft_info.csv）に追記する。
+# スクリプトもデータ側（draft/scrape_draft_info.py）に置いてあり、ここでは取得して実行するだけ。
+# このリポジトリは公開なのでActionsのログは誰でも読める。ログには件数と失敗IDしか出さない。
+
+on:
+  workflow_dispatch:
+    inputs:
+      data_ref:
+        description: 'データ側リポジトリのブランチ（スクリプトとIDリストを置いてある場所。結果もここにpushする）'
+        required: false
+        default: 'main'
+      start_id:
+        description: '範囲指定の開始ID（空欄ならdraft/target_ids.txtの全件）'
+        required: false
+        default: ''
+      end_id:
+        description: '範囲指定の終了ID'
+        required: false
+        default: ''
+      chunk:
+        description: '何件ごとにコミット&pushするか（途中で止まっても取得済み分が残る）'
+        required: false
+        default: '500'
+      sleep:
+        description: 'ページ取得の間隔（秒）'
+        required: false
+        default: '1.0'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: draft-info
+  cancel-in-progress: false
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    steps:
+      - name: データ側リポジトリを取得（非公開。draft/だけ）
+        uses: actions/checkout@v4
+        with:
+          repository: yuppi-0/sports-dashboard-data
+          token: ${{ secrets.DATA_REPO_TOKEN }}
+          ref: ${{ inputs.data_ref }}
+          sparse-checkout: draft
+          path: data
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: 依存パッケージ
+        run: pip install requests beautifulsoup4
+
+      - name: 取得して、チャンクごとにデータ側へpush
+        env:
+          START_ID: ${{ inputs.start_id }}
+          END_ID: ${{ inputs.end_id }}
+          CHUNK: ${{ inputs.chunk }}
+          SLEEP: ${{ inputs.sleep }}
+          DATA_REF: ${{ inputs.data_ref }}
+        run: |
+          set -eu
+          case "$CHUNK$SLEEP$START_ID$END_ID" in (*[!0-9.]*) echo "入力は数字のみ"; exit 1;; esac
+          cd data
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          if [ -n "$START_ID" ] && [ -n "$END_ID" ]; then
+            seq "$START_ID" "$END_ID" > /tmp/ids.txt
+          else
+            cp draft/target_ids.txt /tmp/ids.txt
+          fi
+          wc -l < /tmp/ids.txt | sed 's/^/対象ID数: /'
+          split -l "$CHUNK" -d /tmp/ids.txt /tmp/chunk_
+          for f in /tmp/chunk_*; do
+            python draft/scrape_draft_info.py --ids-file "$f" --out draft/draft_info.csv --sleep "$SLEEP"
+            git add draft/draft_info.csv
+            if ! git diff --cached --quiet; then
+              git commit -q -m "ドラフト情報の取得: $(basename "$f")"
+              for n in 1 2 3 4; do
+                git push -q origin "HEAD:refs/heads/$DATA_REF" && break
+                git pull -q --rebase origin "$DATA_REF"; sleep $((n*3))
+              done
+            fi
+          done
+          echo "全チャンク完了"
