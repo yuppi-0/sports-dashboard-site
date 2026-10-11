@@ -1,0 +1,82 @@
+name: ドラフト候補ページの取り直し（修正版スクレイパー）
+
+# 投手の成績の読み取り不具合（簡略形式・空欄の列つきの行のずれ）を直した修正版スクレイパー
+# （sports-dashboard-data / draft/scraper/）で、指定したIDのページを取り直し、チャンクごとのxlsxとして
+# 非公開のデータ側（draft/rescrape/）に保存する。
+# このリポジトリは公開なのでActionsのログは誰でも読める。ログには件数・進み具合・失敗IDしか出さない（選手名や成績は出さない）。
+
+on:
+  workflow_dispatch:
+    inputs:
+      data_ref:
+        description: 'データ側リポジトリのブランチ（スクリプトとIDリストを置いてある場所。結果もここにpushする）'
+        required: false
+        default: 'main'
+      ids_file:
+        description: 'データ側のIDリスト（draft/ からの相対パス）'
+        required: false
+        default: 'pitcher_ids.txt'
+      chunk:
+        description: '何人ごとにxlsxに保存してpushするか'
+        required: false
+        default: '400'
+      sleep:
+        description: 'ページ取得の間隔（秒）'
+        required: false
+        default: '1.0'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: draft-rescrape
+  cancel-in-progress: false
+
+jobs:
+  rescrape:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    steps:
+      - name: データ側リポジトリを取得（非公開。draft/だけ）
+        uses: actions/checkout@v4
+        with:
+          repository: yuppi-0/sports-dashboard-data
+          token: ${{ secrets.DATA_REPO_TOKEN }}
+          ref: ${{ inputs.data_ref }}
+          sparse-checkout: draft
+          path: data
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: 依存パッケージ
+        run: pip install requests beautifulsoup4 pandas numpy openpyxl
+
+      - name: 取り直して、チャンクごとにデータ側へpush（取得済みのチャンクはスキップ）
+        env:
+          IDS_FILE: ${{ inputs.ids_file }}
+          CHUNK: ${{ inputs.chunk }}
+          SLEEP: ${{ inputs.sleep }}
+          DATA_REF: ${{ inputs.data_ref }}
+        run: |
+          set -eu
+          case "$CHUNK$SLEEP" in (*[!0-9.]*) echo "入力は数字のみ"; exit 1;; esac
+          case "$IDS_FILE" in (*[!A-Za-z0-9._/-]*|*..*) echo "不正なIDファイル名"; exit 1;; esac
+          cd data
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          mkdir -p draft/rescrape
+          split -l "$CHUNK" -d -a 3 "draft/$IDS_FILE" /tmp/rs_chunk_
+          for f in /tmp/rs_chunk_*; do
+            out="draft/rescrape/$(basename "$f" | sed 's/rs_chunk_/chunk_/').xlsx"
+            if [ -f "$out" ]; then echo "$(basename "$out"): 取得済みのためスキップ"; continue; fi
+            python draft/scraper/run_rescrape.py "$f" "$out" "$SLEEP"
+            git add "$out"
+            git commit -q -m "投手の取り直し: $(basename "$out")"
+            for n in 1 2 3 4; do
+              git push -q origin "HEAD:refs/heads/$DATA_REF" && break
+              git pull -q --rebase origin "$DATA_REF"; sleep $((n*3))
+            done
+          done
+          echo "全チャンク完了"
