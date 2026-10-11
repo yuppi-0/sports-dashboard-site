@@ -1,0 +1,64 @@
+name: ドラフト候補ページのHTML保存（解析の不具合調査用）
+
+# draft-repo.com の選手ページ(少数)の生HTMLを、非公開のデータ側リポジトリ（sports-dashboard-data / draft/_html/）に保存する。
+# 取得スクリプトの解析の不具合を調べるためのもの。このリポジトリは公開なので、ログにはステータスとサイズしか出さない。
+
+on:
+  workflow_dispatch:
+    inputs:
+      ids:
+        description: '取得するblog-entryのID（カンマ区切り。例: 334,1101,3918）'
+        required: true
+      data_ref:
+        description: 'データ側リポジトリのブランチ（結果もここにpushする）'
+        required: false
+        default: 'main'
+
+permissions:
+  contents: read
+
+jobs:
+  save:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: データ側リポジトリを取得（非公開。draft/だけ）
+        uses: actions/checkout@v4
+        with:
+          repository: yuppi-0/sports-dashboard-data
+          token: ${{ secrets.DATA_REPO_TOKEN }}
+          ref: ${{ inputs.data_ref }}
+          sparse-checkout: draft
+          path: data
+
+      - name: ページを取得（間隔1秒。中身はログに出さない）
+        env:
+          IDS: ${{ inputs.ids }}
+        run: |
+          mkdir -p data/draft/_html
+          for id in $(echo "$IDS" | tr ',' ' '); do
+            case "$id" in (*[!0-9]*|'') echo "不正なID: skip"; continue;; esac
+            code=$(curl -sS -m 30 -A "sports-dashboard-data-research/1.0 (personal use; github.com/yuppi-0)" \
+              -o "data/draft/_html/${id}.html" -w "%{http_code}" \
+              "https://draft-repo.com/blog-entry-${id}.html" || echo "curl_error")
+            echo "ID=${id} status=${code} bytes=$(wc -c < "data/draft/_html/${id}.html" 2>/dev/null || echo 0)"
+            sleep 1
+          done
+
+      - name: データ側にコミット&push（非公開リポジトリのみ）
+        working-directory: data
+        env:
+          DATA_REF: ${{ inputs.data_ref }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add draft/_html
+          if git diff --cached --quiet; then
+            echo "変更なし"
+          else
+            git commit -q -m "ドラフト候補ページのHTMLを保存(解析の調査用)"
+            for n in 1 2 3 4; do
+              git push -q origin "HEAD:refs/heads/$DATA_REF" && break
+              git pull -q --rebase origin "$DATA_REF"; sleep $((n*3))
+            done
+          fi
