@@ -38,7 +38,7 @@ jobs:
           mkdir -p data/draft/_html
           for id in $(echo "$IDS" | tr ',' ' '); do
             case "$id" in (*[!0-9]*|'') echo "不正なID: skip"; continue;; esac
-            code=$(curl -sS -m 30 -A "sports-dashboard-data-research/1.0 (personal use; github.com/yuppi-0)" \
+            code=$(curl -sS -L -m 30 -A "sports-dashboard-data-research/1.0 (personal use; github.com/yuppi-0)" \
               -o "data/draft/_html/${id}.html" -w "%{http_code}" \
               "https://draft-repo.com/blog-entry-${id}.html" || echo "curl_error")
             echo "ID=${id} status=${code} bytes=$(wc -c < "data/draft/_html/${id}.html" 2>/dev/null || echo 0)"
