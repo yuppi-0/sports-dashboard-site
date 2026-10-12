@@ -1,0 +1,47 @@
+name: npb.jp ページの構造調査(URL指定)
+
+# 指定した npb.jp のページの構造(表の見出し、先頭の数行、選手ページへのリンクの例)をログに出す読み取り専用のワークフロー。データは書き換えない。
+on:
+  workflow_dispatch:
+    inputs:
+      urls:
+        description: '調べるURL(スペース区切り。https://npb.jp/ で始まるもののみ)'
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install requests beautifulsoup4
+      - name: 調べる
+        env:
+          URLS: ${{ inputs.urls }}
+        run: |
+          python - <<'PY'
+          import os, re, requests
+          from bs4 import BeautifulSoup
+          for u in os.environ['URLS'].split():
+              if not u.startswith('https://npb.jp/'):
+                  print('skip', u); continue
+              r = requests.get(u, headers={'User-Agent': 'Mozilla/5.0 (compatible; sports-dashboard)'}, timeout=30)
+              print('=====', u, r.status_code, len(r.content))
+              if r.status_code != 200:
+                  continue
+              s = BeautifulSoup(r.content, 'html.parser', from_encoding='utf-8')
+              print('title:', s.title.get_text(strip=True) if s.title else None)
+              pl = [a['href'] for a in s.find_all('a', href=True) if re.search(r'/players/|/bis/players', a['href'])]
+              print('選手リンク', len(pl), pl[:8])
+              for i, t in enumerate(s.find_all('table')[:3]):
+                  rows = t.find_all('tr')
+                  print(f'table{i}: {len(rows)}行')
+                  for tr in rows[:4]:
+                      print('   ', [c.get_text(' ', strip=True)[:14] for c in tr.find_all(['th', 'td'])][:14])
+              txt = re.sub(r'\s+', ' ', s.get_text(' ', strip=True))
+              print('text:', txt[:400])
+          PY
