@@ -58,7 +58,7 @@ jobs:
           set -eu
           case "$YEARS" in (*[!0-9\ ]*) echo "年は数字とスペースのみ"; exit 1;; esac
           case "$LIMIT" in (*[!0-9]*|"") echo "limitは数字"; exit 1;; esac
-          python data/draft/scrape_npb_players.py --years $YEARS --limit $LIMIT
+          python data/draft/scrape_npb_players.py
 
       - name: データ側にコミット&push
         working-directory: data
@@ -67,7 +67,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add draft/npb_players.csv draft/npb_player_ids.csv
+          git add draft/npb_players.csv
           if git diff --cached --quiet; then
             echo "変更なし"
           else
