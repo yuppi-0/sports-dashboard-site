@@ -16,6 +16,14 @@ on:
         description: 'データ側リポジトリのブランチ（スクリプトを置いてある場所。結果もここにpushする）'
         required: false
         default: 'main'
+      level:
+        description: '1=1軍（既定）、2=2軍（ファーム）'
+        required: false
+        default: '1'
+      outdir:
+        description: '保存先（データ側のdraft/からの相対。1軍はnpb、2軍はnpb_farm）'
+        required: false
+        default: 'npb'
       force:
         description: 'true にすると取得済みの年も取り直す'
         required: false
@@ -54,21 +62,26 @@ jobs:
         env:
           YEARS: ${{ inputs.years }}
           FORCE: ${{ inputs.force }}
+          LEVEL: ${{ inputs.level }}
+          OUTDIR: ${{ inputs.outdir }}
           NPBJP_DIR: ${{ github.workspace }}/baseball/scripts
         run: |
           set -eu
           case "$YEARS" in (*[!0-9\ ]*) echo "年は数字とスペースのみ"; exit 1;; esac
+          case "$LEVEL" in (1|2) ;; (*) echo "levelは1か2"; exit 1;; esac
+          case "$OUTDIR" in (*[!A-Za-z0-9_]*|"") echo "不正な保存先"; exit 1;; esac
           EXTRA=""; if [ "$FORCE" = "true" ]; then EXTRA="--force"; fi
-          python data/draft/scrape_npb_career.py --years $YEARS --outdir data/draft/npb $EXTRA
+          python data/draft/scrape_npb_career.py --years $YEARS --level $LEVEL --outdir data/draft/$OUTDIR $EXTRA
 
       - name: データ側にコミット&push
         working-directory: data
         env:
           DATA_REF: ${{ inputs.data_ref }}
+          OUTDIR: ${{ inputs.outdir }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add draft/npb
+          git add "draft/$OUTDIR"
           if git diff --cached --quiet; then
             echo "変更なし"
           else
