@@ -1,0 +1,79 @@
+name: NPB公式の選手情報の取得（2軍ボードの年齢・ポジション用）
+
+# npb.jp の2軍の個人成績ページのリンクから、選手ごとの生年月日・ポジション・投打・身長体重を取得して、
+# 非公開のデータ側リポジトリ（sports-dashboard-data / draft/npb_players.csv）に保存する。
+# 公開側（docs/）には何も書かない。ログには件数と、少数の例しか出さない。
+
+on:
+  workflow_dispatch:
+    inputs:
+      years:
+        description: '対象年（スペース区切り）'
+        required: false
+        default: '2015 2016 2017 2018 2019 2020 2021 2022 2023 2024 2025 2026'
+      data_ref:
+        description: 'データ側リポジトリのブランチ（スクリプトを置いてある場所。結果もここにpushする）'
+        required: false
+        default: 'main'
+      limit:
+        description: '取得する選手ページの上限（0=すべて。試し用）'
+        required: false
+        default: '0'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: npb-players
+  cancel-in-progress: false
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    timeout-minutes: 340
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: データ側リポジトリを取得（非公開。draft/だけ）
+        uses: actions/checkout@v4
+        with:
+          repository: yuppi-0/sports-dashboard-data
+          token: ${{ secrets.DATA_REPO_TOKEN }}
+          ref: ${{ inputs.data_ref }}
+          sparse-checkout: draft
+          path: data
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - run: pip install requests beautifulsoup4
+
+      - name: npb.jp から取得する
+        env:
+          YEARS: ${{ inputs.years }}
+          LIMIT: ${{ inputs.limit }}
+          NPBJP_DIR: ${{ github.workspace }}/baseball/scripts
+        run: |
+          set -eu
+          case "$YEARS" in (*[!0-9\ ]*) echo "年は数字とスペースのみ"; exit 1;; esac
+          case "$LIMIT" in (*[!0-9]*|"") echo "limitは数字"; exit 1;; esac
+          python data/draft/scrape_npb_players.py --years $YEARS --limit $LIMIT
+
+      - name: データ側にコミット&push
+        working-directory: data
+        env:
+          DATA_REF: ${{ inputs.data_ref }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add draft/npb_players.csv draft/npb_player_ids.csv
+          if git diff --cached --quiet; then
+            echo "変更なし"
+          else
+            git commit -q -m "NPB公式の選手情報を取得(npb-players)"
+            for n in 1 2 3 4; do
+              git push -q origin "HEAD:refs/heads/$DATA_REF" && break
+              git pull -q --rebase origin "$DATA_REF"; sleep $((n*3))
+            done
+          fi
