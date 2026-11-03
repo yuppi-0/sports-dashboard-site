@@ -67,7 +67,7 @@ jobs:
           NPBJP_DIR: ${{ github.workspace }}/baseball/scripts
         run: |
           set -eu
-          case "$MODE" in (probe|ids|pages|draft) ;; (*) echo "modeはprobe/ids/pages/draft"; exit 1;; esac
+          case "$MODE" in (probe|probe2|ids|pages|draft) ;; (*) echo "modeはprobe/ids/pages/draft"; exit 1;; esac
           case "$YEARS" in (*[!0-9\ ]*) echo "年は数字とスペースのみ"; exit 1;; esac
           case "$LIMIT" in (*[!0-9]*|"") echo "limitは数字"; exit 1;; esac
           case "$PROBE_ID" in (*[!0-9]*|"") echo "probe_idは数字"; exit 1;; esac
@@ -75,7 +75,7 @@ jobs:
           python scrape_npb_player_pages.py "$MODE" --years $YEARS --limit "$LIMIT" --probe-id "$PROBE_ID"
 
       - name: データ側にコミット&push
-        if: ${{ inputs.mode != 'probe' }}
+        if: ${{ inputs.mode != 'probe' && inputs.mode != 'probe2' }}
         working-directory: data
         env:
           DATA_REF: ${{ inputs.data_ref }}
