@@ -1,0 +1,94 @@
+name: NPB公式の選手ページの取得（ドラフト・出身・生年月日）
+
+# npb.jp（NPB公式）の選手ページ（npb.jp/bis/players/{ID}.html）から、生年月日・経歴・ドラフトなどを取り、
+# 非公開のデータ側リポジトリ（sports-dashboard-data / draft/）のCSVに保存する。
+# スクリプトはデータ側の draft/scrape_npb_player_pages.py（取得と解析には、このリポジトリの baseball/scripts/npbjp_history.py を使う）。
+# 公開側（docs/）には何も書かない。ログには件数と警告だけを出す（probeだけ、ページの形を確かめるために見本を出す）。
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'probe=形の確認(保存しない) / ids=選手IDの対応表を作る / pages=選手ページを取る'
+        required: true
+        default: 'probe'
+      years:
+        description: 'idsモードの対象年（スペース区切り）'
+        required: false
+        default: '2005 2006 2007 2008 2009 2010 2011 2012 2013 2014 2015 2016 2017 2018 2019 2020 2021 2022 2023 2024 2025 2026'
+      limit:
+        description: 'pagesモードで今回取る人数（0で全員）'
+        required: false
+        default: '0'
+      probe_id:
+        description: 'probeモードで解析する選手ページのID'
+        required: false
+        default: '51955114'
+      data_ref:
+        description: 'データ側リポジトリのブランチ（スクリプトを置いてある場所。結果もここにpushする）'
+        required: false
+        default: 'main'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: npb-player-pages
+  cancel-in-progress: false
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    timeout-minutes: 330
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: データ側リポジトリを取得（非公開。draft/だけ）
+        uses: actions/checkout@v4
+        with:
+          repository: yuppi-0/sports-dashboard-data
+          token: ${{ secrets.DATA_REPO_TOKEN }}
+          ref: ${{ inputs.data_ref }}
+          sparse-checkout: draft
+          path: data
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - run: pip install requests beautifulsoup4
+
+      - name: npb.jp から取得する
+        env:
+          MODE: ${{ inputs.mode }}
+          YEARS: ${{ inputs.years }}
+          LIMIT: ${{ inputs.limit }}
+          PROBE_ID: ${{ inputs.probe_id }}
+          NPBJP_DIR: ${{ github.workspace }}/baseball/scripts
+        run: |
+          set -eu
+          case "$MODE" in (probe|ids|pages) ;; (*) echo "modeはprobe/ids/pages"; exit 1;; esac
+          case "$YEARS" in (*[!0-9\ ]*) echo "年は数字とスペースのみ"; exit 1;; esac
+          case "$LIMIT" in (*[!0-9]*|"") echo "limitは数字"; exit 1;; esac
+          case "$PROBE_ID" in (*[!0-9]*|"") echo "probe_idは数字"; exit 1;; esac
+          cd data/draft
+          python scrape_npb_player_pages.py "$MODE" --years $YEARS --limit "$LIMIT" --probe-id "$PROBE_ID"
+
+      - name: データ側にコミット&push
+        if: ${{ inputs.mode != 'probe' }}
+        working-directory: data
+        env:
+          DATA_REF: ${{ inputs.data_ref }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add draft/npb_player_ids.csv draft/npb_player_pages.csv 2>/dev/null || true
+          if git diff --cached --quiet; then
+            echo "変更なし"
+          else
+            git commit -q -m "NPB公式の選手ページを取得(npb-player-pages)"
+            for n in 1 2 3 4; do
+              git push -q origin "HEAD:refs/heads/$DATA_REF" && break
+              git pull -q --rebase origin "$DATA_REF"; sleep $((n*3))
+            done
+          fi
