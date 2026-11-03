@@ -67,7 +67,7 @@ jobs:
           NPBJP_DIR: ${{ github.workspace }}/baseball/scripts
         run: |
           set -eu
-          case "$MODE" in (probe|probe2|ids|pages|draft) ;; (*) echo "modeはprobe/ids/pages/draft"; exit 1;; esac
+          case "$MODE" in (probe|probe2|ids|register|pages|draft) ;; (*) echo "modeはprobe/ids/pages/draft"; exit 1;; esac
           case "$YEARS" in (*[!0-9\ ]*) echo "年は数字とスペースのみ"; exit 1;; esac
           case "$LIMIT" in (*[!0-9]*|"") echo "limitは数字"; exit 1;; esac
           case "$PROBE_ID" in (*[!0-9]*|"") echo "probe_idは数字"; exit 1;; esac
@@ -82,7 +82,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          for f in draft/npb_player_ids.csv draft/npb_player_pages.csv draft/npb_draft_results.csv; do [ -f "$f" ] && git add "$f"; done || true      # 1つでも無いと git add 全体が失敗するので、あるファイルだけを1つずつ追加する
+          for f in draft/npb_player_ids.csv draft/npb_player_pages.csv draft/npb_draft_results.csv draft/npb_register.csv; do [ -f "$f" ] && git add "$f"; done || true      # 1つでも無いと git add 全体が失敗するので、あるファイルだけを1つずつ追加する
           if git diff --cached --quiet; then
             echo "変更なし"
           else
