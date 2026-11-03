@@ -82,7 +82,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add draft/npb_player_ids.csv draft/npb_player_pages.csv draft/npb_draft_results.csv 2>/dev/null || true
+          for f in draft/npb_player_ids.csv draft/npb_player_pages.csv draft/npb_draft_results.csv; do [ -f "$f" ] && git add "$f"; done || true      # 1つでも無いと git add 全体が失敗するので、あるファイルだけを1つずつ追加する
           if git diff --cached --quiet; then
             echo "変更なし"
           else
