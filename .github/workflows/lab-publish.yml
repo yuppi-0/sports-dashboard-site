@@ -1,0 +1,69 @@
+name: ラボのページを暗号化して公開（docs/lab/index.html）
+
+# 非公開のデータ側リポジトリ（sports-dashboard-data / draft/lab_board.html）で作ったページを、
+# パスワードで暗号化して docs/lab/index.html に置く。パスワードは、このリポジトリの Secrets の BOARD_PASSWORD に入れておく
+# （チャットやファイルには書かない）。公開されるのは暗号文だけ。
+
+on:
+  workflow_dispatch:
+    inputs:
+      data_ref:
+        description: 'データ側リポジトリのブランチ（lab_board.html を置いてある場所）'
+        required: false
+        default: 'main'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: lab-publish
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: データ側リポジトリを取得（非公開。draft/だけ）
+        uses: actions/checkout@v4
+        with:
+          repository: yuppi-0/sports-dashboard-data
+          token: ${{ secrets.DATA_REPO_TOKEN }}
+          ref: ${{ inputs.data_ref }}
+          sparse-checkout: draft
+          path: data
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - run: pip install cryptography
+
+      - name: 暗号化して docs/lab/index.html に置く
+        env:
+          BOARD_PASSWORD: ${{ secrets.BOARD_PASSWORD }}
+          BOARD_GZIP: '1'
+        run: |
+          set -eu
+          if [ -z "$BOARD_PASSWORD" ]; then echo "Secrets の BOARD_PASSWORD が未設定です"; exit 1; fi
+          test -f data/draft/lab_board.html
+          python data/draft/encrypt_board.py data/draft/lab_board.html docs/lab/index.html
+
+      - name: コミット&push
+        env:
+          DATA_REF: ${{ inputs.data_ref }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add docs/lab/index.html
+          if git diff --cached --quiet; then
+            echo "変更なし"
+          else
+            git commit -q -m "lab: ラボのページを更新(暗号化して公開)"
+            for n in 1 2 3 4; do
+              git push -q origin HEAD:main && break
+              git pull -q --rebase origin main; sleep $((n*3))
+            done
+          fi
