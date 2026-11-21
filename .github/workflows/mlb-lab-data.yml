@@ -1,0 +1,76 @@
+name: MLB版ラボ用のデータ取得（MLB公式API）
+
+# MLB公式のStats API(statsapi.mlb.com)から、年別の打撃・投手成績、ドラフト、生年月日を取って、
+# 非公開のデータ側リポジトリ（sports-dashboard-data / draft/mlb/）に保存する。公開側（docs/）には何も書かない。
+# 公開APIで、キーは不要。ログには件数と警告だけを出す（probeだけ、形の確認のために見本を出す）。
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'probe=形の確認(保存しない) / stats=年別成績 / draft=ドラフト / people=生年月日など'
+        required: true
+        default: 'probe'
+      years:
+        description: 'stats・draftモードの対象年（スペース区切り）'
+        required: false
+        default: '2005 2006 2007 2008 2009 2010 2011 2012 2013 2014 2015 2016 2017 2018 2019 2020 2021 2022 2023 2024 2025 2026'
+      data_ref:
+        description: 'データ側リポジトリのブランチ（スクリプトを置いてある場所。結果もここにpushする）'
+        required: false
+        default: 'main'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mlb-lab-data
+  cancel-in-progress: false
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    steps:
+      - name: データ側リポジトリを取得（非公開。draft/だけ）
+        uses: actions/checkout@v4
+        with:
+          repository: yuppi-0/sports-dashboard-data
+          token: ${{ secrets.DATA_REPO_TOKEN }}
+          ref: ${{ inputs.data_ref }}
+          sparse-checkout: draft
+          path: data
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: MLB公式APIから取得する
+        env:
+          MODE: ${{ inputs.mode }}
+          YEARS: ${{ inputs.years }}
+        run: |
+          set -eu
+          case "$MODE" in (probe|stats|draft|people) ;; (*) echo "modeはprobe/stats/draft/people"; exit 1;; esac
+          case "$YEARS" in (*[!0-9\ ]*) echo "年は数字とスペースのみ"; exit 1;; esac
+          cd data/draft
+          python scrape_mlb.py "$MODE" --years $YEARS
+
+      - name: データ側にコミット&push
+        if: ${{ inputs.mode != 'probe' }}
+        working-directory: data
+        env:
+          DATA_REF: ${{ inputs.data_ref }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add draft/mlb
+          if git diff --cached --quiet; then
+            echo "変更なし"
+          else
+            git commit -q -m "MLB公式APIの成績・ドラフト・生年月日を取得(mlb-lab-data)"
+            for n in 1 2 3 4; do
+              git push -q origin "HEAD:refs/heads/$DATA_REF" && break
+              git pull -q --rebase origin "$DATA_REF"; sleep $((n*3))
+            done
+          fi
