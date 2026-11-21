@@ -1,0 +1,53 @@
+name: 名シーン動画の候補を集める（YouTube検索・メタデータのみ）
+
+# YouTubeの検索結果から、タイトル・チャンネル・動画IDなどのメタデータだけを取る。動画そのものは保存しない。
+# 結果は非公開のデータ側リポジトリ（sports-dashboard-data / draft/videos/）に保存する。
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'probe=形の確認(保存しない)'
+        required: true
+        default: 'probe'
+      queries:
+        description: '検索語（probeのみ。「|」区切り）'
+        required: false
+        default: '柳田悠岐 ホームラン ハイライト|パ・リーグ公式 好プレー|大谷翔平 日本ハム ハイライト'
+      data_ref:
+        description: 'データ側リポジトリのブランチ'
+        required: false
+        default: 'main'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: npb-videos
+  cancel-in-progress: false
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: yuppi-0/sports-dashboard-data
+          token: ${{ secrets.DATA_REPO_TOKEN }}
+          ref: ${{ inputs.data_ref }}
+          sparse-checkout: draft
+          path: data
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -q yt-dlp
+      - name: 取得する
+        env:
+          MODE: ${{ inputs.mode }}
+          QUERIES: ${{ inputs.queries }}
+        run: |
+          set -eu
+          cd data/draft
+          IFS='|' read -r -a QS <<< "$QUERIES"
+          python scrape_videos.py "$MODE" --queries "${QS[@]}"
