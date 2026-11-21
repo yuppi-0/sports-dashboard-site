@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
     inputs:
       mode:
-        description: 'probe=形の確認(保存しない) / stats=年別成績 / minor=マイナーリーグの年別成績 / draft=ドラフト / people=生年月日など'
+        description: 'probe=形の確認(保存しない) / stats=年別成績 / minor=マイナーリーグの年別成績 / war=MLBのWAR / draft=ドラフト / people=生年月日など'
         required: true
         default: 'probe'
       years:
@@ -51,7 +51,7 @@ jobs:
           YEARS: ${{ inputs.years }}
         run: |
           set -eu
-          case "$MODE" in (probe|stats|minor|draft|people) ;; (*) echo "modeはprobe/stats/draft/people"; exit 1;; esac
+          case "$MODE" in (probe|stats|minor|draft|people|war) ;; (*) echo "modeはprobe/stats/draft/people"; exit 1;; esac
           case "$YEARS" in (*[!0-9\ ]*) echo "年は数字とスペースのみ"; exit 1;; esac
           cd data/draft
           python scrape_mlb.py "$MODE" --years $YEARS
