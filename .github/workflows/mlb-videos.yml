@@ -1,0 +1,77 @@
+name: MLB版 名シーン動画の候補を集める（YouTube検索・メタデータのみ）
+
+# YouTubeの検索結果から、タイトル・チャンネル・動画IDなどのメタデータだけを取る。動画そのものは保存しない。
+# 結果は非公開のデータ側リポジトリ（sports-dashboard-data / draft/videos/）に保存する。
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'probe=形の確認(保存しない) / mlb=MLBの活躍選手ごとに検索して保存'
+        required: true
+        default: 'mlb'
+      queries:
+        description: '検索語（probeのみ。「|」区切り）'
+        required: false
+        default: '柳田悠岐 ホームラン ハイライト|パ・リーグ公式 好プレー|大谷翔平 日本ハム ハイライト'
+      limit:
+        description: 'playersモードの人数の上限（0=全員）'
+        required: false
+        default: '0'
+      data_ref:
+        description: 'データ側リポジトリのブランチ'
+        required: false
+        default: 'main'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mlb-videos
+  cancel-in-progress: false
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: yuppi-0/sports-dashboard-data
+          token: ${{ secrets.DATA_REPO_TOKEN }}
+          ref: ${{ inputs.data_ref }}
+          sparse-checkout: draft
+          path: data
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -q yt-dlp
+      - name: 取得する
+        env:
+          MODE: ${{ inputs.mode }}
+          QUERIES: ${{ inputs.queries }}
+          LIMIT: ${{ inputs.limit }}
+        run: |
+          set -eu
+          cd data/draft
+          IFS='|' read -r -a QS <<< "$QUERIES"
+          case "$LIMIT" in (*[!0-9]*) echo "limitは数字"; exit 1;; esac
+          python scrape_videos.py "$MODE" --queries "${QS[@]}" --limit "$LIMIT"
+      - name: データ側にコミット&push
+        if: ${{ inputs.mode != 'probe' }}
+        working-directory: data
+        env:
+          DATA_REF: ${{ inputs.data_ref }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add draft/videos
+          if git diff --cached --quiet; then
+            echo "変更なし"
+          else
+            git commit -q -m "名シーン動画の候補を取得(mlb-videos)"
+            for n in 1 2 3 4; do
+              git push -q origin "HEAD:refs/heads/$DATA_REF" && break
+              git pull -q --rebase origin "$DATA_REF"; sleep $((n*3))
+            done
+          fi
