@@ -56,7 +56,7 @@ jobs:
           cd data/draft
           IFS='|' read -r -a QS <<< "$QUERIES"
           case "$LIMIT" in (*[!0-9]*) echo "limitは数字"; exit 1;; esac
-          python scrape_videos.py "$MODE" --queries "${QS[@]}" --limit "$LIMIT"
+          python scrape_videos.py "$MODE" --queries "${QS[@]}" --limit "$LIMIT" --league mlb
       - name: データ側にコミット&push
         if: ${{ inputs.mode != 'probe' }}
         working-directory: data
